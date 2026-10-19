@@ -1,135 +1,96 @@
-/* RD.C - RetroDesk 2 Kern, Stand Phase 1: laedt ein RD2-Programm und startet es.
- * Noch ohne Speicherverwaltung, Tasks und Grafik. Prueft Format und Aufrufweg.
- * Bau: Modell Small, -zu (API-Aufrufe kommen mit dem Stack des Programms). */
-#define RD2_KERNEL
-#include "RD2.H"
-#include "RD2ORD.H"
-#include <dos.h>
-#include <i86.h>
-#include <string.h>
-#include <conio.h>
-#pragma intrinsic(inp, outp)
+/* RD.C - RetroDesk 2 Kern: Start, Ausgabe fuer die Fehlersuche, Systeminfo.
+ * Stand Phase 2: Speicher (MEM.C), Tasks/Nachrichten/Zeitgeber (TASK.C).
+ * Aufruf: RD [/KOOP] programm.exe [parameter] */
+#include "KERN.H"
 
-#define RDK __far __pascal __loadds
-extern FARPROC rd_api[RDO_MAX];
-extern short __cdecl rd_enter(WORD cs, WORD ip, void __far *api, WORD hinst, WORD show, char __far *cmd);
+KREGS kr;
+WORD  k_lasterr;
+char  k_home[66];
+BYTE  k_fpu;
+static char cmdline[80];
 
-static WORD lasterr;
-static union REGS r;                              /* statisch: SS != DS bei API-Aufrufen */
-static struct SREGS sr;
-static char numbuf[12];
-static char cmdline[128];
-
-/* ---- Ausgabe: COM1 (Fehlersuche) und Bildschirm ------------------------
- * Wird auch aus API-Aufrufen benutzt (SS = Stack des Programms): darum keine
- * Funktionen der C-Bibliothek, nur Ports und eigene Schleifen. */
+/* ---- Ausgabe: COM1 (immer) und Bildschirm (nur im Kern-Kontext) ---------- */
 static void ser(char c)
 {
-    unsigned n = 0;
-    while (!(inp(0x3FD) & 0x20) && ++n) ;            /* Sender frei (mit Zeitgrenze, falls kein COM1) */
+    WORD n = 0;
+    while (!(inp(0x3FD) & 0x20) && ++n) ;
     outp(0x3F8, c);
 }
-static void con(char c) { r.h.ah = 2; r.h.dl = c; intdos(&r, &r); }   /* nur im Kern-Kontext */
-static void out(const char __far *s, int scr)
+static void con(char c) { kr.ax = 0x0200; kr.dx = (BYTE)c; rd_int(0x21, &kr); }
+void k_out(LPCSTR s, int scr)
 {
-    for (; *s; s++) { ser(*s); if (scr) con(*s); }     /* scr nur im Kern-Kontext */
+    for (; *s; s++) { ser(*s); if (scr) con(*s); }
     ser('\r'); ser('\n'); if (scr) { con('\r'); con('\n'); }
 }
-static char *hex(DWORD v)
+void k_hex(LPCSTR s, DWORD v, int scr)
 {
     static const char h[] = "0123456789ABCDEF";
-    int i;
-    numbuf[0] = ' '; numbuf[1] = '0'; numbuf[2] = 'x';
-    for (i = 0; i < 8; i++) numbuf[3 + i] = h[(v >> (28 - 4 * i)) & 15];
-    numbuf[11] = 0;
-    return numbuf;
-}
-static void outhex(const char __far *s, DWORD v, int scr)
-{
     static char b[100];
-    int n = 0; const char *h = hex(v);
+    WORD n = 0, i;
     while (*s && n < 80) b[n++] = *s++;
-    while (*h) b[n++] = *h++;
+    b[n++] = ' '; b[n++] = '0'; b[n++] = 'x';
+    for (i = 0; i < 8; i++) b[n++] = h[(WORD)(v >> (28 - 4 * i)) & 15];
     b[n] = 0;
-    out(b, scr);
+    k_out(b, scr);
 }
 
-/* ---- API (Phase 1) ---------------------------------------------------- */
+/* ---- API: Kern ------------------------------------------------------------ */
 WORD RDK KernVersion(void)            { return RD2_API_VERSION; }
-WORD RDK LastError(void)              { return lasterr; }
-void RDK SetLastError(WORD e)         { lasterr = e; }
-HTASK RDK TaskSelf(void)              { return 1; }
-void RDK DbgPrint(LPCSTR s)           { out(s, 0); }
-void RDK DbgHex(LPCSTR s, DWORD v)    { outhex(s, v, 0); }
-DWORD RDK TickCount(void)             { return *(DWORD __far *)MK_FP(0x40, 0x6C) * 55UL; }
-
-/* ---- Programm laden --------------------------------------------------- */
-#pragma pack(push, 1)
-typedef struct { WORD sig, cblp, cp, crlc, cparhdr, minalloc, maxalloc, ss, sp, csum, ip, cs, lfarlc, ovno; } MZ;
-typedef struct { char sig[4]; DWORD blk, len; WORD sum, res; } TRAILER;
-typedef struct { char sig[4]; WORD api, flags, stack, kb; char name[16]; WORD ver, nexp, nres, oexp, ores, res[5]; } RD2BLK;
-#pragma pack(pop)
-
-/* Laden laeuft im Kern-Kontext, wegen -zu sind Adressen lokaler Variablen aber FAR:
-   deshalb alles hier statisch. */
-static unsigned got;
-static int rdfile(int f, long pos, int how, void *buf, unsigned n)
+WORD RDK LastError(void)              { return k_lasterr; }
+void RDK SetLastError(WORD e)         { k_lasterr = e; }
+void RDK DbgPrint(LPCSTR s)           { k_out(s, 0); }
+void RDK DbgHex(LPCSTR s, DWORD v)    { k_hex(s, v, 0); }
+WORD RDK KernInfo(SYSINFO FAR *si)
 {
-    r.x.ax = 0x4200 | how; r.x.bx = f; r.x.cx = (WORD)(pos >> 16); r.x.dx = (WORD)pos;
-    intdos(&r, &r);
-    if (r.x.cflag) return 0;
-    return _dos_read(f, buf, n, &got) == 0 && got == n;
-}
-
-static short res;
-static WORD load(const char *path, const char *cmd)
-{
-    static MZ mz; static TRAILER t; static RD2BLK b; static int f; static unsigned seg;
-    static struct { WORD seg, reloc; } pb;
-    unsigned i; DWORD img; WORD sum = 0, paras;
-    if (_dos_open(path, 0, &f)) return RD_ERR_NOTFOUND;
-    if (!rdfile(f, 0, 0, &mz, sizeof mz) || mz.sig != 0x5A4D) { _dos_close(f); return RD_ERR_FORMAT; }
-    if (!rdfile(f, -16L, 2, &t, sizeof t) || memcmp(t.sig, "RD2!", 4)) { _dos_close(f); return RD_ERR_FORMAT; }
-    if (!rdfile(f, t.blk, 0, &b, sizeof b) || memcmp(b.sig, "RD2P", 4)) { _dos_close(f); return RD_ERR_FORMAT; }
-    _dos_close(f);
-    for (i = 0; i < sizeof b; i++) sum += ((BYTE *)&b)[i];
-    if (sum != t.sum) return RD_ERR_FORMAT;
-    if (b.api > RD2_API_VERSION) return RD_ERR_VERSION;
-    img = (DWORD)mz.cp * 512 - (mz.cblp ? 512 - mz.cblp : 0) - (DWORD)mz.cparhdr * 16;
-    paras = (WORD)((img + 15) >> 4) + mz.minalloc;
-    if (_dos_allocmem(paras, &seg)) return RD_ERR_NOMEM;
-    pb.seg = seg; pb.reloc = seg;
-    r.x.ax = 0x4B03; r.x.dx = FP_OFF(path); sr.ds = FP_SEG((void __far *)path);
-    r.x.bx = FP_OFF((void __far *)&pb); sr.es = FP_SEG((void __far *)&pb);
-    intdosx(&r, &r, &sr);
-    if (r.x.cflag) { _dos_freemem(seg); return RD_ERR_DISK; }
-    b.name[15] = 0;
-    outhex("RD: geladen, Segment", seg, 1);
-    res = rd_enter(seg + mz.cs, mz.ip, (void __far *)rd_api, 1, SW_SHOW, (char __far *)cmd);
-    _dos_freemem(seg);
-    return RD_OK;
+    WORD i;
+    BYTE FAR *p = (BYTE FAR *)si;
+    for (i = 0; i < sizeof(SYSINFO); i++) p[i] = 0;
+    si->api = RD2_API_VERSION; si->modus = RD_MODE_R; si->cpu = CPU_8088;
+    si->fpu = k_fpu ? 87 : 0;
+    kr.ax = 0x3000; rd_int(0x21, &kr); si->dos = (WORD)((kr.ax & 0xFF) << 8) | (kr.ax >> 8);
+    rd_int(0x12, &kr); si->kb_konv = kr.ax;
+    si->bootlw = 1; si->sprache = RD_LANG_DE;
+    for (i = 0; i < 65 && k_home[i]; i++) si->home[i] = k_home[i];
+    return 0;
 }
 
 int main(int argc, char **argv)
 {
-    WORD e; int i;
-    r.h.ah = 0; r.h.al = 0xE3; r.x.dx = 0; int86(0x14, &r, &r);   /* COM1 9600 8N1 */
-    rd_api[RDO_KernVersion]  = (FARPROC)KernVersion;
-    rd_api[RDO_LastError]    = (FARPROC)LastError;
-    rd_api[RDO_SetLastError] = (FARPROC)SetLastError;
-    rd_api[RDO_TaskSelf]     = (FARPROC)TaskSelf;
-    rd_api[RDO_DbgPrint]     = (FARPROC)DbgPrint;
-    rd_api[RDO_DbgHex]       = (FARPROC)DbgHex;
-    rd_api[RDO_TickCount]    = (FARPROC)TickCount;
-    out("RD: RetroDesk 2 Kern (Phase 1), API 1.0", 1);
-    if (argc < 2) { out("Aufruf: RD programm.exe [parameter]", 1); return 1; }
-    cmdline[0] = 0;
-    for (i = 2; i < argc && strlen(cmdline) + strlen(argv[i]) < 120; i++) {
-        if (i > 2) strcat(cmdline, " ");
-        strcat(cmdline, argv[i]);
+    WORD h; int a = 1, i, koop = 0; DWORD vor, nach;
+    char *s;
+    kr.ax = 0x00E3; kr.dx = 0; rd_int(0x14, &kr);           /* COM1 9600 8N1 */
+    for (i = 0, s = argv[0]; *s && i < 64; s++) k_home[i++] = *s;
+    while (i > 0 && k_home[i - 1] != '\\' && k_home[i - 1] != ':') i--;
+    k_home[i] = 0;
+    if (a < argc && (argv[a][0] == '/' || argv[a][0] == '-') && (argv[a][1] == 'K' || argv[a][1] == 'k')) { koop = 1; a++; }
+    k_fpu = (BYTE)rd_fpudet();
+    rd_nsinit();
+    KAPI(KernVersion, KernVersion); KAPI(KernInfo, KernInfo); KAPI(LastError, LastError);
+    KAPI(SetLastError, SetLastError); KAPI(DbgPrint, DbgPrint); KAPI(DbgHex, DbgHex);
+    mem_api();
+    task_api();
+    k_out("RD: RetroDesk 2 Kern (Phase 2), API 1.0", 1);
+    if (a >= argc) { k_out("Aufruf: RD [/KOOP] programm.exe [parameter]", 1); return 1; }
+    for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {
+        for (s = argv[i]; *s && h < 78; ) cmdline[h++] = *s++;
+        if (i + 1 < argc && h < 78) cmdline[h++] = ' ';
     }
-    e = load(argv[1], cmdline);
-    if (e) { outhex("RD: Fehler beim Laden", e, 1); return 2; }
-    outhex("RD: Programm beendet, Ergebnis", (DWORD)(WORD)res, 1);
+    cmdline[h] = 0;
+    mem_init(64);
+    task_init();
+    vor = mem_free_bytes(0);
+    k_hex("RD: Speicher frei", vor, 1);
+    k_hex("RD: 8087", k_fpu, 1);
+    k_out(koop ? "RD: Umschalten nur kooperativ (/KOOP)" : "RD: Zeitscheiben an", 1);
+    rd_preempt = koop ? 0 : 1;
+    rd_timer_on(16384);
+    h = task_load(argv[a], cmdline, SW_SHOW);
+    if (!h) { rd_timer_off(); k_hex("RD: Fehler beim Laden", k_lasterr, 1); mem_done(); return 2; }
+    task_run_all();
+    rd_timer_off();
+    nach = mem_free_bytes(0);
+    k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);
+    k_out(vor == nach ? "RD: Speicher vollstaendig zurueck" : "RD: SPEICHERLECK", 1);
+    mem_done();
     return 0;
 }

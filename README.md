@@ -2,7 +2,9 @@
 
 Grafische Umgebung für 8088 (640 KB, Diskettenbetrieb) bis Pentium. Entwurf: [../docs/ENTWURF_RD2.md](../docs/ENTWURF_RD2.md), Plan: [../docs/PLAN_RD2.md](../docs/PLAN_RD2.md).
 
-Stand: Phase 0 (Spezifikation API 1.0) freigegeben am 19.10.2026. **Phase 1** (Gerüst, Diskettentest) fertig.
+Stand: Phase 0 (Spezifikation API 1.0) freigegeben am 19.10.2026, Phase 1 (Gerüst, Diskettentest) fertig.
+**Phase 2, Teil 1** fertig: Speicherverwaltung (Handles, verschiebbar, verwerfbar, Verdichten), Tasks mit Zeitscheiben, Nachrichten, Zeitgeber, 8087-Zustand je Task.
+Offen in Phase 2: Module laden/verwerfen mit Diskettenwechsel, Datei-API, Profile, INT-24h-Dialog, Zwischenablage, Notbeenden.
 
 ## Bauen und testen
 
@@ -16,8 +18,8 @@ Aufbau:
 | Ordner | Inhalt |
 |---|---|
 | `sdk/` | `RD2.H`, `RD2API.H`, `RD2ORD.H`, `RD2DRV.H`, `RD2START.ASM` (Startcode) |
-| `kern/` | `RD.C` (Kern, Stand Phase 1: Laden und Starten), `ENTER.ASM` |
-| `apps/` | Programme, zurzeit `leer/` |
+| `kern/` | `RD.C` (Start, Ausgabe, Systeminfo), `MEM.C` (Speicher), `TASK.C` (Laden, Tasks, Nachrichten, Zeitgeber), `KASM.ASM` (Umschalten, INT 8, Kopieren) |
+| `apps/` | `leer/`, `test/` (PING, PONG, RECHNE, MEMTEST für Phase 2) |
 | `tools/` | `apicheck.py`, `mkapi.py` (erzeugt Aufrufstücke und Kerntabelle), `rd2link.py` (RD2-Anhang), `budget.py`/`budget.txt`, `mkdisk.sh` |
 | `test/` | `hdrtest.c`, `floppy.sh` |
 | `gdi/ user/ snd/ drv/ shell/` | folgen ab Phase 2 |

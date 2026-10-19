@@ -9,7 +9,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     DbgHex("LEER: HINST", inst);
     DbgPrint("LEER: Befehlszeile:");
     DbgPrint(cmd);
-    if (MemAlloc(100, MEM_MOVABLE) == 0)          /* gibt es in Phase 1 noch nicht */
-        DbgPrint("LEER: MemAlloc fehlt noch (erwartet)");
+    if (SndCaps() == 0 && LastError() == RD_ERR_NOTSUP)   /* Sound kommt erst in Phase 6 */
+        DbgPrint("LEER: SndCaps fehlt noch (erwartet)");
     return v == RD2_API_VERSION ? 42 : 1;
 }

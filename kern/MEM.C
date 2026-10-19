@@ -1,0 +1,278 @@
+/* MEM.C - Speicherverwaltung des RD2-Kerns (Modus R)
+ *
+ * Der Kern holt sich beim Start fast den ganzen freien DOS-Speicher (Arena)
+ * und verteilt ihn in Paragraphen. Bloecke stehen nach Adresse sortiert in
+ * blk[], freie Bereiche sind Bloecke mit B_FREE.
+ *   fest       (Programmbilder, MemFixed, Kern-intern) von unten
+ *   verschiebbar (MEM_MOVABLE) von oben
+ * Reicht der Platz nicht: 1. verschiebbare, nicht gesperrte Bloecke nach oben
+ * schieben (Luecken schliessen), 2. verwerfbare, nicht gesperrte Bloecke
+ * verwerfen (aeltester Zugriff zuerst), 3. noch einmal verdichten. */
+#include "KERN.H"
+
+#define MAXB 160
+#define MAXH 200
+typedef struct { WORD seg, paras, flags, h, owner; } BLK;
+typedef struct { WORD seg, flags, owner; BYTE lock, used; DWORD size; DWORD stamp; } HND;
+static BLK blk[MAXB];
+static WORD nblk;
+static HND hnd[MAXH + 1];                         /* Handle 1..MAXH */
+static WORD arena, arena_paras;
+static DWORD stamp;
+
+static WORD find_seg(WORD seg)
+{
+    WORD i;
+    for (i = 0; i < nblk; i++) if (blk[i].seg == seg && !(blk[i].flags & B_FREE)) return i;
+    return 0xFFFF;
+}
+static void ins(WORD i)                           /* Platz an Stelle i schaffen */
+{
+    WORD j;
+    for (j = nblk; j > i; j--) blk[j] = blk[j - 1];
+    nblk++;
+}
+static void del(WORD i)
+{
+    for (; i + 1 < nblk; i++) blk[i] = blk[i + 1];
+    nblk--;
+}
+static void merge(void)
+{
+    WORD i = 0;
+    while (i + 1 < nblk) {
+        if ((blk[i].flags & B_FREE) && (blk[i + 1].flags & B_FREE)) { blk[i].paras += blk[i + 1].paras; del(i + 1); }
+        else i++;
+    }
+}
+
+void mem_init(WORD reserve)
+{
+    kr.ax = 0x4800; kr.bx = 0xFFFF; rd_int(0x21, &kr);
+    arena_paras = kr.bx > reserve ? kr.bx - reserve : 0;
+    kr.ax = 0x4800; kr.bx = arena_paras; rd_int(0x21, &kr);
+    arena = CARRY ? 0 : kr.ax;
+    if (!arena) arena_paras = 0;
+    nblk = 1; blk[0].seg = arena; blk[0].paras = arena_paras; blk[0].flags = B_FREE; blk[0].h = 0; blk[0].owner = 0;
+}
+void mem_done(void)
+{
+    if (arena) { kr.ax = 0x4900; kr.es = arena; rd_int(0x21, &kr); arena = 0; }
+}
+
+/* Freien Bereich suchen: fest von unten, verschiebbar von oben */
+static WORD take(WORD paras, WORD flags, WORD h, WORD owner)
+{
+    WORD i, seg; int up = (flags & MEM_MOVABLE) != 0;
+    if (nblk >= MAXB - 1) return 0;
+    for (i = up ? nblk - 1 : 0; i < nblk; i = up ? i - 1 : i + 1) {
+        if (!(blk[i].flags & B_FREE) || blk[i].paras < paras) continue;
+        if (blk[i].paras == paras) {
+            blk[i].flags = flags; blk[i].h = h; blk[i].owner = owner;
+            return blk[i].seg;
+        }
+        if (up) {                                 /* oberes Ende des freien Bereichs */
+            blk[i].paras -= paras;
+            ins(i + 1);
+            seg = blk[i].seg + blk[i].paras;
+            blk[i + 1].seg = seg; blk[i + 1].paras = paras;
+            blk[i + 1].flags = flags; blk[i + 1].h = h; blk[i + 1].owner = owner;
+        } else {
+            ins(i);
+            seg = blk[i + 1].seg;
+            blk[i].seg = seg; blk[i].paras = paras; blk[i].flags = flags; blk[i].h = h; blk[i].owner = owner;
+            blk[i + 1].seg += paras; blk[i + 1].paras -= paras;
+        }
+        return seg;
+    }
+    return 0;
+}
+
+/* Verschiebbare Bloecke nach oben in direkt darueber liegende Luecken schieben */
+static void compact(void)
+{
+    WORD i, moved = 1, gap;
+    while (moved) {
+        moved = 0;
+        for (i = nblk - 1; i > 0; i--) {
+            BLK *f = &blk[i], *b = &blk[i - 1];
+            if (!(f->flags & B_FREE) || (b->flags & (B_FREE | B_INTERN)) || !(b->flags & MEM_MOVABLE)) continue;
+            if (b->h && hnd[b->h].lock) continue;
+            gap = f->paras;
+            rd_pmove(b->seg + gap, b->seg, b->paras);
+            f->seg = b->seg; b->seg += gap;
+            { BLK t = *f; *f = *b; *b = t; }      /* Reihenfolge nach Adresse */
+            if (blk[i].h) hnd[blk[i].h].seg = blk[i].seg;
+            moved = 1;
+        }
+        merge();
+    }
+}
+
+/* Aeltesten verwerfbaren, nicht gesperrten Block verwerfen. 1 = einer verworfen */
+static int discard_one(void)
+{
+    WORD i, best = 0xFFFF; DWORD bs = 0xFFFFFFFFUL;
+    for (i = 0; i < nblk; i++) {
+        WORD h = blk[i].h;
+        if ((blk[i].flags & (B_FREE | MEM_DISCARDABLE)) != MEM_DISCARDABLE || !h || hnd[h].lock) continue;
+        if (hnd[h].stamp < bs) { bs = hnd[h].stamp; best = i; }
+    }
+    if (best == 0xFFFF) return 0;
+    hnd[blk[best].h].seg = 0;                     /* Handle bleibt, Inhalt ist weg */
+    blk[best].flags = B_FREE; blk[best].h = 0; blk[best].owner = 0;
+    merge();
+    return 1;
+}
+
+static WORD get(WORD paras, WORD flags, WORD h, WORD owner)
+{
+    WORD seg;
+    if (!paras) paras = 1;
+    if ((seg = take(paras, flags, h, owner)) != 0) return seg;
+    compact();
+    if ((seg = take(paras, flags, h, owner)) != 0) return seg;
+    while (discard_one()) {
+        compact();
+        if ((seg = take(paras, flags, h, owner)) != 0) return seg;
+    }
+    return 0;
+}
+
+WORD mem_get(WORD paras, WORD flags, WORD owner) { return get(paras, (flags & ~MEM_MOVABLE) | B_INTERN, 0, owner); }
+
+static void put_index(WORD i)
+{
+    blk[i].flags = B_FREE; blk[i].h = 0; blk[i].owner = 0;
+    merge();
+}
+void mem_put(WORD seg) { WORD i = find_seg(seg); if (i != 0xFFFF) put_index(i); }
+
+void mem_owner_free(WORD owner)
+{
+    WORD i, h;
+    for (h = 1; h <= MAXH; h++)
+        if (hnd[h].used && hnd[h].owner == owner && !(hnd[h].flags & MEM_SHARE)) {
+            if (hnd[h].seg) { i = find_seg(hnd[h].seg); if (i != 0xFFFF) put_index(i); }
+            hnd[h].used = 0;
+        }
+    for (i = 0; i < nblk; i++)
+        if (!(blk[i].flags & B_FREE) && blk[i].owner == owner && !(blk[i].flags & MEM_SHARE)) { put_index(i); i = (WORD)-1; }
+}
+
+DWORD mem_free_bytes(int groesster)
+{
+    WORD i; DWORD n = 0;
+    for (i = 0; i < nblk; i++)
+        if (blk[i].flags & B_FREE) {
+            if (groesster) { if (blk[i].paras > n) n = blk[i].paras; }
+            else n += blk[i].paras;
+        }
+    return n << 4;
+}
+
+/* ---- API ------------------------------------------------------------------ */
+static WORD paras_of(DWORD size) { return size > 0x9FFF0UL ? 0 : (WORD)((size + 15) >> 4); }
+
+HMEM RDK MemAlloc(DWORD size, WORD flags)
+{
+    WORD h, p = paras_of(size), seg, f;
+    if (!p && size) return FAIL(RD_ERR_NOMEM);
+    for (h = 1; h <= MAXH && hnd[h].used; h++) ;
+    if (h > MAXH) return FAIL(RD_ERR_NOMEM);
+    f = flags & (MEM_MOVABLE | MEM_DISCARDABLE | MEM_SHARE | MEM_NOEMS);
+    if (f & MEM_DISCARDABLE) f |= MEM_MOVABLE;
+    seg = get(p, f, h, k_cur);
+    if (!seg) return FAIL(RD_ERR_NOMEM);
+    hnd[h].used = 1; hnd[h].seg = seg; hnd[h].flags = f; hnd[h].owner = k_cur;
+    hnd[h].lock = (f & MEM_MOVABLE) ? 0 : 1; hnd[h].size = size; hnd[h].stamp = ++stamp;
+    if (flags & MEM_ZEROINIT) rd_pfill(seg, p ? p : 1, 0);
+    return h;
+}
+static HND *hp(HMEM h) { return (h && h <= MAXH && hnd[h].used) ? &hnd[h] : 0; }
+
+HMEM RDK MemFree(HMEM h)
+{
+    HND *x = hp(h); WORD i;
+    if (!x) return (HMEM)FAIL(RD_ERR_HANDLE) | h;
+    if (x->seg && (i = find_seg(x->seg)) != 0xFFFF) put_index(i);
+    x->used = 0;
+    return 0;
+}
+void FAR * RDK MemLock(HMEM h)
+{
+    HND *x = hp(h);
+    if (!x) { k_lasterr = RD_ERR_HANDLE; return 0; }
+    if (!x->seg) { k_lasterr = RD_ERR_NOTFOUND; return 0; }  /* verworfen */
+    if (x->lock < 255) x->lock++;
+    x->stamp = ++stamp;
+    return MK_FP(x->seg, 0);
+}
+BOOL RDK MemUnlock(HMEM h)
+{
+    HND *x = hp(h);
+    if (!x || !x->lock) return FALSE;
+    if (x->flags & MEM_MOVABLE) x->lock--;
+    return TRUE;
+}
+HMEM RDK MemRealloc(HMEM h, DWORD size, WORD flags)
+{
+    HND *x = hp(h); WORD p = paras_of(size), old, oldp, seg, i, lk;
+    (void)flags;
+    if (!x) return FAIL(RD_ERR_HANDLE);
+    if (!p) return FAIL(RD_ERR_NOMEM);
+    old = x->seg;
+    if (!old) {                                   /* verworfen: neu anlegen */
+        if (!(seg = get(p, x->flags, h, x->owner))) return FAIL(RD_ERR_NOMEM);
+        x->seg = seg; x->size = size; return h;
+    }
+    i = find_seg(old); oldp = blk[i].paras;
+    if (p <= oldp) {                              /* verkleinern: Rest freigeben */
+        if (p < oldp) {
+            ins(i + 1);
+            blk[i].paras = p;
+            blk[i + 1].seg = old + p; blk[i + 1].paras = oldp - p; blk[i + 1].flags = B_FREE; blk[i + 1].h = 0; blk[i + 1].owner = 0;
+            merge();
+        }
+        x->size = size; return h;
+    }
+    if (x->lock && !(x->flags & MEM_MOVABLE) ) return FAIL(RD_ERR_NOMEM);
+    lk = x->lock; x->lock = 1;                    /* waehrend des Umzugs nicht verschieben */
+    seg = get(p, x->flags, h, x->owner);
+    x->lock = lk;
+    if (!seg) return FAIL(RD_ERR_NOMEM);
+    old = x->seg;                                 /* kann durch Verdichten gewandert sein (nicht bei lock) */
+    rd_pmove(seg, old, oldp);
+    i = find_seg(old); if (i != 0xFFFF) put_index(i);
+    x->seg = seg; x->size = size;
+    return h;
+}
+DWORD RDK MemSize(HMEM h)  { HND *x = hp(h); return x ? x->size : 0; }
+WORD  RDK MemFlags(HMEM h) { HND *x = hp(h); return x ? (x->flags | (x->seg ? 0 : 0x4000u) | x->lock) : 0; }
+DWORD RDK MemAvail(WORD art)
+{
+    if (art == MEMA_KONV) return mem_free_bytes(0);
+    if (art == MEMA_GROESSTER) return mem_free_bytes(1);
+    return 0;                                     /* EMS/EXT folgen */
+}
+DWORD RDK MemCompact(DWORD wunsch)
+{
+    (void)wunsch;
+    compact();
+    if (mem_free_bytes(1) < wunsch) { while (mem_free_bytes(1) < wunsch && discard_one()) compact(); }
+    return mem_free_bytes(1);
+}
+void FAR * RDK MemFixed(WORD size)
+{
+    WORD seg = get((WORD)(((DWORD)size + 15) >> 4), MEM_FIXED, 0, k_cur);
+    if (!seg) { k_lasterr = RD_ERR_NOMEM; return 0; }
+    return MK_FP(seg, 0);
+}
+void RDK MemFixedFree(void FAR *p) { if (p && !FP_OFF(p)) mem_put(FP_SEG(p)); }
+
+void mem_api(void)
+{
+    KAPI(MemAlloc, MemAlloc); KAPI(MemFree, MemFree); KAPI(MemLock, MemLock); KAPI(MemUnlock, MemUnlock);
+    KAPI(MemRealloc, MemRealloc); KAPI(MemSize, MemSize); KAPI(MemFlags, MemFlags); KAPI(MemAvail, MemAvail);
+    KAPI(MemCompact, MemCompact); KAPI(MemFixed, MemFixed); KAPI(MemFixedFree, MemFixedFree);
+}

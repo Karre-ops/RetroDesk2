@@ -30,13 +30,18 @@ for n, name, ab in fns:
         f.write(f"{name.upper()}:\n  mov bx, DGROUP\n  mov es, bx\n  les bx, es:__rd2api\n  jmp dword ptr es:[bx+{n*4}]\n")
         f.write("RD2LIB_TEXT ends\nend\n")
 with open(os.path.join(D, "kern", "NOTSUP.ASM"), "w") as f:
-    f.write(hdr + "NOTSUP_TEXT segment word public 'CODE'\nassume cs:NOTSUP_TEXT\n")
+    f.write(hdr + "DGROUP group _BSS, _DATA\n_DATA segment word public 'DATA'\nextrn _k_lasterr:word\n_DATA ends\n_BSS segment word public 'BSS'\n_BSS ends\nNOTSUP_TEXT segment word public 'CODE'\nassume cs:NOTSUP_TEXT, ds:DGROUP\n")
     sizes = sorted(set(ab for _, _, ab in fns) | {0})
     for ab in sizes:
-        f.write(f"ns{ab}:\n  xor ax, ax\n  xor dx, dx\n  retf {ab}\n" if ab else "ns0:\n  xor ax, ax\n  xor dx, dx\n  retf\n")
-    f.write("NOTSUP_TEXT ends\nDGROUP group _DATA\n_DATA segment word public 'DATA'\npublic _rd_api\n_rd_api label dword\n")
-    by = {n: ab for n, _, ab in fns}
-    for i in range(0x400):
-        f.write(f"  dd ns{by.get(i, 0)}\n")
-    f.write("_DATA ends\nend\n")
+        f.write(f"ns{ab}:\n  call nsset\n" + (f"  retf {ab}\n" if ab else "  retf\n"))
+    # LastError = RD_ERR_NOTSUP, Rueckgabe 0 (AX, DX)
+    f.write("nsset:\n  push ds\n  mov ax, DGROUP\n  mov ds, ax\n  mov _k_lasterr, 8\n  pop ds\n  xor ax, ax\n  xor dx, dx\n  ret\n")
+    # Tabelle in _BSS (nicht in der Datei), rd_nsinit fuellt sie beim Start
+    f.write("nstab label word\n")
+    for n, _, ab in fns: f.write(f"  dw {n*4}, ns{ab}\n")
+    f.write(f"nsend label word\npublic _rd_nsinit\n_rd_nsinit proc near\n  push di\n  push si\n  push es\n  push ds\n  pop es\n")
+    f.write("  mov di, offset DGROUP:_rd_api\n  mov cx, 1024\n  cld\nns_l0:\n  mov ax, offset ns0\n  stosw\n  mov ax, cs\n  stosw\n  loop ns_l0\n")
+    f.write("  mov si, offset nstab\nns_l1:\n  cmp si, offset nsend\n  jae ns_l2\n  mov bx, cs:[si]\n  mov ax, cs:[si+2]\n")
+    f.write("  mov word ptr _rd_api[bx], ax\n  mov word ptr _rd_api[bx+2], cs\n  add si, 4\n  jmp ns_l1\nns_l2:\n  pop es\n  pop si\n  pop di\n  ret\n_rd_nsinit endp\n")
+    f.write("NOTSUP_TEXT ends\n_BSS segment word public 'BSS'\npublic _rd_api\n_rd_api dd 1024 dup(?)\n_BSS ends\nend\n")
 print(f"{len(fns)} Funktionen -> sdk/lib/*.ASM, kern/NOTSUP.ASM")

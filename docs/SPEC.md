@@ -20,7 +20,7 @@ Verbindlich sind die Header im SDK, dieses Dokument erklärt sie und legt die Da
 3. **Aufrufkonvention** `far pascal` (`RDAPI`), alle Zeiger FAR. Das ist auf dem 8088 kurz und schnell und aus C, Turbo Pascal und Assembler gleich nutzbar.
 4. **Handles** sind 16 Bit, auch im 32-Bit-Modus. 0 heißt immer "kein" bzw. Fehler.
 5. **Texte** in Codepage 437, mit 0 abgeschlossen. `len = -1` heißt "bis zur 0".
-6. **Kooperativ:** Ein Programm muss regelmäßig `GetMessage`, `PeekMessage` oder `TaskYield` aufrufen. Lange Rechnungen rufen mindestens alle 100 ms `PeekMessage` auf.
+6. **Multitasking (freigegeben 19.10.2026):** Programme sind nachrichtengesteuert und warten in `GetMessage`. Zusätzlich schaltet der Kern etwa alle 55 ms um, aber nur, wenn das unterbrochene Programm gerade in **seinem eigenen Code** ist, also nicht in DOS (InDOS-Flag), im BIOS oder in einer RD2-Funktion. Ein Programm, das lange rechnet, hält die anderen deshalb nicht an. Eingaben und Fensternachrichten bekommt es aber erst, wenn es wieder `GetMessage` oder `PeekMessage` aufruft. Programme dürfen keine eigenen Interrupt-Handler setzen und DOS nicht direkt aufrufen, nur über RD2-Funktionen.
 7. **Fehler:** Funktionen liefern 0/FALSE/-1 und setzen `LastError()` auf `RD_ERR_*`.
 
 ## 2. Programmformat
@@ -115,7 +115,7 @@ Nicht erlaubt sind `printf`, `getch`, `fopen` und Grafik- oder Interrupt-Funktio
 
 ## 3. Module und Treiber
 
-Module (`RDUSER.MOD`, `RDGDI.MOD`, `RDSND.MOD`, `RDNET.MOD`) und Treiber (`*.DRV`) haben dasselbe Format wie Programme, nur mit `RD2M` bzw. `RD2D` und ohne eigenen Task. Ihre API-Funktionen trägt der Kern beim Laden in die Sprungtabelle ein. Fehlt ein Modul, liefern seine Funktionen `RD_ERR_NOTSUP` (z. B. Netzfunktionen ohne `RDNET.MOD`).
+Module (`RDUSER.MOD`, `RDGDI.MOD`, `RDSND.MOD`, `RDNET.MOD`) und Treiber (`*.DRV`) haben dasselbe Format wie Programme, nur mit `RD2M` bzw. `RD2D` und ohne eigenen Task. Ihre API-Funktionen trägt der Kern beim Laden in die Sprungtabelle ein. Fehlt ein Modul, liefern seine Funktionen 0 (AX = DX = 0) und setzen `LastError()` auf `RD_ERR_NOTSUP` (z. B. Netzfunktionen ohne `RDNET.MOD`). Bei Funktionen, deren 0 Erfolg bedeutet (`NetCaps`, `KernInfo`), muss das Programm deshalb `LastError()` prüfen.
 
 Treiber-Tabellen siehe `RD2DRV.H`. Wichtig:
 - Ein Grafiktreiber muss nur `span`, `pixel`, `getpixel`, `put`, `get` liefern, alles Weitere ist optional und wird sonst von RDGDI nachgebaut.
@@ -130,6 +130,7 @@ Bei Grafik ist die Vorgabe beim Start: Hercules, wenn erkannt, sonst VGA mono, w
 - `SendMessage` an ein Fenster eines anderen Tasks wechselt zum Ziel-Task, ruft dessen Fensterfunktion auf und kehrt zurück. Das Programm wartet so lange.
 - `PostMessage` stellt nur ein.
 - Der Kern ruft Fensterfunktionen immer mit Stack und DS des Programms auf, dem das Fenster gehört. Exportieren oder `MakeProcInstance` ist nicht nötig.
+- **Umschalten**: Kooperativ in `GetMessage`, `WaitMessage`, `TaskYield`, `PeekMessage` (wenn leer). Präemptiv aus dem Zeitgeber (PIT 72,8 Hz, Zeitscheibe 4 Takte = 55 ms), wenn CS:IP des unterbrochenen Programms in dessen Programmbild liegt, InDOS und das Kritischer-Fehler-Flag 0 sind und ein anderer Task bereit ist. Beim Umschalten werden Register, Flags und (falls vorhanden) der 8087-Zustand (FNSAVE, 94 Bytes) gesichert. `RD /KOOP` schaltet das präemptive Umschalten ab.
 - **Notbeenden**: Strg+Alt+Rückschritt beendet das aktive Programm, wenn es länger als 5 Sekunden keine Nachricht abgeholt hat.
 - Zeitgeber: Der Kern programmiert den PIT auf 72,8 Hz und ruft den alten INT 8 weiter mit 18,2 Hz auf. `TickCount` liefert ms.
 
