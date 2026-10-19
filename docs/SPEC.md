@@ -1,6 +1,6 @@
 # RetroDesk 2: Spezifikation API 1.0 (Phase 0)
 
-Stand: 19.10.2026, Entwurf zur Freigabe. Grundlage: [ENTWURF_RD2.md](../../docs/ENTWURF_RD2.md), [PLAN_RD2.md](../../docs/PLAN_RD2.md)
+Stand: 19.10.2026, **freigegeben** am 19.10.2026. Grundlage: [ENTWURF_RD2.md](../../docs/ENTWURF_RD2.md), [PLAN_RD2.md](../../docs/PLAN_RD2.md)
 
 Verbindlich sind die Header im SDK, dieses Dokument erklärt sie und legt die Dateiformate fest:
 
@@ -136,7 +136,7 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 
 ## 5. Oberfläche
 
-- **Menüleiste: global oben** (wie RetroDesk 1.x und GEM). Sie zeigt das Menü des aktiven Fensters, die Uhr steht rechts. Diese Festlegung ist meine Annahme und noch nicht freigegeben. Die API (`MenuSet`) funktioniert auch mit Menüs pro Fenster, deshalb ist die Entscheidung bis Phase 4 änderbar.
+- **Menüleiste: global oben** (wie RetroDesk 1.x und GEM). Sie zeigt das Menü des aktiven Fensters, die Uhr steht rechts. Freigegeben am 19.10.2026.
 - Ganz links steht immer das Systemmenü "RD" (Info, Zubehör, Programmliste, Beenden), es gehört der Shell.
 - Zubehör (`PF_TOOL`/`WS_TOOL`) hat kein eigenes Menü. Ist es aktiv, bleibt das Menü des zuletzt aktiven Programms stehen.
 - Neu zeichnen über `M_PAINT`. Popups mit `CS_SAVEBITS` sichern den Hintergrund, wenn genug Speicher frei ist.
@@ -254,9 +254,9 @@ Für DOS-Programme kommen dazu: `Parameter=`, `Ordner=`, `Grafik=1` (Programm sc
 
 Siehe `tools/budget.txt`. Ab Phase 1 prüft der Build jede Datei. Der Inhalt der Systemdiskette darf höchstens **600 KB** belegen, damit auf der 720-KB-Diskette mindestens etwa 110 KB für Daten und `RD2.STA` frei bleiben.
 
-## 13. Offene Punkte zur Freigabe
+## 13. Freigegeben (19.10.2026)
 
-1. Menüleiste global oben (Annahme, Abschnitt 5)
-2. Notbeenden mit Strg+Alt+Rückschritt (Strg+Alt+Entf ist der Neustart)
-3. Systemmenü "RD" ganz links statt "Desk"
-4. Symbolgröße 32x32 bzw. 32x16
+1. Menüleiste global oben (Abschnitt 5)
+2. Notbeenden mit Strg+Alt+Rückschritt (Strg+Alt+Entf bleibt der Neustart)
+3. Systemmenü "RD" ganz links
+4. Symbolgröße 32x32, auf CGA 32x16

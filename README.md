@@ -2,7 +2,7 @@
 
 Grafische Umgebung für 8088 (640 KB, Diskettenbetrieb) bis Pentium. Entwurf: [../docs/ENTWURF_RD2.md](../docs/ENTWURF_RD2.md), Plan: [../docs/PLAN_RD2.md](../docs/PLAN_RD2.md).
 
-Stand: **Phase 0** (Spezifikation API 1.0), zur Freigabe.
+Stand: **Phase 0** (Spezifikation API 1.0) freigegeben am 19.10.2026, weiter mit Phase 1.
 
 - [docs/SPEC.md](docs/SPEC.md): Regeln, Programm-, Ressourcen-, Schrift-, INI-Formate, Disketten, Netz
 - [docs/FUNKTIONEN.md](docs/FUNKTIONEN.md): alle Funktionen mit Nummer
