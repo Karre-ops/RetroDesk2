@@ -1,0 +1,28 @@
+# RD2 Groessengrenzen (Phase 0). Der Build prueft ab Phase 1 jede Zeile.
+# Spalten: Datei  max_Bytes_auf_Diskette  max_KB_im_Speicher  Diskette  Beschreibung
+# Diskette: S = Systemdiskette (bootfaehig), P = Programmdiskette, D = SDK
+RD.EXE          16384   16   S  Starter, Kern, Speicher, Tasks, Nachrichten, Dateien
+RDGDI.MOD       14336   14   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text
+RDUSER.MOD      26624   26   S  Fenster, Menues, Steuerelemente, Dialoge
+RDSND.MOD        4096    4   S  Sound-API, Musik-Player
+CGA.DRV          4096    4   S
+HGC.DRV          4096    4   S
+VGAM.DRV         4096    4   S
+SPEAKER.DRV      2048    2   S
+ADLIB.DRV        2048    2   S
+SYS8.FNT         2560    0   S  wird bei Bedarf geladen, nur die aktive Schrift belegt Speicher
+SYS14.FNT        4096    0   S
+SYS16.FNT        4608    0   S
+DE.LNG           4096    2   S
+EN.LNG           4096    0   S
+SHELL.EXE       40960   30   S  Desktop, Dateimanager (Teile verwerfbar)
+UHR.EXE          6144    6   S  Zubehoer
+NOTIZ.EXE       10240   10   S  Zubehoer
+RECHNER.EXE      8192    8   S  Zubehoer, kleiner Rechner
+RDNET.MOD       20480   18   P  TCP/IP, DHCP, DNS
+RDCALC.EXE      90112   80   P
+RDEDIT.EXE      65536   60   P
+EPSON9.DRV       3072    3   P
+# Summen
+@SYSTEM_DISK   614400        Systemdiskette inkl. DOS 5 (ca. 118 KB) und Maustreiber
+@RAM_RD2               180   Oberflaeche ohne Programme, mit DOS und Maustreiber (Ziel: >= 450 KB frei)

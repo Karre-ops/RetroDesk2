@@ -1,0 +1,262 @@
+# RetroDesk 2: Spezifikation API 1.0 (Phase 0)
+
+Stand: 19.10.2026, Entwurf zur Freigabe. Grundlage: [ENTWURF_RD2.md](../../docs/ENTWURF_RD2.md), [PLAN_RD2.md](../../docs/PLAN_RD2.md)
+
+Verbindlich sind die Header im SDK, dieses Dokument erklärt sie und legt die Dateiformate fest:
+
+| Datei | Inhalt |
+|---|---|
+| `sdk/RD2API.H` | alle 199 Funktionen mit fester Nummer (einzige Quelle) |
+| `sdk/RD2.H` | Typen, Strukturen, Konstanten, Nachrichten, Prototypen |
+| `sdk/RD2DRV.H` | Treiber-Schnittstellen Grafik, Sound, Drucker, Eingabe, Netz |
+| `tools/apicheck.py` | prüft Nummern und Namen, `--list` gibt die Tabelle aus |
+| `tools/budget.txt` | Größengrenzen für Dateien und Speicher |
+| `test/hdrtest.c` | Kompiliertest 16 Bit (Medium, Large) und 32 Bit |
+
+## 1. Grundregeln
+
+1. **API-Version** `RD2_API_MAJOR.MINOR` = 1.0. Jedes Programm trägt im Kopf die Mindestversion. Ist der Kern älter, startet es nicht ("Programm braucht RetroDesk 2 Version x.y").
+2. **Nummern sind für immer.** Eine Funktion behält ihre Nummer und Signatur. Änderungen gibt es nur als neue Funktion, das erhöht MINOR. MAJOR ändert sich nur bei einem Bruch, und der ist nicht geplant.
+3. **Aufrufkonvention** `far pascal` (`RDAPI`), alle Zeiger FAR. Das ist auf dem 8088 kurz und schnell und aus C, Turbo Pascal und Assembler gleich nutzbar.
+4. **Handles** sind 16 Bit, auch im 32-Bit-Modus. 0 heißt immer "kein" bzw. Fehler.
+5. **Texte** in Codepage 437, mit 0 abgeschlossen. `len = -1` heißt "bis zur 0".
+6. **Kooperativ:** Ein Programm muss regelmäßig `GetMessage`, `PeekMessage` oder `TaskYield` aufrufen. Lange Rechnungen rufen mindestens alle 100 ms `PeekMessage` auf.
+7. **Fehler:** Funktionen liefern 0/FALSE/-1 und setzen `LastError()` auf `RD_ERR_*`.
+
+## 2. Programmformat
+
+Ein RD2-Programm ist eine **DOS-MZ-EXE** (Open Watcom, Modell Medium oder Large), gelinkt mit `RD2START.OBJ` und `RD2.LIB`. Hinter dem Programmbild hängt der **RD2-Anhang**, den `RDRC` anfügt:
+
+```
++-----------------------+
+| MZ-Kopf, Relokationen |
+| Programmbild          |  <- Code, Daten, Stack (DGROUP)
++-----------------------+
+| RD2-Block             |  Kopf, Exporttabelle, Ressourcenverzeichnis
+| Ressourcen            |  Menüs, Dialoge, Texte, Symbole, ...
++-----------------------+
+| Abschluss (16 Bytes)  |  "RD2!", Offset RD2-Block, Länge, Prüfsumme
++-----------------------+
+```
+
+DOS ignoriert alles hinter dem Programmbild, die EXE bleibt also eine gültige DOS-Datei.
+
+### 2.1 Abschluss (letzte 16 Bytes der Datei)
+
+| Offset | Typ | Inhalt |
+|---|---|---|
+| 0 | char[4] | `RD2!` |
+| 4 | DWORD | Dateioffset des RD2-Blocks |
+| 8 | DWORD | Länge RD2-Block + Ressourcen |
+| 12 | WORD | Summe aller Bytes des RD2-Blocks (16 Bit) |
+| 14 | WORD | 0 (frei) |
+
+### 2.2 RD2-Block
+
+| Offset | Typ | Inhalt |
+|---|---|---|
+| 0 | char[4] | `RD2P` Programm, `RD2M` Modul, `RD2D` Treiber |
+| 4 | WORD | Mindest-API (z. B. 0x0100) |
+| 6 | WORD | Flags `PF_*` |
+| 8 | WORD | Stack in Bytes (aus `RD2_STACK`, Standard 4096) |
+| 10 | WORD | Speicherbedarf in KB (Hinweis für die Shell) |
+| 12 | char[16] | Anzeigename |
+| 28 | WORD | Programmversion hi.lo |
+| 30 | WORD | Anzahl Exporte |
+| 32 | WORD | Anzahl Ressourcen |
+| 34 | WORD | Offset Exporttabelle (ab Blockanfang) |
+| 36 | WORD | Offset Ressourcenverzeichnis |
+| 38 | WORD[5] | frei, 0 |
+
+Flags `PF_*`: `0x0001` 32 Bit, `0x0002` Zubehör (WS_TOOL), `0x0004` nur einmal starten, `0x0008` braucht 8087, `0x0010` braucht Netz, `0x0020` braucht EMS, `0x0040` nie nach EMS auslagern (DMA).
+
+**Exporttabelle** (nur Module und Treiber): je Eintrag `WORD nummer, WORD offset, WORD segment` (Segment relativ zum Programmbild, der Kern addiert die Ladeadresse). Nummer 1 ist bei Treibern die Treibertabelle (`RD2DRV.H`).
+
+**Ressourcenverzeichnis**: je Eintrag 16 Bytes:
+
+| Typ | Inhalt |
+|---|---|
+| WORD | Typ `RT_*` |
+| WORD | Nummer |
+| WORD | Sprache (`RD_LANG_*`, 0 = alle) |
+| WORD | Flags: `0x0001` sofort laden, `0x0002` verwerfbar (Standard) |
+| DWORD | Offset ab RD2-Block |
+| DWORD | Länge |
+
+### 2.3 Laden und Start
+
+1. Der Kern liest den MZ-Kopf und den Abschluss, prüft Kennung, Prüfsumme und Mindest-API.
+2. Er reserviert `Bildgröße + e_minalloc` am Stück (fester Block) und lädt das Bild mit **INT 21h AX=4B03h** (DOS setzt die Relokationen).
+3. Er setzt SS:SP aus dem MZ-Kopf, DS = SS (DGROUP), und ruft den Einsprung CS:IP mit
+   `AX = 5232h ('R2')`, `ES:BX = API-Tabelle`, `CX = HINST`, `DX = show`, `DS:SI = Befehlszeile`.
+4. `RD2START` speichert die Tabelle, ruft `RdMain` und kehrt mit `AX = Ergebnis` per `RETF` zum Kern zurück.
+5. Startet DOS die EXE direkt, steht in AX nie `5232h`. Dann gibt `RD2START` "Dieses Programm benötigt RetroDesk 2." aus und endet mit Fehlercode 1.
+
+### 2.4 Was verschoben, ausgelagert und verworfen werden kann
+
+| Teil | Modus R (8088) | Modus P (386+) |
+|---|---|---|
+| Programmbild (Code + DGROUP) | **fest**, solange das Programm läuft | verschiebbar |
+| `MemAlloc(MEM_MOVABLE)` | verschiebbar, nach EMS auslagerbar | verschiebbar |
+| `MemAlloc(MEM_DISCARDABLE)` | verwerfbar (Programm lädt neu) | verwerfbar |
+| Ressourcen, Schriften, Bitmaps | verwerfbar, von Diskette nachladbar | verwerfbar |
+| Module/Treiber (`.MOD`, `.DRV`) | verwerfbar, wenn Sperrzähler 0 | verwerfbar |
+
+Ein Programmbild ist auf dem 8088 fest, weil seine Segmentadressen nach der Relokation im Code stehen. Verschieben würde es zerstören. Platz schaffen deshalb Datenblöcke, Ressourcen und Module.
+
+**Module werden nur über Sprungstücke im Kern aufgerufen.** `ModProc` liefert nicht die echte Adresse, sondern ein Stück im Kern. Das lädt das Modul bei Bedarf (mit `DiskRequest`), erhöht den Sperrzähler, ruft auf und senkt den Zähler wieder. Ein Modul, das gerade läuft, wird so nie verworfen.
+
+### 2.5 C-Bibliothek
+
+Erlaubt sind aus der Watcom-Bibliothek alles ohne DOS- und Bildschirmzugriff: `string.h`, `ctype.h`, `math.h` (mit 8087 oder Emulator), `stdlib.h` ohne `malloc`/`system`/`exit`, `sprintf`.
+`RD2.LIB` ersetzt `malloc`, `free`, `realloc` und `calloc` durch `MemFixed`/`MemFixedFree`.
+Nicht erlaubt sind `printf`, `getch`, `fopen` und Grafik- oder Interrupt-Funktionen. Stattdessen gibt es `TextOut`, `M_KEY` und `FileOpen`.
+
+## 3. Module und Treiber
+
+Module (`RDUSER.MOD`, `RDGDI.MOD`, `RDSND.MOD`, `RDNET.MOD`) und Treiber (`*.DRV`) haben dasselbe Format wie Programme, nur mit `RD2M` bzw. `RD2D` und ohne eigenen Task. Ihre API-Funktionen trägt der Kern beim Laden in die Sprungtabelle ein. Fehlt ein Modul, liefern seine Funktionen `RD_ERR_NOTSUP` (z. B. Netzfunktionen ohne `RDNET.MOD`).
+
+Treiber-Tabellen siehe `RD2DRV.H`. Wichtig:
+- Ein Grafiktreiber muss nur `span`, `pixel`, `getpixel`, `put`, `get` liefern, alles Weitere ist optional und wird sonst von RDGDI nachgebaut.
+- Treiber kennen kein Clipping und keine Fenster.
+- Die Treibertabelle wächst nur hinten. `groesse` zeigt, welche Felder es gibt.
+
+Bei Grafik ist die Vorgabe beim Start: Hercules, wenn erkannt, sonst VGA mono, wenn VGA da ist, sonst CGA (wie RetroDesk 1.x). Mit `RD /CGA`, `/HGC`, `/VGA` lässt sie sich überschreiben, ebenso dauerhaft in `RD2.INI`.
+
+## 4. Nachrichten und Tasks
+
+- Jeder Task hat eine Warteschlange (32 Einträge, im Kern). Maus- und Zeitgebernachrichten werden zusammengefasst und erzeugt, wenn sie abgeholt werden (wie Win16). So läuft die Schlange nicht über.
+- `SendMessage` an ein Fenster eines anderen Tasks wechselt zum Ziel-Task, ruft dessen Fensterfunktion auf und kehrt zurück. Das Programm wartet so lange.
+- `PostMessage` stellt nur ein.
+- Der Kern ruft Fensterfunktionen immer mit Stack und DS des Programms auf, dem das Fenster gehört. Exportieren oder `MakeProcInstance` ist nicht nötig.
+- **Notbeenden**: Strg+Alt+Rückschritt beendet das aktive Programm, wenn es länger als 5 Sekunden keine Nachricht abgeholt hat.
+- Zeitgeber: Der Kern programmiert den PIT auf 72,8 Hz und ruft den alten INT 8 weiter mit 18,2 Hz auf. `TickCount` liefert ms.
+
+Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVATE`, `M_PAINT`. Beim Schließen: `M_CLOSE` (Programm darf ablehnen, z. B. bei ungespeicherten Daten), dann `M_DESTROY`.
+
+## 5. Oberfläche
+
+- **Menüleiste: global oben** (wie RetroDesk 1.x und GEM). Sie zeigt das Menü des aktiven Fensters, die Uhr steht rechts. Diese Festlegung ist meine Annahme und noch nicht freigegeben. Die API (`MenuSet`) funktioniert auch mit Menüs pro Fenster, deshalb ist die Entscheidung bis Phase 4 änderbar.
+- Ganz links steht immer das Systemmenü "RD" (Info, Zubehör, Programmliste, Beenden), es gehört der Shell.
+- Zubehör (`PF_TOOL`/`WS_TOOL`) hat kein eigenes Menü. Ist es aktiv, bleibt das Menü des zuletzt aktiven Programms stehen.
+- Neu zeichnen über `M_PAINT`. Popups mit `CS_SAVEBITS` sichern den Hintergrund, wenn genug Speicher frei ist.
+- Tastatur: Alt bzw. F10 öffnet die Menüleiste, Alt+Buchstabe ein Menü, Tab wechselt das Steuerelement, Alt+Tab das Programm, Alt+F4 schließt, F1 öffnet die Hilfe.
+
+## 6. Ressourcen
+
+Quelltext für `RDRC` (Textdatei `.RC`, CP437):
+
+```
+SPRACHE DE
+MENU 1
+  POPUP "&Datei"
+    ITEM "&Neu\tStrg+N"      101
+    ITEM "&Öffnen..."         102
+    TRENNER
+    ITEM "&Beenden"           109
+  ENDE
+ENDE
+DIALOG 10 "Einstellungen" 0 0 220 90
+  STATIC   "Name:"   -1   8  10  50 12
+  EDIT               20  60   8 150 14
+  CHECK    "&Ton"    21   8  30 100 12
+  BUTTON   "OK"       1  60  65  50 16 STANDARD
+  BUTTON   "Abbruch"  2 120  65  50 16
+ENDE
+TEXTE
+  1 "Hallo von RetroDesk 2"
+  2 "Datei nicht gefunden: %s"
+ENDE
+SYMBOL 1 "HALLO.RDB"
+SPRACHE EN
+MENU 1 ...
+```
+
+Dialogmaße sind in **Dialogeinheiten**: 1/4 Breite und 1/8 Höhe der Systemschrift. So passt derselbe Dialog auf CGA (8x8) und VGA (8x16).
+
+Binärformate:
+- **MENU**: Folge von Einträgen `WORD flags (MF_POPUP 1, MF_SEP 2, MF_END 4, MF_GRAY 8), WORD id, Text\0`.
+- **DIALOG**: Kopf `DWORD stil, short x,y,w,h, WORD anzahl, Titel\0`, dann je Element `Klasse\0, Text\0, WORD id, short x,y,w,h, DWORD stil`.
+- **STRING**: `WORD anzahl`, dann `WORD id, WORD offset`, dann die Texte.
+- **ICON/BITMAP/CURSOR**: Format `.RDB` (Abschnitt 7).
+- **ACCEL**: `WORD taste, WORD ks, WORD id`.
+
+Sprache: Der Kern sucht zuerst die Ressource in `LangGet()`, dann Englisch, dann Sprache 0. Systemtexte (Kern, Shell) liegen in `DE.LNG`/`EN.LNG`. Das Format ist dasselbe wie STRING, mit Kopf `RDL1` + `WORD sprache`.
+
+## 7. Bilder und Schriften
+
+**`.RDB` Bitmap**: `RDB1`, `WORD w, h, bpp (1/4/8), flags (1 = mit Maske)`, bei bpp > 1 eine Palette (`n x 3 Bytes RGB`), dann Zeilen von oben, je Zeile auf ganze Bytes aufgefüllt. Mit Maske folgt danach die Maske als 1-Bit-Bild. Symbole sind 32x32 (VGA) und 32x16 (CGA, wegen des Seitenverhältnisses), beide in derselben Ressource-Nummer mit Flag-Bit 2 für die CGA-Fassung.
+
+**`.FNT` Schrift**: `RDF1`, `WORD hoehe, oberlaenge, stil`, `BYTE fest, erstes, letztes, 0`, `char name[13]`, dann `BYTE breite[letztes-erstes+1]`, `WORD offset[...]` und die Zeichen zeilenweise, je Zeile `(breite+7)/8` Bytes. Fett und kursiv berechnet RDGDI, eigene Schnitte sind möglich (eigene Datei mit `stil`).
+
+Mitgeliefert werden `SYS8.FNT` (8x8 aus dem CGA-ROM-Muster), `SYS14.FNT` (aus RDFONT.F14) und `SYS16.FNT` (8x16), später proportionale Schriften.
+
+## 8. Konfigurationsdateien
+
+**`RD2.INI`** (Text, wie Windows-INI):
+
+```ini
+[RD2]
+Grafik=AUTO         ; AUTO, CGA, HGC, VGA
+Sound=AUTO          ; AUTO, AUS, SPEAKER, ADLIB, SB
+Sprache=DE
+Maus=AUTO
+Systemklang=1
+Drucker=EPSON9.DRV
+Port=LPT1
+[Shell]
+Ordner1=A:\
+Programme=PROGRAMM.LST
+[Netz]
+Start=0
+DHCP=1
+```
+
+Die **`.APP`**-Datei meldet ein Programm an (eine je Programm, oder alle in `PROGRAMM.LST` als Abschnitte):
+
+```ini
+[Rechner]
+Datei=RDCALC.EXE
+Symbol=1            ; Ressource in der EXE
+Gruppe=Zubehoer
+Typen=CAL
+Modus=RD2           ; RD2, RD2-32, DOS
+Speicher=48         ; KB
+Diskette=RD2 PROG   ; Datentraegername, falls nicht auf der Systemdiskette
+```
+
+Für DOS-Programme kommen dazu: `Parameter=`, `Ordner=`, `Grafik=1` (Programm schaltet selbst um), `Pause=1`.
+
+**`RD2.STA`** (binär) enthält den Zustand von Shell und Fenstern. Kopf `RDS1` + `WORD version`, unbekannte Versionen werden ignoriert. Es wird nur beim Beenden und vor `RunDos` geschrieben, mit `FileSaveSafe`.
+
+## 9. Disketten
+
+- **Seriennummer**: Der Kern merkt sich für jedes geladene Programm, Modul und jede Ressource die Seriennummer des Datenträgers (INT 21h 6900h, DOS 4+). Muss er nachladen und die Diskette ist eine andere, ruft er `DiskRequest`: "Bitte Diskette RD2 SYSTEM in Laufwerk A: einlegen" mit OK/Abbruch. Bei Abbruch liefert die ladende Funktion `RD_ERR_NODISK`.
+- **Phantomlaufwerk B:** auf Rechnern mit einem Laufwerk: Der Kern setzt das logische Laufwerk selbst (IOCTL 440Fh) und zeigt "Diskette für Laufwerk B: einlegen" als Dialog statt der DOS-Meldung.
+- **INT 24h** wird immer als Dialog gezeigt (Wiederholen, Abbrechen), nie als DOS-Text.
+- **Schreibschutz**: Ist die Systemdiskette geschützt, läuft RD2 ohne `RD2.STA`/`RD2.INI` speichern weiter. Beim ersten Versuch kommt einmal ein Hinweis.
+- **Wechsel**: Die Shell fragt `DriveInfo` beim Aktivieren und alle 2 Sekunden ab, wenn ein Diskettenfenster offen ist (ohne Laufwerkszugriff, über die Wechselleitung bzw. INT 13h 16h). Programme erhalten `M_DISKCHANGE`.
+
+## 10. Netz
+
+- `NetStart` lädt `RDNET.MOD` (TCP/IP aus RetroDesk 1.x `mod/tcp.c`), sucht den Packet-Treiber und holt per DHCP eine Adresse. Das Ergebnis kommt als `M_NETSTATE`.
+- Alle Netzfunktionen kehren sofort zurück. Ergebnisse kommen als Nachricht an das Fenster, das bei `NetOpen`/`NetResolve` angegeben wurde: `M_NETCONNECT`, `M_NETDATA` (Bytes bereit, abholen mit `NetRecv`), `M_NETCLOSED`, `M_NETACCEPT`.
+- Der Stack arbeitet im Hintergrund, während die Programme `GetMessage` aufrufen. Ein Programm, das nicht abholt, bremst nur seine eigenen Verbindungen (TCP-Fenster).
+- Höchstens 8 Verbindungen gleichzeitig in Modus R, Puffer je Verbindung 2 KB Empfang und 1 KB Senden (aus EMS, wenn vorhanden).
+
+## 11. 16 und 32 Bit
+
+- Strukturen ohne Zeiger (`MSG`, `RECT`, `POINT`, `RDTIME`, `FINDDATA`, `DRIVEINFO`, `INSTR`, `NETINFO`) sind in beiden Modi gleich groß. Das prüft `test/hdrtest.c`.
+- Strukturen mit Zeigern (`WNDCLASS`, `FILEDLG`, `PRNJOB`) werden beim Übergang 16 -> 32 Bit vom Kern umgesetzt.
+- `int` kommt in der API nicht vor, nur `short`, `WORD`, `long` und `DWORD`.
+
+## 12. Größengrenzen
+
+Siehe `tools/budget.txt`. Ab Phase 1 prüft der Build jede Datei. Der Inhalt der Systemdiskette darf höchstens **600 KB** belegen, damit auf der 720-KB-Diskette mindestens etwa 110 KB für Daten und `RD2.STA` frei bleiben.
+
+## 13. Offene Punkte zur Freigabe
+
+1. Menüleiste global oben (Annahme, Abschnitt 5)
+2. Notbeenden mit Strg+Alt+Rückschritt (Strg+Alt+Entf ist der Neustart)
+3. Systemmenü "RD" ganz links statt "Desk"
+4. Symbolgröße 32x32 bzw. 32x16
