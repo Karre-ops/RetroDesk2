@@ -470,9 +470,11 @@ typedef struct {
 #define RT_ACCEL 9
 
 /* ---- Funktionen ------------------------------------------------------------ */
+#ifndef RD2_KERNEL                                /* der Kern deklariert selbst (mit __loadds) */
 #define RDF(n, ret, name, args) ret RDAPI name args;
 #include "RD2API.H"
 #undef RDF
+#endif
 
 /* Einsprung des Programms (statt main). cmd = Befehlszeile, show = SW_* */
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show);

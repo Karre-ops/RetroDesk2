@@ -1,0 +1,4 @@
+obj/
+out/
+sdk/lib/
+kern/NOTSUP.ASM

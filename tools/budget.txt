@@ -19,6 +19,7 @@ SHELL.EXE       40960   30   S  Desktop, Dateimanager (Teile verwerfbar)
 UHR.EXE          6144    6   S  Zubehoer
 NOTIZ.EXE       10240   10   S  Zubehoer
 RECHNER.EXE      8192    8   S  Zubehoer, kleiner Rechner
+LEER.EXE         2048    2   S  Testprogramm Phase 1 (faellt spaeter weg)
 RDNET.MOD       20480   18   P  TCP/IP, DHCP, DNS
 RDCALC.EXE      90112   80   P
 RDEDIT.EXE      65536   60   P

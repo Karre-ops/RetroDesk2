@@ -66,7 +66,7 @@ DOS ignoriert alles hinter dem Programmbild, die EXE bleibt also eine gültige D
 | 32 | WORD | Anzahl Ressourcen |
 | 34 | WORD | Offset Exporttabelle (ab Blockanfang) |
 | 36 | WORD | Offset Ressourcenverzeichnis |
-| 38 | WORD[5] | frei, 0 |
+| 38 | WORD[5] | frei, 0 (Block ist 48 Bytes lang) |
 
 Flags `PF_*`: `0x0001` 32 Bit, `0x0002` Zubehör (WS_TOOL), `0x0004` nur einmal starten, `0x0008` braucht 8087, `0x0010` braucht Netz, `0x0020` braucht EMS, `0x0040` nie nach EMS auslagern (DMA).
 
@@ -88,8 +88,9 @@ Flags `PF_*`: `0x0001` 32 Bit, `0x0002` Zubehör (WS_TOOL), `0x0004` nur einmal 
 1. Der Kern liest den MZ-Kopf und den Abschluss, prüft Kennung, Prüfsumme und Mindest-API.
 2. Er reserviert `Bildgröße + e_minalloc` am Stück (fester Block) und lädt das Bild mit **INT 21h AX=4B03h** (DOS setzt die Relokationen).
 3. Er setzt SS:SP aus dem MZ-Kopf, DS = SS (DGROUP), und ruft den Einsprung CS:IP mit
-   `AX = 5232h ('R2')`, `ES:BX = API-Tabelle`, `CX = HINST`, `DX = show`, `DS:SI = Befehlszeile`.
-4. `RD2START` speichert die Tabelle, ruft `RdMain` und kehrt mit `AX = Ergebnis` per `RETF` zum Kern zurück.
+   `AX = 5232h ('R2')`, `ES:BX = API-Tabelle`, `CX = HINST`, `DX = show`, `DI:SI = Befehlszeile` (Segment:Offset).
+4. `RD2START` setzt DS und SS auf die eigene DGROUP (eigener Stack, `RD2_STACK`), speichert die Tabelle, ruft `RdMain`, stellt den Stack des Kerns wieder her und kehrt mit `AX = Ergebnis` per `RETF` zurück.
+   Kernfunktionen werden deshalb mit dem Stack des Programms aufgerufen. Der Kern ist mit `-zu` (SS != DS) gebaut, seine API-Funktionen laden DS selbst (`__loadds`).
 5. Startet DOS die EXE direkt, steht in AX nie `5232h`. Dann gibt `RD2START` "Dieses Programm benötigt RetroDesk 2." aus und endet mit Fehlercode 1.
 
 ### 2.4 Was verschoben, ausgelagert und verworfen werden kann
