@@ -6,6 +6,7 @@
 KREGS kr;
 WORD  k_lasterr;
 char  k_home[66];
+static WORD k_maus;                               /* Maustasten, 0 = keine Maus */
 WORD  k_gfx;
 BYTE  k_fpu, k_cpu;
 static char cmdline[80];
@@ -55,7 +56,7 @@ WORD RDK KernInfo(SYSINFO FAR *si)
     si->fpu = k_fpu ? 87 : 0;
     kr.ax = 0x3000; rd_int(0x21, &kr); si->dos = (WORD)((kr.ax & 0xFF) << 8) | (kr.ax >> 8);
     rd_int(0x12, &kr); si->kb_konv = kr.ax;
-    si->grafik = k_gfx; si->bootlw = 1; si->sprache = RD_LANG_DE;
+    si->grafik = k_gfx; si->maus = k_maus; si->bootlw = 1; si->sprache = RD_LANG_DE;
     for (i = 0; i < 65 && k_home[i]; i++) si->home[i] = k_home[i];
     return 0;
 }
@@ -76,7 +77,13 @@ int main(int argc, char **argv)
         else if (c == 'c') k_gfx = GFX_CGA;
         else if (c == 'h') k_gfx = GFX_HGC;
         else if (c == 'v') k_gfx = GFX_VGAMONO;
+        else if (c == 'n') k_maus = 0xFFFF;              /* /NOMAUS: Maus nicht benutzen (Testbilder) */
     }
+    if (!k_maus) {                                /* Maustreiber da? Vektor 33h gesetzt und kein IRET */
+        BYTE __far * __far *v = (BYTE __far * __far *)MK_FP(0, 0x33 * 4);
+        if (*v && **v != 0xCF) { kr.ax = 0; kr.bx = 0; rd_int(0x33, &kr); if (kr.ax == 0xFFFF) k_maus = kr.bx == 0xFFFF ? 2 : kr.bx; }
+    }
+    if (k_maus == 0xFFFF) k_maus = 0;
     k_fpu = (BYTE)rd_fpudet();
     k_cpu = (BYTE)rd_cpudet();
     rd_nsinit();
@@ -87,7 +94,7 @@ int main(int argc, char **argv)
     file_api();
     mod_api();
     k_out("RD: RetroDesk 2 Kern (Phase 3), API 1.0", 1);
-    if (a >= argc) { k_out("Aufruf: RD [/KOOP] programm.exe [parameter]", 1); return 1; }
+    if (a >= argc) { k_out("Aufruf: RD [/KOOP] [/CGA|/HGC|/VGA] [/NOMAUS] programm.exe [parameter]", 1); return 1; }
     for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {
         for (s = argv[i]; *s && h < 78; ) cmdline[h++] = *s++;
         if (i + 1 < argc && h < 78) cmdline[h++] = ' ';
@@ -97,6 +104,8 @@ int main(int argc, char **argv)
     task_init();
     vor = mem_free_bytes(0);
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
+    if (!gdi) k_hex("RD: RDGDI.MOD fehlt oder ist fehlerhaft, Fehler", k_lasterr, 1);
+    if (gdi) k_mausget = (WORD (__far __pascal *)(WORD __far *))k_modraw(gdi, 0x3C + 5);
     k_hex("RD: Speicher frei", vor, 1);
     k_hex("RD: CPU (0 8088, 2 V20, 4 286, 5 386, 6 486, 7 586)", k_cpu, 1);
     k_hex("RD: 8087", k_fpu, 1);
@@ -108,7 +117,8 @@ int main(int argc, char **argv)
     task_run_all();
     clip_done();                                  /* Zwischenablage gehoert dem Kern */
     rd_timer_off();
-    k_sysend(gdi);                                /* zurueck in den Textmodus */
+    k_mausget = 0;
+    k_sysend(gdi);                                /* zurueck in den Textmodus, Maus aus */
     nach = mem_free_bytes(0);
     k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);
     k_out(vor == nach ? "RD: Speicher vollstaendig zurueck" : "RD: SPEICHERLECK", 1);

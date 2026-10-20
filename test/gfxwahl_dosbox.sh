@@ -12,7 +12,7 @@ for k in cga hgc vga; do
     printf '[sdl]\nfullscreen=false\n[dosbox]\nmachine=%s\nmemsize=1\n[cpu]\ncore=normal\ncputype=%s\ncycles=fixed 3000\n[mixer]\nnosound=true\n[speaker]\npcspeaker=false\n' $MACH $cpu > $R/dbx.conf
     SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy timeout 200 dosbox -conf $R/dbx.conf -c "mount c $R" -c "c:" -c "cd \\RD2" \
       -c "C:\\RD2\\RD.EXE /D GFXWAHL.EXE > \\L1.TXT" -c "C:\\RD2\\RD.EXE /D GFXWAHL.EXE $NEIN > \\L2.TXT" \
-      -c "C:\\RD2\\RD.EXE /D GFXWAHL.EXE $JA > \\L3.TXT" -c "C:\\RD2\\RD.EXE /D GDITEST.EXE > \\L4.TXT" \
+      -c "C:\\RD2\\RD.EXE /D GFXWAHL.EXE $JA > \\L3.TXT" -c "C:\\RD2\\RD.EXE /D /NOMAUS GDITEST.EXE > \\L4.TXT" \
       -c "C:\\RD2\\RD.EXE /D GFXWAHL.EXE a > \\L5.TXT" -c exit >/dev/null 2>&1
     echo "=== $k, cputype=$cpu"
     for n in 1 2 3 4 5; do tr -d '\r' < $R/L$n.TXT 2>/dev/null | sed -n '/^-$/,$p' | grep -E "GFXWAHL|Hoehe|RDGDI"; done

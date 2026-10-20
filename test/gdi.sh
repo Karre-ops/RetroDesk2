@@ -5,8 +5,8 @@ cd "$(dirname "$0")/.."
 IMG=obj/gdi.img; SER=obj/gdi_com1.txt; SOCK=/tmp/qmon_gdi.sock
 cat > obj/ae_gdi.txt <<'AE'
 @echo off
-A:\RD2\RD.EXE /CGA A:\RD2\GDITEST.EXE
-A:\RD2\RD.EXE /VGA A:\RD2\GDITEST.EXE
+A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\GDITEST.EXE
+A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\GDITEST.EXE
 A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/ae_gdi.txt

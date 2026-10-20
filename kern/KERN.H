@@ -80,6 +80,10 @@ int   k_askdisk(WORD drive, LPCSTR label);         /* 0 = Abbruch */
 int   k_dos(void);
 HMOD  k_sysmod(const char *name, WORD base, WORD n, const WORD *extra);
 void  k_sysend(HMOD m);
+void __far *k_modraw(HMOD m, WORD nr);          /* Exportadresse direkt (Systemmodule, ohne Sprungstueck) */
+extern WORD (__far __pascal *k_mausget)(WORD __far *e);   /* RDGDI: Mausereignis abholen */
+extern WORD k_focus;                              /* Task, der Tastatur und Maus bekommt */
+void  input_poll(void);
 extern WORD k_gfx;                                /* /CGA /HGC /VGA: GFX_*, 0 = automatisch */                                /* INT 21h ueber kr mit Diskettenabfrage, 1 = ok */
 WORD  k_media(WORD drive, DWORD *serial, char *label);   /* drive 0 = A: */
 

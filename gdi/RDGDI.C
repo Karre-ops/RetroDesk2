@@ -161,6 +161,105 @@ static void mkbrush(DCX *d)
     patp = pat;
 }
 
+/* ---- Mauszeiger -----------------------------------------------------------------
+ * INT 33h (MOUSE.COM, CTMOUSE): Bereich = Bildschirm, eigener Ereignis-Handler. Der Zeiger
+ * wird im Handler (Interrupt) bewegt, ausser RDGDI zeichnet gerade (gbusy): dann am Ende
+ * des Zeichenaufrufs. Zeichenaufrufe, die das Zeigerrechteck beruehren, nehmen ihn vorher
+ * weg (ex). Ereignisse sammelt ein Ring, der Kern holt sie mit g_MausHole ab. */
+static const BYTE cand[32] = { 0x7F,0xFF,0x3F,0xFF,0x1F,0xFF,0x0F,0xFF,0x07,0xFF,0x03,0xFF,0x01,0xFF,0x00,0xFF,0x00,0x7F,0x00,0x3F,0x01,0xFF,0x10,0xFF,0x30,0xFF,0x78,0x7F,0xF8,0x7F,0xFC,0xFF };
+static const BYTE cxor[32] = { 0x00,0x00,0x00,0x00,0x40,0x00,0x60,0x00,0x70,0x00,0x78,0x00,0x7C,0x00,0x7E,0x00,0x7F,0x00,0x7C,0x00,0x6C,0x00,0x46,0x00,0x06,0x00,0x03,0x00,0x03,0x00,0x00,0x00 };
+static SYSINFO si;
+static BYTE maus, con, cvis;
+static volatile BYTE gbusy, moved;
+static volatile short mx, my; static volatile WORD mbt;
+static short zx, zy, zw, zh;                       /* gezeichnete Lage */
+static BYTE csave[32];
+typedef struct { BYTE art, taste; short x, y; } MEV;
+static volatile MEV mq[16]; static volatile BYTE mqk, mqs;
+
+WORD m33(WORD ax, WORD bx, WORD cx, WORD dx);
+#pragma aux m33 = "int 33h" parm [ax] [bx] [cx] [dx] value [ax] modify [bx cx dx si di es]
+WORD m33bx(WORD ax);
+#pragma aux m33bx = "xor bx,bx" "int 33h" "cmp ax,0FFFFh" "je m1" "xor bx,bx" "m1:" parm [ax] value [bx] modify [ax cx dx si di es]
+void m33h(WORD ax, WORD cx, void (__far *f)(void));
+#pragma aux m33h = "int 33h" parm [ax] [cx] [es dx] modify [ax bx cx dx si di es]
+void cli(void);
+#pragma aux cli = "cli"
+void sti(void);
+#pragma aux sti = "sti"
+
+static void zweg(void)                            /* Zeiger entfernen */
+{
+    if (!con) return;
+    drv->put(zx, zy, zw, zh, (const BYTE FAR *)csave, 2, 1, ROP_COPY, 1, 0);
+    con = 0;
+}
+static void zhin(void)                            /* Zeiger an (mx, my) zeichnen */
+{
+    if (con || !cvis || !drv) return;
+    zx = mx; zy = my;
+    zw = (short)gm.w - zx; if (zw > 16) zw = 16;
+    zh = (short)gm.h - zy; if (zh > 16) zh = 16;
+    if (zw <= 0 || zh <= 0) return;
+    drv->get(zx, zy, zw, zh, (BYTE FAR *)csave, 2);
+    drv->put(zx, zy, zw, zh, (const BYTE FAR *)cand, 2, 1, ROP_AND, 1, 0);
+    drv->put(zx, zy, zw, zh, (const BYTE FAR *)cxor, 2, 1, ROP_XOR, 1, 0);
+    con = 1;
+}
+/* Zeichenaufruf beruehrt l..r-1, t..b-1 (Geraetekoordinaten) */
+static void ex(short l, short t, short r, short b)
+{
+    if (con && dv == drv && l < zx + zw && r > zx && t < zy + zh && b > zy) zweg();
+}
+#pragma aux mhandler parm [ax] [bx] [cx] [dx]
+static void __far __loadds mhandler(WORD ev, WORD bt, WORD x, WORD y)
+{
+    WORD i;
+    mx = (short)x; my = (short)y; mbt = bt;
+    if (ev & 1) moved = 1;
+    for (i = 0; i < 3; i++) {                     /* Bits 1/2 links, 3/4 rechts, 5/6 Mitte */
+        WORD a = (ev >> (1 + 2 * i)) & 3;
+        if (a && (BYTE)(mqs - mqk) < 16) {
+            volatile MEV *e = &mq[mqs & 15];
+            e->art = (BYTE)((a & 1) ? 2 : 3); e->taste = (BYTE)(i + 1); e->x = (short)x; e->y = (short)y;
+            mqs++;
+        }
+    }
+    if (!gbusy && con && (zx != mx || zy != my)) { zweg(); zhin(); }
+}
+static void mausan(void)                          /* Kern hat den Treiber schon gefunden und zurueckgesetzt */
+{
+    if (!si.maus) { maus = 0; return; }
+    maus = (BYTE)si.maus;
+    m33(7, 0, 0, gm.w - 1); m33(8, 0, 0, gm.h - 1);
+    mx = (short)(gm.w / 2); my = (short)(gm.h / 2);
+    m33(4, 0, (WORD)mx, (WORD)my);
+    mqk = mqs = 0; moved = 0; cvis = 1; con = 0;
+    m33h(0x0C, 0x7F, (void (__far *)(void))mhandler);
+    cli(); zhin(); sti();
+}
+static void mausaus(void)
+{
+    if (!maus) return;
+    m33bx(0);                                     /* Zuruecksetzen entfernt auch den Handler */
+    cli(); zweg(); cvis = 0; sti();
+    maus = 0;
+}
+/* fuer den Kern: naechstes Ereignis. e[0] 1 bewegt / 2 gedrueckt / 3 losgelassen,
+   e[1] Taste 1..3 (bei Bewegung: Tastenbits), e[2] x, e[3] y. 0 = keins */
+WORD RDEXPORT g_MausHole(WORD FAR *e)
+{
+    WORD r = 1;
+    cli();
+    if (mqk != mqs) {
+        volatile MEV *q = &mq[mqk & 15];
+        e[0] = q->art; e[1] = q->taste; e[2] = (WORD)q->x; e[3] = (WORD)q->y; mqk++;
+    } else if (moved) { moved = 0; e[0] = 1; e[1] = mbt; e[2] = (WORD)mx; e[3] = (WORD)my; }
+    else r = 0;
+    sti();
+    return r;
+}
+
 /* ---- Auswahl des Ziels -------------------------------------------------------- */
 static DCX *getdc(HDC h)
 {
@@ -197,9 +296,20 @@ static int sel(DCX *d)
     }
     penb = cbit(d->pen); txtb = cbit(d->txt); bkb = cbit(d->bk);
     mkbrush(d);
+    gbusy = 1;
     return 1;
 }
-static void unsel(void) { if (cd && cd->typ == 1) MemUnlock(cd->bmp); cd = 0; }
+static void unsel(void)
+{
+    if (cd && cd->typ == 1) MemUnlock(cd->bmp);
+    cd = 0;
+    if (!gbusy) return;
+    cli();                                        /* Zeiger nachziehen/wieder zeigen */
+    if (con && (zx != mx || zy != my)) zweg();
+    zhin();
+    gbusy = 0;
+    sti();
+}
 
 /* ---- geclippte Grundfunktionen (Geraetekoordinaten) ---------------------------- */
 static void hs(short y, short x0, short x1, int brush, WORD rop)   /* x0..x1 inklusive */
@@ -213,6 +323,7 @@ static void hs(short y, short x0, short x1, int brush, WORD rop)   /* x0..x1 ink
         if (b >= r->r) b = (short)(r->r - 1);
         if (a > b) continue;
         /* nahe Null wird beim Umwandeln zu DS:0000, deshalb ausdruecklich ferne Null */
+        ex(a, y, (short)(b + 1), (short)(y + 1));
         if (brush && patp) dv->span(y, a, b, 0, (const BYTE FAR *)patp, rop);
         else dv->span(y, a, b, brush ? pat[0] : penb, (const BYTE FAR *)0, rop);
     }
@@ -221,7 +332,7 @@ static void px(short x, short y, BYTE farbe, WORD rop)
 {
     WORD i;
     for (i = 0; i < nec; i++)
-        if (x >= ec[i].l && x < ec[i].r && y >= ec[i].t && y < ec[i].b) { dv->pixel(x, y, farbe, rop); return; }
+        if (x >= ec[i].l && x < ec[i].r && y >= ec[i].t && y < ec[i].b) { ex(x, y, (short)(x + 1), (short)(y + 1)); dv->pixel(x, y, farbe, rop); return; }
 }
 static void vs(short x, short y0, short y1, WORD rop)
 {
@@ -233,6 +344,7 @@ static void vs(short x, short y0, short y1, WORD rop)
         if (a < r->t) a = r->t;
         if (b >= r->b) b = (short)(r->b - 1);
         if (a > b) continue;
+        ex(x, a, (short)(x + 1), (short)(b + 1));
         if (dv->vline) dv->vline(x, a, b, penb, rop);
         else for (; a <= b; a++) dv->pixel(x, a, penb, rop);
     }
@@ -252,6 +364,7 @@ static void crows(short y, short x, short w, short h, const BYTE *buf, WORD st, 
         if (b > r->r) b = r->r;
         if (a >= b || ya >= yb) continue;
         o = (WORD)(a - x);
+        ex(a, ya, b, yb);
         s = buf + (WORD)(ya - y) * st;
         if (!o) { dv->put(a, ya, (short)(b - a), (short)(yb - ya), (const BYTE FAR *)s, st, 1, rop, fg, bg); continue; }
         n = ((WORD)(b - a) + 7) >> 3;
@@ -297,9 +410,8 @@ static WORD isqrt(DWORD v)
 }
 
 /* ---- API: Einstellungen ------------------------------------------------------- */
-static int flock(HFONT f);
-static void funlock(void);
 static WORD fh;
+static WORD syshoehe(void) { return gm.h >= 480 ? 16 : gm.h >= 348 ? 14 : 8; }
 short RDEXPORT g_GetCaps(HDC h, WORD i)
 {
     DCX *d = getdc(h);
@@ -321,7 +433,7 @@ short RDEXPORT g_GetCaps(HDC h, WORD i)
     case CAPS_ASPX: return (short)gm.aspx;
     case CAPS_ASPY: return (short)gm.aspy;
     case CAPS_DPI: return 72;
-    case CAPS_TEXTH: { short v = 0; if (flock(0)) { v = (short)fh; funlock(); } return v; }
+    case CAPS_TEXTH: return (short)syshoehe();
     default: return 0;
     }
 }
@@ -354,7 +466,7 @@ COLOR RDEXPORT g_GetPixel(HDC h, short x, short y)
     if (!d || !sel(d)) return c;
     x = (short)(x + d->ox); y = (short)(y + d->oy);
     for (i = 0; i < nec; i++)
-        if (x >= ec[i].l && x < ec[i].r && y >= ec[i].t && y < ec[i].b) { c = dv->getpixel(x, y) ? C_WHITE : C_BLACK; break; }
+        if (x >= ec[i].l && x < ec[i].r && y >= ec[i].t && y < ec[i].b) { ex(x, y, (short)(x + 1), (short)(y + 1)); c = dv->getpixel(x, y) ? C_WHITE : C_BLACK; break; }
     unsel();
     return c;
 }
@@ -496,7 +608,9 @@ void RDEXPORT g_FloodFill(HDC h, short x, short y)
 {
     DCX *d = getdc(h); RECT bb; WORD i, bw, bh, tgt, sp = 0; HMEM hm; BYTE FAR *vis; short FAR *st;
     #define STK 1024
-    if (!d || !sel(d) || !nec) { if (d) unsel(); return; }
+    if (!d || !sel(d)) return;
+    if (!nec) { unsel(); return; }
+    if (dv == drv) zweg();
     bb = ec[0];
     for (i = 1; i < nec; i++) {
         if (ec[i].l < bb.l) bb.l = ec[i].l; if (ec[i].t < bb.t) bb.t = ec[i].t;
@@ -589,6 +703,7 @@ static void blitrows(DCX *dd, short x, short y, short w, short h, DCX *sd, short
     static ZIEL zs, zd; short i, n, ys, yd, step;
     if (!zget(sd, &zs)) return;
     if (!sel(dd)) { if (sd->typ == 1) MemUnlock(sd->bmp); return; }
+    if (zs.dv == drv) zweg();                      /* Quelle Schirm: Zeiger nicht mitkopieren */
     zd.dv = dv; zd.mb = mb; zd.bpr = mbpr;
     if (!sw) {                                     /* BitBlt: Quelle an ihren Grenzen abschneiden */
         if (sx < 0) { x = (short)(x - sx); w = (short)(w + sx); sx = 0; }
@@ -608,14 +723,14 @@ static void blitrows(DCX *dd, short x, short y, short w, short h, DCX *sd, short
         if (!sw) zs.dv->get(sx, ys, w, 1, (BYTE FAR *)rbuf, RB);
         else {                                     /* StretchBlt: Spalten waehlen */
             static BYTE q[RB];
-            short sxx = sx, swd = (short)sw; WORD c;
+            short sxx = sx, swd = (short)sw; WORD c, s, acc;
             if (sxx < 0) sxx = 0;
             if (sxx + swd > (short)zs.w) swd = (short)(zs.w - sxx);
             if (swd <= 0) continue;
             zs.dv->get(sxx, ys, swd, 1, (BYTE FAR *)q, RB);
             memset(rbuf, 0, RB);
-            for (c = 0; c < dw && c < MAXBW; c++) {
-                WORD s = (WORD)((DWORD)c * sw / dw);
+            for (c = 0, s = 0, acc = 0; c < dw && c < MAXBW; c++) {   /* s = c * sw / dw schrittweise */
+                if (c) { acc += sw; while (acc >= dw) { acc -= dw; s++; } }
                 if (s < (WORD)swd && (q[s >> 3] & (0x80 >> (s & 7)))) rbuf[c >> 3] |= (BYTE)(0x80 >> (c & 7));
             }
             w = (short)(dw > MAXBW ? MAXBW : dw);
@@ -658,7 +773,6 @@ static const KAND kand[] = {
 };
 #define NK (sizeof kand / sizeof kand[0])
 static GFXMODE pm;
-static SYSINFO si;
 static char wahl[8], prof[10];
 
 /* Treiber i laden und Hardware pruefen. setzen = 1: Modus einschalten und behalten. */
@@ -705,10 +819,10 @@ static int bildschirm(void)
     if (drv) return 1;
     lesen();
     f = fest();
-    if (f >= 0 && !probe((WORD)f, &gm, 1)) return 1;
-    if (f >= 0) DbgPrint("RDGDI: eingestellte Grafik geht hier nicht, automatische Wahl");
+    if (f >= 0 && !probe((WORD)f, &gm, 1)) { mausan(); return 1; }
+    if (f >= 0) DbgPrint("RDGDI: Grafik geht hier nicht, automatisch");
     for (i = 0; i < NK; i++)
-        if ((!kand[i].bunt || komfort()) && !probe(i, &gm, 1)) return 1;
+        if ((!kand[i].bunt || komfort()) && !probe(i, &gm, 1)) { mausan(); return 1; }
     return 0;
 }
 WORD RDEXPORT g_GfxList(GFXINFO FAR *l, WORD max)
@@ -785,7 +899,6 @@ static void pffree(WORD i)
 {
     if (i && pfs[i - 1].used && !--pfs[i - 1].refs) { MemFree(pfs[i - 1].m); pfs[i - 1].used = 0; }
 }
-static WORD syshoehe(void) { return gm.h >= 480 ? 16 : gm.h >= 348 ? 14 : 8; }
 
 HFONT RDEXPORT g_FontLoad(LPCSTR name, WORD hoehe, WORD stil)
 {
@@ -969,7 +1082,7 @@ void RDEXPORT g_TextBox(HDC h, const RECT FAR *rc, LPCSTR s, WORD fl)
 }
 WORD RDEXPORT g_FontInfo(HFONT f, FONTINFO FAR *fi)
 {
-    WORD i, n, mx = 0; DWORD sum = 0;
+    WORD i, n, mx = 0, sum = 0;
     if (!fi || !flock(f)) return 0;
     n = fletzt - ferst + 1;
     for (i = 0; i < n; i++) { if (fbr[i] > mx) mx = fbr[i]; sum += fbr[i]; }
@@ -995,6 +1108,7 @@ void RDEXPORT g_ReleaseDC(HWND w, HDC h) { (void)w; g_DCFree(h); }
 void RDEXPORT g_Ende(void)
 {
     WORD i;
+    mausaus();
     if (drv) { drv->textmode(); drv = 0; }
     for (i = 0; i < MAXPF; i++) if (pfs[i].used) { MemFree(pfs[i].m); pfs[i].used = 0; }
     for (i = 1; i <= MAXLF; i++) lfs[i].used = 0;
@@ -1004,22 +1118,23 @@ void RDEXPORT g_Ende(void)
 
 /* Exporte: 1 = Ende, 2 + (API - 0x100), danach GetDC, ReleaseDC */
 #define N 0x3B
-static struct { WORD n; FARPROC f[N + 5]; } ex;
-void FAR * RDAPI RdModInit(void)
-{
-    #define E(nr, fn) ex.f[(nr) - 0x100 + 1] = (FARPROC)fn
-    ex.n = N + 5;
-    ex.f[0] = (FARPROC)g_Ende;
-    E(0x100, g_GetCaps); E(0x101, g_SetPen); E(0x102, g_SetBrush); E(0x103, g_SetRop); E(0x104, g_SetFont);
-    E(0x105, g_SetTextColor); E(0x106, g_SetBkColor); E(0x107, g_SetBkMode); E(0x108, g_SetOrigin); E(0x109, g_SetClip);
-    E(0x110, g_Pixel); E(0x111, g_GetPixel); E(0x112, g_MoveTo); E(0x113, g_LineTo); E(0x114, g_Line);
-    E(0x115, g_Frame); E(0x116, g_FillRect); E(0x117, g_InvertRect); E(0x118, g_Ellipse); E(0x119, g_Polygon);
-    E(0x11A, g_FloodFill); E(0x11B, g_RoundRect);
-    E(0x120, g_TextOut); E(0x121, g_TextWidth); E(0x122, g_TextBox);
-    E(0x128, g_FontLoad); E(0x129, g_FontFree); E(0x12A, g_FontInfo);
-    E(0x130, g_BmpCreate); E(0x131, g_BmpFree); E(0x132, g_BmpDC); E(0x133, g_DCFree); E(0x134, g_BitBlt);
-    E(0x135, g_StretchBlt); E(0x139, g_ColorNearest); E(0x13A, g_PaletteSet);
-    ex.f[N + 1] = (FARPROC)g_GetDC; ex.f[N + 2] = (FARPROC)g_ReleaseDC;
-    ex.f[N + 3] = (FARPROC)g_GfxList; ex.f[N + 4] = (FARPROC)g_GfxSelect;
-    return &ex;
-}
+static struct { WORD n; FARPROC f[N + 6]; } ext = { N + 6, {
+    (FARPROC)g_Ende, (FARPROC)g_GetCaps, (FARPROC)g_SetPen, (FARPROC)g_SetBrush,
+    (FARPROC)g_SetRop, (FARPROC)g_SetFont, (FARPROC)g_SetTextColor, (FARPROC)g_SetBkColor,
+    (FARPROC)g_SetBkMode, (FARPROC)g_SetOrigin, (FARPROC)g_SetClip, 0,
+    0, 0, 0, 0,
+    0, (FARPROC)g_Pixel, (FARPROC)g_GetPixel, (FARPROC)g_MoveTo,
+    (FARPROC)g_LineTo, (FARPROC)g_Line, (FARPROC)g_Frame, (FARPROC)g_FillRect,
+    (FARPROC)g_InvertRect, (FARPROC)g_Ellipse, (FARPROC)g_Polygon, (FARPROC)g_FloodFill,
+    (FARPROC)g_RoundRect, 0, 0, 0,
+    0, (FARPROC)g_TextOut, (FARPROC)g_TextWidth, (FARPROC)g_TextBox,
+    0, 0, 0, 0,
+    0, (FARPROC)g_FontLoad, (FARPROC)g_FontFree, (FARPROC)g_FontInfo,
+    0, 0, 0, 0,
+    0, (FARPROC)g_BmpCreate, (FARPROC)g_BmpFree, (FARPROC)g_BmpDC,
+    (FARPROC)g_DCFree, (FARPROC)g_BitBlt, (FARPROC)g_StretchBlt, 0,
+    0, 0, (FARPROC)g_ColorNearest, (FARPROC)g_PaletteSet,
+    (FARPROC)g_GetDC, (FARPROC)g_ReleaseDC, (FARPROC)g_GfxList, (FARPROC)g_GfxSelect,
+    (FARPROC)g_MausHole,
+} };
+void FAR * RDAPI RdModInit(void) { return &ext; }

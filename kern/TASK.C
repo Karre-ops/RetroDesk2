@@ -69,6 +69,64 @@ static int alive(void)
 }
 /* Naechsten lauffaehigen Task suchen (reihum, der aktuelle zuletzt).
  * wait=1: aktueller Task wartet auf Arbeit (Nachricht, Zeitgeber, Ende). */
+/* ---- Eingabe: Tastatur (BIOS INT 16h) und Maus (ueber RDGDI) ----------------------
+ * Abgefragt bei GetMessage/PeekMessage, im Leerlauf und im Zeitgeber, wenn ein Task
+ * gerade eigenen Code rechnet. Alles geht an k_focus (Phase 4: Fenster mit Fokus). */
+WORD (__far __pascal *k_mausget)(WORD __far *e);
+WORD k_focus;
+static int enqueue(WORD n, HWND w, WORD msg, WORD p1, DWORD p2);
+static BYTE inpoll, kbext = 0xFF;
+static DWORD lastdown; static short ldx, ldy; static WORD ldb;
+static void post_in(WORD msg, WORD p1, DWORD p2, short x, short y)
+{
+    TASK *t = &k_task[k_focus]; MSG __far *m;
+    if (t->qn && msg == M_MOUSEMOVE) {            /* letzte Bewegung ersetzen statt anhaengen */
+        m = (MSG __far *)MK_FP(t->q, 0) + (t->qh + t->qn - 1) % QLEN;
+        if (m->msg == M_MOUSEMOVE) { m->p1 = p1; m->p2 = p2; m->pt.x = x; m->pt.y = y; m->time = ms_now(); return; }
+    }
+    if (enqueue(k_focus, 0, msg, p1, p2) > 0) {
+        m = (MSG __far *)MK_FP(t->q, 0) + (t->qh + t->qn - 1) % QLEN;
+        m->pt.x = x; m->pt.y = y;
+    }
+}
+void input_poll(void)
+{
+    static WORD e[4]; WORD i, ks, k; BYTE a, sc; BYTE __far *bda = (BYTE __far *)MK_FP(0x40, 0);
+    if (inpoll) return;
+    inpoll = 1;
+    if (kbext == 0xFF) kbext = (BYTE)((bda[0x96] & 0x10) ? 0x10 : 0);   /* 101-Tasten-BIOS */
+    if (!k_focus || (k_task[k_focus].state != T_READY && k_task[k_focus].state != T_WAIT))
+        for (k_focus = 0, i = MAXTASK - 1; i > 0; i--)
+            if (k_task[i].state == T_READY || k_task[i].state == T_WAIT) { k_focus = i; break; }
+    for (i = 0; i < 8; i++) {
+        kr.ax = (WORD)(kbext + 1) << 8; rd_int(0x16, &kr);
+        if (kr.flags & 0x40) break;               /* ZF: keine Taste */
+        kr.ax = (WORD)kbext << 8; rd_int(0x16, &kr);
+        if (!k_focus) continue;
+        a = (BYTE)kr.ax; sc = (BYTE)(kr.ax >> 8);
+        if (a == 0xE0 && sc) a = 0;               /* graue Tasten der 101er-Tastatur */
+        ks = (bda[0x17] & 3 ? KS_SHIFT : 0) | (bda[0x17] & (KS_CTRL | KS_ALT));
+        k = a ? a : 0x100 + sc;
+        post_in(M_KEY, k, ((DWORD)ks << 16) | 1, 0, 0);
+        if (a) post_in(M_CHAR, a, ((DWORD)ks << 16) | 1, 0, 0);
+    }
+    if (k_mausget) while (k_mausget((WORD __far *)e)) {
+        short x = (short)e[2], y = (short)e[3]; DWORD now = ms_now(), xy = ((DWORD)e[3] << 16) | e[2];
+        if (!k_focus) continue;
+        ks = (bda[0x17] & 3 ? KS_SHIFT : 0) | (bda[0x17] & (KS_CTRL | KS_ALT));
+        if (e[0] == 1) post_in(M_MOUSEMOVE, e[1], xy, x, y);
+        else if (e[0] == 2) {
+            if (e[1] == ldb && now - lastdown < 500 && x - ldx < 5 && ldx - x < 5 && y - ldy < 5 && ldy - y < 5) {
+                post_in(M_DBLCLK, e[1] | (ks << 8), xy, x, y); lastdown = 0;
+            } else {
+                post_in(M_BUTTONDOWN, e[1] | (ks << 8), xy, x, y);
+                lastdown = now; ldx = x; ldy = y; ldb = e[1];
+            }
+        } else post_in(M_BUTTONUP, e[1] | (ks << 8), xy, x, y);
+    }
+    inpoll = 0;
+}
+
 static void schedule(int wait)
 {
     WORD i, n;
@@ -85,6 +143,8 @@ static void schedule(int wait)
         }
         if (!wait) return;                        /* niemand sonst bereit: weiterlaufen */
         if (!alive()) { if (k_cur) switch_to(0); return; }   /* alle fertig: zurueck zum Kern */
+        input_poll();
+        if (k_focus && has_work(&k_task[k_focus])) continue;
         rd_idle();                                /* bis zum naechsten Interrupt schlafen */
     }
 }
@@ -112,9 +172,10 @@ void __cdecl task_tick(WORD cs)
     if (rd_killreq) notbeenden(cs);
     if (!k_cur || t->state != T_READY) return;
     if (t->slice) t->slice--;
-    if (t->slice) return;
     if (cs < t->base || cs >= t->base + t->paras) return;   /* nicht im eigenen Code */
     if (indos[0] || indos[-1]) return;                      /* DOS aktiv / kritischer Fehler */
+    input_poll();                                           /* Task rechnet: Eingabe trotzdem annehmen */
+    if (t->slice) return;
     for (i = 1; i < MAXTASK; i++) {
         n = (k_cur + i) % MAXTASK;
         if (n && (k_task[n].state == T_READY || (k_task[n].state == T_WAIT && has_work(&k_task[n])))) {
@@ -217,6 +278,7 @@ WORD task_load(LPCSTR app, LPCSTR cmd, WORD show)
     t->ss = t->stk;
     t->sp = rd_newstack(t->stk, STK_PARAS * 16, task_start);
     t->state = T_READY;
+    k_focus = n;                                  /* das neueste Programm bekommt die Eingabe */
     return n;
 }
 
@@ -258,11 +320,12 @@ static int fetch(MSG FAR *m, int remove)
 
 BOOL RDK GetMessage(MSG FAR *m)
 {
-    while (!fetch(m, 1)) schedule(1);
+    for (;;) { input_poll(); if (fetch(m, 1)) break; schedule(1); }
     return m->msg != M_QUIT;
 }
 BOOL RDK PeekMessage(MSG FAR *m, WORD remove)
 {
+    input_poll();
     if (fetch(m, remove)) return TRUE;
     schedule(0);                                  /* kurz anderen Tasks Zeit geben */
     return fetch(m, remove) ? TRUE : FALSE;

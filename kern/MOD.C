@@ -12,7 +12,7 @@
 #include "KERN.H"
 
 #define MAXMOD 12
-#define MAXEXP 64
+#define MAXEXP 96                                 /* RDUSER braucht die meisten */
 #define MAXTHUNK 160
 #define PF_DISCARD 0x0080
 
@@ -183,6 +183,12 @@ HMOD k_sysmod(const char *name, WORD base, WORD n, const WORD *extra)
     for (; extra && extra[0]; extra += 2)
         if (extra[0] <= md[m].nexp && md[m].ex[extra[0] - 1].seg != 0xFFFF) rd_api[extra[1]] = ModProc(m, extra[0]);
     return m;
+}
+void __far *k_modraw(HMOD m, WORD nr)
+{
+    MODUL *x = &md[m];
+    if (m < 1 || m > MAXMOD || !x->used || !x->loaded || nr < 1 || nr > x->nexp || x->ex[nr - 1].seg == 0xFFFF) return 0;
+    return MK_FP(x->base + x->ex[nr - 1].seg, x->ex[nr - 1].off);
 }
 void k_sysend(HMOD m)
 {
