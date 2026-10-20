@@ -479,6 +479,19 @@ typedef struct {
 /* Einsprung des Programms (statt main). cmd = Befehlszeile, show = SW_* */
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show);
 
+/* Module (.MOD/.DRV): Einsprung liefert die Exporttabelle, Exporte mit RDEXPORT.
+   Module mit -zu bauen (sie laufen mit dem Stack des Aufrufers). */
+#define RDEXPORT FAR __pascal __loadds
+void FAR * RDAPI RdModInit(void);                 /* -> { WORD anzahl; FARPROC f[anzahl]; } */
+#define PF_32       0x0001
+#define PF_TOOL     0x0002
+#define PF_SINGLE   0x0004
+#define PF_FPU      0x0008
+#define PF_NET      0x0010
+#define PF_EMS      0x0020
+#define PF_NOEMS    0x0040
+#define PF_DISCARD  0x0080                        /* Modul: darf verworfen und nachgeladen werden */
+
 /* Kopf, den RD2START.OBJ ins Programm legt; Werte per #define vor dem
    Einbinden von RD2.H aenderbar, siehe SPEC.md Abschnitt 2. */
 #ifndef RD2_STACK

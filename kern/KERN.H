@@ -15,20 +15,27 @@
 
 #define RDK __far __pascal __loadds
 #define KAPI(n, f) rd_api[RDO_##n] = (FARPROC)(f)
+/* Prototypen aller API-Funktionen, wie der Kern sie definiert (mit __loadds) */
+#define RDF(n, ret, name, args) ret RDK name args;
+#include "RD2API.H"
+#undef RDF
 
 /* ---- KASM.ASM ----------------------------------------------------------- */
 typedef struct { WORD ax, bx, cx, dx, si, di, ds, es, flags; } KREGS;
 extern KREGS kr;                                  /* in RD.C */
 extern FARPROC rd_api[RDO_MAX];
 extern void  __cdecl rd_nsinit(void);           /* NOTSUP.ASM: Tabelle mit "nicht vorhanden" fuellen */
-extern short __cdecl rd_enter(WORD cs, WORD ip, void __far *api, WORD hinst, WORD show, char __far *cmd);
+extern DWORD __cdecl rd_enter(WORD cs, WORD ip, void __far *api, WORD hinst, WORD show, char __far *cmd); /* DX:AX */
 extern void  __cdecl rd_int(WORD nr, KREGS *r);   /* r->flags & 1 = Carry */
 extern void  __cdecl rd_swtch(WORD *save_sssp, WORD ss, WORD sp);
 extern WORD  __cdecl rd_newstack(WORD ss, WORD sp, void (*start)(void)); /* liefert SP des vorbereiteten Stacks */
 extern void  __cdecl rd_pmove(WORD dst, WORD src, WORD paras);
 extern void  __cdecl rd_pfill(WORD seg, WORD paras, WORD wort);
-extern void  __cdecl rd_timer_on(WORD divisor);
+extern void  __cdecl rd_timer_on(WORD divisor);   /* auch INT 9, 23h, 24h */
 extern void  __cdecl rd_timer_off(void);
+extern volatile WORD rd_killreq;                 /* INT 9: Strg+Alt+Rueckschritt */
+extern volatile WORD k_crit, k_critdrv;          /* INT 24h: Fehlercode+1, AX */
+extern void __far *rd_gateptr;                   /* Einsprung der Modul-Sprungstuecke */
 extern void  __cdecl rd_idle(void);               /* STI, HLT */
 extern WORD  __cdecl rd_fpudet(void);
 extern void  __cdecl rd_fsave(BYTE *p);
@@ -48,6 +55,7 @@ extern BYTE k_fpu;
 /* ---- MEM.C ------------------------------------------------------------------- */
 #define B_FREE   0x8000                           /* intern: freier Bereich */
 #define B_INTERN 0x1000                           /* intern: Kern (Stack, Schlange), kein Handle */
+#define B_MOD    0x0800                           /* Modulbild: fest, aber verwerfbar wenn nicht in Benutzung */
 void  mem_init(WORD reserve_paras);
 void  mem_done(void);
 WORD  mem_get(WORD paras, WORD flags, WORD owner); /* liefert Segment, 0 = kein Platz */
@@ -55,6 +63,22 @@ void  mem_put(WORD seg);
 void  mem_owner_free(WORD owner);
 DWORD mem_free_bytes(int groesster);
 void  mem_api(void);
+void  mem_share(HMEM h);                          /* gehoert danach keinem Task */
+void  mem_mod(WORD seg, WORD mod);                /* Block gehoert Modul mod (verwerfbar, wenn frei) */
+extern int (*mem_mod_discard)(WORD mod);          /* MOD.C: 1 = Modul darf/wurde verworfen */
+extern DWORD (*mem_mod_stamp)(WORD mod);
+
+/* ---- FILE.C ------------------------------------------------------------------ */
+void  file_api(void);
+void  file_owner_close(WORD task);
+void  clip_done(void);
+int   k_ask(LPCSTR text);
+WORD  k_media(WORD drive, DWORD *serial, char *label);   /* drive 0 = A: */
+
+/* ---- MOD.C ------------------------------------------------------------------- */
+void  mod_api(void);
+DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs);
+DWORD __cdecl mod_leave(void);
 
 /* ---- TASK.C ------------------------------------------------------------------ */
 #define MAXTASK 12
@@ -72,6 +96,8 @@ typedef struct {
     WORD  ecs, eip, show;
     struct { WORD id, ms; HWND w; DWORD next; } tm[NTIMER];
     DWORD lastget;
+    BYTE  rsp;                                    /* Ruecksprungstapel fuer Modulaufrufe */
+    struct { WORD ip, cs, mod; } rs[12];
     char  name[16];
     char  cmd[80];
     BYTE  fpu[94];

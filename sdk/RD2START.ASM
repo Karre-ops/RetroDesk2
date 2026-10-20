@@ -19,8 +19,10 @@ CONST  ends
 CONST2 segment word public 'DATA'
 CONST2 ends
 _BSS   segment word public 'BSS'
+bss_anf label byte                  ; erstes Objekt: Anfang von _BSS
 _BSS   ends
 STACK  segment para stack 'STACK'
+bss_end label byte                  ; _BSS endet vor STACK
        db 4096 dup(?)
 stacktop label byte
 STACK  ends
@@ -33,6 +35,20 @@ _start:
     jne  dosrun
     mov  ax, DGROUP
     mov  ds, ax
+    push es                          ; _BSS loeschen (DOS laedt nur das Dateibild)
+    push di
+    push cx
+    mov  es, ax
+    mov  di, offset DGROUP:bss_anf
+    mov  cx, offset DGROUP:bss_end
+    sub  cx, di
+    xor  al, al
+    cld
+    rep  stosb
+    pop  cx
+    pop  di
+    pop  es
+    mov  ax, ds
     mov  word ptr __rd2api, bx
     mov  word ptr __rd2api+2, es
     mov  kss, ss

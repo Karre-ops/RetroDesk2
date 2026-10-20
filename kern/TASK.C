@@ -26,6 +26,7 @@ typedef struct { char sig[4]; WORD api, flags, stack, kb; char name[16]; WORD ve
 static MZ mz; static TRAILER tr; static RD2BLK rb;
 static char path[80];
 
+WORD RDK TaskKill(HTASK n, WORD code);
 static DWORD ms_now(void) { DWORD t = rd_ticks; return t * 13 + ((t * 47) >> 6); }
 
 /* ---- Umschalten ----------------------------------------------------------- */
@@ -87,10 +88,25 @@ static void schedule(int wait)
     }
 }
 
+/* Strg+Alt+Rueckschritt: Task beenden, der seit mehr als 5 s keine Nachricht abgeholt hat
+   und nicht wartet (also rechnet oder haengt). Laeuft im Zeitgeber-Interrupt. */
+static void notbeenden(void)
+{
+    WORD i, best = 0; DWORD now = ms_now(), alt = 5000;
+    rd_killreq = 0;
+    if (indos[0] || indos[-1]) { rd_killreq = 1; return; }       /* spaeter noch einmal */
+    for (i = 1; i < MAXTASK; i++)
+        if (k_task[i].state == T_READY && now - k_task[i].lastget > alt) { alt = now - k_task[i].lastget; best = i; }
+    if (!best) { k_out("RD: Notbeenden: kein haengendes Programm", 0); return; }
+    k_hex("RD: Notbeenden Task", best, 0);
+    TaskKill(best, 0xFFFF);                       /* bei k_cur: schaltet um, kehrt nicht zurueck */
+}
+
 void __cdecl task_tick(WORD cs)
 {
     TASK *t = &k_task[k_cur];
     WORD i, n;
+    if (rd_killreq) notbeenden();
     if (!k_cur || t->state != T_READY) return;
     if (t->slice) t->slice--;
     if (t->slice) return;
@@ -134,11 +150,12 @@ static void task_start(void)                      /* laeuft auf dem Startstack d
     TASK *t = &k_task[k_cur];
     short res;
     t->lastget = ms_now();
-    res = rd_enter(t->base + t->ecs, t->eip, (void __far *)rd_api, k_cur, t->show, (char __far *)t->cmd);
+    res = (short)rd_enter(t->base + t->ecs, t->eip, (void __far *)rd_api, k_cur, t->show, (char __far *)t->cmd);
     /* Programm ist zurueckgekehrt */
     t = &k_task[k_cur];
     t->quitcode = res;
     k_hex("RD: Task beendet:", ((DWORD)k_cur << 16) | (WORD)res, 0);
+    file_owner_close(k_cur);
     mem_owner_free(k_cur);
     t->base = t->paras = t->q = 0;
     t->state = T_ZOMBIE;                          /* Startstack gibt reap() im naechsten Task frei */
@@ -179,7 +196,7 @@ WORD task_load(LPCSTR app, LPCSTR cmd, WORD show)
     t->q = mem_get((QLEN * sizeof(MSG) + 15) >> 4, 0, n);
     if (!t->stk || !t->q) { if (t->stk) mem_put(t->stk); mem_owner_free(n); return FAIL(RD_ERR_NOMEM); }
     t->base = seg; t->paras = paras; t->ecs = mz.cs; t->eip = mz.ip; t->show = show;
-    t->qh = t->qn = t->quit = 0; t->quitcode = 0;
+    t->qh = t->qn = t->quit = 0; t->quitcode = 0; t->rsp = 0;
     for (i = 0; i < NTIMER; i++) t->tm[i].ms = 0;
     for (i = 0; i < 15 && rb.name[i]; i++) t->name[i] = rb.name[i];
     t->name[i] = 0;
@@ -274,6 +291,7 @@ WORD RDK TaskKill(HTASK n, WORD code)
     if (!n || n >= MAXTASK || (k_task[n].state != T_READY && k_task[n].state != T_WAIT)) return FAIL(RD_ERR_HANDLE);
     t = &k_task[n];
     t->quitcode = code;
+    file_owner_close(n);
     mem_owner_free(n);
     t->base = t->paras = t->q = 0;
     t->state = T_ZOMBIE;

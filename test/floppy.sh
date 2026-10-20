@@ -14,11 +14,29 @@ echo === PRAEEMPTIV
 A:\RD2\RD.EXE A:\RD2\PING.EXE > A:\RD2.TXT
 echo === KOOP
 A:\RD2\RD.EXE /KOOP A:\RD2\PING.EXE > A:\RD3.TXT
+A:\RD2\RD.EXE A:\RD2\FILETEST.EXE
+A:\RD2\RD.EXE A:\RD2\MODTEST.EXE
+A:\RD2\RD.EXE A:\RD2\HAENGT.EXE
 A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/autoexec.txt
-rm -f $SER
-timeout 180 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a -serial file:$SER >/dev/null 2>&1
+rm -f obj/andere.img; mformat -C -f 720 -v ANDERE -i obj/andere.img ::
+rm -f $SER /tmp/qmon.sock
+timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
+  -serial file:$SER -monitor unix:/tmp/qmon.sock,server,nowait >/dev/null 2>&1 &
+QP=$!
+Q="python3 ../test/qemu/qmon.py"
+waitser() { for i in $(seq ${2:-60}); do grep -q "$1" $SER 2>/dev/null && return 0; sleep 1; done; return 1; }
+waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
+# MODTEST: Diskette wechseln, wenn das Programm es sagt; Kern muss dann nach RD2SYSTEM fragen
+waitser "MODTEST: jetzt Diskette wechseln" 150 && $Q "change floppy0 obj/andere.img"
+waitscr "RD2SYSTEM in Laufwerk A: einlegen" 90 && SAWASK=1; $Q text > obj/schirm_abfrage.txt 2>/dev/null
+$Q "eject -f floppy0" "sendkey ret" sleep3                       # leeres Laufwerk: wieder fragen, kein DOS-Text
+$Q text 2>/dev/null | grep -qiE "abort|retry|fail|critical|kritisch" && SAWDOS=1
+$Q "change floppy0 $IMG" sleep1 "sendkey ret"
+# HAENGT: nach 6 s Strg+Alt+Rueckschritt
+waitser "HAENGT: haenge jetzt" 60 && sleep 6 && $Q "sendkey ctrl-alt-backspace"
+wait $QP
 echo "qemu rc=$?"
 F=0; chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; F=$((F+1)); fi; }
 D=$(mtype -i $IMG ::/DIREKT.TXT 2>/dev/null | tr -d '\r')
@@ -47,7 +65,24 @@ chk "Kern: Speicher vollstaendig zurueck" '[[ "$P2" == *"Speicher vollstaendig z
 echo "--- Phase 2 kooperativ (/KOOP)"
 chk "ohne Zeitscheiben wartet alles auf RECHNE" '[[ "$P3" == *"PING: Timer ok, RECHNE war schon fertig"* ]]'
 chk "Kern: Speicher vollstaendig zurueck" '[[ "$P3" == *"Speicher vollstaendig zurueck"* ]]'
+echo "--- Phase 2 Dateien, Profile, Ablage"
+P4=$(echo "$S" | grep -A1 "^FILETEST:" )
+chk "alle FILETEST-Pruefungen ok"        '[[ "$S" == *"FILETEST: Ende"* ]] && ! [[ "$P4" == *"-> FEHLER"* ]]'
+echo "$S" | grep -B1 -- "-> FEHLER" | grep "^FILETEST" | sed 's/^/       /'
+INI=$(mtype -i $IMG ::/TEST.INI 2>/dev/null | tr -d '\r')
+chk "TEST.INI auf der Diskette richtig"  '[[ "$INI" == "[Benutzer]"$'"'"'\n'"'"'"Name=PC10-III"$'"'"'\n'"'"'"Zahl=42"$'"'"'\n'"'"'"[Rechner]"$'"'"'\n'"'"'"CPU=8088" ]]'
+echo "--- Phase 2 Module und Diskettenwechsel"
+chk "Modul: Quadrat(7) = 49"             '[[ "$S" == *"MODTEST: Quadrat(7) 0x00000031"* ]]'
+chk "Modul verworfen bei Speicherdruck"  '[[ "$S" == *"RD: Modul verworfen: Testmodul"* ]]'
+chk "Kern fragt nach Diskette RD2SYSTEM" '[ "$SAWASK" = 1 ]'
+chk "leeres Laufwerk: keine DOS-Meldung" '[ "$SAWDOS" != 1 ]'
+chk "nachgeladen, Quadrat(8) = 64"       '[[ "$S" == *"RD: Modul nachgeladen"* ]] && [[ "$S" == *"MODTEST: Quadrat(8) 0x00000040"* ]]'
+chk "Moduldaten nach Nachladen neu"      '[[ "$S" == *"MODTEST: Aufrufe nach Nachladen 0x00000001"* ]]'
+echo "--- Phase 2 Notbeenden"
+chk "Strg+Alt+Rueckschritt beendet HAENGT" '[[ "$S" == *"RD: Notbeenden Task 0x00000001"* ]] && [[ "$S" == *"Task beendet (Kill): 0x0001FFFF"* ]]'
+T=${S##*HAENGT: haenge jetzt}
+chk "danach Speicher vollstaendig zurueck" '[[ "$T" == *"Speicher vollstaendig zurueck"* ]]'
 python3 tools/budget.py out $IMG | tail -2
-echo "--- COM1 (mit Zeitscheiben) ---"; echo "$P2" | head -40
+echo "--- COM1 ab MODTEST ---"; echo "${S#*FILETEST: Ende}" | head -40
 [ $F = 0 ] && echo "Diskettentest: alles ok" || echo "Diskettentest: $F Fehler"
 exit $F

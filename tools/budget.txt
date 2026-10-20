@@ -1,7 +1,7 @@
 # RD2 Groessengrenzen (Phase 0). Der Build prueft ab Phase 1 jede Zeile.
 # Spalten: Datei  max_Bytes_auf_Diskette  max_KB_im_Speicher  Diskette  Beschreibung
 # Diskette: S = Systemdiskette (bootfaehig), P = Programmdiskette, D = SDK
-RD.EXE          16384   30   S  Starter, Kern, Speicher, Tasks, Nachrichten, Dateien (Speicher inkl. Tabellen und Stack)
+RD.EXE          24576   40   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB)
 RDGDI.MOD       14336   14   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text
 RDUSER.MOD      26624   26   S  Fenster, Menues, Steuerelemente, Dialoge
 RDSND.MOD        4096    4   S  Sound-API, Musik-Player
@@ -24,6 +24,10 @@ PING.EXE         2048    2   S  Testprogramme Phase 2 (fallen spaeter weg)
 PONG.EXE         2048    2   S
 RECHNE.EXE       2048    2   S
 MEMTEST.EXE      2048    2   S
+MODTEST.EXE      2048    2   S
+FILETEST.EXE     4096    4   S
+HAENGT.EXE       2048    2   S
+TESTMOD.MOD      2048    2   S
 RDNET.MOD       20480   18   P  TCP/IP, DHCP, DNS
 RDCALC.EXE      90112   80   P
 RDEDIT.EXE      65536   60   P

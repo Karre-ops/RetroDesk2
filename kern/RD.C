@@ -69,6 +69,8 @@ int main(int argc, char **argv)
     KAPI(SetLastError, SetLastError); KAPI(DbgPrint, DbgPrint); KAPI(DbgHex, DbgHex);
     mem_api();
     task_api();
+    file_api();
+    mod_api();
     k_out("RD: RetroDesk 2 Kern (Phase 2), API 1.0", 1);
     if (a >= argc) { k_out("Aufruf: RD [/KOOP] programm.exe [parameter]", 1); return 1; }
     for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {
@@ -87,6 +89,7 @@ int main(int argc, char **argv)
     h = task_load(argv[a], cmdline, SW_SHOW);
     if (!h) { rd_timer_off(); k_hex("RD: Fehler beim Laden", k_lasterr, 1); mem_done(); return 2; }
     task_run_all();
+    clip_done();                                  /* Zwischenablage gehoert dem Kern */
     rd_timer_off();
     nach = mem_free_bytes(0);
     k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);

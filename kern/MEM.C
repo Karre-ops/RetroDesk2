@@ -18,7 +18,8 @@ static BLK blk[MAXB];
 static WORD nblk;
 static HND hnd[MAXH + 1];                         /* Handle 1..MAXH */
 static WORD arena, arena_paras;
-static DWORD stamp;
+DWORD k_stamp;
+
 
 static WORD find_seg(WORD seg)
 {
@@ -109,16 +110,31 @@ static void compact(void)
     }
 }
 
-/* Aeltesten verwerfbaren, nicht gesperrten Block verwerfen. 1 = einer verworfen */
+int (*mem_mod_discard)(WORD mod);
+DWORD (*mem_mod_stamp)(WORD mod);
+
+/* Aeltesten verwerfbaren, nicht gesperrten Block verwerfen (Daten oder Modul). 1 = einer verworfen */
 static int discard_one(void)
 {
-    WORD i, best = 0xFFFF; DWORD bs = 0xFFFFFFFFUL;
+    WORD i, best = 0xFFFF; DWORD bs = 0xFFFFFFFFUL, st;
     for (i = 0; i < nblk; i++) {
         WORD h = blk[i].h;
-        if ((blk[i].flags & (B_FREE | MEM_DISCARDABLE)) != MEM_DISCARDABLE || !h || hnd[h].lock) continue;
+        if (blk[i].flags & B_FREE) continue;
+        if (blk[i].flags & B_MOD) {
+            if (!mem_mod_stamp || (st = mem_mod_stamp(blk[i].owner)) == 0xFFFFFFFFUL) continue;  /* in Benutzung */
+            if (st < bs) { bs = st; best = i; }
+            continue;
+        }
+        if (!(blk[i].flags & MEM_DISCARDABLE) || !h || hnd[h].lock) continue;
         if (hnd[h].stamp < bs) { bs = hnd[h].stamp; best = i; }
     }
     if (best == 0xFFFF) return 0;
+    if (blk[best].flags & B_MOD) {
+        mem_mod_discard(blk[best].owner);         /* Modul merkt sich: nicht geladen */
+        blk[best].flags = B_FREE; blk[best].h = 0; blk[best].owner = 0;
+        merge();
+        return 1;
+    }
     hnd[blk[best].h].seg = 0;                     /* Handle bleibt, Inhalt ist weg */
     blk[best].flags = B_FREE; blk[best].h = 0; blk[best].owner = 0;
     merge();
@@ -157,7 +173,7 @@ void mem_owner_free(WORD owner)
             hnd[h].used = 0;
         }
     for (i = 0; i < nblk; i++)
-        if (!(blk[i].flags & B_FREE) && blk[i].owner == owner && !(blk[i].flags & MEM_SHARE)) { put_index(i); i = (WORD)-1; }
+        if (!(blk[i].flags & (B_FREE | B_MOD | MEM_SHARE)) && blk[i].owner == owner) { put_index(i); i = (WORD)-1; }
 }
 
 DWORD mem_free_bytes(int groesster)
@@ -185,7 +201,7 @@ HMEM RDK MemAlloc(DWORD size, WORD flags)
     seg = get(p, f, h, k_cur);
     if (!seg) return FAIL(RD_ERR_NOMEM);
     hnd[h].used = 1; hnd[h].seg = seg; hnd[h].flags = f; hnd[h].owner = k_cur;
-    hnd[h].lock = (f & MEM_MOVABLE) ? 0 : 1; hnd[h].size = size; hnd[h].stamp = ++stamp;
+    hnd[h].lock = (f & MEM_MOVABLE) ? 0 : 1; hnd[h].size = size; hnd[h].stamp = ++k_stamp;
     if (flags & MEM_ZEROINIT) rd_pfill(seg, p ? p : 1, 0);
     return h;
 }
@@ -205,7 +221,7 @@ void FAR * RDK MemLock(HMEM h)
     if (!x) { k_lasterr = RD_ERR_HANDLE; return 0; }
     if (!x->seg) { k_lasterr = RD_ERR_NOTFOUND; return 0; }  /* verworfen */
     if (x->lock < 255) x->lock++;
-    x->stamp = ++stamp;
+    x->stamp = ++k_stamp;
     return MK_FP(x->seg, 0);
 }
 BOOL RDK MemUnlock(HMEM h)
@@ -267,6 +283,18 @@ void FAR * RDK MemFixed(WORD size)
     WORD seg = get((WORD)(((DWORD)size + 15) >> 4), MEM_FIXED, 0, k_cur);
     if (!seg) { k_lasterr = RD_ERR_NOMEM; return 0; }
     return MK_FP(seg, 0);
+}
+void mem_share(HMEM h)
+{
+    WORD i;
+    if (!h || h > MAXH || !hnd[h].used) return;
+    hnd[h].owner = 0; hnd[h].flags |= MEM_SHARE;
+    if (hnd[h].seg && (i = find_seg(hnd[h].seg)) != 0xFFFF) { blk[i].owner = 0; blk[i].flags |= MEM_SHARE; }
+}
+void mem_mod(WORD seg, WORD mod)
+{
+    WORD i = find_seg(seg);
+    if (i != 0xFFFF) { blk[i].flags = (blk[i].flags & ~B_INTERN) | B_MOD; blk[i].owner = mod; }
 }
 void RDK MemFixedFree(void FAR *p) { if (p && !FP_OFF(p)) mem_put(FP_SEG(p)); }
 

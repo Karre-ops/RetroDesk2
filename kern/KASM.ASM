@@ -5,9 +5,14 @@ DGROUP group _DATA, _BSS
 _TEXT segment word public 'CODE'
 _TEXT ends
 _DATA segment word public 'DATA'
-public _rd_ticks, _rd_preempt
+public _rd_ticks, _rd_preempt, _rd_killreq, _k_crit, _k_critdrv, _rd_gateptr
 _rd_ticks   dd 0
 _rd_preempt dw 0
+_rd_killreq dw 0
+_k_crit     dw 0
+_k_critdrv  dw 0
+_rd_gateptr dd modgate
+old24       dd 0
 tdiv        dw 0
 old8        dd 0
 old23       dd 0
@@ -17,7 +22,7 @@ _BSS ends
 
 _TEXT segment word public 'CODE'
 assume cs:_TEXT, ds:DGROUP
-extrn _task_tick:near
+extrn _task_tick:near, _mod_enter:near, _mod_leave:near
 
 ; ---------------------------------------------------------------------------
 ; short rd_enter(WORD cs, WORD ip, void far *api, WORD hinst, WORD show, char far *cmd)
@@ -286,11 +291,25 @@ _rd_timer_on proc near
     int  21h
     mov  word ptr old23, bx
     mov  word ptr old23+2, es
+    mov  ax, 3524h
+    int  21h
+    mov  word ptr old24, bx
+    mov  word ptr old24+2, es
+    mov  ax, 3509h
+    int  21h
+    mov  word ptr cs:old9, bx
+    mov  word ptr cs:old9+2, es
     push ds
     push cs
     pop  ds
     mov  dx, offset int23
     mov  ax, 2523h                   ; Strg+C waehrend RD2 laeuft: ignorieren
+    int  21h
+    mov  dx, offset int24
+    mov  ax, 2524h                   ; kritische Fehler: immer "Fail", der Kern fragt selbst
+    int  21h
+    mov  dx, offset int9
+    mov  ax, 2509h
     int  21h
     mov  dx, offset int8
     mov  ax, 2508h
@@ -327,9 +346,100 @@ _rd_timer_off proc near
     mov  ax, 2523h
     int  21h
     pop  ds
+    push ds
+    lds  dx, old24
+    mov  ax, 2524h
+    int  21h
+    pop  ds
+    push ds
+    lds  dx, cs:old9
+    mov  ax, 2509h
+    int  21h
+    pop  ds
     sti
     ret
 _rd_timer_off endp
+
+old9 dd 0
+
+; INT 24h: Fehlercode (DI) + 1 nach k_crit, AX nach k_critdrv, Antwort "Fail"
+int24:
+    push ds
+    push bx
+    mov  bx, DGROUP
+    mov  ds, bx
+    mov  bx, di
+    xor  bh, bh
+    inc  bx
+    mov  _k_crit, bx
+    mov  _k_critdrv, ax
+    pop  bx
+    pop  ds
+    mov  al, 3
+    iret
+
+; INT 9: Strg+Alt+Rueckschritt merken, dann alter Tastaturhandler
+int9:
+    push ax
+    in   al, 60h
+    cmp  al, 0Eh
+    jne  i9_old
+    push ds
+    mov  ax, 40h
+    mov  ds, ax
+    mov  al, ds:[17h]
+    and  al, 0Ch
+    cmp  al, 0Ch
+    jne  i9_no
+    mov  ax, DGROUP
+    mov  ds, ax
+    mov  _rd_killreq, 1
+i9_no:
+    pop  ds
+i9_old:
+    pop  ax
+    jmp  dword ptr cs:old9
+
+; ---------------------------------------------------------------------------
+; Modul-Sprungstueck: AX = Nummer. Stapel: [IP][CS][Parameter...] (pascal)
+modgate:
+    push ds
+    push ax
+    mov  ax, DGROUP
+    mov  ds, ax
+    pop  ax
+    pop  cx                          ; DS des Aufrufers
+    pop  bx                          ; Ruecksprung IP
+    pop  dx                          ; Ruecksprung CS -> jetzt liegen oben die Parameter
+    push cx
+    push dx
+    push bx
+    push ax
+    call _mod_enter                  ; DX:AX = Ziel (laedt evtl. nach)
+    add  sp, 6
+    pop  cx
+    push cs
+    mov  bx, offset modback
+    push bx
+    push dx
+    push ax
+    mov  ds, cx
+    retf                             ; "Sprung" ins Modul, Ruecksprung nach modback
+modback:
+    push dx
+    push ax
+    push ds
+    mov  cx, DGROUP
+    mov  ds, cx
+    call _mod_leave                  ; DX:AX = Ruecksprung zum Aufrufer
+    mov  bx, ax
+    mov  cx, dx
+    pop  ds
+    pop  ax
+    pop  dx
+    push cx
+    push bx
+    retf
 
 int23:
     iret
