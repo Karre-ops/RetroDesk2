@@ -239,25 +239,32 @@ static void vs(short x, short y0, short y1, WORD rop)
 }
 /* eine Zeile 1-Bit-Daten (Bit 0 = x) geclippt ausgeben */
 static BYTE sbuf[RB];
-static void crow(short y, short x, short w, const BYTE *buf, WORD rop, BYTE fg, BYTE bg)
+/* h Zeilen 1-Bit-Daten (Abstand st Bytes) geclippt ausgeben; ohne Schnitt links in einem Treiberaufruf */
+static void crows(short y, short x, short w, short h, const BYTE *buf, WORD st, WORD rop, BYTE fg, BYTE bg)
 {
     WORD i, k, o, n;
     for (i = 0; i < nec; i++) {
-        RECT *r = &ec[i]; short a = x, b = (short)(x + w);
-        const BYTE *s = buf;
-        if (y < r->t || y >= r->b) continue;
+        RECT *r = &ec[i]; short a = x, b = (short)(x + w), ya = y, yb = (short)(y + h);
+        const BYTE *s;
+        if (ya < r->t) ya = r->t;
+        if (yb > r->b) yb = r->b;
         if (a < r->l) a = r->l;
         if (b > r->r) b = r->r;
-        if (a >= b) continue;
+        if (a >= b || ya >= yb) continue;
         o = (WORD)(a - x);
-        if (o) {                                  /* ab Bit o nach vorn schieben */
+        s = buf + (WORD)(ya - y) * st;
+        if (!o) { dv->put(a, ya, (short)(b - a), (short)(yb - ya), (const BYTE FAR *)s, st, 1, rop, fg, bg); continue; }
+        n = ((WORD)(b - a) + 7) >> 3;
+        for (; ya < yb; ya++, s += st) {          /* ab Bit o nach vorn schieben */
             WORD sh = o & 7, q = o >> 3;
-            n = ((WORD)(b - a) + 7) >> 3;
-            for (k = 0; k < n; k++) sbuf[k] = (BYTE)((buf[q + k] << sh) | (sh ? buf[q + k + 1] >> (8 - sh) : 0));
-            s = sbuf;
+            for (k = 0; k < n; k++) sbuf[k] = (BYTE)((s[q + k] << sh) | (sh ? s[q + k + 1] >> (8 - sh) : 0));
+            dv->put(a, ya, (short)(b - a), 1, (const BYTE FAR *)sbuf, RB, 1, rop, fg, bg);
         }
-        dv->put(a, y, (short)(b - a), 1, (const BYTE FAR *)s, RB, 1, rop, fg, bg);
     }
+}
+static void crow(short y, short x, short w, const BYTE *buf, WORD rop, BYTE fg, BYTE bg)
+{
+    crows(y, x, w, 1, buf, RB, rop, fg, bg);
 }
 
 static void line(short x0, short y0, short x1, short y1)
@@ -290,6 +297,9 @@ static WORD isqrt(DWORD v)
 }
 
 /* ---- API: Einstellungen ------------------------------------------------------- */
+static int flock(HFONT f);
+static void funlock(void);
+static WORD fh;
 short RDEXPORT g_GetCaps(HDC h, WORD i)
 {
     DCX *d = getdc(h);
@@ -311,7 +321,7 @@ short RDEXPORT g_GetCaps(HDC h, WORD i)
     case CAPS_ASPX: return (short)gm.aspx;
     case CAPS_ASPY: return (short)gm.aspy;
     case CAPS_DPI: return 72;
-    case CAPS_TEXTH: return (short)(gm.h >= 400 ? 16 : gm.h >= 340 ? 14 : 8);
+    case CAPS_TEXTH: { short v = 0; if (flock(0)) { v = (short)fh; funlock(); } return v; }
     default: return 0;
     }
 }
@@ -728,6 +738,251 @@ WORD RDEXPORT g_GfxSelect(WORD typ)
     if (!(drv && typ == gfxtyp) && probe(i, &pm, 0)) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
     return ProfileSetStr("RD2.INI", "System", "Grafik", kand[i].ini);
 }
+/* ---- Schriften und Text --------------------------------------------------------
+ * .FNT-Dateien (SPEC 7) liegen einmal im Speicher (MEM_SHARE, gehoeren RDGDI),
+ * logische Schriften = Datei + Stil (fett, kursiv, unterstrichen rechnet RDGDI).
+ * Text wird zeilenweise in einen 1-Bit-Puffer gesetzt und wie BitBlt ausgegeben.
+ * Zeichensatz: Codepage 437. */
+#define MAXPF 4
+#define MAXLF 12
+typedef struct { BYTE used, refs; HMEM m; char datei[13]; } PFONT;
+typedef struct { BYTE used, refs, pf; WORD stil; } LFONT;
+static PFONT pfs[MAXPF];
+static LFONT lfs[MAXLF + 1];                       /* HFONT 1..MAXLF */
+static HFONT sysf;
+static BYTE FAR *fp, FAR *fbr, FAR *fdat; static WORD FAR *fof;
+static WORD fober, ferst, fletzt, fstil; static HMEM fm;
+#define TBZ 16                                    /* Zeilen je Treiberaufruf */
+static BYTE tb[RB * TBZ];
+static char fpfad[80];
+
+static WORD pfload(const char *datei)              /* Index + 1, 0 = Fehler */
+{
+    WORD i, k = 0, n; short f; long len; BYTE FAR *p; HMEM m; const char *q;
+    for (i = 0; i < MAXPF; i++) if (pfs[i].used && gleich(pfs[i].datei, datei)) { pfs[i].refs++; return i + 1; }
+    for (i = 0; i < MAXPF && pfs[i].used; i++) ;
+    if (i == MAXPF) { SetLastError(RD_ERR_FULL); return 0; }
+    for (q = datei; *q && *q != ':' && *q != '\\'; q++) ;
+    if (!*q) { if (!si.api) KernInfo(&si); for (q = si.home; *q && k < 64; ) fpfad[k++] = *q++; }
+    for (q = datei; *q && k < 79; ) fpfad[k++] = *q++;
+    fpfad[k] = 0;
+    if ((f = FileOpen(fpfad, FO_READ)) < 0) return 0;
+    len = FileSeek(f, 0, FS_END); FileSeek(f, 0, FS_SET);
+    if (len < 30 || len > 32000L) { FileClose(f); SetLastError(RD_ERR_FORMAT); return 0; }
+    if (!(m = MemAlloc((DWORD)len, MEM_MOVABLE | MEM_SHARE))) { FileClose(f); return 0; }
+    p = (BYTE FAR *)MemLock(m);
+    n = FileRead(f, p, (WORD)len); FileClose(f);
+    if (n != (WORD)len || p[0] != 'R' || p[1] != 'D' || p[2] != 'F' || p[3] != '1' || p[12] < p[11] || !*(WORD FAR *)(p + 4)) {
+        MemUnlock(m); MemFree(m); SetLastError(RD_ERR_FORMAT); return 0;
+    }
+    MemUnlock(m);
+    pfs[i].used = 1; pfs[i].refs = 1; pfs[i].m = m;
+    for (q = datei, k = 0; *q && k < 12; ) pfs[i].datei[k++] = *q++;
+    pfs[i].datei[k] = 0;
+    return i + 1;
+}
+static void pffree(WORD i)
+{
+    if (i && pfs[i - 1].used && !--pfs[i - 1].refs) { MemFree(pfs[i - 1].m); pfs[i - 1].used = 0; }
+}
+static WORD syshoehe(void) { return gm.h >= 480 ? 16 : gm.h >= 348 ? 14 : 8; }
+
+HFONT RDEXPORT g_FontLoad(LPCSTR name, WORD hoehe, WORD stil)
+{
+    static char datei[80]; WORD k = 0, i, p; int punkt = 0; LPCSTR s;
+    if (!name || !*name) name = "SYS";
+    for (s = name; *s && k < 70; s++) { if (*s == '.') punkt = 1; datei[k++] = *s; }
+    if (!punkt) {                                 /* "SYS", 14 -> SYS14.FNT */
+        if (!hoehe) hoehe = syshoehe();
+        if (hoehe >= 10) datei[k++] = (char)('0' + hoehe / 10 % 10);
+        datei[k++] = (char)('0' + hoehe % 10);
+        datei[k++] = '.'; datei[k++] = 'F'; datei[k++] = 'N'; datei[k++] = 'T';
+    }
+    datei[k] = 0;
+    if (!(p = pfload(datei))) return 0;
+    stil &= FS_BOLD | FS_ITALIC | FS_UNDER;
+    for (i = 1; i <= MAXLF; i++)
+        if (lfs[i].used && lfs[i].pf == p && lfs[i].stil == stil) { pffree(p); lfs[i].refs++; return i; }
+    for (i = 1; i <= MAXLF && lfs[i].used; i++) ;
+    if (i > MAXLF) { pffree(p); SetLastError(RD_ERR_FULL); return 0; }
+    lfs[i].used = 1; lfs[i].refs = 1; lfs[i].pf = (BYTE)p; lfs[i].stil = stil;
+    return i;
+}
+void RDEXPORT g_FontFree(HFONT f)
+{
+    if (f < 1 || f > MAXLF || !lfs[f].used || f == sysf) return;
+    if (!--lfs[f].refs) { pffree(lfs[f].pf); lfs[f].used = 0; }
+}
+static HFONT sysfont(void)
+{
+    if (!sysf && !(sysf = g_FontLoad("SYS", syshoehe(), 0)) && !(sysf = g_FontLoad("SYS", 14, 0))) sysf = g_FontLoad("SYS", 8, 0);
+    return sysf;
+}
+static int flock(HFONT f)
+{
+    WORD n;
+    if (f < 1 || f > MAXLF || !lfs[f].used) f = sysfont();
+    if (!f) return 0;
+    fm = pfs[lfs[f].pf - 1].m;
+    if (!(fp = (BYTE FAR *)MemLock(fm))) return 0;
+    fh = *(WORD FAR *)(fp + 4); fober = *(WORD FAR *)(fp + 6);
+    fstil = lfs[f].stil; ferst = fp[11]; fletzt = fp[12];
+    n = fletzt - ferst + 1;
+    fbr = fp + 27; fof = (WORD FAR *)(fp + 27 + n); fdat = fp + 27 + 3 * n;
+    return 1;
+}
+static void funlock(void) { MemUnlock(fm); }
+static WORD gidx(BYTE c)                          /* Zeichen -> Index, fehlende als '?' */
+{
+    if (c < ferst || c > fletzt) c = '?';
+    if (c < ferst || c > fletzt) c = (BYTE)ferst;
+    return c - ferst;
+}
+static WORD cw(BYTE c) { return fbr[gidx(c)] + ((fstil & FS_BOLD) ? 1 : 0); }
+static WORD sbreite(LPCSTR s, WORD n)
+{
+    WORD w = 0;
+    while (n--) w += cw((BYTE)*s++);
+    return w + ((fstil & FS_ITALIC) ? (fh - 1) / 4 : 0);
+}
+static WORD flen(LPCSTR s) { WORD n = 0; while (s[n]) n++; return n; }
+
+/* eine Textzeile ab (x, y) in Geraetekoordinaten, Ziel ist schon gewaehlt.
+   Zeichen einmal je Aufruf nachschlagen; feste 8-Pixel-Schrift ohne Stil: je Zeile
+   nur ein Byte je Zeichen kopieren (der Normalfall fuer die Oberflaeche). */
+static WORD go[MAXBW / 8 + 2]; static BYTE gw[MAXBW / 8 + 2];
+/* t[i] = z[go[i]] fuer i < n (z = Zeile r der Schrift) */
+void sammeln(BYTE *t, const WORD *o, const BYTE __far *z, WORD n);
+#pragma aux sammeln = "g1: lodsw" "mov bx,ax" "add bx,dx" "mov al,es:[bx]" "mov [di],al" "inc di" "loop g1" \
+    parm [di] [si] [es dx] [cx] modify [ax bx cx si di]
+static void tzeile(short x, short y, LPCSTR s, WORD n)
+{
+    WORD tw = 0, i, r, k, nb, rop = cd->rop, fg = txtb, bg = bkb, fett = (fstil & FS_BOLD) ? 1 : 0, schnell;
+    const BYTE FAR *fd = fdat;
+    if (n > MAXBW / 8) n = MAXBW / 8;
+    for (i = 0; i < n; i++) {
+        WORD g = gidx((BYTE)s[i]), w = fbr[g];
+        if (tw + w + fett > MAXBW - 16) break;
+        go[i] = fof[g]; gw[i] = (BYTE)w; tw += w + fett;
+    }
+    n = i;
+    if (fstil & FS_ITALIC) tw += (fh - 1) / 4;
+    if (!tw) return;
+    schnell = !(fstil & (FS_BOLD | FS_ITALIC)) && fp[10] && fbr[0] == 8;
+    nb = ((tw + 7) >> 3) + 1;
+    if (cd->bkmode == BK_TRANSPARENT) {
+        if (rop == ROP_COPY) rop = ROP_MASK;
+        else { fg = (rop == ROP_XOR || rop == ROP_NOT) ? 1 : txtb; bg = rop == ROP_AND ? 1 : 0; }
+    }
+    for (r = 0; r < fh; r++) {
+        BYTE *t = tb + (r % TBZ) * nb;
+        if (schnell) {
+            sammeln(t, go, fd + r, n);
+            t[n] = 0;
+        } else {
+            WORD px = (fstil & FS_ITALIC) ? (fh - 1 - r) / 4 : 0;
+            for (k = 0; k < nb; k++) t[k] = 0;
+            for (i = 0; i < n; i++) {
+                WORD w = gw[i], bw = (w + 7) >> 3, q = px >> 3, sh = px & 7;
+                const BYTE FAR *z = fd + go[i] + r * bw;
+                BYTE carry = 0, b;
+                for (k = 0; k <= bw; k++) {
+                    if (k < bw) b = z[k]; else if (carry) b = 0; else break;
+                    if (fett) { BYTE b2 = (BYTE)(b | (b >> 1) | carry); carry = (BYTE)((b & 1) << 7); b = b2; }
+                    t[q + k] |= (BYTE)(b >> sh);
+                    if (sh) t[q + k + 1] |= (BYTE)(b << (8 - sh));
+                }
+                px += w + fett;
+            }
+        }
+        if ((fstil & FS_UNDER) && r == (fober + 1 < fh ? fober + 1 : fh - 1)) {
+            for (k = 0; k < (tw >> 3); k++) t[k] = 0xFF;
+            if (tw & 7) t[k] |= (BYTE)(0xFF << (8 - (tw & 7)));
+        }
+        if (r % TBZ == TBZ - 1 || r == fh - 1) {
+            WORD z0 = r - r % TBZ;
+            crows((short)(y + z0), x, (short)tw, (short)(r - z0 + 1), tb, nb, rop, (BYTE)fg, (BYTE)bg);
+        }
+    }
+}
+void RDEXPORT g_TextOut(HDC h, short x, short y, LPCSTR s, short len)
+{
+    DCX *d = getdc(h);
+    if (!d || !s || !flock(d->font)) return;
+    if (len < 0) len = (short)flen(s);
+    if (sel(d)) { tzeile((short)(x + d->ox), (short)(y + d->oy), s, (WORD)len); unsel(); }
+    funlock();
+}
+short RDEXPORT g_TextWidth(HDC h, LPCSTR s, short len)
+{
+    DCX *d = getdc(h); WORD w;
+    if (!d || !s || !flock(d->font)) return 0;
+    if (len < 0) len = (short)flen(s);
+    w = sbreite(s, (WORD)len);
+    funlock();
+    return (short)w;
+}
+/* Zeilenende ab s: Anzahl Zeichen der Zeile, *weiter = Zeichen bis zur naechsten Zeile */
+static WORD zende(LPCSTR s, WORD maxw, int wrap, WORD *weiter)
+{
+    WORD i = 0, w = 0, sp = 0xFFFF;
+    for (;; i++) {
+        BYTE c = (BYTE)s[i];
+        if (!c) { *weiter = i; return i; }
+        if (c == '\n') { *weiter = i + 1; return i && s[i - 1] == '\r' ? i - 1 : i; }
+        if (c == ' ') sp = i;
+        w += cw(c);
+        if (wrap && w > maxw && i) {
+            if (sp != 0xFFFF) { *weiter = sp + 1; return sp; }
+            *weiter = i; return i;
+        }
+    }
+}
+void RDEXPORT g_TextBox(HDC h, const RECT FAR *rc, LPCSTR s, WORD fl)
+{
+    static RECT ac, r; static WORD weiter;
+    DCX *d = getdc(h); BYTE au; WORD n, z = 0, maxw; short y; LPCSTR t;
+    if (!d || !rc || !s || !flock(d->font)) return;
+    r = *rc; maxw = (WORD)(r.r > r.l ? r.r - r.l : 0);
+    au = d->uclip; ac = d->ucl;                    /* am Rechteck abschneiden */
+    if (au) isect(&d->ucl, &r); else d->ucl = r;
+    d->uclip = 1;
+    y = r.t;
+    if (fl & TB_VCENTER) {
+        for (t = s;; t += weiter) { zende(t, maxw, fl & TB_WRAP, &weiter); z++; if (!t[weiter]) break; }
+        y = (short)(r.t + ((short)(r.b - r.t) - (short)(z * fh)) / 2);
+    }
+    if (sel(d)) {
+        for (t = s; y < r.b; t += weiter, y = (short)(y + fh)) {
+            short x = r.l; WORD w;
+            n = zende(t, maxw, fl & TB_WRAP, &weiter);
+            w = sbreite(t, n);
+            if ((fl & 3) == TB_CENTER) x = (short)(r.l + ((short)maxw - (short)w) / 2);
+            else if ((fl & 3) == TB_RIGHT) x = (short)(r.r - (short)w);
+            tzeile((short)(x + d->ox), (short)(y + d->oy), t, n);
+            if (!t[weiter]) break;
+        }
+        unsel();
+    }
+    d->uclip = au; d->ucl = ac;
+    funlock();
+}
+WORD RDEXPORT g_FontInfo(HFONT f, FONTINFO FAR *fi)
+{
+    WORD i, n, mx = 0; DWORD sum = 0;
+    if (!fi || !flock(f)) return 0;
+    n = fletzt - ferst + 1;
+    for (i = 0; i < n; i++) { if (fbr[i] > mx) mx = fbr[i]; sum += fbr[i]; }
+    fi->hoehe = fh; fi->oberlaenge = fober;
+    fi->breite_max = mx + ((fstil & FS_BOLD) ? 1 : 0);
+    fi->breite_mittel = (WORD)(sum / n) + ((fstil & FS_BOLD) ? 1 : 0);
+    fi->stil = fstil; fi->fest = fp[10]; fi->erstes = (BYTE)ferst; fi->letztes = (BYTE)fletzt;
+    for (i = 0; i < 12 && fp[14 + i]; i++) fi->name[i] = (char)fp[14 + i];
+    fi->name[i] = 0;
+    funlock();
+    return 1;
+}
+
 HDC RDEXPORT g_GetDC(HWND w)
 {
     (void)w;
@@ -739,7 +994,11 @@ void RDEXPORT g_ReleaseDC(HWND w, HDC h) { (void)w; g_DCFree(h); }
 /* Abschluss: Kern ruft das beim Beenden von RD */
 void RDEXPORT g_Ende(void)
 {
+    WORD i;
     if (drv) { drv->textmode(); drv = 0; }
+    for (i = 0; i < MAXPF; i++) if (pfs[i].used) { MemFree(pfs[i].m); pfs[i].used = 0; }
+    for (i = 1; i <= MAXLF; i++) lfs[i].used = 0;
+    sysf = 0;
     if (drvmod) { ModFree(drvmod); drvmod = 0; }
 }
 
@@ -756,6 +1015,8 @@ void FAR * RDAPI RdModInit(void)
     E(0x110, g_Pixel); E(0x111, g_GetPixel); E(0x112, g_MoveTo); E(0x113, g_LineTo); E(0x114, g_Line);
     E(0x115, g_Frame); E(0x116, g_FillRect); E(0x117, g_InvertRect); E(0x118, g_Ellipse); E(0x119, g_Polygon);
     E(0x11A, g_FloodFill); E(0x11B, g_RoundRect);
+    E(0x120, g_TextOut); E(0x121, g_TextWidth); E(0x122, g_TextBox);
+    E(0x128, g_FontLoad); E(0x129, g_FontFree); E(0x12A, g_FontInfo);
     E(0x130, g_BmpCreate); E(0x131, g_BmpFree); E(0x132, g_BmpDC); E(0x133, g_DCFree); E(0x134, g_BitBlt);
     E(0x135, g_StretchBlt); E(0x139, g_ColorNearest); E(0x13A, g_PaletteSet);
     ex.f[N + 1] = (FARPROC)g_GetDC; ex.f[N + 2] = (FARPROC)g_ReleaseDC;

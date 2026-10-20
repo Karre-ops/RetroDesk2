@@ -168,19 +168,61 @@ static void RDEXPORT d_vline(short x, short y0, short y1, WORD farbe, WORD rop)
     for (; y0 <= y1; y0++) wr(VP(x, y0), m, v, rop);
 }
 
-/* 1-Bit-Quelle (Bit 7 = links) an x,y bringen. ROP_MASK: nur gesetzte Bits in fg. */
+/* Mittelteil einer Zeile in Assembler: ch = Bytes, cl = Verschiebung, bl = voriges
+   Quellbyte; Ziel es:di, Quelle dx:si. Je Art eine Schleife (Text, Symbole, Masken). */
+void m_cpy(BYTE __far *d, const BYTE __far *s, WORD n_sh, BYTE prev, BYTE inv);
+#pragma aux m_cpy = "push ds" "mov ds,dx" \
+    "c1: lodsb" "mov ah,bl" "mov bl,al" "shr ax,cl" "xor al,bh" "stosb" "dec ch" "jnz c1" \
+    "pop ds" parm [es di] [dx si] [cx] [bl] [bh] modify [ax bx cx si di]
+void m_or(BYTE __far *d, const BYTE __far *s, WORD n_sh, BYTE prev);
+#pragma aux m_or = "push ds" "mov ds,dx" \
+    "o1: lodsb" "mov ah,bl" "mov bl,al" "shr ax,cl" "or es:[di],al" "inc di" "dec ch" "jnz o1" \
+    "pop ds" parm [es di] [dx si] [cx] [bl] modify [ax bx cx si di]
+void m_andn(BYTE __far *d, const BYTE __far *s, WORD n_sh, BYTE prev);
+#pragma aux m_andn = "push ds" "mov ds,dx" \
+    "a1: lodsb" "mov ah,bl" "mov bl,al" "shr ax,cl" "not al" "and es:[di],al" "inc di" "dec ch" "jnz a1" \
+    "pop ds" parm [es di] [dx si] [cx] [bl] modify [ax bx cx si di]
+void m_xor(BYTE __far *d, const BYTE __far *s, WORD n_sh, BYTE prev);
+#pragma aux m_xor = "push ds" "mov ds,dx" \
+    "x1: lodsb" "mov ah,bl" "mov bl,al" "shr ax,cl" "xor es:[di],al" "inc di" "dec ch" "jnz x1" \
+    "pop ds" parm [es di] [dx si] [cx] [bl] modify [ax bx cx si di]
+void m_set(BYTE __far *d, WORD n, BYTE v);
+#pragma aux m_set = "rep stosb" parm [es di] [cx] [al] modify [cx di]
+
+/* 1-Bit-Quelle (Bit 7 = links) an x,y bringen. ROP_MASK: nur gesetzte Bits in fg.
+   Randbytes in C (Masken), dazwischen ganze Bytes in Assembler. */
 static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *src, WORD srcbytes,
                         WORD srcbpp, WORD rop, WORD fg, WORD bg)
 {
-    WORD sh = x & 7, nb = (sh + w + 7) >> 3, sb = (w + 7) >> 3, i;
+    WORD sh = x & 7, nb = (sh + w + 7) >> 3, sb = (w + 7) >> 3, i, art, nsh;
     BYTE lm = (BYTE)(0xFF >> sh), rm = (BYTE)(0xFF << (7 - ((x + w - 1) & 7)));
     BYTE vf = (BYTE)(fg ? 0xFF : 0), vb = (BYTE)(bg ? 0xFF : 0);
     (void)srcbpp;
+    /* art: 1 kopieren, 2 kopieren invertiert, 3 einfarbig, 4 ODER, 5 UND-NICHT, 6 XOR, 0 C */
+    if (rop == ROP_COPY) art = vf == vb ? 3 : vf ? 1 : 2;
+    else if (rop == ROP_MASK) art = vf ? 4 : 5;
+    else if (rop == ROP_OR) art = vf && !vb ? 4 : 0;
+    else if (rop == ROP_XOR) art = vf && !vb ? 6 : 0;
+    else art = 0;
+    nsh = ((nb - 2) << 8) | sh;
     for (; h > 0; h--, y++, src += srcbytes) {
         BYTE __far *p = VP(x, y);
         WORD acc = 0;
         for (i = 0; i < nb; i++) {
             BYTE b, m = 0xFF;
+            if (art && i == 1 && nb > 2) {        /* ganze Bytes 1 .. nb-2 */
+                BYTE pv = src[0];
+                switch (art) {
+                case 1: m_cpy(p + 1, src + 1, nsh, pv, 0); break;
+                case 2: m_cpy(p + 1, src + 1, nsh, pv, 0xFF); break;
+                case 3: m_set(p + 1, nb - 2, vf); break;
+                case 4: m_or(p + 1, src + 1, nsh, pv); break;
+                case 5: m_andn(p + 1, src + 1, nsh, pv); break;
+                case 6: m_xor(p + 1, src + 1, nsh, pv); break;
+                }
+                i = nb - 1;
+                acc = src[nb - 2];
+            }
             acc = (WORD)((acc << 8) | (i < sb ? src[i] : 0));
             b = (BYTE)(acc >> sh);
             if (i == 0) m &= lm;

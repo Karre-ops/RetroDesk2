@@ -2,7 +2,7 @@
 # Spalten: Datei  max_Bytes_auf_Diskette  max_KB_im_Speicher  Diskette  Beschreibung
 # Diskette: S = Systemdiskette (bootfaehig), P = Programmdiskette, D = SDK
 RD.EXE          24576   40   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB)
-RDGDI.MOD       14336   14   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text
+RDGDI.MOD       16384   16   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl)
 RDUSER.MOD      26624   26   S  Fenster, Menues, Steuerelemente, Dialoge
 RDSND.MOD        4096    4   S  Sound-API, Musik-Player
 CGA.DRV          4096    4   S
@@ -31,6 +31,7 @@ STRESS.EXE       2048    2   S
 WURM.EXE         2048    2   S
 GDITEST.EXE      8192    8   S  Testbild Phase 3
 GFXWAHL.EXE      4096    4   S  Test Grafikwahl
+TEXTTEST.EXE     4096    4   S  Testbild Schriften
 TESTMOD.MOD      2048    2   S
 RDNET.MOD       20480   18   P  TCP/IP, DHCP, DNS
 RDCALC.EXE      90112   80   P
