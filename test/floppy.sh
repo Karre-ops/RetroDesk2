@@ -21,7 +21,10 @@ A:\RD2\RD.EXE A:\RD2\STRESS.EXE
 A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/autoexec.txt
-rm -f obj/andere.img; mformat -C -f 720 -v ANDERE -i obj/andere.img ::
+rm -f obj/andere.img; # andere Diskette absichtlich mit DERSELBEN Seriennummer (passiert real, wenn zwei Disketten
+# in derselben Sekunde formatiert werden): der Kern muss sie am Namen unterscheiden
+SN=$(python3 -c "import sys;d=open('$IMG','rb').read(48);print(d[0x27:0x2b][::-1].hex().upper())")
+mformat -C -f 720 -v ANDERE -N $SN -i obj/andere.img ::
 rm -f $SER /tmp/qmon.sock
 timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:/tmp/qmon.sock,server,nowait >/dev/null 2>&1 &
@@ -30,8 +33,8 @@ Q="python3 ../test/qemu/qmon.py"
 waitser() { for i in $(seq ${2:-60}); do grep -q "$1" $SER 2>/dev/null && return 0; sleep 1; done; return 1; }
 waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
 # MODTEST: Diskette wechseln, wenn das Programm es sagt; Kern muss dann nach RD2SYSTEM fragen
-T0=$(date +%s); waitser "MODTEST: jetzt Diskette wechseln" 150 && $Q "change floppy0 obj/andere.img"; echo "marker $(( $(date +%s)-T0 ))" > obj/zeit.txt
-waitscr "RD2SYSTEM in Laufwerk A: einlegen" 90 && SAWASK=1; echo "abfrage $(( $(date +%s)-T0 )) $SAWASK" >> obj/zeit.txt; grep -c "RD2SYSTEM in Laufwerk" $SER >> obj/zeit.txt; $Q text > obj/schirm_abfrage.txt 2>/dev/null
+waitser "MODTEST: jetzt Diskette wechseln" 150 && $Q "change floppy0 obj/andere.img"
+waitscr "RD2SYSTEM in Laufwerk A: einlegen" 90 && SAWASK=1; $Q text > obj/schirm_abfrage.txt 2>/dev/null
 $Q "eject -f floppy0" "sendkey ret" sleep3                       # leeres Laufwerk: wieder fragen, kein DOS-Text
 $Q text 2>/dev/null | grep -qiE "abort|retry|fail|critical|kritisch" && SAWDOS=1
 $Q "change floppy0 $IMG" sleep1 "sendkey ret"

@@ -74,7 +74,8 @@ static WORD reload(WORD m)
         if (!(e = load(m))) { k_out("RD: Modul nachgeladen", 0); return 0; }
         if (e == RD_ERR_NOMEM) return e;
         if (!x->drive) return e;
-        /* sonst (Diskette gewechselt?) noch einmal fragen */
+        /* Diskette passte, Laden ging trotzdem schief: ausdruecklich fragen, nie still im Kreis */
+        if (!k_askdisk(x->drive - 1, x->label)) return RD_ERR_NODISK;
     }
 }
 

@@ -8,7 +8,6 @@
 
 static KREGS kin;
 static BYTE fown[64];                             /* DOS-Handle -> Task */
-static BYTE midbuf[25];
 static char msg[90];
 
 /* ---- Abfrage an den Benutzer -------------------------------------------- */
@@ -72,6 +71,7 @@ static int dos21(void)
 }
 
 int k_dos(void) { return dos21(); }
+int k_askdisk(WORD drive, LPCSTR label) { return ask_insert(drive, label); }
 
 /* Ein Laufwerk fuer A: und B:? Dann selbst fragen, bevor DOS es tut. */
 static void prep(LPCSTR path)
@@ -164,13 +164,24 @@ WORD RDK DirGet(WORD drive, LPSTR buf)
 }
 
 /* Seriennummer und Name des Datentraegers (INT 21h 6900h). 0 = ok */
+static int strncmp_k(const char *a, const char *b) { while (*b && *a == *b) a++, b++; return *b || *a; }
+/* Seriennummer/Name der eingelegten Diskette aus dem Bootsektor (INT 25h: der Treiber
+   prueft dabei den Wechsel; 6900h lieferte unter FreeDOS manchmal die alte Diskette). */
+static BYTE bootsek[512];
 static WORD media(WORD drive, DWORD *serial, char *label)
 {
-    WORD i;
-    kr.ax = 0x6900; kr.bx = drive + 1; kr.dx = (WORD)midbuf; kr.ds = FP_SEG((void __far *)midbuf);
-    if (!dos21()) return k_lasterr;
-    *serial = *(DWORD *)(midbuf + 2);
-    if (label) { for (i = 0; i < 11; i++) label[i] = midbuf[6 + i]; label[11] = 0; for (i = 11; i > 0 && label[i - 1] == ' '; i--) label[i - 1] = 0; }
+    WORD i, e;
+    kr.ax = 0x440E; kr.bx = drive + 1; rd_int(0x21, &kr);          /* Phantomlaufwerk ohne DOS-Text umschalten */
+    if (!CARRY && (kr.ax & 0xFF) && (kr.ax & 0xFF) != drive + 1) { kr.ax = 0x440F; kr.bx = drive + 1; rd_int(0x21, &kr); }
+    for (i = 0; i < 3; i++) if (!(e = rd_absread(drive, bootsek))) break;   /* Motor anlaufen lassen */
+    if (e) return k_lasterr = ((e & 0xFF) == 2) ? RD_ERR_NODISK : RD_ERR_DISK;
+    *serial = bootsek[0x26] == 0x29 ? *(DWORD *)(bootsek + 0x27) : 0;
+    if (label) {
+        for (i = 0; i < 11; i++) label[i] = bootsek[0x26] == 0x29 ? bootsek[0x2B + i] : ' ';
+        label[11] = 0;
+        for (i = 11; i > 0 && label[i - 1] == ' '; i--) label[i - 1] = 0;
+        if (!strncmp_k(label, "NO NAME")) label[0] = 0;
+    }
     return 0;
 }
 WORD k_media(WORD drive, DWORD *serial, char *label) { return media(drive, serial, label); }
@@ -202,9 +213,16 @@ WORD RDK DriveInfo(WORD drive, DRIVEINFO FAR *di)       /* drive 1 = A: */
 
 WORD RDK DiskRequest(WORD drive, DWORD serial, LPCSTR label)   /* drive 1 = A: */
 {
-    static DWORD s;
+    static DWORD s; static char lab[12];
+    WORD i;
     for (;;) {
-        if (!media(drive - 1, &s, 0) && s == serial) return 0;
+        /* Seriennummer UND Name vergleichen: zwei im selben Moment formatierte Disketten
+           koennen dieselbe Seriennummer haben */
+        if (!media(drive - 1, &s, lab) && s == serial) {
+            if (!label || !*label) return 0;
+            for (i = 0; i < 11 && label[i] == lab[i] && lab[i]; i++) ;
+            if (label[i] == lab[i] || (i == 11)) return 0;
+        }
         if (!ask_insert(drive - 1, label)) return k_lasterr = RD_ERR_NODISK;
     }
 }

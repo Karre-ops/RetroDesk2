@@ -516,6 +516,37 @@ fd_no:
     ret
 _rd_fpudet endp
 
+; WORD rd_absread(WORD drive, void *buf): Bootsektor per INT 25h lesen (0 = A:).
+; Geht ueber den DOS-Treiber, der dabei den Diskettenwechsel prueft (6900h nutzt
+; bei manchen DOS-Versionen alte Daten). 0 = ok, sonst DOS-Fehlercode.
+public _rd_absread
+_rd_absread proc near
+    push bp
+    mov  bp, sp
+    push si
+    push di
+    mov  al, [bp+4]
+    mov  bx, [bp+6]
+    mov  cx, 1
+    xor  dx, dx
+    push bp
+    int  25h                         ; laesst die Flags auf dem Stack
+    pop  dx                          ; Flags weg (aendert CF nicht)
+    pop  bp
+    jc   absf
+    xor  ax, ax
+    jmp  short absx
+absf:
+    or   ax, ax
+    jnz  absx
+    mov  ax, 0FFh
+absx:
+    pop  di
+    pop  si
+    pop  bp
+    ret
+_rd_absread endp
+
 public _rd_fsave
 _rd_fsave proc near
     push bp

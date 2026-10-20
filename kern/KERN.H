@@ -33,6 +33,7 @@ extern void  __cdecl rd_pmove(WORD dst, WORD src, WORD paras);
 extern void  __cdecl rd_pfill(WORD seg, WORD paras, WORD wort);
 extern void  __cdecl rd_timer_on(WORD divisor);   /* auch INT 9, 23h, 24h */
 extern void  __cdecl rd_timer_off(void);
+extern WORD  __cdecl rd_absread(WORD drive, void *buf);   /* INT 25h, Sektor 0 */
 extern volatile WORD rd_killreq;                 /* INT 9: Strg+Alt+Rueckschritt */
 extern volatile WORD k_crit, k_critdrv;          /* INT 24h: Fehlercode+1, AX */
 extern void __far *rd_gateptr;                   /* Einsprung der Modul-Sprungstuecke */
@@ -74,6 +75,7 @@ void  file_api(void);
 void  file_owner_close(WORD task);
 void  clip_done(void);
 int   k_ask(LPCSTR text);
+int   k_askdisk(WORD drive, LPCSTR label);         /* 0 = Abbruch */
 int   k_dos(void);                                /* INT 21h ueber kr mit Diskettenabfrage, 1 = ok */
 WORD  k_media(WORD drive, DWORD *serial, char *label);   /* drive 0 = A: */
 
