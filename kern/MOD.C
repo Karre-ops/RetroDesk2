@@ -32,57 +32,23 @@ static BYTE thcode[MAXTHUNK][8];
 static WORD nth;
 extern DWORD k_stamp;
 
-#pragma pack(push, 1)
-typedef struct { WORD sig, cblp, cp, crlc, cparhdr, minalloc, maxalloc, ss, sp, csum, ip, cs, lfarlc, ovno; } MZ;
-typedef struct { char sig[4]; DWORD blk, len; WORD sum, res; } TRAILER;
-typedef struct { char sig[4]; WORD api, flags, stack, kb; char name[16]; WORD ver, nexp, nres, oexp, ores, res[5]; } RD2BLK;
-#pragma pack(pop)
-static MZ mz; static TRAILER tr; static RD2BLK rb;
-static struct { WORD seg, reloc; } pb;
-
-static int rdat(int f, DWORD pos, void *buf, WORD n)
-{
-    kr.ax = 0x4200; kr.bx = f; kr.cx = (WORD)(pos >> 16); kr.dx = (WORD)pos; rd_int(0x21, &kr);
-    if (CARRY) return 0;
-    kr.ax = 0x3F00; kr.bx = f; kr.cx = n; kr.dx = (WORD)buf; kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
-    return !CARRY && kr.ax == n;
-}
-
 /* Bild laden und initialisieren. 0 = ok */
 static WORD load(WORD m)
 {
-    MODUL *x = &md[m]; int f; WORD i, sum = 0, seg, paras; DWORD img, sz, tab;
+    MODUL *x = &md[m]; WORD i, e; static WORD seg, paras; DWORD tab;
     WORD __far *t; void __far * __far *fp;
-    kr.ax = 0x3D00; kr.dx = (WORD)x->path; kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
-    if (CARRY) return RD_ERR_NOTFOUND;
-    f = kr.ax;
-    kr.ax = 0x4202; kr.bx = f; kr.cx = 0; kr.dx = 0; rd_int(0x21, &kr);
-    sz = ((DWORD)kr.dx << 16) | kr.ax;
-    i = rdat(f, 0, &mz, sizeof mz) && mz.sig == 0x5A4D && rdat(f, sz - 16, &tr, sizeof tr) &&
-        tr.sig[0] == 'R' && tr.sig[3] == '!' && rdat(f, tr.blk, &rb, sizeof rb) && (rb.sig[3] == 'M' || rb.sig[3] == 'D');
-    kr.ax = 0x3E00; kr.bx = f; rd_int(0x21, &kr);
-    if (!i) return RD_ERR_FORMAT;
-    for (i = 0; i < sizeof rb; i++) sum += ((BYTE *)&rb)[i];
-    if (sum != tr.sum) return RD_ERR_FORMAT;
-    if (rb.api > RD2_API_VERSION) return RD_ERR_VERSION;
-    img = (DWORD)mz.cp * 512 - (mz.cblp ? 512 - mz.cblp : 0) - (DWORD)mz.cparhdr * 16;
-    paras = (WORD)((img + 15) >> 4) + mz.minalloc;
-    if (!(seg = mem_get(paras, 0, 0))) return RD_ERR_NOMEM;
-    pb.seg = seg; pb.reloc = seg;
-    kr.ax = 0x4B03; kr.dx = (WORD)x->path; kr.ds = FP_SEG((void __far *)&kr); kr.bx = (WORD)&pb; kr.es = kr.ds;
-    rd_int(0x21, &kr);
-    if (CARRY) { mem_put(seg); return RD_ERR_DISK; }
-    tab = rd_enter(seg + mz.cs, mz.ip, (void __far *)rd_api, m, 0, (char __far *)x->path);
+    if ((e = k_imgload(x->path, "MD", &seg, &paras)) != 0) return e;
+    tab = rd_enter(seg + k_mz.cs, k_mz.ip, (void __far *)rd_api, m, 0, (char __far *)x->path);
     t = (WORD __far *)MK_FP((WORD)(tab >> 16), (WORD)tab);
     if (!tab || t[0] > MAXEXP) { mem_put(seg); return RD_ERR_FORMAT; }
     x->nexp = t[0];
     fp = (void __far * __far *)(t + 1);
     for (i = 0; i < x->nexp; i++) { x->ex[i].off = FP_OFF(fp[i]); x->ex[i].seg = FP_SEG(fp[i]) - seg; }
-    x->base = seg; x->paras = paras; x->flags = rb.flags; x->loaded = 1; x->stamp = ++k_stamp;
-    for (i = 0; i < 15 && rb.name[i]; i++) x->name[i] = rb.name[i];
+    x->base = seg; x->paras = paras; x->flags = k_rb.flags; x->loaded = 1; x->stamp = ++k_stamp;
+    for (i = 0; i < 15 && k_rb.name[i]; i++) x->name[i] = k_rb.name[i];
     x->name[i] = 0;
     mem_mod(seg, m);
-    if (!(x->flags & PF_DISCARD)) x->lock = 0x8000;           /* nie verwerfen */
+    x->lock = (x->flags & PF_DISCARD) ? 0 : 0x8000;           /* 0x8000: nie verwerfen */
     return 0;
 }
 
@@ -138,14 +104,20 @@ HMOD RDK ModLoad(LPCSTR name)
     if ((e = load(m)) != 0) { x->used = 0; return FAIL(e); }
     return m;
 }
-void RDK ModFree(HMOD m)
+/* Modul wirklich entfernen, wenn niemand es mehr braucht und kein Aufruf darin laeuft */
+static void unload(WORD m)
 {
-    MODUL *x;
-    if (m < 1 || m > MAXMOD || !md[m].used) return;
-    x = &md[m];
-    if (--x->refs) return;
+    MODUL *x = &md[m]; WORD i;
+    if (x->refs || (x->lock & 0x7FFF)) return;
     if (x->loaded) mem_put(x->base);
     x->used = x->loaded = 0;
+    for (i = 0; i < nth; i++) if (th[i].mod == m) th[i].mod = 0;   /* alte Sprungstuecke ungueltig */
+}
+void RDK ModFree(HMOD m)
+{
+    if (m < 1 || m > MAXMOD || !md[m].used || !md[m].refs) return;
+    md[m].refs--;
+    unload(m);
 }
 FARPROC RDK ModProc(HMOD m, WORD nr)
 {
@@ -153,9 +125,12 @@ FARPROC RDK ModProc(HMOD m, WORD nr)
     if (m < 1 || m > MAXMOD || !md[m].used || nr < 1) return (FARPROC)FAIL(RD_ERR_HANDLE);
     if (md[m].loaded && nr > md[m].nexp) return (FARPROC)FAIL(RD_ERR_NOTFOUND);
     for (i = 0; i < nth; i++) if (th[i].mod == m && th[i].nr == nr) break;
+    if (i == nth) for (i = 0; i < nth && th[i].mod; i++) ;          /* freies Sprungstueck? */
     if (i == nth) {
         if (nth >= MAXTHUNK) return (FARPROC)FAIL(RD_ERR_FULL);
         nth++;
+    }
+    if (th[i].mod != m || th[i].nr != nr) {
         th[i].mod = (BYTE)m; th[i].nr = (BYTE)nr;
         c = thcode[i];
         c[0] = 0xB8; c[1] = (BYTE)i; c[2] = (BYTE)(i >> 8);  /* MOV AX, i */
@@ -169,7 +144,7 @@ FARPROC RDK ModProc(HMOD m, WORD nr)
 DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs)
 {
     TASK *t = &k_task[k_cur]; WORD m = th[idx].mod, nr = th[idx].nr; MODUL *x = &md[m];
-    if (!x->used || t->rsp >= 12) { k_out("RD: Modulaufruf ungueltig, Programm wird beendet", 0); TaskKill(k_cur, 0xFFFE); }
+    if (!m || !x->used || t->rsp >= 12) { k_out("RD: Modulaufruf ungueltig, Programm wird beendet", 0); TaskKill(k_cur, 0xFFFE); }
     if (!x->loaded && reload(m)) {
         k_out("RD: Modul fehlt, Programm wird beendet", 0);
         TaskKill(k_cur, 0xFFFE);
@@ -181,10 +156,17 @@ DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs)
 }
 DWORD __cdecl mod_leave(void)
 {
-    TASK *t = &k_task[k_cur];
+    TASK *t = &k_task[k_cur]; WORD m;
     t->rsp--;
-    md[t->rs[t->rsp].mod].lock--;
+    m = t->rs[t->rsp].mod;
+    md[m].lock--;
+    if (!md[m].refs) unload(m);                   /* ModFree waehrend des Aufrufs */
     return ((DWORD)t->rs[t->rsp].cs << 16) | t->rs[t->rsp].ip;
+}
+void mod_unwind(TASK *t)
+{
+    WORD m;
+    while (t->rsp) { t->rsp--; m = t->rs[t->rsp].mod; md[m].lock--; if (!md[m].refs) unload(m); }
 }
 
 void mod_api(void)

@@ -71,6 +71,8 @@ static int dos21(void)
     }
 }
 
+int k_dos(void) { return dos21(); }
+
 /* Ein Laufwerk fuer A: und B:? Dann selbst fragen, bevor DOS es tut. */
 static void prep(LPCSTR path)
 {
@@ -234,7 +236,7 @@ void file_owner_close(WORD task)
 
 /* ---- Profile (INI) --------------------------------------------------------- */
 #define PMAX 16384
-static BYTE __far *pb; static WORD pn;            /* geladene Datei */
+static BYTE __far *pb; static WORD pn, pbig;      /* geladene Datei; pbig = groesser als PMAX */
 static BYTE lc(BYTE c) { return (c >= 'A' && c <= 'Z') ? c + 32 : c; }
 static int pload(LPCSTR file)
 {
@@ -242,7 +244,8 @@ static int pload(LPCSTR file)
     pn = 0; pb = 0;
     if (!(m = MemFixed(PMAX + 512))) return 0;
     pb = (BYTE __far *)m;
-    if ((f = FileOpen(file, FO_READ)) >= 0) { pn = FileRead(f, pb, PMAX); FileClose(f); }
+    pbig = 0;
+    if ((f = FileOpen(file, FO_READ)) >= 0) { pn = FileRead(f, pb, PMAX); if (pn == PMAX && FileRead(f, pb + PMAX, 1)) pbig = 1; FileClose(f); }
     k_lasterr = 0;
     return 1;
 }
@@ -322,6 +325,7 @@ WORD RDK ProfileSetStr(LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR val)
 {
     static WORD se, v; WORD line, r;
     if (!pload(file)) return k_lasterr = RD_ERR_NOMEM;
+    if (pbig) { pfree(); return k_lasterr = RD_ERR_FULL; }   /* nie abgeschnitten zurueckschreiben */
     line = pfind(sec, key, &se, &v);
     if (line != 0xFFFF) {
         WORD nl = nextl(line);
@@ -352,7 +356,7 @@ void RDK ClipEmpty(void)      { WORD i; for (i = 1; i < 4; i++) if (clip[i]) { M
 BOOL RDK ClipSet(WORD fmt, HMEM h)
 {
     if (fmt < 1 || fmt > 3 || clipown != k_cur) return FALSE;
-    if (clip[fmt]) MemFree(clip[fmt]);
+    if (clip[fmt] && clip[fmt] != h) MemFree(clip[fmt]);
     clip[fmt] = h;
     mem_share(h);                                 /* gehoert jetzt der Ablage */
     return TRUE;

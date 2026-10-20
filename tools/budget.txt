@@ -27,6 +27,8 @@ MEMTEST.EXE      2048    2   S
 MODTEST.EXE      2048    2   S
 FILETEST.EXE     4096    4   S
 HAENGT.EXE       2048    2   S
+STRESS.EXE       2048    2   S
+WURM.EXE         2048    2   S
 TESTMOD.MOD      2048    2   S
 RDNET.MOD       20480   18   P  TCP/IP, DHCP, DNS
 RDCALC.EXE      90112   80   P

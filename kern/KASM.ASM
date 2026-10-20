@@ -474,6 +474,7 @@ i8_chk:
     push di
     push es
     push ax
+    cld                              ; C erwartet DF = 0 (unterbrochener Code kann STD haben)
     call _task_tick                  ; schaltet evtl. um und kehrt spaeter hierher zurueck
     add  sp, 2
     pop  es
@@ -520,7 +521,7 @@ _rd_fsave proc near
     push bp
     mov  bp, sp
     mov  bx, [bp+4]
-    fnsave [bx]
+    fsave [bx]                       ; mit WAIT: 8087 muss fertig sein
     fwait
     pop  bp
     ret

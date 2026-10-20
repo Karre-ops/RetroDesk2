@@ -17,6 +17,7 @@ A:\RD2\RD.EXE /KOOP A:\RD2\PING.EXE > A:\RD3.TXT
 A:\RD2\RD.EXE A:\RD2\FILETEST.EXE
 A:\RD2\RD.EXE A:\RD2\MODTEST.EXE
 A:\RD2\RD.EXE A:\RD2\HAENGT.EXE
+A:\RD2\RD.EXE A:\RD2\STRESS.EXE
 A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/autoexec.txt
@@ -29,8 +30,8 @@ Q="python3 ../test/qemu/qmon.py"
 waitser() { for i in $(seq ${2:-60}); do grep -q "$1" $SER 2>/dev/null && return 0; sleep 1; done; return 1; }
 waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
 # MODTEST: Diskette wechseln, wenn das Programm es sagt; Kern muss dann nach RD2SYSTEM fragen
-waitser "MODTEST: jetzt Diskette wechseln" 150 && $Q "change floppy0 obj/andere.img"
-waitscr "RD2SYSTEM in Laufwerk A: einlegen" 90 && SAWASK=1; $Q text > obj/schirm_abfrage.txt 2>/dev/null
+T0=$(date +%s); waitser "MODTEST: jetzt Diskette wechseln" 150 && $Q "change floppy0 obj/andere.img"; echo "marker $(( $(date +%s)-T0 ))" > obj/zeit.txt
+waitscr "RD2SYSTEM in Laufwerk A: einlegen" 90 && SAWASK=1; echo "abfrage $(( $(date +%s)-T0 )) $SAWASK" >> obj/zeit.txt; grep -c "RD2SYSTEM in Laufwerk" $SER >> obj/zeit.txt; $Q text > obj/schirm_abfrage.txt 2>/dev/null
 $Q "eject -f floppy0" "sendkey ret" sleep3                       # leeres Laufwerk: wieder fragen, kein DOS-Text
 $Q text 2>/dev/null | grep -qiE "abort|retry|fail|critical|kritisch" && SAWDOS=1
 $Q "change floppy0 $IMG" sleep1 "sendkey ret"
@@ -82,6 +83,12 @@ echo "--- Phase 2 Notbeenden"
 chk "Strg+Alt+Rueckschritt beendet HAENGT" '[[ "$S" == *"RD: Notbeenden Task 0x00000001"* ]] && [[ "$S" == *"Task beendet (Kill): 0x0001FFFF"* ]]'
 T=${S##*HAENGT: haenge jetzt}
 chk "danach Speicher vollstaendig zurueck" '[[ "$T" == *"Speicher vollstaendig zurueck"* ]]'
+echo "--- Dauertest (5 Tasks: Speicher, Nachrichten, 8087)"
+T=${S##*HAENGT: haenge jetzt}; T=${T#*Zeitscheiben an}
+chk "STRESS: alle Wuermer ok"            '[[ "$T" == *"STRESS: alle Wuermer ok"* ]]'
+chk "STRESS: 100 Nachrichten"            '[[ "$T" == *"STRESS: Nachrichten 0x00000064"* ]]'
+chk "STRESS: Speicher vollstaendig zurueck" '[[ "$T" == *"Speicher vollstaendig zurueck"* ]]'
+echo "$T" | grep -E "WURM|STRESS: Dauer" | sed 's/^/       /'
 python3 tools/budget.py out $IMG | tail -2
 echo "--- COM1 ab MODTEST ---"; echo "${S#*FILETEST: Ende}" | head -40
 [ $F = 0 ] && echo "Diskettentest: alles ok" || echo "Diskettentest: $F Fehler"

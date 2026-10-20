@@ -11,32 +11,33 @@
  * eigenen Programmbild liegt und DOS nicht aktiv ist. */
 #include "KERN.H"
 
-#define STK_PARAS 32                              /* 512 Bytes Startstack */
+#define STK_PARAS 64                              /* 1 KB Startstack (BIOS-Aufrufe in Abfragen) */
 #define SLICE 4                                   /* Zeitscheibe in PIT-Takten (4 x 13,7 ms) */
 
 TASK k_task[MAXTASK];
 WORD k_cur;
 static BYTE __far *indos;
 
-#pragma pack(push, 1)
-typedef struct { WORD sig, cblp, cp, crlc, cparhdr, minalloc, maxalloc, ss, sp, csum, ip, cs, lfarlc, ovno; } MZ;
-typedef struct { char sig[4]; DWORD blk, len; WORD sum, res; } TRAILER;
-typedef struct { char sig[4]; WORD api, flags, stack, kb; char name[16]; WORD ver, nexp, nres, oexp, ores, res[5]; } RD2BLK;
-#pragma pack(pop)
-static MZ mz; static TRAILER tr; static RD2BLK rb;
+KMZ k_mz; KRD2 k_rb;
+static struct { char sig[4]; DWORD blk, len; WORD sum, res; } tr;
 static char path[80];
 
 WORD RDK TaskKill(HTASK n, WORD code);
 static DWORD ms_now(void) { DWORD t = rd_ticks; return t * 13 + ((t * 47) >> 6); }
 
 /* ---- Umschalten ----------------------------------------------------------- */
+/* Beendete Tasks aufraeumen. Laeuft nie im Kontext des beendeten Tasks selbst
+   (dessen Stack liegt evtl. in seinem Programmbild), sondern im naechsten. */
 static void reap(void)
 {
     WORD i;
     for (i = 1; i < MAXTASK; i++)
         if (k_task[i].state == T_ZOMBIE && i != k_cur) {
+            mod_unwind(&k_task[i]);
+            file_owner_close(i);
+            mem_owner_free(i);
             if (k_task[i].stk) mem_put(k_task[i].stk);
-            k_task[i].stk = 0;
+            k_task[i].stk = k_task[i].base = k_task[i].paras = k_task[i].q = 0;
             k_task[i].state = T_FREE;
         }
 }
@@ -90,13 +91,15 @@ static void schedule(int wait)
 
 /* Strg+Alt+Rueckschritt: Task beenden, der seit mehr als 5 s keine Nachricht abgeholt hat
    und nicht wartet (also rechnet oder haengt). Laeuft im Zeitgeber-Interrupt. */
-static void notbeenden(void)
+static void notbeenden(WORD cs)
 {
     WORD i, best = 0; DWORD now = ms_now(), alt = 5000;
-    rd_killreq = 0;
-    if (indos[0] || indos[-1]) { rd_killreq = 1; return; }       /* spaeter noch einmal */
+    if (indos[0] || indos[-1]) return;            /* DOS aktiv: beim naechsten Takt noch einmal */
     for (i = 1; i < MAXTASK; i++)
         if (k_task[i].state == T_READY && now - k_task[i].lastget > alt) { alt = now - k_task[i].lastget; best = i; }
+    if (best && best == k_cur && (cs < k_task[best].base || cs >= k_task[best].base + k_task[best].paras))
+        return;                                   /* steckt gerade im Kern/BIOS: Kernzustand nicht zerstoeren, spaeter */
+    rd_killreq = 0;
     if (!best) { k_out("RD: Notbeenden: kein haengendes Programm", 0); return; }
     k_hex("RD: Notbeenden Task", best, 0);
     TaskKill(best, 0xFFFF);                       /* bei k_cur: schaltet um, kehrt nicht zurueck */
@@ -106,7 +109,7 @@ void __cdecl task_tick(WORD cs)
 {
     TASK *t = &k_task[k_cur];
     WORD i, n;
-    if (rd_killreq) notbeenden();
+    if (rd_killreq) notbeenden(cs);
     if (!k_cur || t->state != T_READY) return;
     if (t->slice) t->slice--;
     if (t->slice) return;
@@ -126,15 +129,40 @@ void __cdecl task_tick(WORD cs)
 /* ---- Laden und Start ----------------------------------------------------- */
 static int rdat(int f, DWORD pos, void *buf, WORD n)
 {
-    kr.ax = 0x4200; kr.bx = f; kr.cx = (WORD)(pos >> 16); kr.dx = (WORD)pos; rd_int(0x21, &kr);
-    if (CARRY) return 0;
-    kr.ax = 0x3F00; kr.bx = f; kr.cx = n; kr.dx = (WORD)buf; kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
-    return !CARRY && kr.ax == n;
+    kr.ax = 0x4200; kr.bx = f; kr.cx = (WORD)(pos >> 16); kr.dx = (WORD)pos;
+    if (!k_dos()) return 0;
+    kr.ax = 0x3F00; kr.bx = f; kr.cx = n; kr.dx = (WORD)buf; kr.ds = FP_SEG((void __far *)&kr);
+    return k_dos() && kr.ax == n;
 }
-static DWORD fsize(int f)
+/* Datei pruefen und laden. typen: erlaubte Typbuchstaben ("P" oder "MD"). Ergebnis in k_mz, k_rb. */
+WORD k_imgload(const char *path, const char *typen, WORD *seg, WORD *paras)
 {
-    kr.ax = 0x4202; kr.bx = f; kr.cx = 0; kr.dx = 0; rd_int(0x21, &kr);
-    return CARRY ? 0 : ((DWORD)kr.dx << 16) | kr.ax;
+    int f, ok; WORD i, sum = 0; DWORD img, sz; const char *t;
+    static struct { WORD seg, reloc; } pb;
+    kr.ax = 0x3D00; kr.dx = (WORD)path; kr.ds = FP_SEG((void __far *)&kr);
+    if (!k_dos()) return k_lasterr;
+    f = kr.ax;
+    kr.ax = 0x4202; kr.bx = f; kr.cx = 0; kr.dx = 0;
+    ok = k_dos();
+    sz = ((DWORD)kr.dx << 16) | kr.ax;
+    ok = ok && sz > sizeof k_mz + 16 && rdat(f, 0, &k_mz, sizeof k_mz) && k_mz.sig == 0x5A4D &&
+         rdat(f, sz - 16, &tr, sizeof tr) && tr.sig[0] == 'R' && tr.sig[1] == 'D' && tr.sig[2] == '2' && tr.sig[3] == '!' &&
+         tr.blk < sz && rdat(f, tr.blk, &k_rb, sizeof k_rb) && k_rb.sig[0] == 'R' && k_rb.sig[1] == 'D' && k_rb.sig[2] == '2';
+    kr.ax = 0x3E00; kr.bx = f; rd_int(0x21, &kr);
+    if (!ok) return RD_ERR_FORMAT;
+    for (t = typen; *t && *t != k_rb.sig[3]; t++) ;
+    if (!*t) return RD_ERR_FORMAT;
+    for (i = 0; i < sizeof k_rb; i++) sum += ((BYTE *)&k_rb)[i];
+    if (sum != tr.sum) return RD_ERR_FORMAT;
+    if (k_rb.api > RD2_API_VERSION) return RD_ERR_VERSION;
+    img = (DWORD)k_mz.cp * 512 - (k_mz.cblp ? 512 - k_mz.cblp : 0) - (DWORD)k_mz.cparhdr * 16;
+    if (img > 0x9FFF0UL) return RD_ERR_FORMAT;
+    *paras = (WORD)((img + 15) >> 4) + k_mz.minalloc;
+    if (!(*seg = mem_get(*paras, 0, 0))) return RD_ERR_NOMEM;
+    pb.seg = *seg; pb.reloc = *seg;
+    kr.ax = 0x4B03; kr.dx = (WORD)path; kr.ds = FP_SEG((void __far *)&kr); kr.bx = (WORD)&pb; kr.es = kr.ds;
+    if (!k_dos()) { mem_put(*seg); return k_lasterr; }
+    return 0;
 }
 static void mkpath(LPCSTR app)
 {
@@ -151,58 +179,41 @@ static void task_start(void)                      /* laeuft auf dem Startstack d
     short res;
     t->lastget = ms_now();
     res = (short)rd_enter(t->base + t->ecs, t->eip, (void __far *)rd_api, k_cur, t->show, (char __far *)t->cmd);
-    /* Programm ist zurueckgekehrt */
+    /* Programm ist zurueckgekehrt. Aufraeumen erledigt reap() im naechsten Task. */
     t = &k_task[k_cur];
     t->quitcode = res;
     k_hex("RD: Task beendet:", ((DWORD)k_cur << 16) | (WORD)res, 0);
-    file_owner_close(k_cur);
-    mem_owner_free(k_cur);
-    t->base = t->paras = t->q = 0;
-    t->state = T_ZOMBIE;                          /* Startstack gibt reap() im naechsten Task frei */
-    schedule(1);
+    t->state = T_ZOMBIE;
+    schedule(1);                                  /* kehrt nie zurueck */
 }
 
 WORD task_load(LPCSTR app, LPCSTR cmd, WORD show)
 {
-    int f; WORD i, n, sum = 0, seg, paras; DWORD img;
-    static struct { WORD seg, reloc; } pb;
+    WORD i, n, e; static WORD seg, paras;
     TASK *t;
     reap();
     for (n = 1; n < MAXTASK && k_task[n].state != T_FREE; n++) ;
     if (n == MAXTASK) return FAIL(RD_ERR_FULL);
     mkpath(app);
-    kr.ax = 0x3D00; kr.dx = (WORD)path; kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
-    if (CARRY) return FAIL(RD_ERR_NOTFOUND);
-    f = kr.ax;
-    if (!rdat(f, 0, &mz, sizeof mz) || mz.sig != 0x5A4D ||
-        !rdat(f, fsize(f) - 16, &tr, sizeof tr) || tr.sig[0] != 'R' || tr.sig[1] != 'D' || tr.sig[2] != '2' || tr.sig[3] != '!' ||
-        !rdat(f, tr.blk, &rb, sizeof rb) || rb.sig[3] != 'P') {
-        kr.ax = 0x3E00; kr.bx = f; rd_int(0x21, &kr);
-        return FAIL(RD_ERR_FORMAT);
-    }
-    kr.ax = 0x3E00; kr.bx = f; rd_int(0x21, &kr);
-    for (i = 0; i < sizeof rb; i++) sum += ((BYTE *)&rb)[i];
-    if (sum != tr.sum) return FAIL(RD_ERR_FORMAT);
-    if (rb.api > RD2_API_VERSION) return FAIL(RD_ERR_VERSION);
-    img = (DWORD)mz.cp * 512 - (mz.cblp ? 512 - mz.cblp : 0) - (DWORD)mz.cparhdr * 16;
-    paras = (WORD)((img + 15) >> 4) + mz.minalloc;
+    if ((e = k_imgload(path, "P", &seg, &paras)) != 0) return FAIL(e);
     t = &k_task[n];
-    if (!(seg = mem_get(paras, 0, n))) return FAIL(RD_ERR_NOMEM);
-    pb.seg = seg; pb.reloc = seg;
-    kr.ax = 0x4B03; kr.dx = (WORD)path; kr.ds = FP_SEG((void __far *)&kr); kr.bx = (WORD)&pb; kr.es = kr.ds;
-    rd_int(0x21, &kr);
-    if (CARRY) { mem_owner_free(n); return FAIL(RD_ERR_DISK); }
     t->stk = mem_get(STK_PARAS, 0, 0);
     t->q = mem_get((QLEN * sizeof(MSG) + 15) >> 4, 0, n);
-    if (!t->stk || !t->q) { if (t->stk) mem_put(t->stk); mem_owner_free(n); return FAIL(RD_ERR_NOMEM); }
-    t->base = seg; t->paras = paras; t->ecs = mz.cs; t->eip = mz.ip; t->show = show;
+    if (!t->stk || !t->q) {
+        if (t->stk) mem_put(t->stk);
+        if (t->q) mem_put(t->q);
+        mem_put(seg); t->stk = t->q = 0;
+        return FAIL(RD_ERR_NOMEM);
+    }
+    mem_chown(seg, n);                            /* Programmbild gehoert dem Task */
+    t->base = seg; t->paras = paras; t->ecs = k_mz.cs; t->eip = k_mz.ip; t->show = show;
     t->qh = t->qn = t->quit = 0; t->quitcode = 0; t->rsp = 0;
     for (i = 0; i < NTIMER; i++) t->tm[i].ms = 0;
-    for (i = 0; i < 15 && rb.name[i]; i++) t->name[i] = rb.name[i];
+    for (i = 0; i < 15 && k_rb.name[i]; i++) t->name[i] = k_rb.name[i];
     t->name[i] = 0;
     for (i = 0; i < 79 && cmd && cmd[i]; i++) t->cmd[i] = cmd[i];
     t->cmd[i] = 0;
-    if (k_fpu) rd_fsave(t->fpu), rd_frstor(t->fpu);   /* Startzustand = aktueller (initialisierter) 8087 */
+    if (k_fpu) { rd_fsave(t->fpu); rd_frstor(t->fpu); }  /* Startzustand = aktueller 8087 */
     t->ss = t->stk;
     t->sp = rd_newstack(t->stk, STK_PARAS * 16, task_start);
     t->state = T_READY;
@@ -291,12 +302,10 @@ WORD RDK TaskKill(HTASK n, WORD code)
     if (!n || n >= MAXTASK || (k_task[n].state != T_READY && k_task[n].state != T_WAIT)) return FAIL(RD_ERR_HANDLE);
     t = &k_task[n];
     t->quitcode = code;
-    file_owner_close(n);
-    mem_owner_free(n);
-    t->base = t->paras = t->q = 0;
     t->state = T_ZOMBIE;
     k_hex("RD: Task beendet (Kill):", ((DWORD)n << 16) | code, 0);
-    if (n == k_cur) schedule(1);                  /* kehrt nie zurueck */
+    if (n == k_cur) schedule(1);                  /* kehrt nie zurueck; reap() raeumt im naechsten Task auf */
+    reap();
     return 0;
 }
 static HTASK info(WORD n, TASKINFO FAR *ti)

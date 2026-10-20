@@ -64,7 +64,8 @@ void  mem_owner_free(WORD owner);
 DWORD mem_free_bytes(int groesster);
 void  mem_api(void);
 void  mem_share(HMEM h);                          /* gehoert danach keinem Task */
-void  mem_mod(WORD seg, WORD mod);                /* Block gehoert Modul mod (verwerfbar, wenn frei) */
+void  mem_mod(WORD seg, WORD mod);
+void  mem_chown(WORD seg, WORD owner);                /* Block gehoert Modul mod (verwerfbar, wenn frei) */
 extern int (*mem_mod_discard)(WORD mod);          /* MOD.C: 1 = Modul darf/wurde verworfen */
 extern DWORD (*mem_mod_stamp)(WORD mod);
 
@@ -73,12 +74,8 @@ void  file_api(void);
 void  file_owner_close(WORD task);
 void  clip_done(void);
 int   k_ask(LPCSTR text);
+int   k_dos(void);                                /* INT 21h ueber kr mit Diskettenabfrage, 1 = ok */
 WORD  k_media(WORD drive, DWORD *serial, char *label);   /* drive 0 = A: */
-
-/* ---- MOD.C ------------------------------------------------------------------- */
-void  mod_api(void);
-DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs);
-DWORD __cdecl mod_leave(void);
 
 /* ---- TASK.C ------------------------------------------------------------------ */
 #define MAXTASK 12
@@ -105,8 +102,21 @@ typedef struct {
 extern TASK k_task[MAXTASK];
 extern WORD k_cur;
 void  task_init(void);
+/* gemeinsamer Lader fuer Programme und Module (MZ + RD2-Anhang), path im Kern-DS */
+#pragma pack(push, 1)
+typedef struct { WORD sig, cblp, cp, crlc, cparhdr, minalloc, maxalloc, ss, sp, csum, ip, cs, lfarlc, ovno; } KMZ;
+typedef struct { char sig[4]; WORD api, flags, stack, kb; char name[16]; WORD ver, nexp, nres, oexp, ores, res[5]; } KRD2;
+#pragma pack(pop)
+extern KMZ k_mz; extern KRD2 k_rb;
+WORD  k_imgload(const char *path, const char *typen, WORD *seg, WORD *paras);   /* 0 = ok, sonst RD_ERR_* */
 void  task_api(void);
 WORD  task_load(LPCSTR path, LPCSTR cmd, WORD show);   /* HTASK oder 0 */
 void  task_run_all(void);                         /* Kern wartet, bis alle Programme beendet sind */
 void  __cdecl task_tick(WORD cs);                 /* aus dem Zeitgeber-Interrupt */
+/* ---- MOD.C ------------------------------------------------------------------- */
+void  mod_api(void);
+DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs);
+DWORD __cdecl mod_leave(void);
+void  mod_unwind(TASK *t);                        /* Task endet: offene Modulaufrufe entsperren */
+
 #endif

@@ -244,7 +244,7 @@ HMEM RDK MemRealloc(HMEM h, DWORD size, WORD flags)
     }
     i = find_seg(old); oldp = blk[i].paras;
     if (p <= oldp) {                              /* verkleinern: Rest freigeben */
-        if (p < oldp) {
+        if (p < oldp && nblk < MAXB - 1) {
             ins(i + 1);
             blk[i].paras = p;
             blk[i + 1].seg = old + p; blk[i + 1].paras = oldp - p; blk[i + 1].flags = B_FREE; blk[i + 1].h = 0; blk[i + 1].owner = 0;
@@ -290,6 +290,11 @@ void mem_share(HMEM h)
     if (!h || h > MAXH || !hnd[h].used) return;
     hnd[h].owner = 0; hnd[h].flags |= MEM_SHARE;
     if (hnd[h].seg && (i = find_seg(hnd[h].seg)) != 0xFFFF) { blk[i].owner = 0; blk[i].flags |= MEM_SHARE; }
+}
+void mem_chown(WORD seg, WORD owner)
+{
+    WORD i = find_seg(seg);
+    if (i != 0xFFFF) blk[i].owner = owner;
 }
 void mem_mod(WORD seg, WORD mod)
 {

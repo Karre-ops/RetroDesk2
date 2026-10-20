@@ -19,7 +19,7 @@ for c in RD MEM TASK FILE MOD; do wcc -0 -ms -zu -os -s -zq -w4 -bt=dos -i=sdk -
 wlink option quiet system dos name $O/RD.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj/k_TASK.obj,obj/k_FILE.obj,obj/k_MOD.obj,obj/kasm.obj,obj/notsup.obj option map=obj/rd.map >/dev/null
 # Programme: Medium, ohne Watcom-Startcode
 app() {   # $1 Quelle  $2 EXE  $3 Anzeigename
-  wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/$2.obj $1
+  wcc -0 -mm $APPFLAGS -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/$2.obj $1
   wlink option quiet format dos name $O/$2 file obj/rd2start.obj,obj/$2.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/$2.map >/dev/null
   python3 tools/rd2link.py $O/$2 "$3" >/dev/null
 }
@@ -32,6 +32,7 @@ modul() {   # $1 Quelle  $2 Datei  $3 Anzeigename  $4 Flags
 }
 app apps/leer/LEER.C LEER.EXE "Leer"
 modul apps/test/TESTMOD.C TESTMOD.MOD "Testmodul" 0x0080
-for t in MODTEST FILETEST HAENGT; do app apps/test/$t.C $t.EXE "$t"; done
+for t in MODTEST FILETEST HAENGT STRESS; do app apps/test/$t.C $t.EXE "$t"; done
+APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 python3 tools/budget.py $O ${1:+$1}
