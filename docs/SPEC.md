@@ -122,7 +122,15 @@ Treiber-Tabellen siehe `RD2DRV.H`. Wichtig:
 - Treiber kennen kein Clipping und keine Fenster.
 - Die Treibertabelle wächst nur hinten. `groesse` zeigt, welche Felder es gibt.
 
-Bei Grafik ist die Vorgabe beim Start: Hercules, wenn erkannt, sonst VGA mono, wenn VGA da ist, sonst CGA (wie RetroDesk 1.x). Mit `RD /CGA`, `/HGC`, `/VGA` lässt sie sich überschreiben, ebenso dauerhaft in `RD2.INI`.
+**Grafikwahl (beschlossen 20.10.2026).** Der Kern erkennt die CPU (`SYSINFO.cpu`). Daraus folgt das Profil:
+- **Schnell** (8088, V20, 286): nur 1-Bit-Treiber, Reihenfolge Hercules, VGA mono, CGA (wie RetroDesk 1.x).
+- **Komfort** (386 und schneller): zuerst Farbe (`VGA16.DRV`, später 256 Farben/VESA), sonst wie Schnell. Für 386+ gibt es später eigene Treiberfassungen mit 386-Befehlen.
+
+Von Hand lässt sich jede Grafikart wählen, die die Hardware wirklich kann. Jeder Treiber prüft das in `init` (CGA: VGA/MCGA da, oder Farbkarte laut BIOS und ein 6845 auf 3D4h; Hercules: Strahlrücklauf auf 3BAh; VGA: INT 10h 1A00h). Mit einer VGA-Karte gehen also VGA und CGA, mit einer CGA-Karte nur CGA, mit Hercules nur Hercules.
+- `GfxList` liefert genau diese Liste mit `GI_AKTIV`, `GI_GEWAEHLT` und `GI_STANDARD` (die automatische Wahl). Das wird das Menü „Grafik“.
+- `GfxSelect(typ)` prüft die Hardware und schreibt `Grafik=` in `RD2.INI`. `0` heißt automatisch. Die Wahl gilt ab dem nächsten Start der Oberfläche; Umschalten im laufenden Betrieb kommt mit Phase 4 (alles neu zeichnen).
+- `RD /CGA`, `/HGC`, `/VGA` gilt nur für diesen Start. Geht die eingestellte Art auf der Hardware nicht (z. B. Diskette in einen anderen Rechner gesteckt), nimmt RDGDI die automatische Wahl.
+- `Profil=AUTO|SCHNELL|KOMFORT` in `RD2.INI` überschreibt das Profil.
 
 ## 4. Nachrichten und Tasks
 
@@ -199,7 +207,8 @@ Mitgeliefert werden `SYS8.FNT` (8x8 aus dem CGA-ROM-Muster), `SYS14.FNT` (aus RD
 
 ```ini
 [RD2]
-Grafik=AUTO         ; AUTO, CGA, HGC, VGA
+Grafik=AUTO         ; AUTO, CGA, HGC, VGA, VGA16
+Profil=AUTO         ; AUTO (nach CPU), SCHNELL, KOMFORT
 Sound=AUTO          ; AUTO, AUS, SPEAKER, ADLIB, SB
 Sprache=DE
 Maus=AUTO

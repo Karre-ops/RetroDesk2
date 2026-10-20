@@ -43,6 +43,8 @@ static BYTE altmodus;
    Treiber laufen aber mit dem Stack des Aufrufers (-zu) */
 WORD int10(WORD ax);
 #pragma aux int10 = "push bp" "int 10h" "pop bp" parm [ax] value [ax] modify [bx cx dx si di es]
+WORD equip(void);
+#pragma aux equip = "int 11h" value [ax]
 static BYTE bios_mode(void) { return (BYTE)(int10(0x0F00) & 0x7F); }
 static void bios_set(BYTE m) { int10(m); }
 
@@ -75,6 +77,16 @@ static WORD RDEXPORT d_init(WORD param)
     }
 #elif defined(VGAM)
     if ((BYTE)int10(0x1A00) != 0x1A) return RD_ERR_NOTSUP;
+#else
+    /* CGA: VGA/MCGA kann Modus 6 immer; sonst Farbkarte laut BIOS und ein 6845 auf 3D4h
+       (Hercules/MDA allein haben keinen) */
+    if ((BYTE)int10(0x1A00) != 0x1A) {
+        BYTE alt;
+        if ((equip() & 0x30) == 0x30) return RD_ERR_NOTSUP;
+        outp(0x3D4, 0x0F); alt = (BYTE)inp(0x3D5);
+        outp(0x3D5, 0x5A); if ((BYTE)inp(0x3D5) != 0x5A) { outp(0x3D5, alt); return RD_ERR_NOTSUP; }
+        outp(0x3D5, alt);
+    }
 #endif
     if (altmodus > 3 && altmodus != 7) altmodus = 3;
     return 0;

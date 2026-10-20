@@ -150,6 +150,8 @@ RDF(0x137, HBMP,    BmpLoadFile,    (LPCSTR name))                /* .RDB, spaet
 RDF(0x138, void,    IconDraw,       (HDC dc, short x, short y, HINST i, WORD id))
 RDF(0x139, COLOR,   ColorNearest,   (HDC dc, COLOR c))
 RDF(0x13A, WORD,    PaletteSet,     (HDC dc, WORD first, WORD n, const COLOR FAR *c)) /* nur 16/256 Farben */
+RDF(0x13B, WORD,    GfxList,        (GFXINFO FAR *l, WORD max))   /* Grafikarten, die diese Hardware kann */
+RDF(0x13C, WORD,    GfxSelect,      (WORD typ))                   /* GFX_*, 0 = automatisch; gilt ab naechstem Start */
 
 /* ---- Oberflaeche (RDUSER) ---------------------------------------------- */
 RDF(0x200, WORD,    RegisterClass,  (const WNDCLASS FAR *wc))

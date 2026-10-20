@@ -7,7 +7,7 @@ KREGS kr;
 WORD  k_lasterr;
 char  k_home[66];
 WORD  k_gfx;
-BYTE  k_fpu;
+BYTE  k_fpu, k_cpu;
 static char cmdline[80];
 
 /* ---- Ausgabe: COM1 (immer) und Bildschirm (nur im Kern-Kontext) ---------- */
@@ -51,7 +51,7 @@ WORD RDK KernInfo(SYSINFO FAR *si)
     WORD i;
     BYTE FAR *p = (BYTE FAR *)si;
     for (i = 0; i < sizeof(SYSINFO); i++) p[i] = 0;
-    si->api = RD2_API_VERSION; si->modus = RD_MODE_R; si->cpu = CPU_8088;
+    si->api = RD2_API_VERSION; si->modus = RD_MODE_R; si->cpu = k_cpu;
     si->fpu = k_fpu ? 87 : 0;
     kr.ax = 0x3000; rd_int(0x21, &kr); si->dos = (WORD)((kr.ax & 0xFF) << 8) | (kr.ax >> 8);
     rd_int(0x12, &kr); si->kb_konv = kr.ax;
@@ -63,7 +63,7 @@ WORD RDK KernInfo(SYSINFO FAR *si)
 int main(int argc, char **argv)
 {
     WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi;
-    static const WORD gdix[] = { 0x3C + 1, RDO_GetDC, 0x3C + 2, RDO_ReleaseDC, 0 };
+    static const WORD gdix[] = { 0x3C + 1, RDO_GetDC, 0x3C + 2, RDO_ReleaseDC, 0x3C + 3, RDO_GfxList, 0x3C + 4, RDO_GfxSelect, 0 };
     char *s;
     kr.ax = 0x00E3; kr.dx = 0; rd_int(0x14, &kr);           /* COM1 9600 8N1 */
     for (i = 0, s = argv[0]; *s && i < 64; s++) k_home[i++] = *s;
@@ -78,6 +78,7 @@ int main(int argc, char **argv)
         else if (c == 'v') k_gfx = GFX_VGAMONO;
     }
     k_fpu = (BYTE)rd_fpudet();
+    k_cpu = (BYTE)rd_cpudet();
     rd_nsinit();
     KAPI(KernVersion, KernVersion); KAPI(KernInfo, KernInfo); KAPI(LastError, LastError);
     KAPI(SetLastError, SetLastError); KAPI(DbgPrint, DbgPrint); KAPI(DbgHex, DbgHex);
@@ -97,6 +98,7 @@ int main(int argc, char **argv)
     vor = mem_free_bytes(0);
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
     k_hex("RD: Speicher frei", vor, 1);
+    k_hex("RD: CPU (0 8088, 2 V20, 4 286, 5 386, 6 486, 7 586)", k_cpu, 1);
     k_hex("RD: 8087", k_fpu, 1);
     k_out(koop ? "RD: Umschalten nur kooperativ (/KOOP)" : "RD: Zeitscheiben an", 1);
     rd_preempt = koop ? 0 : 1;

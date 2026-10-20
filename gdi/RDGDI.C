@@ -634,35 +634,99 @@ void RDEXPORT g_StretchBlt(HDC d, const RECT FAR *dr, HDC s, const RECT FAR *sr,
 COLOR RDEXPORT g_ColorNearest(HDC h, COLOR c) { (void)h; return cbit(c) ? C_WHITE : C_BLACK; }
 WORD  RDEXPORT g_PaletteSet(HDC h, WORD f, WORD n, const COLOR FAR *c) { (void)h; (void)f; (void)n; (void)c; SetLastError(RD_ERR_NOTSUP); return 0; }
 
-/* ---- Schirm -------------------------------------------------------------------- */
-static WORD trydrv(const char *name)
+/* ---- Schirm und Wahl der Grafikart ------------------------------------------
+ * Kandidaten in der Reihenfolge der automatischen Wahl. Profil "Komfort" (386 und
+ * schneller, oder Profil=KOMFORT in RD2.INI) nimmt Farbe zuerst, "Schnell" (8088/286)
+ * nur 1-Bit-Treiber. Von Hand (Menue Grafik, RD2.INI Grafik=, RD /CGA ...) geht jede
+ * Art, deren Treiber die Hardware erkennt; sonst gilt die automatische Wahl. */
+typedef struct { const char *drv, *ini, *name; WORD typ; BYTE bunt; } KAND;
+static const KAND kand[] = {
+    { "VGA16.DRV", "VGA16", "VGA 16 Farben", GFX_VGA16,   1 },
+    { "HGC.DRV",   "HGC",   "Hercules",      GFX_HGC,     0 },
+    { "VGAM.DRV",  "VGA",   "VGA mono",      GFX_VGAMONO, 0 },
+    { "CGA.DRV",   "CGA",   "CGA",           GFX_CGA,     0 },
+};
+#define NK (sizeof kand / sizeof kand[0])
+static GFXMODE pm;
+static SYSINFO si;
+static char wahl[8], prof[10];
+
+/* Treiber i laden und Hardware pruefen. setzen = 1: Modus einschalten und behalten. */
+static WORD probe(WORD i, GFXMODE *m, int setzen)
 {
-    GFXDRV FAR *t;
-    FARPROC f;
-    if (!(drvmod = ModLoad(name))) { DbgHex("RDGDI: Treiber fehlt", LastError()); return RD_ERR_NOTFOUND; }
-    f = ModProc(drvmod, 1);
+    GFXDRV FAR *t; FARPROC f; HMOD h;
+    if (!(h = ModLoad(kand[i].drv))) return RD_ERR_NOTFOUND;
+    f = ModProc(h, 1);
     t = f ? (GFXDRV FAR *)((void FAR * (RDAPI *)(void))f)() : 0;
-    if (!t || t->h.typ != DRV_GFX || t->h.init(0)) { DbgHex("RDGDI: Treiber abgelehnt", (DWORD)(t != 0)); ModFree(drvmod); drvmod = 0; return RD_ERR_NOTSUP; }
-    t->modes(&gm, 1);
+    if (!t || t->h.typ != DRV_GFX || t->h.init(0)) { ModFree(h); return RD_ERR_NOTSUP; }
+    t->modes((GFXMODE FAR *)m, 1);
+    if (!setzen) { t->h.done(); ModFree(h); return 0; }
     t->setmode(0);
-    drv = t;
+    drv = t; drvmod = h; gfxtyp = kand[i].typ;
     return 0;
+}
+static int gleich(const char *a, const char *b)
+{
+    for (; *a && *b; a++, b++) if ((*a | 0x20) != (*b | 0x20)) return 0;
+    return *a == *b;
+}
+static int komfort(void)
+{
+    if ((prof[0] | 0x20) == 'k') return 1;
+    if ((prof[0] | 0x20) == 's') return 0;
+    return si.cpu >= CPU_386;
+}
+static int fest(void)          /* fest eingestellte Art: Index oder -1 fuer automatisch */
+{
+    WORD i;
+    for (i = 0; i < NK; i++)
+        if (si.grafik ? si.grafik == kand[i].typ : gleich(wahl, kand[i].ini)) return (int)i;
+    return -1;
+}
+static void lesen(void)
+{
+    KernInfo(&si);
+    ProfileGetStr("RD2.INI", "System", "Grafik", "AUTO", wahl, sizeof wahl);
+    ProfileGetStr("RD2.INI", "System", "Profil", "AUTO", prof, sizeof prof);
 }
 static int bildschirm(void)
 {
-    static char wahl[8]; static SYSINFO si;
+    int f; WORD i;
     if (drv) return 1;
-    KernInfo(&si);
-    if (si.grafik == GFX_CGA) wahl[0] = 'C'; else if (si.grafik == GFX_HGC) wahl[0] = 'H';
-    else if (si.grafik == GFX_VGAMONO) wahl[0] = 'V';
-    else ProfileGetStr("RD2.INI", "System", "Grafik", "AUTO", wahl, sizeof wahl);
-    if ((wahl[0] | 0x20) == 'h' && !trydrv("HGC.DRV")) gfxtyp = GFX_HGC;
-    else if ((wahl[0] | 0x20) == 'v' && !trydrv("VGAM.DRV")) gfxtyp = GFX_VGAMONO;
-    else if ((wahl[0] | 0x20) == 'c' && !trydrv("CGA.DRV")) gfxtyp = GFX_CGA;
-    else if (!trydrv("HGC.DRV")) gfxtyp = GFX_HGC;      /* AUTO: Hercules, VGA mono, CGA */
-    else if (!trydrv("VGAM.DRV")) gfxtyp = GFX_VGAMONO;
-    else if (!trydrv("CGA.DRV")) gfxtyp = GFX_CGA;
-    return drv != 0;
+    lesen();
+    f = fest();
+    if (f >= 0 && !probe((WORD)f, &gm, 1)) return 1;
+    if (f >= 0) DbgPrint("RDGDI: eingestellte Grafik geht hier nicht, automatische Wahl");
+    for (i = 0; i < NK; i++)
+        if ((!kand[i].bunt || komfort()) && !probe(i, &gm, 1)) return 1;
+    return 0;
+}
+WORD RDEXPORT g_GfxList(GFXINFO FAR *l, WORD max)
+{
+    WORD i, n = 0, std = 0; int f;
+    lesen(); f = fest();
+    for (i = 0; i < NK && n < max; i++) {
+        GFXINFO FAR *e = &l[n]; const char *q = kand[i].name; WORD k = 0;
+        if (drv && kand[i].typ == gfxtyp) pm = gm;
+        else if (probe(i, &pm, 0)) continue;
+        e->typ = kand[i].typ; e->w = pm.w; e->h = pm.h; e->farben = pm.farben; e->flags = 0;
+        if (drv && kand[i].typ == gfxtyp) e->flags |= GI_AKTIV;
+        if (f == (int)i) e->flags |= GI_GEWAEHLT;
+        if (!std && (!kand[i].bunt || komfort())) { e->flags |= GI_STANDARD; std = 1; }
+        while (*q && k < sizeof e->name - 1) e->name[k++] = *q++;
+        e->name[k] = 0;
+        n++;
+    }
+    return n;
+}
+WORD RDEXPORT g_GfxSelect(WORD typ)
+{
+    WORD i;
+    if (!typ) return ProfileSetStr("RD2.INI", "System", "Grafik", "AUTO");
+    for (i = 0; i < NK && kand[i].typ != typ; i++) ;
+    if (i == NK) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
+    if (!(drv && typ == gfxtyp) && probe(i, &pm, 0)) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
+    return ProfileSetStr("RD2.INI", "System", "Grafik", kand[i].ini);
 }
 HDC RDEXPORT g_GetDC(HWND w)
 {
@@ -681,11 +745,11 @@ void RDEXPORT g_Ende(void)
 
 /* Exporte: 1 = Ende, 2 + (API - 0x100), danach GetDC, ReleaseDC */
 #define N 0x3B
-static struct { WORD n; FARPROC f[N + 3]; } ex;
+static struct { WORD n; FARPROC f[N + 5]; } ex;
 void FAR * RDAPI RdModInit(void)
 {
     #define E(nr, fn) ex.f[(nr) - 0x100 + 1] = (FARPROC)fn
-    ex.n = N + 3;
+    ex.n = N + 5;
     ex.f[0] = (FARPROC)g_Ende;
     E(0x100, g_GetCaps); E(0x101, g_SetPen); E(0x102, g_SetBrush); E(0x103, g_SetRop); E(0x104, g_SetFont);
     E(0x105, g_SetTextColor); E(0x106, g_SetBkColor); E(0x107, g_SetBkMode); E(0x108, g_SetOrigin); E(0x109, g_SetClip);
@@ -695,5 +759,6 @@ void FAR * RDAPI RdModInit(void)
     E(0x130, g_BmpCreate); E(0x131, g_BmpFree); E(0x132, g_BmpDC); E(0x133, g_DCFree); E(0x134, g_BitBlt);
     E(0x135, g_StretchBlt); E(0x139, g_ColorNearest); E(0x13A, g_PaletteSet);
     ex.f[N + 1] = (FARPROC)g_GetDC; ex.f[N + 2] = (FARPROC)g_ReleaseDC;
+    ex.f[N + 3] = (FARPROC)g_GfxList; ex.f[N + 4] = (FARPROC)g_GfxSelect;
     return &ex;
 }

@@ -30,6 +30,7 @@ HAENGT.EXE       2048    2   S
 STRESS.EXE       2048    2   S
 WURM.EXE         2048    2   S
 GDITEST.EXE      8192    8   S  Testbild Phase 3
+GFXWAHL.EXE      4096    4   S  Test Grafikwahl
 TESTMOD.MOD      2048    2   S
 RDNET.MOD       20480   18   P  TCP/IP, DHCP, DNS
 RDCALC.EXE      90112   80   P

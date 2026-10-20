@@ -36,7 +36,7 @@ modul gdi/RDGDI.C RDGDI.MOD "RDGDI" 0
 modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D -dVGAM
-for t in MODTEST FILETEST HAENGT STRESS GDITEST; do app apps/test/$t.C $t.EXE "$t"; done
+for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL; do app apps/test/$t.C $t.EXE "$t"; done
 APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 python3 tools/budget.py $O ${1:+$1}

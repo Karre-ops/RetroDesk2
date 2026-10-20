@@ -39,6 +39,7 @@ extern volatile WORD k_crit, k_critdrv;          /* INT 24h: Fehlercode+1, AX */
 extern void __far *rd_gateptr;                   /* Einsprung der Modul-Sprungstuecke */
 extern void  __cdecl rd_idle(void);               /* STI, HLT */
 extern WORD  __cdecl rd_fpudet(void);
+extern WORD  __cdecl rd_cpudet(void);              /* CPU_* */
 extern void  __cdecl rd_fsave(BYTE *p);
 extern void  __cdecl rd_frstor(BYTE *p);
 extern volatile DWORD rd_ticks;                   /* 72,8 Hz */

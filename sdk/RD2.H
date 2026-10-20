@@ -190,6 +190,17 @@ typedef struct {
 #define GFX_EGA 4
 #define GFX_VGA16 5
 #define GFX_VESA 6
+
+/* GfxList: eine Zeile je moeglicher Grafikart (Menue "Grafik") */
+typedef struct {
+    WORD  typ;                                    /* GFX_* */
+    WORD  w, h, farben;
+    WORD  flags;                                  /* GI_* */
+    char  name[14];                               /* Anzeigename, z. B. "VGA mono" */
+} GFXINFO;
+#define GI_AKTIV    0x0001                        /* laeuft gerade */
+#define GI_GEWAEHLT 0x0002                        /* in RD2.INI fest eingestellt */
+#define GI_STANDARD 0x0004                        /* waere die automatische Wahl */
 #define RD_LANG_DE 0x0407
 #define RD_LANG_EN 0x0409
 

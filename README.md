@@ -4,7 +4,7 @@ Grafische Umgebung für 8088 (640 KB, Diskettenbetrieb) bis Pentium. Entwurf: [.
 
 Stand: Phase 0 (Spezifikation API 1.0) freigegeben am 19.10.2026, Phase 1 (Gerüst, Diskettentest) fertig.
 **Phase 2, Teil 1** fertig: Speicherverwaltung (Handles, verschiebbar, verwerfbar, Verdichten), Tasks mit Zeitscheiben, Nachrichten, Zeitgeber, 8087-Zustand je Task.
-**Phase 3, Teil 1** fertig (20.10.2026): Grafiktreiber `CGA.DRV`, `HGC.DRV`, `VGAM.DRV`, `RDGDI.MOD` (Gerätekontexte, Clipping mit Rechtecklisten, Linien, Rechtecke, Ellipsen, abgerundete Rechtecke, Polygone, Füllen, Dithering/Muster, Bitmaps, BitBlt/StretchBlt mit Rasteroperationen). Testbild `GDITEST.EXE`, Vergleich gegen `test/ref/` mit `test/gdi_dosbox.sh` (CGA, Hercules, VGA) und `test/gdi.sh` (QEMU). Offen in Phase 3: Schriften und Text, Maus, Tastatur, Treiber in Assembler.
+**Phase 3, Teil 1** fertig (20.10.2026): Grafiktreiber `CGA.DRV`, `HGC.DRV`, `VGAM.DRV`, `RDGDI.MOD` (Gerätekontexte, Clipping mit Rechtecklisten, Linien, Rechtecke, Ellipsen, abgerundete Rechtecke, Polygone, Füllen, Dithering/Muster, Bitmaps, BitBlt/StretchBlt mit Rasteroperationen). Testbild `GDITEST.EXE`, Vergleich gegen `test/ref/` mit `test/gdi_dosbox.sh` (CGA, Hercules, VGA) und `test/gdi.sh` (QEMU). Dazu CPU-Erkennung, Profile Schnell/Komfort und Grafikwahl nach Hardware (`GfxList`/`GfxSelect`, Test `test/gfxwahl_dosbox.sh`). Offen in Phase 3: Schriften und Text, Maus, Tastatur, Treiber in Assembler.
 Phase 2 erledigt; früher offen in Phase 2: Module laden/verwerfen mit Diskettenwechsel, Datei-API, Profile, INT-24h-Dialog, Zwischenablage, Notbeenden.
 
 ## Bauen und testen
