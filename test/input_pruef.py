@@ -22,10 +22,10 @@ ok(len(dbl) == 1, 'Doppelklick: %d' % len(dbl))
 ok(len(ups) == 4, 'Loslassen: %d' % len(ups))
 ok('RD: Speicher vollstaendig zurueck' in '\n'.join(log), 'Speicher zurueck')
 W, H = im.size
-sy = H // {200: 200, 348: 348, 480: 480}.get(H, H)
+sy = 2 if H == 400 else 1                      # QEMU zeigt CGA 640x200 mit doppelten Zeilen
 for d in (downs[0], downs[2]) if len(downs) == 3 else []:
     x, y = d & 0xFFFF, d >> 16
-    blk = [im.getpixel((xx, yy)) for xx in range(x - 4, x + 12) for yy in range(y - 4, y + 12) if 0 <= xx < W and 0 <= yy < H]
+    blk = [im.getpixel((xx, yy)) for xx in range(x - 4, x + 12) for yy in range((y - 4) * sy, (y + 12) * sy) if 0 <= xx < W and 0 <= yy < H]
     ok(blk and max(blk) < 128, 'Kaestchen bei %d,%d ganz schwarz (kein Zeigerrest)' % (x, y))
 weiss = sum(1 for xx in range(W) for yy in range(40, H) if im.getpixel((xx, yy)) > 128)
 ok(weiss > 0, 'Bild vorhanden')
