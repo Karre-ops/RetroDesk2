@@ -12,8 +12,8 @@
 #include "KERN.H"
 
 #define MAXMOD 12
-#define MAXEXP 32
-#define MAXTHUNK 96
+#define MAXEXP 64
+#define MAXTHUNK 160
 #define PF_DISCARD 0x0080
 
 typedef struct {
@@ -43,7 +43,9 @@ static WORD load(WORD m)
     if (!tab || t[0] > MAXEXP) { mem_put(seg); return RD_ERR_FORMAT; }
     x->nexp = t[0];
     fp = (void __far * __far *)(t + 1);
-    for (i = 0; i < x->nexp; i++) { x->ex[i].off = FP_OFF(fp[i]); x->ex[i].seg = FP_SEG(fp[i]) - seg; }
+    for (i = 0; i < x->nexp; i++) {
+        x->ex[i].off = FP_OFF(fp[i]); x->ex[i].seg = fp[i] ? FP_SEG(fp[i]) - seg : 0xFFFF;   /* 0xFFFF: Export fehlt */
+    }
     x->base = seg; x->paras = paras; x->flags = k_rb.flags; x->loaded = 1; x->stamp = ++k_stamp;
     for (i = 0; i < 15 && k_rb.name[i]; i++) x->name[i] = k_rb.name[i];
     x->name[i] = 0;
@@ -168,6 +170,28 @@ void mod_unwind(TASK *t)
 {
     WORD m;
     while (t->rsp) { t->rsp--; m = t->rs[t->rsp].mod; md[m].lock--; if (!md[m].refs) unload(m); }
+}
+
+/* Systemmodul (RDGDI, spaeter RDUSER ...): Export k+2 wird API base+k, extra: Paare
+   (Export, API), mit 0 beendet. Export 1 ist der Abschluss beim Beenden von RD. */
+HMOD k_sysmod(const char *name, WORD base, WORD n, const WORD *extra)
+{
+    HMOD m = ModLoad(name); WORD k;
+    if (!m) return 0;
+    for (k = 0; k < n && k + 2 <= md[m].nexp; k++)
+        if (md[m].ex[k + 1].seg != 0xFFFF) rd_api[base + k] = ModProc(m, k + 2);
+    for (; extra && extra[0]; extra += 2)
+        if (extra[0] <= md[m].nexp && md[m].ex[extra[0] - 1].seg != 0xFFFF) rd_api[extra[1]] = ModProc(m, extra[0]);
+    return m;
+}
+void k_sysend(HMOD m)
+{
+    MODUL *x;
+    if (m < 1 || m > MAXMOD || !md[m].used) return;
+    x = &md[m];
+    if (x->loaded && x->nexp && x->ex[0].seg != 0xFFFF)
+        ((void (__far __pascal *)(void))MK_FP(x->base + x->ex[0].seg, x->ex[0].off))();
+    ModFree(m);
 }
 
 void mod_api(void)

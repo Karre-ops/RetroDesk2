@@ -76,7 +76,10 @@ void  file_owner_close(WORD task);
 void  clip_done(void);
 int   k_ask(LPCSTR text);
 int   k_askdisk(WORD drive, LPCSTR label);         /* 0 = Abbruch */
-int   k_dos(void);                                /* INT 21h ueber kr mit Diskettenabfrage, 1 = ok */
+int   k_dos(void);
+HMOD  k_sysmod(const char *name, WORD base, WORD n, const WORD *extra);
+void  k_sysend(HMOD m);
+extern WORD k_gfx;                                /* /CGA /HGC /VGA: GFX_*, 0 = automatisch */                                /* INT 21h ueber kr mit Diskettenabfrage, 1 = ok */
 WORD  k_media(WORD drive, DWORD *serial, char *label);   /* drive 0 = A: */
 
 /* ---- TASK.C ------------------------------------------------------------------ */

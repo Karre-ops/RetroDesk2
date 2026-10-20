@@ -24,15 +24,19 @@ app() {   # $1 Quelle  $2 EXE  $3 Anzeigename
   python3 tools/rd2link.py $O/$2 "$3" >/dev/null
 }
 # Module: Medium, -zu (laufen mit dem Stack des Aufrufers)
-modul() {   # $1 Quelle  $2 Datei  $3 Anzeigename  $4 Flags
-  wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/$2.obj $1
+modul() {   # $1 Quelle  $2 Datei  $3 Anzeigename  $4 Flags  [$5 Typ M/D  $6 Compiler-Optionen]
+  wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk $6 -fo=obj/$2.obj $1
   wlink option quiet format dos name $O/$2 file obj/rd2mod.obj,obj/$2.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/$2.map >/dev/null
   mv $O/$2.exe $O/$2 2>/dev/null || true
-  python3 tools/rd2link.py $O/$2 "$3" --type M --flags $4 >/dev/null
+  python3 tools/rd2link.py $O/$2 "$3" --type ${5:-M} --flags $4 >/dev/null
 }
 app apps/leer/LEER.C LEER.EXE "Leer"
 modul apps/test/TESTMOD.C TESTMOD.MOD "Testmodul" 0x0080
-for t in MODTEST FILETEST HAENGT STRESS; do app apps/test/$t.C $t.EXE "$t"; done
+modul gdi/RDGDI.C RDGDI.MOD "RDGDI" 0
+modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
+modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
+modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D -dVGAM
+for t in MODTEST FILETEST HAENGT STRESS GDITEST; do app apps/test/$t.C $t.EXE "$t"; done
 APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 python3 tools/budget.py $O ${1:+$1}
