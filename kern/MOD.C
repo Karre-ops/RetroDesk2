@@ -12,7 +12,7 @@
 #include "KERN.H"
 
 #define MAXMOD 12
-#define MAXEXP 96                                 /* RDUSER braucht die meisten */
+#define MAXEXP 250                                /* Nummer passt in ein Byte des Sprungstuecks */
 #define MAXTHUNK 160
 #define PF_DISCARD 0x0080
 
@@ -24,7 +24,7 @@ typedef struct {
     char  path[66];
     char  name[16];
     WORD  nexp;
-    struct { WORD off, seg; } ex[MAXEXP];         /* seg relativ zur Ladeadresse */
+    void __far * __far *tab;                      /* Exporttabelle im Modul selbst (nach jedem Laden neu) */
 } MODUL;
 static MODUL md[MAXMOD + 1];                      /* HMOD 1..MAXMOD */
 static struct { BYTE mod, nr; } th[MAXTHUNK];
@@ -36,16 +36,14 @@ extern DWORD k_stamp;
 static WORD load(WORD m)
 {
     MODUL *x = &md[m]; WORD i, e; static WORD seg, paras; DWORD tab;
-    WORD __far *t; void __far * __far *fp;
+    WORD __far *t;
     if ((e = k_imgload(x->path, "MD", &seg, &paras)) != 0) return e;
     tab = rd_enter(seg + k_mz.cs, k_mz.ip, (void __far *)rd_api, m, 0, (char __far *)x->path);
     t = (WORD __far *)MK_FP((WORD)(tab >> 16), (WORD)tab);
     if (!tab || t[0] > MAXEXP) { mem_put(seg); return RD_ERR_FORMAT; }
     x->nexp = t[0];
-    fp = (void __far * __far *)(t + 1);
-    for (i = 0; i < x->nexp; i++) {
-        x->ex[i].off = FP_OFF(fp[i]); x->ex[i].seg = fp[i] ? FP_SEG(fp[i]) - seg : 0xFFFF;   /* 0xFFFF: Export fehlt */
-    }
+    x->tab = (void __far * __far *)(t + 1);       /* 0 = Export fehlt */
+    k_hex(x->path, seg, 0);                       /* nur Protokoll: Ladeadresse */
     x->base = seg; x->paras = paras; x->flags = k_rb.flags; x->loaded = 1; x->stamp = ++k_stamp;
     for (i = 0; i < 15 && k_rb.name[i]; i++) x->name[i] = k_rb.name[i];
     x->name[i] = 0;
@@ -155,7 +153,8 @@ DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs)
     if (nr > x->nexp) { k_out("RD: Modulfunktion fehlt, Programm wird beendet", 0); TaskKill(k_cur, 0xFFFE); }
     t->rs[t->rsp].ip = ip; t->rs[t->rsp].cs = cs; t->rs[t->rsp].mod = m; t->rsp++;
     x->lock++; x->stamp = ++k_stamp;
-    return ((DWORD)(x->base + x->ex[nr - 1].seg) << 16) | x->ex[nr - 1].off;
+    if (!x->tab[nr - 1]) { k_out("RD: Modulfunktion fehlt, Programm wird beendet", 0); TaskKill(k_cur, 0xFFFE); }
+    return (DWORD)x->tab[nr - 1];
 }
 DWORD __cdecl mod_leave(void)
 {
@@ -179,24 +178,24 @@ HMOD k_sysmod(const char *name, WORD base, WORD n, const WORD *extra)
     HMOD m = ModLoad(name); WORD k;
     if (!m) return 0;
     for (k = 0; k < n && k + 2 <= md[m].nexp; k++)
-        if (md[m].ex[k + 1].seg != 0xFFFF) rd_api[base + k] = ModProc(m, k + 2);
+        if (md[m].tab[k + 1]) rd_api[base + k] = ModProc(m, k + 2);
     for (; extra && extra[0]; extra += 2)
-        if (extra[0] <= md[m].nexp && md[m].ex[extra[0] - 1].seg != 0xFFFF) rd_api[extra[1]] = ModProc(m, extra[0]);
+        if (extra[0] <= md[m].nexp && md[m].tab[extra[0] - 1]) rd_api[extra[1]] = ModProc(m, extra[0]);
     return m;
 }
 void __far *k_modraw(HMOD m, WORD nr)
 {
     MODUL *x = &md[m];
-    if (m < 1 || m > MAXMOD || !x->used || !x->loaded || nr < 1 || nr > x->nexp || x->ex[nr - 1].seg == 0xFFFF) return 0;
-    return MK_FP(x->base + x->ex[nr - 1].seg, x->ex[nr - 1].off);
+    if (m < 1 || m > MAXMOD || !x->used || !x->loaded || nr < 1 || nr > x->nexp) return 0;
+    return x->tab[nr - 1];
 }
 void k_sysend(HMOD m)
 {
     MODUL *x;
     if (m < 1 || m > MAXMOD || !md[m].used) return;
     x = &md[m];
-    if (x->loaded && x->nexp && x->ex[0].seg != 0xFFFF)
-        ((void (__far __pascal *)(void))MK_FP(x->base + x->ex[0].seg, x->ex[0].off))();
+    if (x->loaded && x->nexp && x->tab[0])
+        ((void (__far __pascal *)(void))x->tab[0])();
     ModFree(m);
 }
 

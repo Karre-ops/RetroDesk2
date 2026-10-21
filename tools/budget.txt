@@ -1,8 +1,11 @@
 # RD2 Groessengrenzen (Phase 0). Der Build prueft ab Phase 1 jede Zeile.
 # Spalten: Datei  max_Bytes_auf_Diskette  max_KB_im_Speicher  Diskette  Beschreibung
 # Diskette: S = Systemdiskette (bootfaehig), P = Programmdiskette, D = SDK
-RD.EXE          24576   40   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB)
-RDGDI.MOD       16384   16   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl)
+# Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
+@RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
+RD.EXE          24576   44   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB)
+RDGDI.MOD       16384   18   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5)
+RDGDIX.MOD       4096    4   S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf)
 RDUSER.MOD      26624   26   S  Fenster, Menues, Steuerelemente, Dialoge
 RDSND.MOD        4096    4   S  Sound-API, Musik-Player
 CGA.DRV          4096    4   S
@@ -19,21 +22,21 @@ SHELL.EXE       40960   30   S  Desktop, Dateimanager (Teile verwerfbar)
 UHR.EXE          6144    6   S  Zubehoer
 NOTIZ.EXE       10240   10   S  Zubehoer
 RECHNER.EXE      8192    8   S  Zubehoer, kleiner Rechner
-LEER.EXE         2048    2   S  Testprogramm Phase 1 (faellt spaeter weg)
-PING.EXE         2048    2   S  Testprogramme Phase 2 (fallen spaeter weg)
-PONG.EXE         2048    2   S
-RECHNE.EXE       2048    2   S
-MEMTEST.EXE      2048    2   S
-MODTEST.EXE      2048    2   S
-FILETEST.EXE     4096    4   S
-HAENGT.EXE       2048    2   S
-STRESS.EXE       2048    2   S
-WURM.EXE         2048    2   S
-GDITEST.EXE      8192    8   S  Testbild Phase 3
-GFXWAHL.EXE      4096    4   S  Test Grafikwahl
-TEXTTEST.EXE     4096    4   S  Testbild Schriften
-INPTEST.EXE      4096    4   S  Testprogramm Tastatur und Maus
-TESTMOD.MOD      2048    2   S
+LEER.EXE         2048    0   S  Testprogramm Phase 1 (faellt spaeter weg)
+PING.EXE         2048    0   S  Testprogramme Phase 2 (fallen spaeter weg)
+PONG.EXE         2048    0   S
+RECHNE.EXE       2048    0   S
+MEMTEST.EXE      2048    0   S
+MODTEST.EXE      2048    0   S
+FILETEST.EXE     4096    0   S
+HAENGT.EXE       2048    0   S
+STRESS.EXE       2048    0   S
+WURM.EXE         2048    0   S
+GDITEST.EXE      8192    0   S  Testbild Phase 3
+GFXWAHL.EXE      4096    0   S  Test Grafikwahl
+TEXTTEST.EXE     4096    0   S  Testbild Schriften
+INPTEST.EXE      4096    0   S  Testprogramm Tastatur und Maus
+TESTMOD.MOD      2048    0   S
 RDNET.MOD       20480   18   P  TCP/IP, DHCP, DNS
 RDCALC.EXE      90112   80   P
 RDEDIT.EXE      65536   60   P

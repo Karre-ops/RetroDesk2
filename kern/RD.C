@@ -21,8 +21,9 @@ static void ser(char c)
 static void con(char c) { kr.ax = 0x0200; kr.dx = (BYTE)c; rd_int(0x21, &kr); }
 /* /D: Protokoll zusaetzlich im Speicher sammeln und nach dem Ende ausgeben
    (DOSBox hat keine serielle Ausgabe in eine Datei; im Grafikmodus kein con()) */
-static WORD dlog; static char dbuf[1536]; static WORD dn;
-static void dput(char c) { if (dlog && dn < sizeof dbuf) dbuf[dn++] = c; }
+#define DBUF 1536                                 /* nur mit /D, eigener DOS-Block */
+static WORD dlog; static char __far *dbuf; static WORD dn;
+static void dput(char c) { if (dbuf && dn < DBUF) dbuf[dn++] = c; }
 void k_out(LPCSTR s, int scr)
 {
     for (; *s; s++) { ser(*s); dput(*s); if (scr) con(*s); }
@@ -84,6 +85,7 @@ int main(int argc, char **argv)
         if (*v && **v != 0xCF) { kr.ax = 0; kr.bx = 0; rd_int(0x33, &kr); if (kr.ax == 0xFFFF) k_maus = kr.bx == 0xFFFF ? 2 : kr.bx; }
     }
     if (k_maus == 0xFFFF) k_maus = 0;
+    if (dlog) { kr.ax = 0x4800; kr.bx = DBUF / 16; rd_int(0x21, &kr); if (!(kr.flags & 1)) dbuf = (char __far *)MK_FP(kr.ax, 0); }
     k_fpu = (BYTE)rd_fpudet();
     k_cpu = (BYTE)rd_cpudet();
     rd_nsinit();
@@ -102,6 +104,7 @@ int main(int argc, char **argv)
     cmdline[h] = 0;
     mem_init(64);
     task_init();
+    if (k_umb_paras) k_hex("RD: hoher Speicher (UMB) Bytes", (DWORD)k_umb_paras << 4, 1);
     vor = mem_free_bytes(0);
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
     if (!gdi) k_hex("RD: RDGDI.MOD fehlt oder ist fehlerhaft, Fehler", k_lasterr, 1);
@@ -122,7 +125,10 @@ int main(int argc, char **argv)
     nach = mem_free_bytes(0);
     k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);
     k_out(vor == nach ? "RD: Speicher vollstaendig zurueck" : "RD: SPEICHERLECK", 1);
-    if (dlog) { WORD i; con('-'); con('\r'); con('\n'); for (i = 0; i < dn; i++) con(dbuf[i]); }
+    if (dbuf) {
+        WORD i; con('-'); con('\r'); con('\n'); for (i = 0; i < dn; i++) con(dbuf[i]);
+        kr.ax = 0x4900; kr.es = FP_SEG(dbuf); rd_int(0x21, &kr);
+    }
     mem_done();
     return 0;
 }

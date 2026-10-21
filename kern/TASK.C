@@ -219,7 +219,7 @@ WORD k_imgload(const char *path, const char *typen, WORD *seg, WORD *paras)
     img = (DWORD)k_mz.cp * 512 - (k_mz.cblp ? 512 - k_mz.cblp : 0) - (DWORD)k_mz.cparhdr * 16;
     if (img > 0x9FFF0UL) return RD_ERR_FORMAT;
     *paras = (WORD)((img + 15) >> 4) + k_mz.minalloc;
-    if (!(*seg = mem_get(*paras, 0, 0))) return RD_ERR_NOMEM;
+    if (!(*seg = mem_get(*paras, typen[0] == 'M' ? B_HIGH : 0, 0))) return RD_ERR_NOMEM;
     pb.seg = *seg; pb.reloc = *seg;
     kr.ax = 0x4B03; kr.dx = (WORD)path; kr.ds = FP_SEG((void __far *)&kr); kr.bx = (WORD)&pb; kr.es = kr.ds;
     if (!k_dos()) { mem_put(*seg); return k_lasterr; }

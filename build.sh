@@ -26,13 +26,14 @@ app() {   # $1 Quelle  $2 EXE  $3 Anzeigename
 # Module: Medium, -zu (laufen mit dem Stack des Aufrufers)
 modul() {   # $1 Quelle  $2 Datei  $3 Anzeigename  $4 Flags  [$5 Typ M/D  $6 Compiler-Optionen]
   wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk $6 -fo=obj/$2.obj $1
-  wlink option quiet format dos name $O/$2 file obj/rd2mod.obj,obj/$2.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/$2.map >/dev/null
+  wlink option quiet format dos name $O/$2 file obj/rd2mod.obj,obj/$2.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,stack=16,map=obj/$2.map disable 1172 >/dev/null
   mv $O/$2.exe $O/$2 2>/dev/null || true
   python3 tools/rd2link.py $O/$2 "$3" --type ${5:-M} --flags $4 >/dev/null
 }
 app apps/leer/LEER.C LEER.EXE "Leer"
 modul apps/test/TESTMOD.C TESTMOD.MOD "Testmodul" 0x0080
-modul gdi/RDGDI.C RDGDI.MOD "RDGDI" 0
+modul gdi/RDGDI.C RDGDI.MOD "RDGDI" 0 M -i=gdi
+modul gdi/RDGDIX.C RDGDIX.MOD "RDGDI Zusatz" 0x0080 M -i=gdi
 modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D -dVGAM

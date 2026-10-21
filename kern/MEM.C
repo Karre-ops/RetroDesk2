@@ -5,6 +5,9 @@
  * blk[], freie Bereiche sind Bloecke mit B_FREE.
  *   fest       (Programmbilder, MemFixed, Kern-intern) von unten
  *   verschiebbar (MEM_MOVABLE) von oben
+ * Gibt DOS hohen Speicher (UMB, DOS=UMB), kommt er als weitere freie Bereiche dazu,
+ * durch nicht freie Luecken (Bildschirm, ROM) vom Rest getrennt. Module und Treiber
+ * kommen bevorzugt dorthin (B_HIGH), damit die 640 KB den Programmen bleiben.
  * Reicht der Platz nicht: 1. verschiebbare, nicht gesperrte Bloecke nach oben
  * schieben (Luecken schliessen), 2. verwerfbare, nicht gesperrte Bloecke
  * verwerfen (aeltester Zugriff zuerst), 3. noch einmal verdichten. */
@@ -17,7 +20,9 @@ typedef struct { WORD seg, flags, owner; BYTE lock, used; DWORD size; DWORD stam
 static BLK blk[MAXB];
 static WORD nblk;
 static HND hnd[MAXH + 1];                         /* Handle 1..MAXH */
-static WORD arena, arena_paras;
+static WORD arena, arena_paras, minseg;
+static WORD umb[4], numb;
+WORD k_umb_paras;
 DWORD k_stamp;
 
 
@@ -47,6 +52,33 @@ static void merge(void)
     }
 }
 
+/* Hohen Speicher von DOS holen: Verkettung an, Strategie "nur oben", alles nehmen */
+static void umb_grab(void)
+{
+    WORD strat, link, i, j, sz[4], end;
+    kr.ax = 0x5800; rd_int(0x21, &kr); strat = kr.ax & 0xFF;
+    kr.ax = 0x5802; rd_int(0x21, &kr); link = kr.ax & 0xFF;
+    kr.ax = 0x5803; kr.bx = 1; rd_int(0x21, &kr);
+    if (CARRY) return;                            /* DOS ohne UMB-Verwaltung */
+    kr.ax = 0x5801; kr.bx = 0x40; rd_int(0x21, &kr);
+    while (numb < 4) {
+        kr.ax = 0x4800; kr.bx = 0xFFFF; rd_int(0x21, &kr);
+        if (kr.bx < 64) break;                    /* unter 1 KB lohnt nicht */
+        sz[numb] = kr.bx; kr.ax = 0x4800; rd_int(0x21, &kr);
+        if (CARRY) break;
+        if (kr.ax < 0xA000) { kr.es = kr.ax; kr.ax = 0x4900; rd_int(0x21, &kr); break; }
+        umb[numb++] = kr.ax;
+    }
+    kr.ax = 0x5801; kr.bx = strat; rd_int(0x21, &kr);
+    kr.ax = 0x5803; kr.bx = link; rd_int(0x21, &kr);
+    for (i = 1; i < numb; i++)                    /* nach Adresse ordnen */
+        for (j = i; j > 0 && umb[j - 1] > umb[j]; j--) { WORD t = umb[j]; umb[j] = umb[j - 1]; umb[j - 1] = t; t = sz[j]; sz[j] = sz[j - 1]; sz[j - 1] = t; }
+    for (i = 0, end = arena + arena_paras; i < numb; i++) {
+        blk[nblk].seg = end; blk[nblk].paras = umb[i] - end; blk[nblk].flags = B_INTERN; blk[nblk].h = 0; blk[nblk].owner = 0xFFFF; nblk++;
+        blk[nblk].seg = umb[i]; blk[nblk].paras = sz[i]; blk[nblk].flags = B_FREE; blk[nblk].h = 0; blk[nblk].owner = 0; nblk++;
+        end = umb[i] + sz[i]; k_umb_paras += sz[i];
+    }
+}
 void mem_init(WORD reserve)
 {
     kr.ax = 0x4800; kr.bx = 0xFFFF; rd_int(0x21, &kr);
@@ -55,10 +87,12 @@ void mem_init(WORD reserve)
     arena = CARRY ? 0 : kr.ax;
     if (!arena) arena_paras = 0;
     nblk = 1; blk[0].seg = arena; blk[0].paras = arena_paras; blk[0].flags = B_FREE; blk[0].h = 0; blk[0].owner = 0;
+    if (arena) umb_grab();
 }
 void mem_done(void)
 {
     if (arena) { kr.ax = 0x4900; kr.es = arena; rd_int(0x21, &kr); arena = 0; }
+    while (numb) { kr.ax = 0x4900; kr.es = umb[--numb]; rd_int(0x21, &kr); }
 }
 
 /* Freien Bereich suchen: fest von unten, verschiebbar von oben */
@@ -67,7 +101,7 @@ static WORD take(WORD paras, WORD flags, WORD h, WORD owner)
     WORD i, seg; int up = (flags & MEM_MOVABLE) != 0;
     if (nblk >= MAXB - 1) return 0;
     for (i = up ? nblk - 1 : 0; i < nblk; i = up ? i - 1 : i + 1) {
-        if (!(blk[i].flags & B_FREE) || blk[i].paras < paras) continue;
+        if (!(blk[i].flags & B_FREE) || blk[i].paras < paras || (!up && blk[i].seg < minseg)) continue;
         if (blk[i].paras == paras) {
             blk[i].flags = flags; blk[i].h = h; blk[i].owner = owner;
             return blk[i].seg;
@@ -145,6 +179,10 @@ static WORD get(WORD paras, WORD flags, WORD h, WORD owner)
 {
     WORD seg;
     if (!paras) paras = 1;
+    if (flags & B_HIGH) {                         /* erst nur im hohen Speicher */
+        flags &= ~B_HIGH;
+        if (numb) { minseg = 0xA000; seg = take(paras, flags, h, owner); minseg = 0; if (seg) return seg; }
+    }
     if ((seg = take(paras, flags, h, owner)) != 0) return seg;
     compact();
     if ((seg = take(paras, flags, h, owner)) != 0) return seg;

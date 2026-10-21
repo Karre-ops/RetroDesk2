@@ -12,6 +12,7 @@
 #include <i86.h>
 #include <string.h>
 #include "RD2DRV.H"
+#include "GDII.H"
 
 #define MAXDC   24
 #define MAXCLIP 16
@@ -24,7 +25,7 @@ typedef struct {
     HTASK owner;
     short ox, oy;
     WORD  nclip;
-    RECT  clip[MAXCLIP];                          /* Geraeteclip (Fenster), Geraetekoordinaten */
+    const RECT FAR *clip;                         /* Geraeteclip (Fenster, gehoert RDUSER), Geraetekoordinaten */
     BYTE  uclip;
     RECT  ucl;                                    /* SetClip, logische Koordinaten */
     COLOR pen, brush, txt, bk;
@@ -398,16 +399,6 @@ static void line(short x0, short y0, short x1, short y1)
     }
 }
 
-static WORD isqrt(DWORD v)
-{
-    DWORD r = 0, b = 1UL << 30;
-    while (b > v) b >>= 2;
-    while (b) {
-        if (v >= r + b) { v -= r + b; r = (r >> 1) + b; } else r >>= 1;
-        b >>= 2;
-    }
-    return (WORD)r;
-}
 
 /* ---- API: Einstellungen ------------------------------------------------------- */
 static WORD fh;
@@ -521,137 +512,35 @@ void RDEXPORT g_InvertRect(HDC h, const RECT FAR *r)
     unsel();
 }
 
-/* Ellipse im Rechteck l..r-1, t..b-1: halbe Breite je Zeile in doppelten Einheiten */
-static short ex0(short y, short l, short r, short t, short b)
+/* Ellipse, runde Rechtecke, Polygone, Fuellen: in RDGDIX.MOD (verwerfbar, bei Bedarf) */
+static HMOD xm; static FARPROC xf[5];
+static WORD RDEXPORT i_begin(HDC h, GIS FAR *s)
 {
-    long RX = r - l - 1, RY = b - t - 1, DY = 2L * y - (t + b - 1);
-    long hx;
-    if (RY <= 0) return l;
-    if (DY < 0) DY = -DY;
-    if (DY > RY) return 0x7FFF;
-    hx = RX * (long)isqrt((DWORD)(RY * RY - DY * DY)) / RY;
-    return (short)((l + r - 1 - hx + 1) >> 1);
-}
-void RDEXPORT g_Ellipse(HDC h, const RECT FAR *rp, WORD fl)
-{
-    DCX *d = getdc(h); short l, t, r, b, y, x0, x1, n0, cx2;
-    if (!d || !rp || !sel(d)) return;
-    l = (short)(rp->l + d->ox); r = (short)(rp->r + d->ox); t = (short)(rp->t + d->oy); b = (short)(rp->b + d->oy);
-    if (l >= r || t >= b) { unsel(); return; }
-    cx2 = (short)(l + r - 1);
-    for (y = t; y < b; y++) {
-        x0 = ex0(y, l, r, t, b); x1 = (short)(cx2 - x0);
-        if (x0 > x1) continue;
-        if (fl && !brnone) hs(y, x0, x1, 1, d->rop);
-        if (y == t || y == b - 1) { hs(y, x0, x1, 0, d->rop); continue; }
-        n0 = (short)(ex0((short)(2 * y < t + b - 1 ? y + 1 : y - 1), l, r, t, b) - 1);   /* Nachbarzeile zur Mitte hin */
-        if (n0 < x0) n0 = x0;
-        hs(y, x0, n0, 0, d->rop);
-        hs(y, (short)(cx2 - n0), x1, 0, d->rop);
-    }
-    unsel();
-}
-
-void RDEXPORT g_RoundRect(HDC h, const RECT FAR *rp, WORD rad, WORD fl)
-{
-    DCX *d = getdc(h); short l, t, r, b, y, i, in, nin;
-    if (!d || !rp || !sel(d)) return;
-    l = (short)(rp->l + d->ox); r = (short)(rp->r + d->ox); t = (short)(rp->t + d->oy); b = (short)(rp->b + d->oy);
-    if (l >= r || t >= b) { unsel(); return; }
-    if ((short)rad * 2 > r - l) rad = (WORD)((r - l) / 2);
-    if ((short)rad * 2 > b - t) rad = (WORD)((b - t) / 2);
-    for (y = t; y < b; y++) {
-        i = (short)(y - t < b - 1 - y ? y - t : b - 1 - y);          /* Abstand zum naechsten Rand */
-        #define INSET(k) ((k) >= (short)rad ? 0 : (short)rad - (short)((isqrt(4UL * rad * rad - (DWORD)(2L * (rad - (k)) - 1) * (2L * (rad - (k)) - 1)) + 1) >> 1))
-        in = INSET(i);
-        if (fl && !brnone) hs(y, (short)(l + in), (short)(r - 1 - in), 1, d->rop);
-        if (i == 0) { hs(y, (short)(l + in), (short)(r - 1 - in), 0, d->rop); continue; }
-        nin = INSET(i - 1);                                          /* Nachbar zum Rand hin */
-        nin = (short)(nin > in ? nin - 1 : in);
-        hs(y, (short)(l + in), (short)(l + nin), 0, d->rop);
-        hs(y, (short)(r - 1 - nin), (short)(r - 1 - in), 0, d->rop);
-        #undef INSET
-    }
-    unsel();
-}
-
-#define MAXPX 32
-void RDEXPORT g_Polygon(HDC h, const POINT FAR *p, WORD n, WORD fl)
-{
-    DCX *d = getdc(h); WORD i, j, k; short y, ymin, ymax, xs[MAXPX];
-    if (!d || !p || n < 2 || !sel(d)) return;
-    ymin = ymax = p[0].y;
-    for (i = 1; i < n; i++) { if (p[i].y < ymin) ymin = p[i].y; if (p[i].y > ymax) ymax = p[i].y; }
-    if (fl && !brnone && n > 2)
-        for (y = ymin; y <= ymax; y++) {
-            for (i = 0, k = 0; i < n && k < MAXPX; i++) {
-                const POINT FAR *a = &p[i], FAR *c = &p[(i + 1) % n];
-                if ((a->y <= y && c->y > y) || (c->y <= y && a->y > y)) {
-                    short x = (short)(a->x + (long)(y - a->y) * (c->x - a->x) / (c->y - a->y));
-                    for (j = k++; j > 0 && xs[j - 1] > x; j--) xs[j] = xs[j - 1];   /* einsortieren */
-                    xs[j] = x;
-                }
-            }
-            for (i = 0; i + 1 < k; i += 2)
-                hs((short)(y + d->oy), (short)(xs[i] + d->ox), (short)(xs[i + 1] + d->ox), 1, d->rop);
-        }
-    for (i = 0; i < n; i++) {
-        WORD c = (i + 1) % n;
-        if (c == 0 && n == 2) break;
-        line((short)(p[i].x + d->ox), (short)(p[i].y + d->oy), (short)(p[c].x + d->ox), (short)(p[c].y + d->oy));
-    }
-    unsel();
-}
-
-/* Fuellen ab x,y: Bereich gleicher Farbe; besuchte Punkte merkt eine Bitkarte */
-void RDEXPORT g_FloodFill(HDC h, short x, short y)
-{
-    DCX *d = getdc(h); RECT bb; WORD i, bw, bh, tgt, sp = 0; HMEM hm; BYTE FAR *vis; short FAR *st;
-    #define STK 1024
-    if (!d || !sel(d)) return;
-    if (!nec) { unsel(); return; }
-    if (dv == drv) zweg();
-    bb = ec[0];
+    DCX *d = getdc(h); WORD i;
+    if (!d || !sel(d)) return 0;
+    s->ox = d->ox; s->oy = d->oy; s->brnone = brnone; s->nclip = (BYTE)nec;
+    if (nec) s->bb = ec[0];
     for (i = 1; i < nec; i++) {
-        if (ec[i].l < bb.l) bb.l = ec[i].l; if (ec[i].t < bb.t) bb.t = ec[i].t;
-        if (ec[i].r > bb.r) bb.r = ec[i].r; if (ec[i].b > bb.b) bb.b = ec[i].b;
+        if (ec[i].l < s->bb.l) s->bb.l = ec[i].l; if (ec[i].t < s->bb.t) s->bb.t = ec[i].t;
+        if (ec[i].r > s->bb.r) s->bb.r = ec[i].r; if (ec[i].b > s->bb.b) s->bb.b = ec[i].b;
     }
-    x = (short)(x + d->ox); y = (short)(y + d->oy);
-    if (x < bb.l || x >= bb.r || y < bb.t || y >= bb.b || brnone) { unsel(); return; }
-    bw = (WORD)(bb.r - bb.l); bh = (WORD)(bb.b - bb.t);
-    hm = MemAlloc((DWORD)((bw + 7) >> 3) * bh + STK * 4, MEM_ZEROINIT);
-    if (!hm) { unsel(); return; }
-    vis = (BYTE FAR *)MemLock(hm); st = (short FAR *)(vis + (WORD)(((bw + 7) >> 3) * bh));
-    if (cd->typ == 1) { BMPH FAR *b2 = (BMPH FAR *)MemLock(cd->bmp); mb = (BYTE FAR *)(b2 + 1); }   /* nach MemAlloc neu */
-    tgt = dv->getpixel(x, y);
-    #define VB(xx, yy) (vis + (WORD)((yy) - bb.t) * ((bw + 7) >> 3) + ((WORD)((xx) - bb.l) >> 3))
-    #define VM(xx) ((BYTE)(0x80 >> (((xx) - bb.l) & 7)))
-    #define IN(xx, yy) (!(*VB(xx, yy) & VM(xx)) && dv->getpixel(xx, yy) == tgt)
-    st[sp++] = x; st[sp++] = y;
-    while (sp) {
-        short a, b, yy, k;
-        y = st[--sp]; x = st[--sp];
-        if (!IN(x, y)) continue;
-        for (a = x; a > bb.l && IN(a - 1, y); a--) ;
-        for (b = x; b < bb.r - 1 && IN(b + 1, y); b++) ;
-        for (k = a; k <= b; k++) *VB(k, y) |= VM(k);
-        hs(y, a, b, 1, d->rop);
-        for (yy = (short)(y - 1); yy <= y + 1; yy += 2) {
-            int run = 0;
-            if (yy < bb.t || yy >= bb.b) continue;
-            for (k = a; k <= b; k++) {
-                if (IN(k, yy)) { if (!run && sp < STK * 2 - 2) { st[sp++] = k; st[sp++] = yy; } run = 1; }
-                else run = 0;
-            }
-        }
-    }
-    #undef IN
-    #undef VB
-    #undef VM
-    if (cd->typ == 1) MemUnlock(cd->bmp);
-    MemUnlock(hm); MemFree(hm);
-    unsel();
+    return 1;
 }
+static void RDEXPORT i_end(void) { unsel(); }
+static void RDEXPORT i_span(short y, short a, short b, WORD br) { hs(y, a, b, br, cd->rop); }
+static void RDEXPORT i_line(short x0, short y0, short x1, short y1) { line(x0, y0, x1, y1); }
+static WORD RDEXPORT i_get(short x, short y) { ex(x, y, (short)(x + 1), (short)(y + 1)); return dv->getpixel(x, y); }
+static GI gi = { i_begin, i_end, i_span, i_line, i_get };
+static FARPROC xp(WORD nr)
+{
+    if (!xm && !(xm = ModLoad("RDGDIX.MOD"))) return 0;
+    if (!xf[nr]) xf[nr] = ModProc(xm, nr);
+    return xf[nr];
+}
+void RDEXPORT g_Ellipse(HDC h, const RECT FAR *r, WORD fl)            { GX_RECT f = (GX_RECT)xp(1); if (f) f(&gi, h, r, fl, 0); }
+void RDEXPORT g_RoundRect(HDC h, const RECT FAR *r, WORD rad, WORD fl) { GX_RECT f = (GX_RECT)xp(2); if (f) f(&gi, h, r, rad, fl); }
+void RDEXPORT g_Polygon(HDC h, const POINT FAR *p, WORD n, WORD fl)    { GX_POLY f = (GX_POLY)xp(3); if (f) f(&gi, h, p, n, fl); }
+void RDEXPORT g_FloodFill(HDC h, short x, short y)                    { GX_FILL f = (GX_FILL)xp(4); if (f) f(&gi, h, x, y); }
 
 /* ---- Bitmaps ------------------------------------------------------------------ */
 HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
@@ -866,7 +755,7 @@ static LFONT lfs[MAXLF + 1];                       /* HFONT 1..MAXLF */
 static HFONT sysf;
 static BYTE FAR *fp, FAR *fbr, FAR *fdat; static WORD FAR *fof;
 static WORD fober, ferst, fletzt, fstil; static HMEM fm;
-#define TBZ 16                                    /* Zeilen je Treiberaufruf */
+#define TBZ 8                                     /* Zeilen je Treiberaufruf */
 static BYTE tb[RB * TBZ];
 static char fpfad[80];
 
@@ -1109,6 +998,7 @@ void RDEXPORT g_Ende(void)
 {
     WORD i;
     mausaus();
+    if (xm) { ModFree(xm); xm = 0; for (i = 0; i < 5; i++) xf[i] = 0; }
     if (drv) { drv->textmode(); drv = 0; }
     for (i = 0; i < MAXPF; i++) if (pfs[i].used) { MemFree(pfs[i].m); pfs[i].used = 0; }
     for (i = 1; i <= MAXLF; i++) lfs[i].used = 0;

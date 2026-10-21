@@ -57,6 +57,7 @@ extern BYTE k_fpu;
 /* ---- MEM.C ------------------------------------------------------------------- */
 #define B_FREE   0x8000                           /* intern: freier Bereich */
 #define B_INTERN 0x1000                           /* intern: Kern (Stack, Schlange), kein Handle */
+#define B_HIGH   0x0400                           /* nur Wunsch an mem_get: hoher Speicher (UMB) zuerst */
 #define B_MOD    0x0800                           /* Modulbild: fest, aber verwerfbar wenn nicht in Benutzung */
 void  mem_init(WORD reserve_paras);
 void  mem_done(void);
@@ -84,6 +85,7 @@ void __far *k_modraw(HMOD m, WORD nr);          /* Exportadresse direkt (Systemm
 extern WORD (__far __pascal *k_mausget)(WORD __far *e);   /* RDGDI: Mausereignis abholen */
 extern WORD k_focus;                              /* Task, der Tastatur und Maus bekommt */
 void  input_poll(void);
+extern WORD k_umb_paras;                          /* hoher Speicher, den RD bekommen hat */
 extern WORD k_gfx;                                /* /CGA /HGC /VGA: GFX_*, 0 = automatisch */                                /* INT 21h ueber kr mit Diskettenabfrage, 1 = ok */
 WORD  k_media(WORD drive, DWORD *serial, char *label);   /* drive 0 = A: */
 
