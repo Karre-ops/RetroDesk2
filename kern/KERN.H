@@ -27,6 +27,10 @@ extern FARPROC rd_api[RDO_MAX];
 extern void  __cdecl rd_nsinit(void);           /* NOTSUP.ASM: Tabelle mit "nicht vorhanden" fuellen */
 extern DWORD __cdecl rd_enter(WORD cs, WORD ip, void __far *api, WORD hinst, WORD show, char __far *cmd); /* DX:AX */
 extern void  __cdecl rd_int(WORD nr, KREGS *r);   /* r->flags & 1 = Carry */
+extern WORD  __cdecl rd_xms(WORD ax, WORD dx, WORD si);   /* XMS-Treiber, DX danach in k_xdx */
+extern void __far *k_xmsent; extern WORD k_xdx;
+void  mod_xinit(void);                            /* XMS als Ablage fuer verworfene Module */
+void  mod_xdone(void);
 extern void  __cdecl rd_swtch(WORD *save_sssp, WORD ss, WORD sp);
 extern WORD  __cdecl rd_newstack(WORD ss, WORD sp, void (*start)(void)); /* liefert SP des vorbereiteten Stacks */
 extern void  __cdecl rd_pmove(WORD dst, WORD src, WORD paras);

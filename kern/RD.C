@@ -105,6 +105,7 @@ int main(int argc, char **argv)
     mem_init(64);
     task_init();
     if (k_umb_paras) k_hex("RD: hoher Speicher (UMB) Bytes", (DWORD)k_umb_paras << 4, 1);
+    mod_xinit();
     vor = mem_free_bytes(0);
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
     if (!gdi) k_hex("RD: RDGDI.MOD fehlt oder ist fehlerhaft, Fehler", k_lasterr, 1);

@@ -5,7 +5,9 @@ DGROUP group _DATA, _BSS
 _TEXT segment word public 'CODE'
 _TEXT ends
 _DATA segment word public 'DATA'
-public _rd_ticks, _rd_preempt, _rd_killreq, _k_crit, _k_critdrv, _rd_gateptr
+public _rd_ticks, _rd_preempt, _rd_killreq, _k_crit, _k_critdrv, _rd_gateptr, _k_xmsent, _k_xdx
+_k_xmsent   dd 0                     ; Einsprung des XMS-Treibers (HIMEM), 0 = keiner
+_k_xdx      dw 0                     ; DX nach dem letzten XMS-Aufruf
 _rd_ticks   dd 0
 _rd_preempt dw 0
 _rd_killreq dw 0
@@ -52,6 +54,23 @@ _rd_enter proc near
     pop  bp
     ret
 _rd_enter endp
+
+; ---------------------------------------------------------------------------
+; WORD rd_xms(WORD ax, WORD dx, WORD si)   XMS-Funktion AH, DS:SI = Kern-DS; DX -> k_xdx
+public _rd_xms
+_rd_xms proc near
+    push bp
+    mov  bp, sp
+    push si
+    mov  ax, [bp+4]
+    mov  dx, [bp+6]
+    mov  si, [bp+8]
+    call dword ptr _k_xmsent
+    mov  _k_xdx, dx
+    pop  si
+    pop  bp
+    ret
+_rd_xms endp
 
 ; ---------------------------------------------------------------------------
 ; void rd_int(WORD nr, KREGS *r)   KREGS: ax bx cx dx si di ds es flags

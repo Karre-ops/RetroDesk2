@@ -3,7 +3,7 @@
 # Diskette: S = Systemdiskette (bootfaehig), P = Programmdiskette, D = SDK
 # Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
-RD.EXE          24576   44   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB)
+RD.EXE          26624   44   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB)
 RDGDI.MOD       16384   18   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5)
 RDGDIX.MOD       4096    4   S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf)
 RDUSER.MOD      26624   26   S  Fenster, Menues, Steuerelemente, Dialoge

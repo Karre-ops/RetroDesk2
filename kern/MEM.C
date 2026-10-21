@@ -91,6 +91,7 @@ void mem_init(WORD reserve)
 }
 void mem_done(void)
 {
+    mod_xdone();
     if (arena) { kr.ax = 0x4900; kr.es = arena; rd_int(0x21, &kr); arena = 0; }
     while (numb) { kr.ax = 0x4900; kr.es = umb[--numb]; rd_int(0x21, &kr); }
 }

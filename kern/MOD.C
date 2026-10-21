@@ -8,7 +8,12 @@
  * Modul laden falls verworfen (mit Diskettenabfrage), sperren, Ruecksprung
  * merken; nach der Rueckkehr mod_leave: entsperren, zurueck zum Aufrufer.
  * Ein gesperrtes Modul wird nie verworfen. Verwerfbar sind nur Module mit
- * Flag PF_DISCARD; ihr Zustand (Daten) ist nach dem Nachladen neu. */
+ * Flag PF_DISCARD; ihr Zustand (Daten) ist nach dem Nachladen neu.
+ *
+ * Mit XMS (HIMEM): beim ersten Laden kommt das unberuehrte Bild (vor der Initialisierung)
+ * samt Verschiebetabelle in einen XMS-Block. Nachladen holt es von dort, rechnet die
+ * Segmente auf die neue Adresse um und braucht keine Diskette. RD2.INI [System] XMS=KB
+ * (Vorgabe 256, 0 = aus). Reicht der Block nicht, wird wie ohne XMS nachgeladen. */
 #include "KERN.H"
 
 #define MAXMOD 12
@@ -23,6 +28,8 @@ typedef struct {
     char  label[12];
     char  path[66];
     char  name[16];
+    WORD  cs, ip;                                 /* Einsprung relativ zum Bild */
+    DWORD xo; WORD xp, xr, xseg;                  /* XMS: Bild ab xo, xp Paragraphen, xr Verschiebungen, geladen fuer xseg */
     WORD  nexp;
     void __far * __far *tab;                      /* Exporttabelle im Modul selbst (nach jedem Laden neu) */
 } MODUL;
@@ -32,21 +39,92 @@ static BYTE thcode[MAXTHUNK][8];
 static WORD nth;
 extern DWORD k_stamp;
 
-/* Bild laden und initialisieren. 0 = ok */
+/* ---- XMS-Ablage ---- */
+static WORD xh; static DWORD xtop, xsize;
+#pragma pack(push, 1)
+static struct { DWORD len; WORD sh; DWORD so; WORD dh; DWORD dofs; } xmv;
+#pragma pack(pop)
+static WORD xrb[64];                              /* 32 Verschiebungen (Offset, Segment) */
+static int xmove(WORD sh, DWORD so, WORD dh, DWORD dofs, DWORD len)
+{
+    xmv.len = (len + 1) & ~1UL; xmv.sh = sh; xmv.so = so; xmv.dh = dh; xmv.dofs = dofs;
+    return rd_xms(0x0B00, 0, (WORD)&xmv) == 1;
+}
+#define KONV(seg) (((DWORD)(seg)) << 16)          /* Handle 0: Adresse Segment:0 */
+void mod_xinit(void)
+{
+    WORD kb = (WORD)ProfileGetInt("RD2.INI", "System", "XMS", 256), fr;
+    kr.ax = 0x4300; rd_int(0x2F, &kr);
+    if (!kb || (kr.ax & 0xFF) != 0x80) return;
+    kr.ax = 0x4310; rd_int(0x2F, &kr);
+    k_xmsent = MK_FP(kr.es, kr.bx);
+    fr = rd_xms(0x0800, 0, 0);                    /* groesster freier Block in KB */
+    if (fr < kb) kb = fr;
+    if (kb < 16 || rd_xms(0x0900, kb, 0) != 1) { k_xmsent = 0; return; }
+    xh = k_xdx; xsize = (DWORD)kb << 10;
+    k_hex("RD: XMS-Ablage fuer Module, Bytes", xsize, 1);
+}
+void mod_xdone(void)
+{
+    if (xh) { rd_xms(0x0A00, xh, 0); xh = 0; }
+}
+/* gerade geladenes, noch nicht initialisiertes Bild ablegen */
+static void xsave(MODUL *x, WORD seg, WORD paras)
+{
+    WORD imgp = paras - k_mz.minalloc, n, i, f; DWORD need = ((DWORD)imgp << 4) + 4UL * k_mz.crlc, o = xtop;
+    if (!xh || x->xp || xtop + need > xsize) return;
+    if (!xmove(0, KONV(seg), xh, o, (DWORD)imgp << 4)) return;
+    o += (DWORD)imgp << 4;
+    kr.ax = 0x3D00; kr.dx = (WORD)x->path; kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
+    if (CARRY) return;
+    f = kr.ax;
+    kr.ax = 0x4200; kr.bx = f; kr.cx = 0; kr.dx = k_mz.lfarlc; rd_int(0x21, &kr);
+    for (i = 0; i < k_mz.crlc && !CARRY; i += n) {
+        n = k_mz.crlc - i > 32 ? 32 : k_mz.crlc - i;
+        kr.ax = 0x3F00; kr.bx = f; kr.cx = n * 4; kr.dx = (WORD)xrb; kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
+        if (CARRY || kr.ax != n * 4 || !xmove(0, (DWORD)(void __far *)xrb, xh, o, n * 4)) break;
+        o += n * 4;
+    }
+    kr.ax = 0x3E00; kr.bx = f; rd_int(0x21, &kr);
+    if (i < k_mz.crlc) return;
+    x->xo = xtop; x->xp = imgp; x->xr = k_mz.crlc; x->xseg = seg;
+    xtop = (o + 15) & ~15UL;
+}
+/* Bild aus XMS holen und umrechnen. 0 = ok */
+static WORD xload(MODUL *x, WORD *seg)
+{
+    WORD i, n, k, d; DWORD o = x->xo + ((DWORD)x->xp << 4);
+    if (!(*seg = mem_get(x->paras, B_HIGH, 0))) return RD_ERR_NOMEM;
+    if (!xmove(xh, x->xo, 0, KONV(*seg), (DWORD)x->xp << 4)) { mem_put(*seg); return RD_ERR_FORMAT; }
+    d = *seg - x->xseg;
+    for (i = 0; i < x->xr; i += n, o += n * 4) {
+        n = x->xr - i > 32 ? 32 : x->xr - i;
+        if (!xmove(xh, o, 0, (DWORD)(void __far *)xrb, n * 4)) { mem_put(*seg); return RD_ERR_FORMAT; }
+        for (k = 0; k < n; k++) *(WORD __far *)MK_FP(*seg + xrb[2 * k + 1], xrb[2 * k]) += d;
+    }
+    return 0;
+}
+
+/* Bild laden (Datei oder XMS) und initialisieren. 0 = ok */
 static WORD load(WORD m)
 {
     MODUL *x = &md[m]; WORD i, e; static WORD seg, paras; DWORD tab;
     WORD __far *t;
-    if ((e = k_imgload(x->path, "MD", &seg, &paras)) != 0) return e;
-    tab = rd_enter(seg + k_mz.cs, k_mz.ip, (void __far *)rd_api, m, 0, (char __far *)x->path);
+    if (x->xp) { if ((e = xload(x, &seg)) != 0) return e; paras = x->paras; k_out("RD: Modul aus XMS", 0); }
+    else {
+        if ((e = k_imgload(x->path, "MD", &seg, &paras)) != 0) return e;
+        x->cs = k_mz.cs; x->ip = k_mz.ip; x->flags = k_rb.flags; x->paras = paras;
+        for (i = 0; i < 15 && k_rb.name[i]; i++) x->name[i] = k_rb.name[i];
+        x->name[i] = 0;
+        if (x->flags & PF_DISCARD) xsave(x, seg, paras);
+    }
+    tab = rd_enter(seg + x->cs, x->ip, (void __far *)rd_api, m, 0, (char __far *)x->path);
     t = (WORD __far *)MK_FP((WORD)(tab >> 16), (WORD)tab);
     if (!tab || t[0] > MAXEXP) { mem_put(seg); return RD_ERR_FORMAT; }
     x->nexp = t[0];
     x->tab = (void __far * __far *)(t + 1);       /* 0 = Export fehlt */
     k_hex(x->path, seg, 0);                       /* nur Protokoll: Ladeadresse */
-    x->base = seg; x->paras = paras; x->flags = k_rb.flags; x->loaded = 1; x->stamp = ++k_stamp;
-    for (i = 0; i < 15 && k_rb.name[i]; i++) x->name[i] = k_rb.name[i];
-    x->name[i] = 0;
+    x->base = seg; x->loaded = 1; x->stamp = ++k_stamp;
     mem_mod(seg, m);
     x->lock = (x->flags & PF_DISCARD) ? 0 : 0x8000;           /* 0x8000: nie verwerfen */
     return 0;
@@ -69,6 +147,7 @@ static int mdiscard(WORD m)
 static WORD reload(WORD m)
 {
     MODUL *x = &md[m]; WORD e;
+    if (x->xp) { if (!(e = load(m))) return 0; if (e == RD_ERR_NOMEM) return e; x->xp = 0; }   /* XMS kaputt: von Diskette */
     for (;;) {
         if (x->drive && DiskRequest(x->drive, x->serial, x->label)) return RD_ERR_NODISK;
         if (!(e = load(m))) { k_out("RD: Modul nachgeladen", 0); return 0; }
@@ -97,7 +176,7 @@ HMOD RDK ModLoad(LPCSTR name)
     if (!*s) { const char *h = k_home; while (*h && n < 50) x->path[n++] = *h++; }
     while (*name && n < 65) x->path[n++] = *name++;
     x->path[n] = 0;
-    x->used = 1; x->refs = 1; x->lock = 0; x->loaded = 0; x->drive = 0;
+    x->used = 1; x->refs = 1; x->lock = 0; x->loaded = 0; x->drive = 0; x->xp = 0;
     if (x->path[1] == ':') {
         WORD d = (WORD)((x->path[0] | 0x20) - 'a');
         if (d < 2 && !k_media(d, &x->serial, x->label)) x->drive = (BYTE)(d + 1);

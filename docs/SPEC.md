@@ -68,7 +68,7 @@ DOS ignoriert alles hinter dem Programmbild, die EXE bleibt also eine gültige D
 | 36 | WORD | Offset Ressourcenverzeichnis |
 | 38 | WORD[5] | frei, 0 (Block ist 48 Bytes lang) |
 
-Flags `PF_*`: `0x0001` 32 Bit, `0x0002` Zubehör (WS_TOOL), `0x0004` nur einmal starten, `0x0008` braucht 8087, `0x0010` braucht Netz, `0x0020` braucht EMS, `0x0040` nie nach EMS auslagern (DMA).
+Flags `PF_*`: `0x0001` 32 Bit, `0x0002` Zubehör (WS_TOOL), `0x0004` nur einmal starten, `0x0008` braucht 8087, `0x0010` braucht Netz, `0x0020` frei (früher EMS), `0x0040` frei, `0x0080` verwerfbar (`PF_DISCARD`, nur Module).
 
 **Exporttabelle** (nur Module und Treiber): je Eintrag `WORD nummer, WORD offset, WORD segment` (Segment relativ zum Programmbild, der Kern addiert die Ladeadresse). Nummer 1 ist bei Treibern die Treibertabelle (`RD2DRV.H`).
 
@@ -98,14 +98,20 @@ Flags `PF_*`: `0x0001` 32 Bit, `0x0002` Zubehör (WS_TOOL), `0x0004` nur einmal 
 | Teil | Modus R (8088) | Modus P (386+) |
 |---|---|---|
 | Programmbild (Code + DGROUP) | **fest**, solange das Programm läuft | verschiebbar |
-| `MemAlloc(MEM_MOVABLE)` | verschiebbar, nach EMS auslagerbar | verschiebbar |
+| `MemAlloc(MEM_MOVABLE)` | verschiebbar | verschiebbar |
 | `MemAlloc(MEM_DISCARDABLE)` | verwerfbar (Programm lädt neu) | verwerfbar |
 | Ressourcen, Schriften, Bitmaps | verwerfbar, von Diskette nachladbar | verwerfbar |
-| Module/Treiber (`.MOD`, `.DRV`) | verwerfbar, wenn Sperrzähler 0 | verwerfbar |
+| Module/Treiber (`.MOD`, `.DRV`) | verwerfbar, wenn Sperrzähler 0 und Flag `PF_DISCARD` | verwerfbar |
 
 Ein Programmbild ist auf dem 8088 fest, weil seine Segmentadressen nach der Relokation im Code stehen. Verschieben würde es zerstören. Platz schaffen deshalb Datenblöcke, Ressourcen und Module.
 
 **Module werden nur über Sprungstücke im Kern aufgerufen.** `ModProc` liefert nicht die echte Adresse, sondern ein Stück im Kern. Das lädt das Modul bei Bedarf (mit `DiskRequest`), erhöht den Sperrzähler, ruft auf und senkt den Zähler wieder. Ein Modul, das gerade läuft, wird so nie verworfen.
+
+**Speicherstrategie (21.10.2026).** EMS wird nicht genutzt (zu selten vorhanden). Ziel ist ein kleiner fester Teil in den 640 KB; der Build prüft je Datei den Speicher nach dem Laden (MZ-Bild + Mindestzuteilung) und die Summe im Profil Schnell (`tools/budget.txt`).
+- Module und Treiber haben keinen eigenen Stack (laufen auf dem Stack des Aufrufers), `wlink option stack=16`.
+- Selten Gebrauchtes liegt in verwerfbaren Zusatzmodulen, z. B. `RDGDIX.MOD` (Ellipse, runde Rechtecke, Polygone, Füllen), das RDGDI erst beim ersten Aufruf lädt.
+- **Hoher Speicher (UMB):** Gibt DOS welchen her (`DOS=UMB`), nimmt ihn der Kern dazu. Module und Treiber kommen bevorzugt dorthin, Programme bleiben unten.
+- **XMS:** Mit HIMEM legt der Kern beim ersten Laden eines verwerfbaren Moduls das unberührte Bild samt Verschiebetabelle in einen XMS-Block (`RD2.INI [System] XMS=` KB, Vorgabe 256, 0 = aus). Nachladen kommt dann von dort, an jede Adresse umgerechnet, ohne Diskette. Code läuft nie im XMS: im Real Mode erreicht die CPU nur das erste MB.
 
 ### 2.5 C-Bibliothek
 
@@ -262,7 +268,7 @@ Für DOS-Programme kommen dazu: `Parameter=`, `Ordner=`, `Grafik=1` (Programm sc
 - `NetStart` lädt `RDNET.MOD` (TCP/IP aus RetroDesk 1.x `mod/tcp.c`), sucht den Packet-Treiber und holt per DHCP eine Adresse. Das Ergebnis kommt als `M_NETSTATE`.
 - Alle Netzfunktionen kehren sofort zurück. Ergebnisse kommen als Nachricht an das Fenster, das bei `NetOpen`/`NetResolve` angegeben wurde: `M_NETCONNECT`, `M_NETDATA` (Bytes bereit, abholen mit `NetRecv`), `M_NETCLOSED`, `M_NETACCEPT`.
 - Der Stack arbeitet im Hintergrund, während die Programme `GetMessage` aufrufen. Ein Programm, das nicht abholt, bremst nur seine eigenen Verbindungen (TCP-Fenster).
-- Höchstens 8 Verbindungen gleichzeitig in Modus R, Puffer je Verbindung 2 KB Empfang und 1 KB Senden (aus EMS, wenn vorhanden).
+- Höchstens 8 Verbindungen gleichzeitig in Modus R, Puffer je Verbindung 2 KB Empfang und 1 KB Senden .
 
 ## 11. 16 und 32 Bit
 
