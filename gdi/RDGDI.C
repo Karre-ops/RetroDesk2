@@ -36,7 +36,7 @@ typedef struct {
 
 typedef struct { WORD w, h, bpp, bpr; } BMPH;     /* Kopf eines Bitmap-Blocks, danach die Zeilen */
 
-static DCX dcs[MAXDC + 1];                         /* HDC 1..MAXDC */
+static DCX dcs[MAXDC];                             /* HDC 1..MAXDC = dcs[0..MAXDC-1] */
 static GFXDRV FAR *drv;                            /* Schirmtreiber, 0 = noch keiner */
 static HMOD drvmod;
 static GFXMODE gm;
@@ -261,8 +261,8 @@ WORD RDEXPORT g_MausHole(WORD FAR *e)
 /* ---- Auswahl des Ziels -------------------------------------------------------- */
 static DCX *getdc(HDC h)
 {
-    if (h < 1 || h > MAXDC || !dcs[h].used) { SetLastError(RD_ERR_HANDLE); return 0; }
-    return &dcs[h];
+    if (h < 1 || h > MAXDC || !dcs[h - 1].used) { SetLastError(RD_ERR_HANDLE); return 0; }
+    return &dcs[h - 1];
 }
 static void isect(RECT *a, const RECT *b)
 {
@@ -272,11 +272,13 @@ static void isect(RECT *a, const RECT *b)
     if (b->b < a->b) a->b = b->b;
 }
 /* Zeichenziel waehlen: Treiber/Bitmap, Clipliste berechnen. 0 = nichts zu zeichnen */
-static DCX *kd; static BYTE kdirty = 1;
+static DCX *kd, *kc; static BYTE kdirty = 1, kclip = 1;   /* kclip: Ursprung/Clip/Treiber geaendert */
 static int sel(DCX *d)
 {
     static RECT dev, u, r; WORD i;
-    cd = d; nec = 0;
+    cd = d;
+    if (d->typ == 0 && d == kc && !kclip && drv) { dv = drv; goto farben; }   /* Clipliste unveraendert */
+    nec = 0; kc = d; kclip = 0;
     if (d->typ == 0) {
         if (!drv) return 0;
         dv = drv; dev.l = 0; dev.t = 0; dev.r = (short)gm.w; dev.b = (short)gm.h;
@@ -293,6 +295,8 @@ static int sel(DCX *d)
         isect(&r, &dev);
         if (r.l < r.r && r.t < r.b) ec[nec++] = r;
     }
+    if (d->typ) kc = 0;                            /* Bitmap: jedes Mal neu */
+farben:
     if (d != kd || kdirty) {                       /* Farben/Pinsel nur nach Aenderung neu umrechnen */
         penb = cbit(d->pen); txtb = cbit(d->txt); bkb = cbit(d->bk);
         mkbrush(d); kd = d; kdirty = 0;
@@ -346,8 +350,7 @@ static void vs(short x, short y0, short y1, WORD rop)
         if (b >= r->b) b = (short)(r->b - 1);
         if (a > b) continue;
         ex(x, a, (short)(x + 1), (short)(b + 1));
-        if (dv->box) dv->box(x, a, x, b, penb, (const BYTE FAR *)0, rop);   /* Treiber: Spalte in Assembler */
-        else if (dv->vline) dv->vline(x, a, b, penb, rop);
+        if (dv->box) dv->box(x, a, x, b, penb, (const BYTE FAR *)0, rop);   /* Schirm: Spalte in Assembler, Bitmap: Punkte */
         else for (; a <= b; a++) dv->pixel(x, a, penb, rop);
     }
 }
@@ -436,12 +439,13 @@ HFONT RDEXPORT g_SetFont(HDC h, HFONT f)       { DCX *d = getdc(h); HFONT o; if 
 COLOR RDEXPORT g_SetTextColor(HDC h, COLOR c)  { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->txt; if (o != c) { d->txt = c; kdirty = 1; } return o; }
 COLOR RDEXPORT g_SetBkColor(HDC h, COLOR c)    { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->bk; if (o != c) { d->bk = c; kdirty = 1; } return o; }
 WORD  RDEXPORT g_SetBkMode(HDC h, WORD m)      { DCX *d = getdc(h); WORD o; if (!d) return 0; o = d->bkmode; d->bkmode = m; return o; }
-void  RDEXPORT g_SetOrigin(HDC h, short x, short y) { DCX *d = getdc(h); if (d) { d->ox = x; d->oy = y; } }
+void  RDEXPORT g_SetOrigin(HDC h, short x, short y) { DCX *d = getdc(h); if (d) { d->ox = x; d->oy = y; kclip = 1; } }
 void  RDEXPORT g_SetClip(HDC h, const RECT FAR *r)
 {
     DCX *d = getdc(h);
     if (!d) return;
     if (r) { d->ucl = *r; d->uclip = 1; } else d->uclip = 0;
+    kclip = 1;
 }
 
 /* ---- API: Zeichnen -------------------------------------------------------------- */
@@ -571,18 +575,18 @@ HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
 static HDC newdc(BYTE typ, HBMP b)
 {
     WORD i; DCX *d;
-    for (i = 1; i <= MAXDC && dcs[i].used; i++) ;
+    for (i = 1; i <= MAXDC && dcs[i - 1].used; i++) ;
     if (i > MAXDC) { SetLastError(RD_ERR_FULL); return 0; }
-    d = &dcs[i];
+    d = &dcs[i - 1];
     memset(d, 0, sizeof *d);
     d->used = 1; d->typ = typ; d->bmp = b; d->owner = TaskSelf();
-    kdirty = 1; d->pen = C_BLACK; d->brush = C_WHITE; d->txt = C_BLACK; d->bk = C_WHITE; d->bkmode = BK_OPAQUE;
+    kdirty = 1; kclip = 1; d->pen = C_BLACK; d->brush = C_WHITE; d->txt = C_BLACK; d->bk = C_WHITE; d->bkmode = BK_OPAQUE;
     return i;
 }
 void RDEXPORT g_BmpFree(HBMP b)
 {
     WORD i;
-    for (i = 1; i <= MAXDC; i++) if (dcs[i].used && dcs[i].typ == 1 && dcs[i].bmp == b) dcs[i].used = 0;
+    for (i = 1; i <= MAXDC; i++) if (dcs[i - 1].used && dcs[i - 1].typ == 1 && dcs[i - 1].bmp == b) dcs[i - 1].used = 0;
     MemFree(b);
 }
 HDC  RDEXPORT g_BmpDC(HBMP b) { if (!MemSize(b)) { SetLastError(RD_ERR_HANDLE); return 0; } return newdc(1, b); }
@@ -700,7 +704,7 @@ static WORD probe(WORD i, GFXMODE *m, int setzen)
     t->modes((GFXMODE FAR *)m, 1);
     if (!setzen) { t->h.done(); ModFree(h); return 0; }
     t->setmode(0);
-    drv = t; drvmod = h; gfxtyp = kand[i].typ;
+    drv = t; drvmod = h; gfxtyp = kand[i].typ; kclip = 1;
     return 0;
 }
 static int gleich(const char *a, const char *b)
@@ -973,7 +977,7 @@ void RDEXPORT g_TextBox(HDC h, const RECT FAR *rc, LPCSTR s, WORD fl)
     r = *rc; maxw = (WORD)(r.r > r.l ? r.r - r.l : 0);
     au = d->uclip; ac = d->ucl;                    /* am Rechteck abschneiden */
     if (au) isect(&d->ucl, &r); else d->ucl = r;
-    d->uclip = 1;
+    d->uclip = 1; kclip = 1;
     y = r.t;
     if (fl & TB_VCENTER) {
         for (t = s;; t += weiter) { zende(t, maxw, fl & TB_WRAP, &weiter); z++; if (!t[weiter]) break; }
@@ -991,7 +995,7 @@ void RDEXPORT g_TextBox(HDC h, const RECT FAR *rc, LPCSTR s, WORD fl)
         }
         unsel();
     }
-    d->uclip = au; d->ucl = ac;
+    d->uclip = au; d->ucl = ac; kclip = 1;
     funlock();
 }
 WORD RDEXPORT g_FontInfo(HFONT f, FONTINFO FAR *fi)

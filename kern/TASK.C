@@ -25,7 +25,12 @@ static struct { char sig[4]; DWORD blk, len; WORD sum, res; } tr;
 static char path[80];
 
 WORD RDK TaskKill(HTASK n, WORD code);
-static DWORD ms_now(void) { DWORD t = rd_ticks; return t * 13 + ((t * 47) >> 6); }
+static DWORD ms_now(void)                         /* Ergebnis bis zum naechsten Takt merken (32-Bit-Multiplikation ist teuer) */
+{
+    static DWORD lt = 0xFFFFFFFFUL, lm; DWORD t = rd_ticks;
+    if (t != lt) { lt = t; lm = t * 13 + ((t * 47) >> 6); }
+    return lm;
+}
 
 /* ---- Umschalten ----------------------------------------------------------- */
 /* Beendete Tasks aufraeumen. Laeuft nie im Kontext des beendeten Tasks selbst
@@ -51,6 +56,7 @@ static int has_work(TASK *t)
     for (j = 0; j < NTIMER; j++) if (t->tm[j].ms && (long)(now - t->tm[j].next) >= 0) return 1;
     return 0;
 }
+static WORD k_nsw;                                /* Zahl der Umschaltungen (PeekMessage) */
 static void switch_to(WORD n)
 {
     WORD o = k_cur;
@@ -58,6 +64,7 @@ static void switch_to(WORD n)
     if (k_fpu) rd_fsave(FPU(o));
     k_cur = n;
     k_task[n].slice = SLICE;
+    k_nsw++;
     rd_swtch(&k_task[o].ss, k_task[n].ss, k_task[n].sp);
     /* hier geht es weiter, wenn Task o wieder an der Reihe ist */
     if (k_fpu) rd_frstor(FPU(k_cur));
@@ -100,7 +107,7 @@ void input_poll(void)
     if (!k_focus || (k_task[k_focus].state != T_READY && k_task[k_focus].state != T_WAIT))
         for (k_focus = 0, i = MAXTASK - 1; i > 0; i--)
             if (k_task[i].state == T_READY || k_task[i].state == T_WAIT) { k_focus = i; break; }
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < 8 && *(WORD __far *)(bda + 0x1A) != *(WORD __far *)(bda + 0x1C); i++) {   /* Puffer leer: kein INT 16h */
         kr.ax = (WORD)(kbext + 1) << 8; rd_int(0x16, &kr);
         if (kr.flags & 0x40) break;               /* ZF: keine Taste */
         kr.ax = (WORD)kbext << 8; rd_int(0x16, &kr);
@@ -327,10 +334,12 @@ BOOL RDK GetMessage(MSG FAR *m)
 }
 BOOL RDK PeekMessage(MSG FAR *m, WORD remove)
 {
+    WORD n;
     input_poll();
+    n = k_nsw;
     if (fetch(m, remove)) return TRUE;
     schedule(0);                                  /* kurz anderen Tasks Zeit geben */
-    return fetch(m, remove) ? TRUE : FALSE;
+    return n != k_nsw && fetch(m, remove) ? TRUE : FALSE;   /* nur nach Umschalten neu nachsehen */
 }
 void RDK WaitMessage(void)       { while (!has_work(&k_task[k_cur])) schedule(1); }
 void RDK TaskYield(void)         { schedule(0); }

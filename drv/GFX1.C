@@ -138,20 +138,6 @@ static void wr(BYTE __far *p, BYTE m, BYTE v, WORD rop)
     }
 }
 
-static void RDEXPORT d_span(short y, short x0, short x1, WORD farbe, const BYTE FAR *muster8, WORD rop)
-{
-    BYTE __far *p = VP(x0, y);
-    WORD b0 = (WORD)x0 >> 3, b1 = (WORD)x1 >> 3, n;
-    BYTE lm = (BYTE)(0xFF >> (x0 & 7)), rm = (BYTE)(0xFF << (7 - (x1 & 7)));
-    BYTE v = muster8 ? muster8[y & 7] : (BYTE)(farbe ? 0xFF : 0);
-    if (b0 == b1) { wr(p, (BYTE)(lm & rm), v, rop); return; }
-    wr(p++, lm, v, rop);
-    n = b1 - b0 - 1;
-    if (rop == ROP_COPY) { _fmemset(p, v, n); p += n; }
-    else while (n--) wr(p++, 0xFF, v, rop);
-    wr(p, rm, v, rop);
-}
-
 static void RDEXPORT d_pixel(short x, short y, WORD farbe, WORD rop)
 {
     wr(VP(x, y), (BYTE)(0x80 >> (x & 7)), (BYTE)(farbe ? 0xFF : 0), rop);
@@ -227,6 +213,40 @@ static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, c
         }
         return;
     }
+    if (!n && !mu) {                              /* eine Spalte (senkrechte Linie): zwei Befehle je Zeile */
+        b_row = ROW(y0) + b0; b_n = (WORD)(y1 - y0 + 1);
+        b_lm = (BYTE)(rop == ROP_XOR ? 0xFF : ~lm); b_rm = (BYTE)(v & lm);   /* (p UND b_lm) ODER/XOR b_rm */
+        b_xor = (BYTE)(rop == ROP_XOR);
+        _asm {
+            push di
+            push es
+            mov  ax, VSEG
+            mov  es, ax
+            mov  di, b_row
+            mov  cx, b_n
+            mov  al, b_lm
+            mov  ah, b_rm
+            cmp  b_xor, 0
+            jne  sx
+        sa: and  es:[di], al
+            or   es:[di], ah
+            add  di, ZADD
+            cmp  di, ZLIM
+            jb   s1
+            sub  di, ZSUB
+        s1: loop sa
+            jmp  se
+        sx: xor  es:[di], ah
+            add  di, ZADD
+            cmp  di, ZLIM
+            jb   s3
+            sub  di, ZSUB
+        s3: loop sx
+        se: pop  es
+            pop  di
+        }
+        return;
+    }
     for (i = 0; i < 8; i++) pt[i] = mu ? mu[i] : v;
     b_lm = lm; b_rm = rm; b_one = (BYTE)!n; b_xor = (BYTE)(rop == ROP_XOR);
     b_row = ROW(y0); b_col = b0; b_mid = n ? n - 1 : 0; b_n = (WORD)(y1 - y0 + 1); b_y = (WORD)y0;
@@ -254,6 +274,10 @@ static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, c
         jne  zn
         inc  di
         mov  cx, b_mid
+        mov  ah, al
+        shr  cx, 1
+        rep  stosw
+        adc  cx, cx
         rep  stosb
         mov  ah, es:[di]
         xor  ah, al
@@ -267,8 +291,14 @@ static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, c
         jne  zn
         inc  di
         mov  cx, b_mid
-        jcxz zr
-    zm: xor  es:[di], al
+        mov  ah, al
+        shr  cx, 1
+        jnc  zq
+        xor  es:[di], al
+        inc  di
+    zq: jcxz zr
+    zm: xor  es:[di], ax
+        inc  di
         inc  di
         loop zm
     zr: and  al, b_rm
@@ -280,11 +310,17 @@ static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, c
         sub  dx, ZSUB
     zw:
         dec  b_n
-        jnz  zl
-        pop  es
+        jz   ze
+        jmp  zl
+    ze: pop  es
         pop  di
         pop  si
     }
+}
+/* waagerechte Linie = Rechteck mit einer Zeile */
+static void RDEXPORT d_span(short y, short x0, short x1, WORD farbe, const BYTE FAR *mu, WORD rop)
+{
+    d_box(x0, y, x1, y, farbe, mu, rop);
 }
 
 /* Mauszeiger 16x16: mb = 32 Bytes UND-Maske, dann 32 Bytes XOR (je Zeile 2 Bytes).
@@ -346,18 +382,34 @@ static void blk(WORD x, WORD y, WORD k, WORD n, const BYTE __far *m, WORD st, BY
         cmp  k_hin, 0
         mov  ax, k_seg
         je   gq
+        cmp  k_hin, 2            ; Flags ueberstehen mov/push/pop
         mov  es, ax              ; Speicher -> Schirm: ds:si = Speicher, es:di = Schirm
         mov  ax, VSEG
         push es
         mov  es, ax
         pop  ds
+        je   il
     hl: mov  si, bx
         mov  di, dx
         pop  cx
         push cx
+        shr  cx, 1
+        rep  movsw
+        adc  cx, cx
         rep  movsb
         call nx
         jnz  hl
+        jmp  fe
+    il: mov  si, bx              ; hin = 2: invertiert (schwarzer Text auf weiss)
+        mov  di, dx
+        pop  cx
+        push cx
+    i1: lodsb
+        not  al
+        stosb
+        loop i1
+        call nx
+        jnz  il
         jmp  fe
     gq: mov  es, ax              ; Schirm -> Speicher: ds:si = Schirm, es:di = Speicher
         mov  ax, VSEG
@@ -366,6 +418,9 @@ static void blk(WORD x, WORD y, WORD k, WORD n, const BYTE __far *m, WORD st, BY
         mov  di, bx
         pop  cx
         push cx
+        shr  cx, 1
+        rep  movsw
+        adc  cx, cx
         rep  movsb
         call nx
         jnz  gl
@@ -498,7 +553,7 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
     else if (rop == ROP_XOR) art = vf && !vb ? 6 : 0;
     else art = 0;
     nsh = ((nb - 2) << 8) | sh;
-    if (art == 1 && !sh && rm == 0xFF) { blk(x, y, nb, h, src, srcbytes, 1); return; }
+    if (art <= 2 && art && !sh && rm == 0xFF) { blk(x, y, nb, h, src, srcbytes, (BYTE)art); return; }
     if ((art == 1 || art == 2) && h > 0) {        /* kopieren, auch verschoben/invertiert: Assembler */
         q_row = ROW(y) + ((WORD)x >> 3); q_soff = FP_OFF(src); q_sseg = FP_SEG(src); q_st = srcbytes; q_n = (WORD)h;
         q_mid = nb == 1 ? 0xFFFF : nb - 2; q_mask = lm | ((WORD)rm << 8); q_ext = nb > sb; q_sh = (BYTE)sh;
