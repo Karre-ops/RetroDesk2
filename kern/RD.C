@@ -80,8 +80,13 @@ int main(int argc, char **argv)
         else if (c == 'v') k_gfx = GFX_VGAMONO;
         else if (c == 'n') k_maus = 0xFFFF;              /* /NOMAUS: Maus nicht benutzen (Testbilder) */
         else if (c == 's') i = -1;                       /* /SETUP: Einrichtung vorher */
+        else if (c == 'p') koop |= 2;                    /* /P: Shell (SHELL= in CONFIG.SYS) */
         else if (c == 'w') for (s = argv[a] + 3; *s; s++) k_wseg = (k_wseg << 4) + (*s <= '9' ? *s - '0' : (*s | 0x20) - 'a' + 10);   /* /W:seg vom RunDos-Rest */
     }
+    /* Shell: RD laeuft unter dem Rest (Modus 2), der es nach dem Ende wieder startet */
+    h = (kr.ax = 0x6200, rd_int(0x21, &kr), kr.bx);
+    if (((koop & 2) || *(WORD __far *)MK_FP(h, 0x16) == h) && !k_wseg && (h = k_stub(2)) != 0) rd_swaprun(h);
+    koop &= 1;
     /* Erkennung macht nur RD2SETUP: beim allerersten Start (kein RD2.INI) oder mit /SETUP */
     kr.ax = 0x4300; kr.dx = (WORD)k_hpath("RD2.INI"); kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
     if (CARRY || i == -1) {
@@ -103,7 +108,7 @@ int main(int argc, char **argv)
     file_api();
     mod_api();
     k_out("RD: RetroDesk 2 Kern (Phase 3), API 1.0", 1);
-    if (a >= argc) { k_out("Aufruf: RD [/KOOP /CGA /HGC /VGA /NOMAUS /SETUP] programm [parameter]", 1); return 1; }
+    if (a >= argc) { k_out("Aufruf: RD [/schalter] programm [parameter]", 1); return 1; }
     for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {
         for (s = argv[i]; *s && h < 78; ) cmdline[h++] = *s++;
         if (i + 1 < argc && h < 78) cmdline[h++] = ' ';
@@ -117,7 +122,7 @@ int main(int argc, char **argv)
         if (*v && **v != 0xCF) { kr.ax = 0; kr.bx = 0; rd_int(0x33, &kr); if (kr.ax == 0xFFFF) k_maus = kr.bx == 0xFFFF ? 2 : kr.bx; }
     }
     if (k_maus == 0xFFFF) k_maus = 0;
-    if (k_umb_paras) k_hex("RD: hoher Speicher (UMB) Bytes", (DWORD)k_umb_paras << 4, 1);
+    if (k_umb_paras) k_hex("RD: UMB", (DWORD)k_umb_paras << 4, 1);
     mod_xinit();
     vor = mem_free_bytes(0);
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */

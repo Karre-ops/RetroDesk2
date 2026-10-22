@@ -62,7 +62,7 @@ void mod_xinit(void)
     if (fr < kb) kb = fr;
     if (kb < 16 || rd_xms(0x0900, kb, 0) != 1) { k_xmsent = 0; return; }
     xh = k_xdx; xsize = (DWORD)kb << 10;
-    k_hex("RD: XMS-Ablage fuer Module, Bytes", xsize, 1);
+    k_hex("RD: XMS-Ablage", xsize, 1);
 }
 void mod_xdone(void)
 {
@@ -224,15 +224,15 @@ FARPROC RDK ModProc(HMOD m, WORD nr)
 DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs)
 {
     TASK *t = &k_task[k_cur]; WORD m = th[idx].mod, nr = th[idx].nr; MODUL *x = &md[m];
-    if (!m || !x->used || t->rsp >= 12) { k_out("RD: Modulaufruf ungueltig, Programm wird beendet", 0); TaskKill(k_cur, 0xFFFE); }
+    if (!m || !x->used || t->rsp >= 12) { k_out("RD: Modulaufruf ungueltig, Abbruch", 0); TaskKill(k_cur, 0xFFFE); }
     if (!x->loaded && reload(m)) {
-        k_out("RD: Modul fehlt, Programm wird beendet", 0);
+        k_out("RD: Modul fehlt, Abbruch", 0);
         TaskKill(k_cur, 0xFFFE);
     }
-    if (nr > x->nexp) { k_out("RD: Modulfunktion fehlt, Programm wird beendet", 0); TaskKill(k_cur, 0xFFFE); }
+    if (nr > x->nexp) { k_out("RD: Modulfunktion fehlt, Abbruch", 0); TaskKill(k_cur, 0xFFFE); }
     t->rs[t->rsp].ip = ip; t->rs[t->rsp].cs = cs; t->rs[t->rsp].mod = m; t->rsp++;
     x->lock++; x->stamp = ++k_stamp;
-    if (!x->tab[nr - 1]) { k_out("RD: Modulfunktion fehlt, Programm wird beendet", 0); TaskKill(k_cur, 0xFFFE); }
+    if (!x->tab[nr - 1]) { k_out("RD: Modulfunktion fehlt, Abbruch", 0); TaskKill(k_cur, 0xFFFE); }
     return (DWORD)x->tab[nr - 1];
 }
 DWORD __cdecl mod_leave(void)

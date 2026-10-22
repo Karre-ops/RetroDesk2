@@ -295,7 +295,7 @@ Siehe `tools/budget.txt`. Ab Phase 1 prüft der Build jede Datei. Der Inhalt der
 Ziel: RetroDesk 2 ist für den Benutzer ein eigenes Betriebssystem, das DOS-Programme ausführen kann. Es gibt keine eigene Nachbildung von INT 21h. DOS bleibt Unterbau, ist aber unsichtbar.
 
 **Start**
-1. `CONFIG.SYS` enthält `SHELL=A:\RD2\RD.EXE` (oder `C:\RD2\RD.EXE`). Eine DOS-Eingabe und COMMAND.COM gibt es nicht. Unterbau ist MS-DOS ab 5 oder der FreeDOS-Kern (GPL), mit dem die Bootdiskette frei weitergegeben werden darf.
+1. `CONFIG.SYS` enthält `SHELL=A:\RD2\RD.EXE /P` (oder `C:\RD2\RD.EXE /P`), danach optional Schalter und das Startprogramm. Eine DOS-Eingabe und COMMAND.COM gibt es nicht. `/P` heißt wie bei COMMAND.COM "bleibt": RD lädt sofort den Rest (`RDSWAP.BIN`, Modus 2) und läuft als dessen Kind mit `/W:seg`. Endet RD, zeigt der Rest "RetroDesk ist beendet. Taste: neu starten" und startet RD wieder, die Shell endet also nie. `RunDos` im Diskettenbetrieb trägt das Programm direkt in diesen Rest ein. Ohne `/P` erkennt RD die Shell nur, wenn DOS den PSP als eigene Eltern einträgt (MS-DOS; der FreeDOS-Kern tut das nicht). Gemessen (QEMU, FreeDOS-Diskette, ohne COMMAND.COM): das DOS-Programm bekommt 550 KB, mit COMMAND.COM 481 KB. Unterbau ist MS-DOS ab 5 oder der FreeDOS-Kern (GPL), mit dem die Bootdiskette frei weitergegeben werden darf.
 2. Fehlt `RD2.INI` (erster Start) oder steht `RD /SETUP` im Aufruf, ruft der Kern zuerst `RD2SETUP.EXE /ERST` auf. Nur RD2SETUP erkennt Hardware (Grafik, Maus, Klang, XMS, hoher Speicher, Netz), der Kern tastet beim Start nichts ab.
 3. RD2SETUP installiert auch auf Festplatte: Dateien kopieren, `RD2.INI` anlegen, Eintrag in `AUTOEXEC.BAT` (alte Fassung als `AUTOEXEC.RDA`).
 

@@ -17,7 +17,7 @@ T=obj/disk.tmp
 python3 -c "import shutil; shutil.rmtree('$T', True)"; mkdir -p $T
 mcopy -i $SRC ::/KERNEL.SYS $T/; mcopy -i $SRC ::/FREEDOS/BIN/COMMAND.COM $T/; mcopy -i $SRC ::/FREEDOS/BIN/FDAPM.COM $T/
 mcopy -i $IMG $T/KERNEL.SYS $T/COMMAND.COM ::/
-printf 'SHELL=A:\\COMMAND.COM A:\\ /E:512 /P\r\n' > $T/CONFIG.SYS
+if [ -n "$SHELLZEILE" ]; then printf '%s\r\n' "$SHELLZEILE" > $T/CONFIG.SYS; else printf 'SHELL=A:\\COMMAND.COM A:\\ /E:512 /P\r\n' > $T/CONFIG.SYS; fi
 sed 's/$/\r/' $AE > $T/AUTOEXEC.BAT
 mcopy -i $IMG $T/CONFIG.SYS $T/AUTOEXEC.BAT $T/FDAPM.COM ::/
 mmd -i $IMG ::/RD2

@@ -90,6 +90,7 @@ void __far *k_modraw(HMOD m, WORD nr);          /* Exportadresse direkt (Systemm
 extern WORD (__far __pascal *k_mausget)(WORD __far *e);
 extern void (__far __pascal *k_gdipause)(WORD an);  /* RDGDI: 0 Textmodus/Maus aus, 1 wieder an (RunDos) */
 WORD mem_arena(WORD __far *a);
+WORD k_stub(WORD mode);
 extern WORD k_wseg, k_rseg;                       /* RunDos-Neustart (RUNDOS.C) */
 extern void __cdecl rd_swaprun(WORD seg);
 char *k_hpath(const char *name);                  /* RD2-Verzeichnis + Name (Puffer wird wiederverwendet) */

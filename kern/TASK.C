@@ -162,7 +162,7 @@ static void notbeenden(WORD cs)
     if (best && best == k_cur && (cs < k_task[best].base || cs >= k_task[best].base + k_task[best].paras))
         return;                                   /* steckt gerade im Kern/BIOS: Kernzustand nicht zerstoeren, spaeter */
     rd_killreq = 0;
-    if (!best) { k_out("RD: Notbeenden: kein haengendes Programm", 0); return; }
+    if (!best) { k_out("RD: Notbeenden: keins", 0); return; }
     k_hex("RD: Notbeenden Task", best, 0);
     TaskKill(best, 0xFFFF);                       /* bei k_cur: schaltet um, kehrt nicht zurueck */
 }

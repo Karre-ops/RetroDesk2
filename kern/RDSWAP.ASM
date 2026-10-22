@@ -28,7 +28,7 @@ S_REST  equ 66
 S_DIR   equ 68      ; 0 = auslagern, 1 = zurueckholen
 S_XO    equ 70      ; dd Versatz im XMS-Block
 S_TOP   equ 74      ; Stack-Ende im Block
-S_MODE  equ 76      ; 0 = auslagern und zurueck, 1 = Neustart (ohne XMS und Festplatte)
+S_MODE  equ 76      ; 0 = auslagern und zurueck, 1 = Neustart (ohne XMS und Festplatte), 2 = Shell
 S_PATH  equ 78      ; Programmname
 S_TAIL  equ 158     ; Befehlszeile (DOS-Form)
 S_FCB   equ 286
@@ -129,17 +129,28 @@ st_neu: mov  es, ds:[S_PSP]
         mov  bx, 16
         mov  ah, 4Ah
         int  21h
+        cmp  word ptr ds:[S_MODE], 2     ; Shell: zuerst RD selbst
+        je   st_rd
 st_lauf:
         call st_prog
-        call st_rdneu
+st_rd:  call st_rdneu
         mov  al, 1
-        jc   st_ende
+        jc   st_shell
         mov  ah, 4Dh
         int  21h
         cmp  ax, 0D5h
-        jne  st_ende
+        jne  st_shell
         call st_zeile                    ; das neue RD hat Programm und Zeile eingetragen
         jmp  st_lauf
+st_shell:                                ; RD ist zu Ende (oder fehlt)
+        cmp  word ptr ds:[S_MODE], 2
+        jne  st_ende
+        mov  dx, offset st_smsg          ; als Shell nie enden: auf Taste neu starten
+        mov  ah, 9
+        int  21h
+        xor  ah, ah
+        int  16h
+        jmp  st_rd
 st_ende:
         mov  ah, 4Ch
         int  21h
@@ -361,6 +372,7 @@ xf_err: stc
 
 st_rdexe db 'RD.EXE', 0
 st_swpn db 'RD2SWAP.$$$', 0
+st_smsg db 13, 10, 'RetroDesk ist beendet. Taste: neu starten$'
 st_msg  db 13, 10, 'Taste druecken...$'
 st_tmsg db 13, 10, 'RD2: Speicher nicht frei (residentes Programm?). Taste: Neustart.$'
 _TEXT ends
