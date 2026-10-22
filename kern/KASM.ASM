@@ -641,8 +641,9 @@ public _rd_fsave
 _rd_fsave proc near
     push bp
     mov  bp, sp
-    mov  bx, [bp+4]
-    fsave [bx]                       ; mit WAIT: 8087 muss fertig sein
+    mov  es, [bp+4]                  ; Segment, Offset: Ablage im Kern-Speicherblock
+    mov  bx, [bp+6]
+    fsave es:[bx]                    ; mit WAIT: 8087 muss fertig sein
     fwait
     pop  bp
     ret
@@ -652,8 +653,9 @@ public _rd_frstor
 _rd_frstor proc near
     push bp
     mov  bp, sp
-    mov  bx, [bp+4]
-    frstor [bx]
+    mov  es, [bp+4]
+    mov  bx, [bp+6]
+    frstor es:[bx]
     fwait
     pop  bp
     ret

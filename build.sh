@@ -41,4 +41,8 @@ for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST; do app
 APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 python3 tools/mkfont.py $O >/dev/null
+# Einrichtung: normales DOS-Programm (Small, Watcom-Bibliothek), laeuft ohne RetroDesk
+$W -fpi87 -fo=obj/setasm.obj setup/SETASM.ASM
+wcc -0 -ms -os -s -zq -w4 -bt=dos -fo=obj/rd2setup.obj setup/RD2SETUP.C
+wlink option quiet system dos name $O/RD2SETUP.EXE file obj/rd2setup.obj,obj/setasm.obj option map=obj/rd2setup.map >/dev/null
 python3 tools/budget.py $O ${1:+$1}

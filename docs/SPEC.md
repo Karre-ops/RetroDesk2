@@ -221,12 +221,15 @@ Umgesetzt (20.10.2026):
 **`RD2.INI`** (Text, wie Windows-INI):
 
 ```ini
-[RD2]
-Grafik=AUTO         ; AUTO, CGA, HGC, VGA, VGA16
-Profil=AUTO         ; AUTO (nach CPU), SCHNELL, KOMFORT
-Sound=AUTO          ; AUTO, AUS, SPEAKER, ADLIB, SB
+[System]            ; schreibt RD2SETUP (Erkennung), der Kern liest nur
+Grafik=VGA          ; CGA, HGC, VGA, VGA16 (nur was die Karte kann; AUTO = automatisch)
+Profil=SCHNELL      ; SCHNELL (1 Bit), KOMFORT (Farbe, ab 386)
+Maus=DOS            ; DOS (INT 33h), KEINE; spaeter eigener Treiber MAUS.DRV
+MausHW=BUS:23C      ; erkannte Maus: BUS:23C, INPORT:23C, SERIELL:COM1, PS2, DOS, KEINE
+Sound=ADLIB         ; SPEAKER, ADLIB, AUS
+XMS=256             ; KB XMS-Ablage fuer Module, 0 = aus
+Netz=PAKET          ; PAKET (Paketreiber), KEIN
 Sprache=DE
-Maus=AUTO
 Systemklang=1
 Drucker=EPSON9.DRV
 Port=LPT1
@@ -286,3 +289,23 @@ Siehe `tools/budget.txt`. Ab Phase 1 prüft der Build jede Datei. Der Inhalt der
 2. Notbeenden mit Strg+Alt+Rückschritt (Strg+Alt+Entf bleibt der Neustart)
 3. Systemmenü "RD" ganz links
 4. Symbolgröße 32x32, auf CGA 32x16
+
+## 14. Weg zum Betriebssystem (freigegeben 21.10.2026)
+
+Ziel: RetroDesk 2 ist für den Benutzer ein eigenes Betriebssystem, das DOS-Programme ausführen kann. Es gibt keine eigene Nachbildung von INT 21h. DOS bleibt Unterbau, ist aber unsichtbar.
+
+**Start**
+1. `CONFIG.SYS` enthält `SHELL=A:\RD2\RD.EXE` (oder `C:\RD2\RD.EXE`). Eine DOS-Eingabe und COMMAND.COM gibt es nicht. Unterbau ist MS-DOS ab 5 oder der FreeDOS-Kern (GPL), mit dem die Bootdiskette frei weitergegeben werden darf.
+2. Fehlt `RD2.INI` (erster Start) oder steht `RD /SETUP` im Aufruf, ruft der Kern zuerst `RD2SETUP.EXE /ERST` auf. Nur RD2SETUP erkennt Hardware (Grafik, Maus, Klang, XMS, hoher Speicher, Netz), der Kern tastet beim Start nichts ab.
+3. RD2SETUP installiert auch auf Festplatte: Dateien kopieren, `RD2.INI` anlegen, Eintrag in `AUTOEXEC.BAT` (alte Fassung als `AUTOEXEC.RDA`).
+
+**DOS-Programme (`RunDos`)**
+- RD2 schreibt `RD2.STA` und lagert sich aus: mit XMS in den XMS-Speicher, sonst in eine Datei auf der Festplatte. Im Speicher bleibt nur ein Rest von 2 bis 3 KB, der das Programm startet und RD2 danach zurückholt. Alle Fenster sind danach wie vorher.
+- Ohne XMS und ohne Festplatte (reiner Diskettenbetrieb) beendet sich RD2 ganz und startet nach dem Programm mit `RD2.STA` neu.
+- Das DOS-Programm bekommt fast die vollen 640 KB und alle Hardware. Grafik, Maus und Zeitgeber stellt RD2 vorher auf den DOS-Zustand zurück.
+
+**Später**
+- Modus P (386): DOS-Programme parallel in eigenen Fenstern (V86-Modus).
+- Optional eine reine RD2-Bootdiskette ohne DOS (eigener Bootsektor, eigenes FAT12/16 über INT 13h) für den größten freien Speicher. Darauf laufen nur RD2-Programme.
+
+**Regel dafür:** RD2-Programme rufen DOS nie direkt auf (Abschnitt 1, Punkt 6, und 2.5). Dateien, Speicher und Programmstart gehen nur über die RD2-Funktionen. Deshalb laufen sie unverändert auch ohne DOS.

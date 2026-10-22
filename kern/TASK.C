@@ -15,6 +15,8 @@
 #define SLICE 4                                   /* Zeitscheibe in PIT-Takten (4 x 13,7 ms) */
 
 TASK k_task[MAXTASK];
+WORD k_fpuseg;                                    /* 8087-Zustaende aller Tasks, nur mit 8087 belegt */
+#define FPU(n) k_fpuseg, (WORD)((n) * 94)
 WORD k_cur;
 static BYTE __far *indos;
 
@@ -53,12 +55,12 @@ static void switch_to(WORD n)
 {
     WORD o = k_cur;
     if (n == o) return;
-    if (k_fpu) rd_fsave(k_task[o].fpu);
+    if (k_fpu) rd_fsave(FPU(o));
     k_cur = n;
     k_task[n].slice = SLICE;
     rd_swtch(&k_task[o].ss, k_task[n].ss, k_task[n].sp);
     /* hier geht es weiter, wenn Task o wieder an der Reihe ist */
-    if (k_fpu) rd_frstor(k_task[k_cur].fpu);
+    if (k_fpu) rd_frstor(FPU(k_cur));
     reap();
 }
 static int alive(void)
@@ -274,7 +276,7 @@ WORD task_load(LPCSTR app, LPCSTR cmd, WORD show)
     t->name[i] = 0;
     for (i = 0; i < 79 && cmd && cmd[i]; i++) t->cmd[i] = cmd[i];
     t->cmd[i] = 0;
-    if (k_fpu) { rd_fsave(t->fpu); rd_frstor(t->fpu); }  /* Startzustand = aktueller 8087 */
+    if (k_fpu) { rd_fsave(FPU(n)); rd_frstor(FPU(n)); }  /* Startzustand = aktueller 8087 */
     t->ss = t->stk;
     t->sp = rd_newstack(t->stk, STK_PARAS * 16, task_start);
     t->state = T_READY;
@@ -393,6 +395,7 @@ void task_init(void)
     indos = (BYTE __far *)MK_FP(kr.es, kr.bx);
     k_cur = 0;
     k_task[0].state = T_KERNEL;
+    if (k_fpu && !(k_fpuseg = mem_get((MAXTASK * 94 + 15) / 16, 0, 0))) k_fpu = 0;
 }
 
 void task_api(void)

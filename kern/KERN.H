@@ -44,8 +44,9 @@ extern void __far *rd_gateptr;                   /* Einsprung der Modul-Sprungst
 extern void  __cdecl rd_idle(void);               /* STI, HLT */
 extern WORD  __cdecl rd_fpudet(void);
 extern WORD  __cdecl rd_cpudet(void);              /* CPU_* */
-extern void  __cdecl rd_fsave(BYTE *p);
-extern void  __cdecl rd_frstor(BYTE *p);
+extern void  __cdecl rd_fsave(WORD seg, WORD off);   /* 94 Bytes je Task, nur mit 8087 */
+extern void  __cdecl rd_frstor(WORD seg, WORD off);
+extern WORD  k_fpuseg;
 extern volatile DWORD rd_ticks;                   /* 72,8 Hz */
 extern volatile WORD  rd_preempt;                 /* 1 = Zeitscheiben an */
 #define CARRY (kr.flags & 1)
@@ -113,7 +114,6 @@ typedef struct {
     struct { WORD ip, cs, mod; } rs[12];
     char  name[16];
     char  cmd[80];
-    BYTE  fpu[94];
 } TASK;
 extern TASK k_task[MAXTASK];
 extern WORD k_cur;

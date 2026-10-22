@@ -79,12 +79,20 @@ int main(int argc, char **argv)
         else if (c == 'h') k_gfx = GFX_HGC;
         else if (c == 'v') k_gfx = GFX_VGAMONO;
         else if (c == 'n') k_maus = 0xFFFF;              /* /NOMAUS: Maus nicht benutzen (Testbilder) */
+        else if (c == 's') i = -1;                       /* /SETUP: Einrichtung vorher */
     }
-    if (!k_maus) {                                /* Maustreiber da? Vektor 33h gesetzt und kein IRET */
-        BYTE __far * __far *v = (BYTE __far * __far *)MK_FP(0, 0x33 * 4);
-        if (*v && **v != 0xCF) { kr.ax = 0; kr.bx = 0; rd_int(0x33, &kr); if (kr.ax == 0xFFFF) k_maus = kr.bx == 0xFFFF ? 2 : kr.bx; }
+    /* Erkennung macht nur RD2SETUP: beim allerersten Start (kein RD2.INI) oder mit /SETUP */
+    for (h = 0, s = k_home; *s; ) cmdline[h++] = *s++;
+    for (s = "RD2.INI"; (cmdline[h++] = *s++) != 0; ) ;
+    kr.ax = 0x4300; kr.dx = (WORD)cmdline; kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
+    if (CARRY || i == -1) {
+        static const char tail[] = "\x06 /ERST\r";
+        static struct { WORD env; const char __far *cmd; DWORD f1, f2; } pb;
+        for (h -= 8, s = "RD2SETUP.EXE"; (cmdline[h++] = *s++) != 0; ) ;
+        pb.cmd = tail;
+        kr.ax = 0x4B00; kr.dx = (WORD)cmdline; kr.bx = (WORD)&pb; kr.ds = kr.es = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
+        if (CARRY) k_out("RD: RD2SETUP.EXE fehlt, es gelten Vorgaben", 1);
     }
-    if (k_maus == 0xFFFF) k_maus = 0;
     if (dlog) { kr.ax = 0x4800; kr.bx = DBUF / 16; rd_int(0x21, &kr); if (!(kr.flags & 1)) dbuf = (char __far *)MK_FP(kr.ax, 0); }
     k_fpu = (BYTE)rd_fpudet();
     k_cpu = (BYTE)rd_cpudet();
@@ -104,6 +112,12 @@ int main(int argc, char **argv)
     cmdline[h] = 0;
     mem_init(64);
     task_init();
+    {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr("RD2.INI", "System", "Maus", "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF; }
+    if (!k_maus) {                                /* Maustreiber da? Vektor 33h gesetzt und kein IRET */
+        BYTE __far * __far *v = (BYTE __far * __far *)MK_FP(0, 0x33 * 4);
+        if (*v && **v != 0xCF) { kr.ax = 0; kr.bx = 0; rd_int(0x33, &kr); if (kr.ax == 0xFFFF) k_maus = kr.bx == 0xFFFF ? 2 : kr.bx; }
+    }
+    if (k_maus == 0xFFFF) k_maus = 0;
     if (k_umb_paras) k_hex("RD: hoher Speicher (UMB) Bytes", (DWORD)k_umb_paras << 4, 1);
     mod_xinit();
     vor = mem_free_bytes(0);
