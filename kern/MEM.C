@@ -89,6 +89,15 @@ void mem_init(WORD reserve)
     nblk = 1; blk[0].seg = arena; blk[0].paras = arena_paras; blk[0].flags = B_FREE; blk[0].h = 0; blk[0].owner = 0;
     if (arena) umb_grab();
 }
+WORD mem_arena(WORD __far *a)                   /* RunDos: a[0] Arena, a[1] Groesse; liefert Ende des belegten Teils */
+{
+    WORD i, t = arena;
+    for (i = 0; i < nblk; i++)
+        if (!(blk[i].flags & B_FREE) && blk[i].seg >= arena && blk[i].seg < arena + arena_paras && blk[i].seg + blk[i].paras > t)
+            t = blk[i].seg + blk[i].paras;
+    a[0] = arena; a[1] = arena_paras;
+    return t;
+}
 void mem_done(void)
 {
     mod_xdone();

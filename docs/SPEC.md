@@ -302,6 +302,9 @@ Ziel: RetroDesk 2 ist für den Benutzer ein eigenes Betriebssystem, das DOS-Prog
 **DOS-Programme (`RunDos`)**
 - RD2 schreibt `RD2.STA` und lagert sich aus: mit XMS in den XMS-Speicher, sonst in eine Datei auf der Festplatte. Im Speicher bleibt nur ein Rest von 2 bis 3 KB, der das Programm startet und RD2 danach zurückholt. Alle Fenster sind danach wie vorher.
 - Ohne XMS und ohne Festplatte (reiner Diskettenbetrieb) beendet sich RD2 ganz und startet nach dem Programm mit `RD2.STA` neu.
+- Umsetzung (22.10.2026): Der Rest liegt als `RDSWAP.BIN` (837 Bytes) neben `RD.EXE` und kostet so keinen Kernspeicher. Er läuft in einem Block von 1,25 KB ganz oben, mit eigenem Stack. Ausgelagert wird der Kern ab dem PSP und die Arena bis zum Ende ihres belegten Teils. Mit XMS in einen XMS-Block, sonst in `RD2SWAP.$$$` im RD2-Verzeichnis (nur auf Festplatte, die Datei wird danach gelöscht). Danach muss der Speicher wieder an derselben Adresse frei sein. Hat das DOS-Programm sich resident gemacht, meldet der Rest das und startet den Rechner neu.
+- `RunDos` liefert den Rückgabecode des Programms (0 bis 255) oder `0xFFFF` mit `LastError`: `RD_ERR_NOTFOUND` (Programm oder `RDSWAP.BIN` fehlt), `RD_ERR_NOMEM`, `RD_ERR_NOTSUP` (kein XMS und keine Festplatte, Neustart-Variante folgt). `RD_DOS_PAUSE` wartet nach dem Programm auf eine Taste. Den Bildschirm stellt RDGDI zurück, den Inhalt zeichnen die Programme neu (später schickt RDUSER die Neuzeichnen-Nachricht).
+- Gemessen in DOSBox (Hercules, 8086, ohne XMS): das DOS-Programm bekommt 609 KB.
 - Das DOS-Programm bekommt fast die vollen 640 KB und alle Hardware. Grafik, Maus und Zeitgeber stellt RD2 vorher auf den DOS-Zustand zurück.
 
 **Später**

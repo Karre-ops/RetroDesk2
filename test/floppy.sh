@@ -46,7 +46,7 @@ F=0; chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; F=$((F+
 D=$(mtype -i $IMG ::/DIREKT.TXT 2>/dev/null | tr -d '\r')
 S=$(tr -d '\r' < $SER 2>/dev/null)
 P1=${S%%RD: RetroDesk 2 Kern (Phase 2)*}               # bis zum zweiten Kernstart: LEER
-REST=${S#*Zeitscheiben an}; P2=${REST%%Umschalten nur kooperativ*}; P3=${S#*Umschalten nur kooperativ}
+REST=${S#*Zeitscheiben an}; P2=${REST%%RD: nur kooperativ*}; P3=${S#*RD: nur kooperativ}
 echo "--- Phase 1"
 chk "LEER.EXE unter DOS meldet 'benoetigt RetroDesk 2'" '[[ "$D" == *"tigt RetroDesk 2."* ]]'
 chk "LEER.EXE unter DOS endet mit Fehlercode 1"       '[[ "$D" == *FEHLERCODE1* ]]'

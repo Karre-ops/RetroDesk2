@@ -993,6 +993,13 @@ HDC RDEXPORT g_GetDC(HWND w)
 }
 void RDEXPORT g_ReleaseDC(HWND w, HDC h) { (void)w; g_DCFree(h); }
 
+/* RunDos: 0 = Textmodus und Maus aus, 1 = Grafik und Maus wieder an (Bild zeichnen die Programme neu) */
+static BYTE pause_;
+void RDEXPORT g_Pause(WORD an)
+{
+    if (!an && drv && !pause_) { mausaus(); drv->textmode(); pause_ = 1; }
+    else if (an && pause_) { drv->setmode(0); mausan(); pause_ = 0; }
+}
 /* Abschluss: Kern ruft das beim Beenden von RD */
 void RDEXPORT g_Ende(void)
 {
@@ -1008,7 +1015,7 @@ void RDEXPORT g_Ende(void)
 
 /* Exporte: 1 = Ende, 2 + (API - 0x100), danach GetDC, ReleaseDC */
 #define N 0x3B
-static struct { WORD n; FARPROC f[N + 6]; } ext = { N + 6, {
+static struct { WORD n; FARPROC f[N + 7]; } ext = { N + 7, {
     (FARPROC)g_Ende, (FARPROC)g_GetCaps, (FARPROC)g_SetPen, (FARPROC)g_SetBrush,
     (FARPROC)g_SetRop, (FARPROC)g_SetFont, (FARPROC)g_SetTextColor, (FARPROC)g_SetBkColor,
     (FARPROC)g_SetBkMode, (FARPROC)g_SetOrigin, (FARPROC)g_SetClip, 0,
@@ -1025,6 +1032,6 @@ static struct { WORD n; FARPROC f[N + 6]; } ext = { N + 6, {
     (FARPROC)g_DCFree, (FARPROC)g_BitBlt, (FARPROC)g_StretchBlt, 0,
     0, 0, (FARPROC)g_ColorNearest, (FARPROC)g_PaletteSet,
     (FARPROC)g_GetDC, (FARPROC)g_ReleaseDC, (FARPROC)g_GfxList, (FARPROC)g_GfxSelect,
-    (FARPROC)g_MausHole,
+    (FARPROC)g_MausHole, (FARPROC)g_Pause,
 } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

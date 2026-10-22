@@ -87,7 +87,11 @@ int   k_dos(void);
 HMOD  k_sysmod(const char *name, WORD base, WORD n, const WORD *extra);
 void  k_sysend(HMOD m);
 void __far *k_modraw(HMOD m, WORD nr);          /* Exportadresse direkt (Systemmodule, ohne Sprungstueck) */
-extern WORD (__far __pascal *k_mausget)(WORD __far *e);   /* RDGDI: Mausereignis abholen */
+extern WORD (__far __pascal *k_mausget)(WORD __far *e);
+extern void (__far __pascal *k_gdipause)(WORD an);  /* RDGDI: 0 Textmodus/Maus aus, 1 wieder an (RunDos) */
+WORD mem_arena(WORD __far *a);
+char *k_hpath(const char *name);                  /* RD2-Verzeichnis + Name (Puffer wird wiederverwendet) */
+WORD RDK RunDos(LPCSTR prog, LPCSTR cmd, WORD flags);   /* RDGDI: Mausereignis abholen */
 extern WORD k_focus;                              /* Task, der Tastatur und Maus bekommt */
 void  input_poll(void);
 extern WORD k_umb_paras;                          /* hoher Speicher, den RD bekommen hat */

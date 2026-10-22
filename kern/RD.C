@@ -10,6 +10,13 @@ static WORD k_maus;                               /* Maustasten, 0 = keine Maus 
 WORD  k_gfx;
 BYTE  k_fpu, k_cpu;
 static char cmdline[80];
+char *k_hpath(const char *n)                      /* RD2-Verzeichnis + Name, in cmdline (nach dem Start frei) */
+{
+    char *d = cmdline; const char *h = k_home;
+    while (*h) *d++ = *h++;
+    while ((*d++ = *n++) != 0) ;
+    return cmdline;
+}
 
 /* ---- Ausgabe: COM1 (immer) und Bildschirm (nur im Kern-Kontext) ---------- */
 static void ser(char c)
@@ -24,22 +31,15 @@ static void con(char c) { kr.ax = 0x0200; kr.dx = (BYTE)c; rd_int(0x21, &kr); }
 #define DBUF 1536                                 /* nur mit /D, eigener DOS-Block */
 static WORD dlog; static char __far *dbuf; static WORD dn;
 static void dput(char c) { if (dbuf && dn < DBUF) dbuf[dn++] = c; }
-void k_out(LPCSTR s, int scr)
-{
-    for (; *s; s++) { ser(*s); dput(*s); if (scr) con(*s); }
-    dput('\r'); dput('\n');
-    ser('\r'); ser('\n'); if (scr) { con('\r'); con('\n'); }
-}
+static void k_ch(char c, int scr) { ser(c); dput(c); if (scr) con(c); }
+static void k_txt(LPCSTR s, int scr) { while (*s) k_ch(*s++, scr); }
+void k_out(LPCSTR s, int scr) { k_txt(s, scr); k_txt("\r\n", scr); }
 void k_hex(LPCSTR s, DWORD v, int scr)
 {
-    static const char h[] = "0123456789ABCDEF";
-    static char b[100];
-    WORD n = 0, i;
-    while (*s && n < 80) b[n++] = *s++;
-    b[n++] = ' '; b[n++] = '0'; b[n++] = 'x';
-    for (i = 0; i < 8; i++) b[n++] = h[(WORD)(v >> (28 - 4 * i)) & 15];
-    b[n] = 0;
-    k_out(b, scr);
+    WORD i;
+    k_txt(s, scr); k_txt(" 0x", scr);
+    for (i = 0; i < 8; i++) k_ch("0123456789ABCDEF"[(WORD)(v >> (28 - 4 * i)) & 15], scr);
+    k_txt("\r\n", scr);
 }
 
 /* ---- API: Kern ------------------------------------------------------------ */
@@ -82,35 +82,33 @@ int main(int argc, char **argv)
         else if (c == 's') i = -1;                       /* /SETUP: Einrichtung vorher */
     }
     /* Erkennung macht nur RD2SETUP: beim allerersten Start (kein RD2.INI) oder mit /SETUP */
-    for (h = 0, s = k_home; *s; ) cmdline[h++] = *s++;
-    for (s = "RD2.INI"; (cmdline[h++] = *s++) != 0; ) ;
-    kr.ax = 0x4300; kr.dx = (WORD)cmdline; kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
+    kr.ax = 0x4300; kr.dx = (WORD)k_hpath("RD2.INI"); kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
     if (CARRY || i == -1) {
         static const char tail[] = "\x06 /ERST\r";
         static struct { WORD env; const char __far *cmd; DWORD f1, f2; } pb;
-        for (h -= 8, s = "RD2SETUP.EXE"; (cmdline[h++] = *s++) != 0; ) ;
+        k_hpath("RD2SETUP.EXE");
         pb.cmd = tail;
         kr.ax = 0x4B00; kr.dx = (WORD)cmdline; kr.bx = (WORD)&pb; kr.ds = kr.es = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
-        if (CARRY) k_out("RD: RD2SETUP.EXE fehlt, es gelten Vorgaben", 1);
+        if (CARRY) k_out("RD: ohne RD2SETUP, Vorgaben", 1);
     }
     if (dlog) { kr.ax = 0x4800; kr.bx = DBUF / 16; rd_int(0x21, &kr); if (!(kr.flags & 1)) dbuf = (char __far *)MK_FP(kr.ax, 0); }
     k_fpu = (BYTE)rd_fpudet();
     k_cpu = (BYTE)rd_cpudet();
     rd_nsinit();
-    KAPI(KernVersion, KernVersion); KAPI(KernInfo, KernInfo); KAPI(LastError, LastError);
+    KAPI(KernVersion, KernVersion); KAPI(KernInfo, KernInfo); KAPI(LastError, LastError); KAPI(RunDos, RunDos);
     KAPI(SetLastError, SetLastError); KAPI(DbgPrint, DbgPrint); KAPI(DbgHex, DbgHex);
     mem_api();
     task_api();
     file_api();
     mod_api();
     k_out("RD: RetroDesk 2 Kern (Phase 3), API 1.0", 1);
-    if (a >= argc) { k_out("Aufruf: RD [/KOOP] [/CGA|/HGC|/VGA] [/NOMAUS] programm.exe [parameter]", 1); return 1; }
+    if (a >= argc) { k_out("Aufruf: RD [/KOOP /CGA /HGC /VGA /NOMAUS /SETUP] programm [parameter]", 1); return 1; }
     for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {
         for (s = argv[i]; *s && h < 78; ) cmdline[h++] = *s++;
         if (i + 1 < argc && h < 78) cmdline[h++] = ' ';
     }
     cmdline[h] = 0;
-    mem_init(64);
+    mem_init(96);                                 /* Reserve: DOS und der RunDos-Rest */
     task_init();
     {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr("RD2.INI", "System", "Maus", "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF; }
     if (!k_maus) {                                /* Maustreiber da? Vektor 33h gesetzt und kein IRET */
@@ -122,12 +120,13 @@ int main(int argc, char **argv)
     mod_xinit();
     vor = mem_free_bytes(0);
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
-    if (!gdi) k_hex("RD: RDGDI.MOD fehlt oder ist fehlerhaft, Fehler", k_lasterr, 1);
+    if (!gdi) k_hex("RD: RDGDI.MOD fehlt, Fehler", k_lasterr, 1);
     if (gdi) k_mausget = (WORD (__far __pascal *)(WORD __far *))k_modraw(gdi, 0x3C + 5);
+    if (gdi) k_gdipause = (void (__far __pascal *)(WORD))k_modraw(gdi, 0x3C + 6);
     k_hex("RD: Speicher frei", vor, 1);
-    k_hex("RD: CPU (0 8088, 2 V20, 4 286, 5 386, 6 486, 7 586)", k_cpu, 1);
+    k_hex("RD: CPU", k_cpu, 1);
     k_hex("RD: 8087", k_fpu, 1);
-    k_out(koop ? "RD: Umschalten nur kooperativ (/KOOP)" : "RD: Zeitscheiben an", 1);
+    k_out(koop ? "RD: nur kooperativ" : "RD: Zeitscheiben an", 1);
     rd_preempt = koop ? 0 : 1;
     rd_timer_on(16384);
     h = task_load(argv[a], cmdline, SW_SHOW);
@@ -135,7 +134,7 @@ int main(int argc, char **argv)
     task_run_all();
     clip_done();                                  /* Zwischenablage gehoert dem Kern */
     rd_timer_off();
-    k_mausget = 0;
+    k_mausget = 0; k_gdipause = 0;
     k_sysend(gdi);                                /* zurueck in den Textmodus, Maus aus */
     nach = mem_free_bytes(0);
     k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);
