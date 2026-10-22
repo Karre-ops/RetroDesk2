@@ -62,6 +62,10 @@ typedef struct {
     void  (RDAPI *cursor)(short x, short y, const BYTE FAR *maske_bild); /* NULL bei GD_HWCURSOR */
     void  (RDAPI *cursorhide)(BOOL aus);
     void  (RDAPI *vsync)(void);
+    /* ab 22.10.2026 Pflicht fuer Schirmtreiber (RDGDI prueft h.groesse, cursor, box):
+       box = ganzes Rechteck x0..x1, y0..y1 (inklusive) in einem Aufruf, Zeilen in Assembler.
+       cursor/cursorhide: Zeiger zeichnet der Treiber selbst (mb = 32 Bytes UND, 32 Bytes XOR) */
+    void  (RDAPI *box)(short x0, short y0, short x1, short y1, WORD farbe, const BYTE FAR *muster8, WORD rop);
 } GFXDRV;
 
 /* ---- Sound --------------------------------------------------------------- */

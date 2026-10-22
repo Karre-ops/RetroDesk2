@@ -162,11 +162,6 @@ static WORD RDEXPORT d_getpixel(short x, short y)
     return (*VP(x, y) >> (7 - (x & 7))) & 1;
 }
 
-static void RDEXPORT d_vline(short x, short y0, short y1, WORD farbe, WORD rop)
-{
-    BYTE m = (BYTE)(0x80 >> (x & 7)), v = (BYTE)(farbe ? 0xFF : 0);
-    for (; y0 <= y1; y0++) wr(VP(x, y0), m, v, rop);
-}
 
 /* Mittelteil einer Zeile in Assembler: ch = Bytes, cl = Verschiebung, bl = voriges
    Quellbyte; Ziel es:di, Quelle dx:si. Je Art eine Schleife (Text, Symbole, Masken). */
@@ -189,6 +184,304 @@ void m_xor(BYTE __far *d, const BYTE __far *s, WORD n_sh, BYTE prev);
 void m_set(BYTE __far *d, WORD n, BYTE v);
 #pragma aux m_set = "rep stosb" parm [es di] [cx] [al] modify [cx di]
 
+void m_xorb(BYTE __far *d, WORD n, BYTE v);
+#pragma aux m_xorb = "jcxz e" "l: xor es:[di],al" "inc di" "loop l" "e:" parm [es di] [cx] [al] modify [cx di]
+void m_orb(BYTE __far *d, WORD n, BYTE v);
+#pragma aux m_orb = "jcxz e" "l: or es:[di],al" "inc di" "loop l" "e:" parm [es di] [cx] [al] modify [cx di]
+void m_andb(BYTE __far *d, WORD n, BYTE v);
+#pragma aux m_andb = "jcxz e" "l: and es:[di],al" "inc di" "loop l" "e:" parm [es di] [cx] [al] modify [cx di]
+
+/* Rechteck am Stueck (wie RD1 rows()): Zeilenschleife ganz in Assembler, die Zeilenadresse
+   wird weitergezaehlt (CGA/HGC: Baenke zu 2000h, VGA: linear). COPY und XOR/NOT schnell,
+   OR/AND selten: in C. */
+/* Naechste Zeile im Assembler: dx += ZADD, ab ZLIM dx -= ZSUB. Kein #if im _asm-Block
+   (Watcom nimmt dort sonst still den #else-Zweig), daher feste Zahlen je Karte. */
+#if defined(VGAM)
+#  define ZADD 80
+#  define ZLIM 0FFFFh
+#  define ZSUB 0
+#elif defined(CGA)
+#  define ZADD 2000h
+#  define ZLIM 4000h
+#  define ZSUB 3FB0h
+#else
+#  define ZADD 2000h
+#  define ZLIM 8000h
+#  define ZSUB 7FA6h
+#endif
+static BYTE pt[8], b_lm, b_rm, b_one, b_xor;
+static WORD b_row, b_col, b_mid, b_n, b_y;
+static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, const BYTE FAR *mu, WORD rop)
+{
+    WORD b0 = (WORD)x0 >> 3, n = ((WORD)x1 >> 3) - b0, y, i;
+    BYTE lm = (BYTE)(0xFF >> (x0 & 7)), rm = (BYTE)(0xFF << (7 - (x1 & 7))), v = (BYTE)(farbe ? 0xFF : 0);
+    if (!n) lm &= rm;
+    if (rop == ROP_NOT) { v = 0xFF; rop = ROP_XOR; mu = 0; }
+    if (rop == ROP_OR || rop == ROP_AND) {
+        for (y = (WORD)y0; y <= (WORD)y1; y++) {
+            BYTE __far *p = VP(x0, y);
+            if (mu) v = mu[y & 7];
+            wr(p, lm, v, rop);
+            for (i = 1; i < n; i++) wr(p + i, 0xFF, v, rop);
+            if (n) wr(p + n, rm, v, rop);
+        }
+        return;
+    }
+    for (i = 0; i < 8; i++) pt[i] = mu ? mu[i] : v;
+    b_lm = lm; b_rm = rm; b_one = (BYTE)!n; b_xor = (BYTE)(rop == ROP_XOR);
+    b_row = ROW(y0); b_col = b0; b_mid = n ? n - 1 : 0; b_n = (WORD)(y1 - y0 + 1); b_y = (WORD)y0;
+    _asm {
+        push si
+        push di
+        push es
+        cld
+        mov  ax, VSEG
+        mov  es, ax
+        mov  dx, b_row
+        mov  si, b_y
+    zl: mov  bx, si
+        and  bx, 7
+        mov  al, pt[bx]
+        mov  di, dx
+        add  di, b_col
+        cmp  b_xor, 0
+        jne  zx
+        mov  ah, es:[di]
+        xor  ah, al
+        and  ah, b_lm
+        xor  es:[di], ah
+        cmp  b_one, 0
+        jne  zn
+        inc  di
+        mov  cx, b_mid
+        rep  stosb
+        mov  ah, es:[di]
+        xor  ah, al
+        and  ah, b_rm
+        xor  es:[di], ah
+        jmp  zn
+    zx: mov  ah, al
+        and  ah, b_lm
+        xor  es:[di], ah
+        cmp  b_one, 0
+        jne  zn
+        inc  di
+        mov  cx, b_mid
+        jcxz zr
+    zm: xor  es:[di], al
+        inc  di
+        loop zm
+    zr: and  al, b_rm
+        xor  es:[di], al
+    zn: inc  si
+        add  dx, ZADD
+        cmp  dx, ZLIM
+        jb   zw
+        sub  dx, ZSUB
+    zw:
+        dec  b_n
+        jnz  zl
+        pop  es
+        pop  di
+        pop  si
+    }
+}
+
+/* Mauszeiger 16x16: mb = 32 Bytes UND-Maske, dann 32 Bytes XOR (je Zeile 2 Bytes).
+   Hintergrund (3 Bytes je Zeile) merkt sich der Treiber, cursorhide(1) stellt ihn wieder her. */
+static BYTE csv[16][3], c_on, c_h, c_nb;
+static WORD c_x, c_y;
+static void crest(void)
+{
+    WORD r, k;
+    if (!c_on) return;
+    for (r = 0; r < c_h; r++) { BYTE __far *p = VP(c_x, c_y + r); for (k = 0; k < c_nb; k++) p[k] = csv[r][k]; }
+    c_on = 0;
+}
+static void RDEXPORT d_cursorhide(BOOL aus) { if (aus) crest(); }
+static void RDEXPORT d_cursor(short x, short y, const BYTE FAR *mb)
+{
+    WORD r, k, sh = x & 7;
+    crest();
+    c_x = (WORD)x; c_y = (WORD)y;
+    c_h = (BYTE)(H - y < 16 ? H - y : 16);
+    c_nb = (BYTE)(BPR - ((WORD)x >> 3) < 3 ? BPR - ((WORD)x >> 3) : 3);
+    for (r = 0; r < c_h; r++) {
+        BYTE __far *p = VP(x, y + r);
+        DWORD a = (0xFF0000FFUL | ((DWORD)((mb[2 * r] << 8) | mb[2 * r + 1]) << 8)) >> sh;
+        DWORD o = ((DWORD)((mb[32 + 2 * r] << 8) | mb[33 + 2 * r]) << 8) >> sh;
+        BYTE A[3], X[3];
+        A[0] = (BYTE)(a >> 16); A[1] = (BYTE)(a >> 8); A[2] = (BYTE)a;
+        X[0] = (BYTE)(o >> 16); X[1] = (BYTE)(o >> 8); X[2] = (BYTE)o;
+        for (k = 0; k < c_nb; k++) { csv[r][k] = p[k]; p[k] = (BYTE)((p[k] & A[k]) ^ X[k]); }
+    }
+    c_on = 1;
+}
+
+void m_mov(BYTE __far *d, const BYTE __far *s, WORD n);
+#pragma aux m_mov = "push ds" "mov ds,dx" "rep movsb" "pop ds" parm [es di] [dx si] [cx] modify [cx si di]
+
+/* ausgerichtete Bloecke: n Zeilen zu k Bytes zwischen Schirm (Zeilen weiterzaehlen) und
+   Speicher (Abstand st). hin = 1: Speicher -> Schirm. */
+static WORD k_row, k_k, k_n, k_st, k_off, k_seg; static BYTE k_hin;
+static void blk(WORD x, WORD y, WORD k, WORD n, const BYTE __far *m, WORD st, BYTE hin)
+{
+    k_row = ROW(y) + (x >> 3); k_k = k; k_n = n; k_st = st; k_off = FP_OFF(m); k_seg = FP_SEG(m); k_hin = hin;
+    if (!k || !n) return;
+    _asm {
+        push si
+        push di
+        push es
+        push ds
+        push bp
+        cld
+        mov  dx, k_row
+        mov  bx, k_off
+        mov  ax, k_st
+        push ax
+        mov  ax, k_n
+        push ax
+        mov  cx, k_k
+        push cx
+        cmp  k_hin, 0
+        mov  ax, k_seg
+        je   gq
+        mov  es, ax              ; Speicher -> Schirm: ds:si = Speicher, es:di = Schirm
+        mov  ax, VSEG
+        push es
+        mov  es, ax
+        pop  ds
+    hl: mov  si, bx
+        mov  di, dx
+        pop  cx
+        push cx
+        rep  movsb
+        call nx
+        jnz  hl
+        jmp  fe
+    gq: mov  es, ax              ; Schirm -> Speicher: ds:si = Schirm, es:di = Speicher
+        mov  ax, VSEG
+        mov  ds, ax
+    gl: mov  si, dx
+        mov  di, bx
+        pop  cx
+        push cx
+        rep  movsb
+        call nx
+        jnz  gl
+        jmp  fe
+    nx: mov  bp, sp              ; [bp+2] k, [bp+4] n, [bp+6] st
+        add  bx, [bp+6]
+        add  dx, ZADD
+        cmp  dx, ZLIM
+        jb   nw
+        sub  dx, ZSUB
+    nw:
+        dec  word ptr [bp+4]
+        ret
+    fe: add  sp, 6
+        pop  bp
+        pop  ds
+        pop  es
+        pop  di
+        pop  si
+    }
+}
+
+/* Kopieren (auch invertiert) mit beliebiger Verschiebung, Raender eingeschlossen, alle Zeilen
+   in Assembler. Rahmen auf dem Stapel (ds zeigt in der Schleife auf die Quelle). */
+static WORD q_row, q_soff, q_sseg, q_st, q_n, q_mid, q_mask, q_ext; static BYTE q_sh, q_inv;
+static void putq(void)
+{
+    _asm {
+        push si
+        push di
+        push es
+        push ds
+        push bp
+        cld
+        mov  ax, q_soff
+        push ax
+        mov  ax, q_ext
+        push ax
+        mov  ax, q_mask
+        push ax
+        mov  ax, q_mid
+        push ax
+        mov  ax, q_n
+        push ax
+        mov  ax, q_st
+        push ax
+        mov  bp, sp
+        mov  dx, q_row
+        mov  cl, q_sh
+        mov  bh, q_inv
+        mov  ax, VSEG
+        mov  es, ax
+        mov  ax, q_sseg
+        mov  ds, ax
+    rl: mov  si, [bp+10]
+        mov  di, dx
+        xor  bl, bl
+        lodsb
+        mov  ah, bl
+        mov  bl, al
+        shr  ax, cl
+        xor  al, bh
+        cmp  word ptr [bp+4], 0FFFFh
+        jne  r2
+        mov  ah, [bp+6]
+        and  ah, [bp+7]
+        call mw
+        jmp  rn
+    r2: mov  ah, [bp+6]
+        call mw
+        mov  ch, [bp+4]
+        or   ch, ch
+        jz   r3
+    r4: lodsb
+        mov  ah, bl
+        mov  bl, al
+        shr  ax, cl
+        xor  al, bh
+        stosb
+        dec  ch
+        jnz  r4
+    r3: cmp  byte ptr [bp+8], 0
+        je   r5
+        xor  al, al
+        jmp  r6
+    r5: lodsb
+    r6: mov  ah, bl
+        shr  ax, cl
+        xor  al, bh
+        mov  ah, [bp+7]
+        call mw
+        jmp  rn
+    mw: mov  ch, es:[di]
+        xor  ch, al
+        and  ch, ah
+        xor  es:[di], ch
+        inc  di
+        ret
+    rn: mov  ax, [bp+0]
+        add  [bp+10], ax
+        add  dx, ZADD
+        cmp  dx, ZLIM
+        jb   rw
+        sub  dx, ZSUB
+    rw:
+        dec  word ptr [bp+2]
+        jnz  rl
+        add  sp, 12
+        pop  bp
+        pop  ds
+        pop  es
+        pop  di
+        pop  si
+    }
+}
+
 /* 1-Bit-Quelle (Bit 7 = links) an x,y bringen. ROP_MASK: nur gesetzte Bits in fg.
    Randbytes in C (Masken), dazwischen ganze Bytes in Assembler. */
 static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *src, WORD srcbytes,
@@ -205,6 +498,13 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
     else if (rop == ROP_XOR) art = vf && !vb ? 6 : 0;
     else art = 0;
     nsh = ((nb - 2) << 8) | sh;
+    if (art == 1 && !sh && rm == 0xFF) { blk(x, y, nb, h, src, srcbytes, 1); return; }
+    if ((art == 1 || art == 2) && h > 0) {        /* kopieren, auch verschoben/invertiert: Assembler */
+        q_row = ROW(y) + ((WORD)x >> 3); q_soff = FP_OFF(src); q_sseg = FP_SEG(src); q_st = srcbytes; q_n = (WORD)h;
+        q_mid = nb == 1 ? 0xFFFF : nb - 2; q_mask = lm | ((WORD)rm << 8); q_ext = nb > sb; q_sh = (BYTE)sh;
+        q_inv = (BYTE)(art == 2 ? 0xFF : 0);
+        putq(); return;
+    }
     for (; h > 0; h--, y++, src += srcbytes) {
         BYTE __far *p = VP(x, y);
         WORD acc = 0;
@@ -213,8 +513,6 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
             if (art && i == 1 && nb > 2) {        /* ganze Bytes 1 .. nb-2 */
                 BYTE pv = src[0];
                 switch (art) {
-                case 1: m_cpy(p + 1, src + 1, nsh, pv, 0); break;
-                case 2: m_cpy(p + 1, src + 1, nsh, pv, 0xFF); break;
                 case 3: m_set(p + 1, nb - 2, vf); break;
                 case 4: m_or(p + 1, src + 1, nsh, pv); break;
                 case 5: m_andn(p + 1, src + 1, nsh, pv); break;
@@ -237,8 +535,10 @@ static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WO
 {
     WORD sh = x & 7, sb = (w + 7) >> 3, i;
     BYTE rm = (BYTE)(0xFF << ((8 - (w & 7)) & 7));
+    if (!sh && rm == 0xFF) { blk(x, y, sb, h, dst, dstbytes, 0); return; }
     for (; h > 0; h--, y++, dst += dstbytes) {
         BYTE __far *p = VP(x, y);
+        if (!sh) { m_mov(dst, p, sb); dst[sb - 1] &= rm; continue; }
         for (i = 0; i < sb; i++) dst[i] = (BYTE)((p[i] << sh) | (sh ? p[i + 1] >> (8 - sh) : 0));
         dst[sb - 1] &= rm;
     }
@@ -248,7 +548,7 @@ static GFXDRV tab = {
     { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRV), NAME, d_init, d_done },
     d_modes, d_setmode, d_textmode,
     d_span, d_pixel, d_getpixel, d_put, d_get,
-    d_vline, 0, 0, 0, 0, 0, 0, 0
+    0, 0, 0, 0, 0, d_cursor, d_cursorhide, 0, d_box
 };
 
 FARPROC RDEXPORT DrvTab(void) { return (FARPROC)(void FAR *)&tab; }

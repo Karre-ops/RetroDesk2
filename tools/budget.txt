@@ -48,3 +48,4 @@ EPSON9.DRV       3072    3   P
 @RAM_RD2               180   Oberflaeche ohne Programme, mit DOS und Maustreiber (Ziel: >= 450 KB frei)
 DOSTEST.EXE      4096    0   T  Test: RunDos (auslagern, DOS-Programm, zurueck)
 FREIMEM.EXE     16384    0   T  Test: normales DOS-Programm fuer DOSTEST
+BENCH2.EXE       4096    0   T  Leistungsvergleich RD2-Seite (BENCH1 baut aus RD1, nicht auf der Diskette)

@@ -167,14 +167,13 @@ static void mkbrush(DCX *d)
  * wird im Handler (Interrupt) bewegt, ausser RDGDI zeichnet gerade (gbusy): dann am Ende
  * des Zeichenaufrufs. Zeichenaufrufe, die das Zeigerrechteck beruehren, nehmen ihn vorher
  * weg (ex). Ereignisse sammelt ein Ring, der Kern holt sie mit g_MausHole ab. */
-static const BYTE cand[32] = { 0x7F,0xFF,0x3F,0xFF,0x1F,0xFF,0x0F,0xFF,0x07,0xFF,0x03,0xFF,0x01,0xFF,0x00,0xFF,0x00,0x7F,0x00,0x3F,0x01,0xFF,0x10,0xFF,0x30,0xFF,0x78,0x7F,0xF8,0x7F,0xFC,0xFF };
-static const BYTE cxor[32] = { 0x00,0x00,0x00,0x00,0x40,0x00,0x60,0x00,0x70,0x00,0x78,0x00,0x7C,0x00,0x7E,0x00,0x7F,0x00,0x7C,0x00,0x6C,0x00,0x46,0x00,0x06,0x00,0x03,0x00,0x03,0x00,0x00,0x00 };
+static const BYTE cmb[64] = { 0x7F,0xFF,0x3F,0xFF,0x1F,0xFF,0x0F,0xFF,0x07,0xFF,0x03,0xFF,0x01,0xFF,0x00,0xFF,0x00,0x7F,0x00,0x3F,0x01,0xFF,0x10,0xFF,0x30,0xFF,0x78,0x7F,0xF8,0x7F,0xFC,0xFF,
+                               0x00,0x00,0x00,0x00,0x40,0x00,0x60,0x00,0x70,0x00,0x78,0x00,0x7C,0x00,0x7E,0x00,0x7F,0x00,0x7C,0x00,0x6C,0x00,0x46,0x00,0x06,0x00,0x03,0x00,0x03,0x00,0x00,0x00 };
 static SYSINFO si;
 static BYTE maus, con, cvis;
 static volatile BYTE gbusy, moved;
 static volatile short mx, my; static volatile WORD mbt;
 static short zx, zy, zw, zh;                       /* gezeichnete Lage */
-static BYTE csave[32];
 typedef struct { BYTE art, taste; short x, y; } MEV;
 static volatile MEV mq[16]; static volatile BYTE mqk, mqs;
 
@@ -192,7 +191,7 @@ void sti(void);
 static void zweg(void)                            /* Zeiger entfernen */
 {
     if (!con) return;
-    drv->put(zx, zy, zw, zh, (const BYTE FAR *)csave, 2, 1, ROP_COPY, 1, 0);
+    drv->cursorhide(1);                           /* Zeiger zeichnet der Treiber (Pflicht ab 22.10.2026) */
     con = 0;
 }
 static void zhin(void)                            /* Zeiger an (mx, my) zeichnen */
@@ -202,10 +201,8 @@ static void zhin(void)                            /* Zeiger an (mx, my) zeichnen
     zw = (short)gm.w - zx; if (zw > 16) zw = 16;
     zh = (short)gm.h - zy; if (zh > 16) zh = 16;
     if (zw <= 0 || zh <= 0) return;
-    drv->get(zx, zy, zw, zh, (BYTE FAR *)csave, 2);
-    drv->put(zx, zy, zw, zh, (const BYTE FAR *)cand, 2, 1, ROP_AND, 1, 0);
-    drv->put(zx, zy, zw, zh, (const BYTE FAR *)cxor, 2, 1, ROP_XOR, 1, 0);
     con = 1;
+    drv->cursor(zx, zy, (const BYTE FAR *)cmb);
 }
 /* Zeichenaufruf beruehrt l..r-1, t..b-1 (Geraetekoordinaten) */
 static void ex(short l, short t, short r, short b)
@@ -275,6 +272,7 @@ static void isect(RECT *a, const RECT *b)
     if (b->b < a->b) a->b = b->b;
 }
 /* Zeichenziel waehlen: Treiber/Bitmap, Clipliste berechnen. 0 = nichts zu zeichnen */
+static DCX *kd; static BYTE kdirty = 1;
 static int sel(DCX *d)
 {
     static RECT dev, u, r; WORD i;
@@ -295,8 +293,10 @@ static int sel(DCX *d)
         isect(&r, &dev);
         if (r.l < r.r && r.t < r.b) ec[nec++] = r;
     }
-    penb = cbit(d->pen); txtb = cbit(d->txt); bkb = cbit(d->bk);
-    mkbrush(d);
+    if (d != kd || kdirty) {                       /* Farben/Pinsel nur nach Aenderung neu umrechnen */
+        penb = cbit(d->pen); txtb = cbit(d->txt); bkb = cbit(d->bk);
+        mkbrush(d); kd = d; kdirty = 0;
+    }
     gbusy = 1;
     return 1;
 }
@@ -346,19 +346,20 @@ static void vs(short x, short y0, short y1, WORD rop)
         if (b >= r->b) b = (short)(r->b - 1);
         if (a > b) continue;
         ex(x, a, (short)(x + 1), (short)(b + 1));
-        if (dv->vline) dv->vline(x, a, b, penb, rop);
+        if (dv->box) dv->box(x, a, x, b, penb, (const BYTE FAR *)0, rop);   /* Treiber: Spalte in Assembler */
+        else if (dv->vline) dv->vline(x, a, b, penb, rop);
         else for (; a <= b; a++) dv->pixel(x, a, penb, rop);
     }
 }
 /* eine Zeile 1-Bit-Daten (Bit 0 = x) geclippt ausgeben */
 static BYTE sbuf[RB];
 /* h Zeilen 1-Bit-Daten (Abstand st Bytes) geclippt ausgeben; ohne Schnitt links in einem Treiberaufruf */
-static void crows(short y, short x, short w, short h, const BYTE *buf, WORD st, WORD rop, BYTE fg, BYTE bg)
+static void crows(short y, short x, short w, short h, const BYTE FAR *buf, WORD st, WORD rop, BYTE fg, BYTE bg)
 {
     WORD i, k, o, n;
     for (i = 0; i < nec; i++) {
         RECT *r = &ec[i]; short a = x, b = (short)(x + w), ya = y, yb = (short)(y + h);
-        const BYTE *s;
+        const BYTE FAR *s;
         if (ya < r->t) ya = r->t;
         if (yb > r->b) yb = r->b;
         if (a < r->l) a = r->l;
@@ -367,7 +368,7 @@ static void crows(short y, short x, short w, short h, const BYTE *buf, WORD st, 
         o = (WORD)(a - x);
         ex(a, ya, b, yb);
         s = buf + (WORD)(ya - y) * st;
-        if (!o) { dv->put(a, ya, (short)(b - a), (short)(yb - ya), (const BYTE FAR *)s, st, 1, rop, fg, bg); continue; }
+        if (!o) { dv->put(a, ya, (short)(b - a), (short)(yb - ya), s, st, 1, rop, fg, bg); continue; }
         n = ((WORD)(b - a) + 7) >> 3;
         for (; ya < yb; ya++, s += st) {          /* ab Bit o nach vorn schieben */
             WORD sh = o & 7, q = o >> 3;
@@ -428,12 +429,12 @@ short RDEXPORT g_GetCaps(HDC h, WORD i)
     default: return 0;
     }
 }
-COLOR RDEXPORT g_SetPen(HDC h, COLOR c)        { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->pen; d->pen = c; return o; }
-COLOR RDEXPORT g_SetBrush(HDC h, COLOR c, WORD m) { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->brush; d->brush = c; d->pat = m; return o; }
+COLOR RDEXPORT g_SetPen(HDC h, COLOR c)        { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->pen; if (o != c) { d->pen = c; kdirty = 1; } return o; }
+COLOR RDEXPORT g_SetBrush(HDC h, COLOR c, WORD m) { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->brush; if (o != c || d->pat != m) { d->brush = c; d->pat = m; kdirty = 1; } return o; }
 WORD  RDEXPORT g_SetRop(HDC h, WORD r)         { DCX *d = getdc(h); WORD o; if (!d) return 0; o = d->rop; d->rop = r > ROP_NOT ? ROP_COPY : r; return o; }
 HFONT RDEXPORT g_SetFont(HDC h, HFONT f)       { DCX *d = getdc(h); HFONT o; if (!d) return 0; o = d->font; d->font = f; return o; }
-COLOR RDEXPORT g_SetTextColor(HDC h, COLOR c)  { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->txt; d->txt = c; return o; }
-COLOR RDEXPORT g_SetBkColor(HDC h, COLOR c)    { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->bk; d->bk = c; return o; }
+COLOR RDEXPORT g_SetTextColor(HDC h, COLOR c)  { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->txt; if (o != c) { d->txt = c; kdirty = 1; } return o; }
+COLOR RDEXPORT g_SetBkColor(HDC h, COLOR c)    { DCX *d = getdc(h); COLOR o; if (!d) return 0; o = d->bk; if (o != c) { d->bk = c; kdirty = 1; } return o; }
 WORD  RDEXPORT g_SetBkMode(HDC h, WORD m)      { DCX *d = getdc(h); WORD o; if (!d) return 0; o = d->bkmode; d->bkmode = m; return o; }
 void  RDEXPORT g_SetOrigin(HDC h, short x, short y) { DCX *d = getdc(h); if (d) { d->ox = x; d->oy = y; } }
 void  RDEXPORT g_SetClip(HDC h, const RECT FAR *r)
@@ -495,6 +496,18 @@ static void fill(const RECT FAR *r, int inv)
 {
     short y, l = (short)(r->l + cd->ox), rr = (short)(r->r + cd->ox - 1);
     if (!inv && brnone) return;
+    if (dv->box) {   /* Treiber kann ganze Rechtecke: je Clip-Rechteck ein Aufruf */
+        static RECT q; WORD i;
+        for (i = 0; i < nec; i++) {
+            q.l = l; q.r = (short)(rr + 1); q.t = (short)(r->t + cd->oy); q.b = (short)(r->b + cd->oy);
+            isect(&q, &ec[i]);
+            if (q.l >= q.r || q.t >= q.b) continue;
+            ex(q.l, q.t, q.r, q.b);
+            if (inv) dv->box(q.l, q.t, (short)(q.r - 1), (short)(q.b - 1), 0, (const BYTE FAR *)0, ROP_NOT);
+            else dv->box(q.l, q.t, (short)(q.r - 1), (short)(q.b - 1), pat[0], patp ? (const BYTE FAR *)patp : (const BYTE FAR *)0, cd->rop);
+        }
+        return;
+    }
     for (y = (short)(r->t + cd->oy); y < r->b + cd->oy; y++) hs(y, l, rr, !inv, inv ? ROP_NOT : cd->rop);
 }
 void RDEXPORT g_FillRect(HDC h, const RECT FAR *r)
@@ -563,7 +576,7 @@ static HDC newdc(BYTE typ, HBMP b)
     d = &dcs[i];
     memset(d, 0, sizeof *d);
     d->used = 1; d->typ = typ; d->bmp = b; d->owner = TaskSelf();
-    d->pen = C_BLACK; d->brush = C_WHITE; d->txt = C_BLACK; d->bk = C_WHITE; d->bkmode = BK_OPAQUE;
+    kdirty = 1; d->pen = C_BLACK; d->brush = C_WHITE; d->txt = C_BLACK; d->bk = C_WHITE; d->bkmode = BK_OPAQUE;
     return i;
 }
 void RDEXPORT g_BmpFree(HBMP b)
@@ -603,6 +616,18 @@ static void blitrows(DCX *dd, short x, short y, short w, short h, DCX *sd, short
         n = h;
     } else { n = (short)dh; w = (short)dw; }
     if (w <= 0 || n <= 0) goto aus;
+    /* schnelle Wege ohne Zeilenpuffer (Bitmap byteweise ausgerichtet, nicht ueberlappend) */
+    if (!sw && sd != dd && rop != ROP_MASK) {
+        if (zs.mb && !(sx & 7)) {                  /* Bitmap -> beliebig: ganzer Block, geclippt in crows */
+            crows(y, x, w, n, zs.mb + (WORD)sy * zs.bpr + ((WORD)sx >> 3), zs.bpr, rop, 1, 0);
+            goto aus;
+        }
+        if (!zs.mb && mb && rop == ROP_COPY && !(x & 7) && nec == 1 && x >= ec[0].l && y >= ec[0].t &&
+            x + w <= ec[0].r && y + n <= ec[0].b && (!(w & 7) || x + w >= (short)mw)) {
+            zs.dv->get(sx, sy, w, n, MP(x, y), mbpr);   /* Schirm -> Bitmap: Treiber schreibt direkt hinein */
+            goto aus;
+        }
+    }
     step = 1; i = 0;
     if (!sw && sd == dd && y > sy) { step = -1; i = (short)(n - 1); }   /* ueberlappend: von unten */
     for (; i >= 0 && i < n; i = (short)(i + step)) {
@@ -671,7 +696,7 @@ static WORD probe(WORD i, GFXMODE *m, int setzen)
     if (!(h = ModLoad(kand[i].drv))) return RD_ERR_NOTFOUND;
     f = ModProc(h, 1);
     t = f ? (GFXDRV FAR *)((void FAR * (RDAPI *)(void))f)() : 0;
-    if (!t || t->h.typ != DRV_GFX || t->h.init(0)) { ModFree(h); return RD_ERR_NOTSUP; }
+    if (!t || t->h.typ != DRV_GFX || t->h.groesse < sizeof(GFXDRV) || !t->cursor || !t->box || t->h.init(0)) { ModFree(h); return RD_ERR_NOTSUP; }
     t->modes((GFXMODE FAR *)m, 1);
     if (!setzen) { t->h.done(); ModFree(h); return 0; }
     t->setmode(0);

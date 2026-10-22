@@ -224,15 +224,13 @@ FARPROC RDK ModProc(HMOD m, WORD nr)
 DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs)
 {
     TASK *t = &k_task[k_cur]; WORD m = th[idx].mod, nr = th[idx].nr; MODUL *x = &md[m];
-    if (!m || !x->used || t->rsp >= 12) { k_out("RD: Modulaufruf ungueltig, Abbruch", 0); TaskKill(k_cur, 0xFFFE); }
-    if (!x->loaded && reload(m)) {
-        k_out("RD: Modul fehlt, Abbruch", 0);
+    /* ungueltig, Stapel voll, nicht nachladbar oder Funktion fehlt (Grund: RD /D, Modulliste) */
+    if (!m || !x->used || t->rsp >= 12 || (!x->loaded && reload(m)) || nr > x->nexp || !x->tab[nr - 1]) {
+        k_out("RD: Modulaufruf nicht moeglich, Abbruch", 0);
         TaskKill(k_cur, 0xFFFE);
     }
-    if (nr > x->nexp) { k_out("RD: Modulfunktion fehlt, Abbruch", 0); TaskKill(k_cur, 0xFFFE); }
     t->rs[t->rsp].ip = ip; t->rs[t->rsp].cs = cs; t->rs[t->rsp].mod = m; t->rsp++;
     x->lock++; x->stamp = ++k_stamp;
-    if (!x->tab[nr - 1]) { k_out("RD: Modulfunktion fehlt, Abbruch", 0); TaskKill(k_cur, 0xFFFE); }
     return (DWORD)x->tab[nr - 1];
 }
 DWORD __cdecl mod_leave(void)
@@ -251,15 +249,18 @@ void mod_unwind(TASK *t)
 }
 
 /* Systemmodul (RDGDI, spaeter RDUSER ...): Export k+2 wird API base+k, extra: Paare
-   (Export, API), mit 0 beendet. Export 1 ist der Abschluss beim Beenden von RD. */
+   (Export, API), mit 0 beendet. Export 1 ist der Abschluss beim Beenden von RD.
+   Nicht verwerfbare Systemmodule bleiben bis zum Ende fest im Speicher: ihre Exporte kommen
+   direkt in die API-Tabelle (ohne Sprungstueck, spart je Aufruf mod_enter/mod_leave). */
+static FARPROC sysp(HMOD m, WORD nr) { return (md[m].flags & PF_DISCARD) ? ModProc(m, nr) : (FARPROC)md[m].tab[nr - 1]; }
 HMOD k_sysmod(const char *name, WORD base, WORD n, const WORD *extra)
 {
     HMOD m = ModLoad(name); WORD k;
     if (!m) return 0;
     for (k = 0; k < n && k + 2 <= md[m].nexp; k++)
-        if (md[m].tab[k + 1]) rd_api[base + k] = ModProc(m, k + 2);
+        if (md[m].tab[k + 1]) rd_api[base + k] = sysp(m, k + 2);
     for (; extra && extra[0]; extra += 2)
-        if (extra[0] <= md[m].nexp && md[m].tab[extra[0] - 1]) rd_api[extra[1]] = ModProc(m, extra[0]);
+        if (extra[0] <= md[m].nexp && md[m].tab[extra[0] - 1]) rd_api[extra[1]] = sysp(m, extra[0]);
     return m;
 }
 void __far *k_modraw(HMOD m, WORD nr)
