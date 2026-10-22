@@ -21,6 +21,6 @@ printf 'SHELL=A:\\COMMAND.COM A:\\ /E:512 /P\r\n' > $T/CONFIG.SYS
 sed 's/$/\r/' $AE > $T/AUTOEXEC.BAT
 mcopy -i $IMG $T/CONFIG.SYS $T/AUTOEXEC.BAT $T/FDAPM.COM ::/
 mmd -i $IMG ::/RD2
-for f in out/*.EXE out/*.MOD out/*.DRV out/*.FNT out/*.LNG; do [ -f "$f" ] || continue; [ "${f##*/}" = RD2SETUP.EXE ] && [ -z "$SETUP" ] && continue; mcopy -i $IMG "$f" ::/RD2/; done   # RD2SETUP nur, wenn SETUP=1 (sonst fragt der erste Start)
+for f in out/*.EXE out/*.MOD out/*.DRV out/*.FNT out/*.LNG out/*.BIN; do [ -f "$f" ] || continue; [ "${f##*/}" = RD2SETUP.EXE ] && [ -z "$SETUP" ] && continue; mcopy -i $IMG "$f" ::/RD2/; done   # RD2SETUP nur, wenn SETUP=1 (sonst fragt der erste Start)
 python3 -c "import shutil; shutil.rmtree('$T', True)"
 exit 0

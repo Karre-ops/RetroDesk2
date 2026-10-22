@@ -80,6 +80,7 @@ int main(int argc, char **argv)
         else if (c == 'v') k_gfx = GFX_VGAMONO;
         else if (c == 'n') k_maus = 0xFFFF;              /* /NOMAUS: Maus nicht benutzen (Testbilder) */
         else if (c == 's') i = -1;                       /* /SETUP: Einrichtung vorher */
+        else if (c == 'w') for (s = argv[a] + 3; *s; s++) k_wseg = (k_wseg << 4) + (*s <= '9' ? *s - '0' : (*s | 0x20) - 'a' + 10);   /* /W:seg vom RunDos-Rest */
     }
     /* Erkennung macht nur RD2SETUP: beim allerersten Start (kein RD2.INI) oder mit /SETUP */
     kr.ax = 0x4300; kr.dx = (WORD)k_hpath("RD2.INI"); kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
@@ -108,7 +109,7 @@ int main(int argc, char **argv)
         if (i + 1 < argc && h < 78) cmdline[h++] = ' ';
     }
     cmdline[h] = 0;
-    mem_init(96);                                 /* Reserve: DOS und der RunDos-Rest */
+    mem_init(112);                                /* Reserve: DOS und der RunDos-Rest */
     task_init();
     {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr("RD2.INI", "System", "Maus", "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF; }
     if (!k_maus) {                                /* Maustreiber da? Vektor 33h gesetzt und kein IRET */
@@ -144,5 +145,6 @@ int main(int argc, char **argv)
         kr.ax = 0x4900; kr.es = FP_SEG(dbuf); rd_int(0x21, &kr);
     }
     mem_done();
+    if (k_rseg) { if (k_wseg) return 0xD5; rd_swaprun(k_rseg); }   /* RunDos-Neustart: kehrt nicht zurueck */
     return 0;
 }

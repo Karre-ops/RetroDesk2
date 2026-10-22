@@ -5,7 +5,7 @@ assume cs:_TEXT
 S_RET   equ 20
 S_SS    equ 24
 S_SP    equ 26
-S_DATA  equ 316
+S_DATA  equ 400
 ; void rd_swaprun(WORD seg): Kern anhalten, Vorlage in seg laufen lassen, danach hier weiter
 public _rd_swaprun
 _rd_swaprun proc near
