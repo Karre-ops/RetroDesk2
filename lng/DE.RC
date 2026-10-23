@@ -1,0 +1,13 @@
+; Systemtexte Deutsch (Kern, Shell, Dialoge) -> DE.LNG
+SPRACHE DE
+TEXTE
+  1 "RetroDesk 2"
+  2 "OK"
+  3 "Abbruch"
+  4 "Ja"
+  5 "Nein"
+  6 "Fehler"
+  7 "Bitte Diskette %s in Laufwerk %c: einlegen"
+  8 "Nicht genug Speicher"
+  9 "Datei nicht gefunden: %s"
+ENDE

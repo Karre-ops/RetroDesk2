@@ -40,6 +40,7 @@ static void reap(void)
     WORD i;
     for (i = 1; i < MAXTASK; i++)
         if (k_task[i].state == T_ZOMBIE && i != k_cur) {
+            if (k_wnd) k_wnd(3, i, 0, 0, 0);       /* RDUSER: Fenster des Tasks weg */
             mod_unwind(&k_task[i]);
             file_owner_close(i);
             mem_owner_free(i);
@@ -91,14 +92,22 @@ WORD k_focus;
 static int enqueue(WORD n, HWND w, WORD msg, WORD p1, DWORD p2);
 static BYTE inpoll, kbext = 0xFF;
 static DWORD lastdown; static short ldx, ldy; static WORD ldb;
+static MSG im;                                    /* Eingabe auf dem Weg zum Fenster */
+DWORD (__far __pascal *k_wnd)(WORD art, HWND w, WORD msg, WORD p1, DWORD p2);
 static void post_in(WORD msg, WORD p1, DWORD p2, short x, short y)
 {
-    TASK *t = &k_task[k_focus]; MSG __far *m;
+    TASK *t; MSG __far *m; WORD n = k_focus;
+    im.w = 0; im.msg = msg; im.p1 = p1; im.p2 = p2; im.pt.x = x; im.pt.y = y;
+    if (k_wnd) {                                  /* RDUSER: Fenster und Task, 0xFFFF = noch keine Fenster */
+        if (!(n = (WORD)k_wnd(2, 0, msg, p1, (DWORD)(MSG __far *)&im))) return;
+        if (n == 0xFFFF) n = k_focus;
+    }
+    t = &k_task[n];
     if (t->qn && msg == M_MOUSEMOVE) {            /* letzte Bewegung ersetzen statt anhaengen */
         m = (MSG __far *)MK_FP(t->q, 0) + (t->qh + t->qn - 1) % QLEN;
-        if (m->msg == M_MOUSEMOVE) { m->p1 = p1; m->p2 = p2; m->pt.x = x; m->pt.y = y; m->time = ms_now(); return; }
+        if (m->msg == M_MOUSEMOVE) { m->w = im.w; m->p1 = p1; m->p2 = im.p2; m->pt.x = x; m->pt.y = y; m->time = ms_now(); return; }
     }
-    if (enqueue(k_focus, 0, msg, p1, p2) > 0) {
+    if (enqueue(n, im.w, msg, im.p1, im.p2) > 0) {
         m = (MSG __far *)MK_FP(t->q, 0) + (t->qh + t->qn - 1) % QLEN;
         m->pt.x = x; m->pt.y = y;
     }
@@ -415,33 +424,14 @@ void task_init(void)
     if (k_fpu && !(k_fpuseg = mem_get((MAXTASK * 94 + 15) / 16, 0, 0))) k_fpu = 0;
 }
 
-/* Fensternachrichten: Fenster verwaltet RDUSER (k_wnd, Art 0 = einstellen, 1 = senden).
+/* Fensternachrichten: Fenster verwaltet RDUSER (k_wnd Art 0: Task des Fensters, 0 = ungueltig;
+   Art 2: Eingabe zuordnen; Art 3: Task beendet). SendMessage traegt RDUSER selbst ein.
    Ohne RDUSER geht nur Fenster 0 = der eigene Task. */
-DWORD (__far __pascal *k_wnd)(WORD art, HWND w, WORD msg, WORD p1, DWORD p2);
 BOOL RDK PostMessage(HWND w, WORD msg, WORD p1, DWORD p2)
 {
-    if (k_wnd) return (BOOL)k_wnd(0, w, msg, p1, p2);
-    if (w) return FAIL(RD_ERR_NOTSUP);
-    return enqueue(k_cur, 0, msg, p1, p2) ? TRUE : FALSE;
-}
-DWORD RDK SendMessage(HWND w, WORD msg, WORD p1, DWORD p2)
-{
-    if (k_wnd) return k_wnd(1, w, msg, p1, p2);
-    return FAIL(RD_ERR_NOTSUP);
-}
-/* eigene Nachrichtennummern ab 0xC000, gleicher Name = gleiche Nummer (Gross/klein egal) */
-static char mreg[8][12];
-WORD RDK MsgRegister(LPCSTR name)
-{
-    WORD i, j;
-    if (!name || !*name) return FAIL(RD_ERR_FORMAT);
-    for (i = 0; i < 8 && mreg[i][0]; i++) {
-        for (j = 0; j < 11 && name[j] && (mreg[i][j] | 0x20) == (name[j] | 0x20); j++) ;
-        if (j == 11 || (!name[j] && !mreg[i][j])) return 0xC000 + i;
-    }
-    if (i == 8) return FAIL(RD_ERR_FULL);
-    for (j = 0; j < 11 && name[j]; j++) mreg[i][j] = name[j];
-    return 0xC000 + i;
+    WORD n = k_cur;
+    if (w && (!k_wnd || !(n = (WORD)k_wnd(0, w, msg, p1, p2)))) return FAIL(k_wnd ? RD_ERR_HANDLE : RD_ERR_NOTSUP);
+    return enqueue(n, w, msg, p1, p2) > 0;
 }
 /* Shell: alle Programme bekommen M_QUIT, danach endet RD */
 void RDK ExitRD(WORD flags)
@@ -459,7 +449,7 @@ DWORD RDK InstRes(HINST i, LPSTR pfad, WORD len)
 
 void task_api(void)
 {
-    KAPI(PostMessage, PostMessage); KAPI(SendMessage, SendMessage); KAPI(MsgRegister, MsgRegister);
+    KAPI(PostMessage, PostMessage);
     KAPI(ExitRD, ExitRD); KAPI(InstRes, InstRes);
     KAPI(GetMessage, GetMessage); KAPI(PeekMessage, PeekMessage); KAPI(WaitMessage, WaitMessage);
     KAPI(TaskYield, TaskYield); KAPI(PostTask, PostTask); KAPI(PostQuit, PostQuit);

@@ -64,7 +64,11 @@ WORD RDK KernInfo(SYSINFO FAR *si)
 
 int main(int argc, char **argv)
 {
-    WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi;
+    WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0;
+    static const WORD kx[] = { 2, RDO_TimeGet, 3, RDO_TimeSet, 4, RDO_LangGet, 5, RDO_ResLoad, 6, RDO_ResFree,
+                               7, RDO_StrLoad, 8, RDO_StrGet, 9, RDO_DbgBreak,
+                               10, RDO_BmpLoad, 11, RDO_BmpLoadFile, 12, RDO_IconDraw, 0 };
+    static const WORD ux[] = { 0x46, RDO_SendMessage, 0x47, RDO_DispatchMessage, 0x48, RDO_MsgRegister, 0 };
     static const WORD gdix[] = { 0x3C + 1, RDO_GetDC, 0x3C + 2, RDO_ReleaseDC, 0x3C + 3, RDO_GfxList, 0x3C + 4, RDO_GfxSelect, 0 };
     char *s;
     kr.ax = 0x00E3; kr.dx = 0; rd_int(0x14, &kr);           /* COM1 9600 8N1 */
@@ -125,10 +129,15 @@ int main(int argc, char **argv)
     if (k_umb_paras) k_hex("RD: UMB", (DWORD)k_umb_paras << 4, 1);
     mod_xinit();
     vor = mem_free_bytes(0);
+    kxm = k_sysmod("RDKX.MOD", 0, 0, kx);                 /* Zeit, Sprache, Ressourcen, Texte (verwerfbar) */
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
     if (!gdi) k_hex("RD: RDGDI.MOD fehlt, Fehler", k_lasterr, 1);
     if (gdi) k_mausget = (WORD (__far __pascal *)(WORD __far *))k_modraw(gdi, 0x3C + 5);
     if (gdi) k_gdipause = (void (__far __pascal *)(WORD))k_modraw(gdi, 0x3C + 6);
+    if (gdi && (user = k_sysmod("RDUSER.MOD", 0x200, 0x42, ux)) != 0) {   /* Oberflaeche: Fenster, Eingabe */
+        ((void (__far __pascal *)(void __far *, void __far *, void __far *))k_modraw(user, 0x45))(k_modraw(gdi, 0x3C + 7), k_modraw(gdi, 0x3C + 8), k_modraw(gdi, 0x3C + 1));
+        k_wnd = (DWORD (__far __pascal *)(WORD, HWND, WORD, WORD, DWORD))k_modraw(user, 0x44);
+    }
     k_hex("RD: Speicher frei", vor, 1);
     k_hex("RD: CPU", k_cpu, 1);
     k_hex("RD: 8087", k_fpu, 1);
@@ -140,8 +149,10 @@ int main(int argc, char **argv)
     task_run_all();
     clip_done();                                  /* Zwischenablage gehoert dem Kern */
     rd_timer_off();
-    k_mausget = 0; k_gdipause = 0;
+    k_mausget = 0; k_gdipause = 0; k_wnd = 0;
+    k_sysend(user);
     k_sysend(gdi);                                /* zurueck in den Textmodus, Maus aus */
+    k_sysend(kxm);
     nach = mem_free_bytes(0);
     k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);
     k_out(vor == nach ? "RD: Speicher vollstaendig zurueck" : "RD: SPEICHERLECK", 1);

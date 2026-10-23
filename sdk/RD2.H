@@ -315,6 +315,17 @@ typedef struct {
 #define WS_DIALOG   0x00000800UL
 #define WS_TOOL     0x00001000UL                  /* Zubehoer: kein eigenes Menue */
 #define WS_NORMAL   (WS_TITLE | WS_CLOSE | WS_SIZE | WS_MIN | WS_BORDER)
+#define ES_DEFAULT  0x00010000UL                  /* BUTTON: Standardknopf (Eingabetaste) */
+#define ES_CHECKED  0x00020000UL                  /* CHECK/RADIO: vorbelegt angehakt */
+#define ES_PASSWORD 0x00040000UL                  /* EDIT: Sternchen */
+#define ES_NUMBER   0x00080000UL                  /* EDIT: nur Ziffern */
+#define ES_READONLY 0x00100000UL                  /* EDIT/TEXT: nur lesen */
+/* Menue-Ressource: Eintraege WORD flags, WORD id, Text\0; MF_END beim letzten Eintrag jeder Ebene */
+#define MF_POPUP 0x0001
+#define MF_SEP   0x0002
+#define MF_END   0x0004
+#define MF_GRAY  0x0008
+#define MF_CHECK 0x0010
 #define CS_DBLCLKS  0x0001
 #define CS_SAVEBITS 0x0002                        /* Hintergrund sichern (kleine Popups) */
 #define CW_DEFAULT  ((short)0x8000)

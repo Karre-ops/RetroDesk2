@@ -33,6 +33,8 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     DbgHex("MEMTEST: 65000-Byte-Block", big);
     for (i = 1; i < k; i += 2) if (!check(h[i], 0x1000 + i)) bad++;
     DbgHex("MEMTEST: falsche Bloecke nach Verdichten", bad);
+    MemCompact(MemAvail(MEMA_GROESSTER) + 16);   /* mehr als frei: nur durch Verwerfen (die Reserve fuer
+                                                    RDKX laesst das Fuellen sonst vorher enden) */
     DbgPrint(MemLock(dis) ? "MEMTEST: verwerfbarer Block noch da" : "MEMTEST: verwerfbarer Block verworfen");
     MemFree(dis); MemFree(big);
     for (i = 0; i < k; i++) if (h[i]) MemFree(h[i]);

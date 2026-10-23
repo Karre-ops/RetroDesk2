@@ -1,0 +1,40 @@
+; Ressourcen fuer RESTEST.EXE
+SPRACHE DE
+MENU 1
+  POPUP "&Datei"
+    ITEM "&Neu\tStrg+N"      101
+    ITEM "&Öffnen..."         102 GRAU
+    TRENNER
+    ITEM "&Beenden"           109
+  ENDE
+  POPUP "&Hilfe"
+    ITEM "&Info"              201 HAKEN
+  ENDE
+ENDE
+DIALOG 10 "Einstellungen" 0 0 220 90
+  STATIC   "Name:"   -1   8  10  50 12
+  EDIT               20  60   8 150 14
+  CHECK    "&Ton"    21   8  30 100 12 AN
+  BUTTON   "OK"       1  60  65  50 16 STANDARD
+  BUTTON   "Abbruch"  2 120  65  50 16
+ENDE
+TEXTE
+  1 "Hallo von RetroDesk 2"
+  2 "Datei nicht gefunden: %s"
+ENDE
+ACCEL 1
+  14 2 101
+ENDE
+SPRACHE EN
+MENU 1
+  POPUP "&File"
+    ITEM "E&xit" 109
+  ENDE
+ENDE
+TEXTE
+  1 "Hello from RetroDesk 2"
+ENDE
+SPRACHE ALLE
+DATEN 5 "RESTEST.DAT"
+SYMBOL 1 "RESTEST.ICO"
+BITMAP 2 "RESTEST.RDB"

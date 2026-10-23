@@ -14,25 +14,9 @@
 #include "RD2DRV.H"
 #include "GDII.H"
 
-#define MAXDC   24
-#define MAXCLIP 16
 #define MAXBW   1024                              /* breiteste Bitmap/Zeile in Pixeln */
 #define RB      (MAXBW / 8 + 2)
 
-typedef struct {
-    BYTE  used, typ;                              /* typ 0 = Schirm, 1 = Bitmap */
-    HBMP  bmp;
-    HTASK owner;
-    short ox, oy;
-    WORD  nclip;
-    const RECT FAR *clip;                         /* Geraeteclip (Fenster, gehoert RDUSER), Geraetekoordinaten */
-    BYTE  uclip;
-    RECT  ucl;                                    /* SetClip, logische Koordinaten */
-    COLOR pen, brush, txt, bk;
-    WORD  pat, rop, bkmode;
-    HFONT font;
-    short cx, cy;
-} DCX;
 
 typedef struct { WORD w, h, bpp, bpr; } BMPH;     /* Kopf eines Bitmap-Blocks, danach die Zeilen */
 
@@ -1148,7 +1132,7 @@ void RDEXPORT g_Ende(void)
 
 /* Exporte: 1 = Ende, 2 + (API - 0x100), danach GetDC, ReleaseDC */
 #define N 0x3B
-static struct { WORD n; FARPROC f[N + 7]; } ext = { N + 7, {
+static struct { WORD n; FARPROC f[N + 9]; } ext = { N + 9, {
     (FARPROC)g_Ende, (FARPROC)g_GetCaps, (FARPROC)g_SetPen, (FARPROC)g_SetBrush,
     (FARPROC)g_SetRop, (FARPROC)g_SetFont, (FARPROC)g_SetTextColor, (FARPROC)g_SetBkColor,
     (FARPROC)g_SetBkMode, (FARPROC)g_SetOrigin, (FARPROC)g_SetClip, 0,
@@ -1166,5 +1150,6 @@ static struct { WORD n; FARPROC f[N + 7]; } ext = { N + 7, {
     0, 0, (FARPROC)g_ColorNearest, (FARPROC)g_PaletteSet,
     (FARPROC)g_GetDC, (FARPROC)g_ReleaseDC, (FARPROC)g_GfxList, (FARPROC)g_GfxSelect,
     (FARPROC)g_MausHole, (FARPROC)g_Pause,
+    (FARPROC)(void FAR *)dcs, (FARPROC)(void FAR *)&kclip,   /* Daten fuer RDUSER (GDII.H): DC-Tabelle, Clip neu */
 } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

@@ -24,8 +24,10 @@ wlink option quiet system dos name $O/RD.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj
 app() {   # $1 Quelle  $2 EXE  $3 Anzeigename
   wcc -0 -mm $APPFLAGS -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/$2.obj $1
   wlink option quiet format dos name $O/$2 file obj/rd2start.obj,obj/$2.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/$2.map >/dev/null
-  python3 tools/rd2link.py $O/$2 "$3" >/dev/null
+  if [ -f "${1%.C}.RC" ]; then python3 tools/rdrc.py "${1%.C}.RC" obj/$2.res >/dev/null || exit 1; python3 tools/rd2link.py $O/$2 "$3" --res obj/$2.res >/dev/null; else python3 tools/rd2link.py $O/$2 "$3" >/dev/null; fi
 }
+cp apps/test/RESTEST.RDB $O/   # fuer BmpLoadFile im RESTEST
+for l in DE EN; do python3 tools/rdrc.py --lng lng/$l.RC $O/$l.LNG >/dev/null || exit 1; done   # Systemtexte
 # Module: Medium, -zu (laufen mit dem Stack des Aufrufers)
 modul() {   # $1 Quelle  $2 Datei  $3 Anzeigename  $4 Flags  [$5 Typ M/D  $6 Compiler-Optionen]
   wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk $6 -fo=obj/$2.obj $1
@@ -37,11 +39,13 @@ app apps/leer/LEER.C LEER.EXE "Leer"
 modul apps/test/TESTMOD.C TESTMOD.MOD "Testmodul" 0x0080
 modul apps/test/TESTMOD.C TESTMOD2.MOD "Testmodul2" 0x0080
 modul gdi/RDGDI.C RDGDI.MOD "RDGDI" 0 M -i=gdi
+modul kern/RDKX.C RDKX.MOD "Kern Zusatz" 0x0080 M
+modul user/RDUSER.C RDUSER.MOD "RDUSER" 0 M "-i=gdi -ml -r"
 modul gdi/RDGDIX.C RDGDIX.MOD "RDGDI Zusatz" 0x0080 M -i=gdi
 modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D -dVGAM
-for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST; do app apps/test/$t.C $t.EXE "$t"; done
+for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST; do app apps/test/$t.C $t.EXE "$t"; done
 # Leistungsvergleich RD1 gegen RD2 (test/bench.sh): BENCH2 ueber die RD2-API, BENCH1 mit dem RD1-Renderer aus main
 app bench/BENCH2.C BENCH2.EXE "Bench2"
 ( T=obj/bench1; mkdir -p $T; rm -f $T/*; cp bench/BENCH1.C $T/bench1.c; cp ../gfx.c ../mouse.c ../gfx.h ../mouse.h $T/

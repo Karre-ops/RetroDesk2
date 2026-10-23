@@ -4,6 +4,25 @@
 #ifndef GDII_H
 #define GDII_H
 #include "RD2.H"
+
+/* Geraetekontexte: RDUSER setzt bei Fenster-DCs ox/oy, clip/nclip und danach *kclip = 1
+   (Export 0x3C + 7 = DC-Tabelle, 0x3C + 8 = kclip). HDC n = dcs[n - 1]. */
+#define MAXDC   24
+#define MAXCLIP 16
+typedef struct {
+    BYTE  used, typ;                              /* typ 0 = Schirm, 1 = Bitmap */
+    HBMP  bmp;
+    HTASK owner;
+    short ox, oy;
+    WORD  nclip;
+    const RECT FAR *clip;                         /* Geraeteclip (Fenster, gehoert RDUSER), Geraetekoordinaten */
+    BYTE  uclip;
+    RECT  ucl;                                    /* SetClip, logische Koordinaten */
+    COLOR pen, brush, txt, bk;
+    WORD  pat, rop, bkmode;
+    HFONT font;
+    short cx, cy;
+} DCX;
 typedef struct {
     short ox, oy;                                 /* Ursprung des DC */
     BYTE  brnone;                                 /* Pinsel "keiner" */

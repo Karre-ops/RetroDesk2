@@ -271,6 +271,7 @@ HMOD k_sysmod(const char *name, WORD base, WORD n, const WORD *extra)
         if (md[m].tab[k + 1]) rd_api[base + k] = sysp(m, k + 2);
     for (; extra && extra[0]; extra += 2)
         if (extra[0] <= md[m].nexp && md[m].tab[extra[0] - 1]) rd_api[extra[1]] = sysp(m, extra[0]);
+    if (md[m].flags & PF_DISCARD) { mem_put(md[m].base); md[m].loaded = 0; }   /* verwerfbar: erst beim ersten Aufruf laden */
     return m;
 }
 void __far *k_modraw(HMOD m, WORD nr)

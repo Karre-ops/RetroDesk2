@@ -7,6 +7,7 @@ RD.EXE          28672   44   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Pro
 RD2SETUP.EXE    24576    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier)
 RDSWAP.BIN       1536    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speicher (nicht im Kern)
 RDGDI.MOD       16384 18.5   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5); 23.10.: 18,5 KB fuer schnelle Textausgabe (statt Auslagern, Text wird staendig gebraucht)
+RDKX.MOD         6144    6   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.)
 RDGDIX.MOD       4096    4   S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf)
 RDUSER.MOD      26624   26   S  Fenster, Menues, Steuerelemente, Dialoge
 RDSND.MOD        4096    4   S  Sound-API, Musik-Player
@@ -50,3 +51,5 @@ EPSON9.DRV       3072    3   P
 DOSTEST.EXE      4096    0   T  Test: RunDos (auslagern, DOS-Programm, zurueck)
 FREIMEM.EXE     16384    0   T  Test: normales DOS-Programm fuer DOSTEST
 BENCH2.EXE       4096    0   T  Leistungsvergleich RD2-Seite (BENCH1 baut aus RD1, nicht auf der Diskette)
+RESTEST.EXE      8192    0   S  Test Ressourcen, Texte, Uhrzeit
+WINTEST.EXE      8192    0   P  Test: Fenster

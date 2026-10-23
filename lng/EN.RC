@@ -1,0 +1,13 @@
+; System texts English -> EN.LNG
+SPRACHE EN
+TEXTE
+  1 "RetroDesk 2"
+  2 "OK"
+  3 "Cancel"
+  4 "Yes"
+  5 "No"
+  6 "Error"
+  7 "Please insert disk %s in drive %c:"
+  8 "Not enough memory"
+  9 "File not found: %s"
+ENDE

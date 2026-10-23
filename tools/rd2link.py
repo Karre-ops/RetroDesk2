@@ -8,6 +8,7 @@ a.add_argument("exe"); a.add_argument("name")
 for o, d in (("api", "0x0100"), ("flags", "0"), ("stack", "4096"), ("kb", "0"), ("ver", "0x0100")):
     a.add_argument("--" + o, default=d)
 a.add_argument("--type", default="P", choices="PMD")
+a.add_argument("--res", default=None, help=".RES von rdrc.py")
 o = a.parse_args()
 d = bytearray(open(o.exe, "rb").read())
 if d[:2] != b"MZ": sys.exit("keine MZ-EXE")
@@ -19,10 +20,21 @@ if len(d) < img_end: sys.exit("Datei kuerzer als im MZ-Kopf angegeben")
 d = d[:img_end]
 i = lambda s: int(s, 0)
 name = o.name.encode("cp437")[:15].ljust(16, b"\0")
+res = []
+if o.res:
+    r = open(o.res, "rb").read(); p = 6
+    if r[:4] != b"RDR1": sys.exit("keine .RES von rdrc.py")
+    for _ in range(struct.unpack_from("<H", r, 4)[0]):
+        typ, nr, sp, fl, ln = struct.unpack_from("<HHHHI", r, p); p += 12
+        res.append((typ, nr, sp, fl, r[p:p + ln])); p += ln
 blk = struct.pack("<4sHHHH16sHHHHH10s", ("RD2" + o.type).encode(), i(o.api), i(o.flags), i(o.stack), i(o.kb),
-                  name, i(o.ver), 0, 0, 48, 48, b"\0" * 10)
+                  name, i(o.ver), 0, len(res), 48, 48, b"\0" * 10)
 assert len(blk) == 48
+verz, daten, pos = b"", b"", 48 + 16 * len(res)       # Verzeichnis gleich hinter dem Block, Offsets ab Blockanfang
+for typ, nr, sp, fl, x in res:
+    verz += struct.pack("<HHHHII", typ, nr, sp, fl, pos + len(daten), len(x)); daten += x
+    if len(daten) & 1: daten += b"\0"
 off = len(d)
-d += blk + struct.pack("<4sIIHH", b"RD2!", off, len(blk), sum(blk) & 0xFFFF, 0)
+d += blk + verz + daten + struct.pack("<4sIIHH", b"RD2!", off, len(blk) + len(verz) + len(daten), sum(blk) & 0xFFFF, 0)
 open(o.exe, "wb").write(d)
 print(f"{o.exe}: RD2-Anhang bei {off}, Datei {len(d)} Bytes")

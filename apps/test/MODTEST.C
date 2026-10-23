@@ -20,6 +20,8 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     DbgPrint(a() == 2 ? "MODTEST: Modul nach Fuellen noch da" : "MODTEST: Modul nach Fuellen weg");
     m2 = ModLoad("TESTMOD2.MOD");                  /* passt nur in die Reserve: verdraengt TESTMOD */
     DbgHex("MODTEST: zweites Modul", m2 ? ((QFN)ModProc(m2, 1))(5) : 0);
+    MemCompact(0xFFFFFUL);                         /* Reserve reicht fuer das groesste verwerfbare Modul (RDKX),
+                                                      daher hier ausdruecklich verwerfen lassen */
     DriveInfo(1, &di); alt = di.serial; for (k = 0; k < 12; k++) altlab[k] = di.label[k];
     DbgPrint("MODTEST: jetzt Diskette wechseln");
     TimerSet(0, 1, 500);                           /* warten, bis eine andere Diskette drin ist (max. 60 s) */

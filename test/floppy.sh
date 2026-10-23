@@ -15,6 +15,7 @@ A:\RD2\RD.EXE A:\RD2\PING.EXE > A:\RD2.TXT
 echo === KOOP
 A:\RD2\RD.EXE /KOOP A:\RD2\PING.EXE > A:\RD3.TXT
 A:\RD2\RD.EXE A:\RD2\FILETEST.EXE
+A:\RD2\RD.EXE A:\RD2\RESTEST.EXE
 A:\RD2\RD.EXE A:\RD2\MODTEST.EXE
 A:\RD2\RD.EXE A:\RD2\HAENGT.EXE
 A:\RD2\RD.EXE A:\RD2\STRESS.EXE
@@ -73,6 +74,9 @@ echo "--- Phase 2 Dateien, Profile, Ablage"
 P4=$(echo "$S" | grep -A1 "^FILETEST:" )
 chk "alle FILETEST-Pruefungen ok"        '[[ "$S" == *"FILETEST: Ende"* ]] && ! [[ "$P4" == *"-> FEHLER"* ]]'
 echo "$S" | grep -B1 -- "-> FEHLER" | grep "^FILETEST" | sed 's/^/       /'
+P5=$(echo "$S" | grep -A1 "^RESTEST:" )
+chk "alle RESTEST-Pruefungen ok (Ressourcen, Texte, Zeit)" '[[ "$S" == *"RESTEST: Ende"* ]] && ! [[ "$P5" == *"-> FEHLER"* ]]'
+echo "$S" | grep -B1 -- "-> FEHLER" | grep "^RESTEST" | sed 's/^/       /'
 INI=$(mtype -i $IMG ::/TEST.INI 2>/dev/null | tr -d '\r')
 chk "TEST.INI auf der Diskette richtig"  '[[ "$INI" == "[Benutzer]"$'"'"'\n'"'"'"Name=PC10-III"$'"'"'\n'"'"'"Zahl=42"$'"'"'\n'"'"'"[Rechner]"$'"'"'\n'"'"'"CPU=8088" ]]'
 echo "--- Phase 2 Module und Diskettenwechsel"
