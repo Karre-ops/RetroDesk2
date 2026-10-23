@@ -560,62 +560,8 @@ static void putq(void)
     m3: xor  es:[di], al
         inc  di
         ret
-    rm: or   cl, cl              ; ausgerichtet: wortweise
-        jnz  rs
-        mov  bl, bh
-        cmp  byte ptr [bp+9], 2
-        je   wa
-        jb   wo
-        jmp  wx
-    wo: shr  ch, 1
-        jnc  wo1
-        lodsb
-        xor  al, bh
-        or  es:[di], al
-        inc  di
-    wo1: or   ch, ch
-        jz   woe
-    wo2: lodsw
-        xor  ax, bx
-        or  es:[di], ax
-        inc  di
-        inc  di
-        dec  ch
-        jnz  wo2
-    woe: jmp  r3
-    wa: shr  ch, 1
-        jnc  wa1
-        lodsb
-        xor  al, bh
-        and  es:[di], al
-        inc  di
-    wa1: or   ch, ch
-        jz   wae
-    wa2: lodsw
-        xor  ax, bx
-        and  es:[di], ax
-        inc  di
-        inc  di
-        dec  ch
-        jnz  wa2
-    wae: jmp  r3
-    wx: shr  ch, 1
-        jnc  wx1
-        lodsb
-        xor  al, bh
-        xor  es:[di], al
-        inc  di
-    wx1: or   ch, ch
-        jz   wxe
-    wx2: lodsw
-        xor  ax, bx
-        xor  es:[di], ax
-        inc  di
-        inc  di
-        dec  ch
-        jnz  wx2
-    wxe: jmp  r3
-    rs: cmp  byte ptr [bp+9], 2  ; verschoben: ganze Bytes verknuepfen
+    rm:
+        cmp  byte ptr [bp+9], 2  ; ganze Bytes verknuepfen (auch ausgerichtet; Text geht ueber d_glyphs)
         je   ra
         jb   ro
     rz: lodsb
@@ -689,6 +635,106 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
     putq();
 }
 
+/* Zeichen direkt aus der Schrift, spaltenweise (ein Zeichen nach dem anderen, alle Zeilen),
+   leere Glyphenzeilen werden uebersprungen. ror legt die verschobene Zeile auf zwei Bytes. */
+static WORD g_toff, g_tseg, g_fseg, g_row, g_h, g_n; static BYTE g_sh, g_op;
+static void gly(void)
+{
+    _asm {
+        push si
+        push di
+        push es
+        push ds
+        push bp
+        mov  ax, g_toff
+        push ax
+        mov  ax, g_tseg
+        push ax
+        mov  ax, g_n
+        push ax
+        mov  ax, g_h
+        push ax
+        mov  ax, g_fseg
+        push ax
+        mov  bp, sp
+        mov  dx, g_row
+        mov  cl, g_sh
+        mov  ch, g_op
+        mov  ax, VSEG
+        mov  es, ax
+        cld
+    gc: mov  ds, [bp+6]
+        mov  si, [bp+8]
+        mov  si, [si]
+        add  word ptr [bp+8], 2
+        mov  ds, [bp+0]
+        mov  di, dx
+        push dx
+        mov  dx, [bp+2]
+        cmp  ch, 2
+        je   ga
+        ja   gx
+    go: lodsb
+        or   al, al
+        jz   go2
+        xor  ah, ah
+        ror  ax, cl
+        or   es:[di], ax
+    go2: add di, ZADD
+        cmp  di, ZLIM
+        jb   go3
+        sub  di, ZSUB
+    go3: dec dx
+        jnz  go
+        jmp  gn
+    ga: lodsb
+        or   al, al
+        jz   ga2
+        xor  ah, ah
+        ror  ax, cl
+        not  ax
+        and  es:[di], ax
+    ga2: add di, ZADD
+        cmp  di, ZLIM
+        jb   ga3
+        sub  di, ZSUB
+    ga3: dec dx
+        jnz  ga
+        jmp  gn
+    gx: lodsb
+        or   al, al
+        jz   gx2
+        xor  ah, ah
+        ror  ax, cl
+        xor  es:[di], ax
+    gx2: add di, ZADD
+        cmp  di, ZLIM
+        jb   gx3
+        sub  di, ZSUB
+    gx3: dec dx
+        jnz  gx
+    gn: pop  dx
+        inc  dx
+        dec  word ptr [bp+4]
+        jz   ge
+        jmp  gc
+    ge: add  sp, 10
+        pop  bp
+        pop  ds
+        pop  es
+        pop  di
+        pop  si
+    }
+}
+static void RDEXPORT d_glyphs(short x, short y, const WORD FAR *offs, WORD seg, WORD h, WORD n, WORD fg, WORD bg, WORD rop)
+{
+    (void)bg;
+    if (!n || !h) return;
+    g_row = ROW(y) + ((WORD)x >> 3); g_toff = FP_OFF(offs); g_tseg = FP_SEG(offs); g_fseg = seg;
+    g_h = h; g_n = n; g_sh = (BYTE)(x & 7); g_op = (BYTE)(rop == ROP_XOR ? 3 : fg ? 1 : 2);
+    gly();
+}
+
 static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WORD dstbytes)
 {
     WORD sh = x & 7, sb = (w + 7) >> 3, i;
@@ -706,7 +752,7 @@ static GFXDRV tab = {
     { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRV), NAME, d_init, d_done },
     d_modes, d_setmode, d_textmode,
     d_span, d_pixel, d_getpixel, d_put, d_get,
-    0, 0, 0, 0, 0, d_cursor, d_cursorhide, 0, d_box
+    0, 0, 0, d_glyphs, 0, d_cursor, d_cursorhide, 0, d_box
 };
 
 FARPROC RDEXPORT DrvTab(void) { return (FARPROC)(void FAR *)&tab; }

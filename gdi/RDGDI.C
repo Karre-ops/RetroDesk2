@@ -784,7 +784,7 @@ static LFONT lfs[MAXLF + 1];                       /* HFONT 1..MAXLF */
 static HFONT sysf;
 static BYTE FAR *fp, FAR *fbr, FAR *fdat; static WORD FAR *fof;
 static WORD fober, ferst, fletzt, fstil; static HFONT flast;   /* flast: zuletzt eingestellte Schrift */
-#define TBZ 8                                     /* Zeilen je Treiberaufruf */
+#define TBZ 7                                     /* Zeilen je Treiberaufruf (durchsichtiger Text braucht tb nicht) */
 static BYTE tb[RB * TBZ];
 static char fpfad[80];
 
@@ -990,7 +990,14 @@ static void tzeile(short x, short y, LPCSTR s, WORD n)
         else { fg = (rop == ROP_XOR || rop == ROP_NOT) ? 1 : txtb; bg = rop == ROP_AND ? 1 : 0; }
     }
     if (schnell && !(fstil & FS_UNDER)) {          /* Normalfall: ganze Bloecke in Assembler */
-        WORD zb = ((RB * TBZ) / nb) & ~1;         /* so viele Zeilen passen in tb (kurze Texte: alle), gerade */
+        WORD zb;
+        if (cd->bkmode == BK_TRANSPARENT && (rop == ROP_MASK || rop == ROP_XOR) && dv->glyphs && nec == 1
+            && x >= ec[0].l && (short)(x + tw) <= ec[0].r && y >= ec[0].t && (short)(y + fh) <= ec[0].b) {
+            ex(x, y, (short)(x + tw), (short)(y + fh));   /* ganz sichtbar: Treiber liest die Schrift selbst */
+            dv->glyphs(x, y, (const WORD FAR *)go, FP_SEG(fd), fh, n, fg, 0, rop);
+            return;
+        }
+        zb = ((RB * TBZ) / nb) & ~1;         /* so viele Zeilen passen in tb (kurze Texte: alle), gerade */
         s_inv = rop == ROP_COPY && !fg && bg && !(x & 7);   /* schwarz auf weiss, ausgerichtet: hier invertieren, Treiber kopiert */
         if (s_inv) { fg = 1; bg = 0; }
         s_o = go; s_n = n; s_seg = FP_SEG(fd); s_nb = nb; s_t = tb;

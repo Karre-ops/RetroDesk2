@@ -57,7 +57,9 @@ typedef struct {
     void  (RDAPI *vline)(short x, short y0, short y1, WORD farbe, WORD rop);
     void  (RDAPI *line)(short x0, short y0, short x1, short y1, WORD farbe, WORD rop);
     void  (RDAPI *copy)(short sx, short sy, short w, short h, short dx, short dy); /* Schirm -> Schirm (Rollen) */
-    void  (RDAPI *glyphs)(short x, short y, const BYTE FAR *bits, WORD w, WORD h, WORD n, WORD fg, WORD bg, WORD rop);
+    /* glyphs: n Zeichen je 8 Pixel breit ab x,y, Zeichen i = h Bytes am Stueck ab seg:offs[i].
+       Nur gesetzte Bits: rop ROP_MASK (Farbe fg) oder ROP_XOR. Liegt ganz im Schirm. */
+    void  (RDAPI *glyphs)(short x, short y, const WORD FAR *offs, WORD seg, WORD h, WORD n, WORD fg, WORD bg, WORD rop);
     void  (RDAPI *palette)(WORD first, WORD n, const COLOR FAR *c);
     void  (RDAPI *cursor)(short x, short y, const BYTE FAR *maske_bild); /* NULL bei GD_HWCURSOR */
     void  (RDAPI *cursorhide)(BOOL aus);
