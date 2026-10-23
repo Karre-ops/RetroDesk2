@@ -299,6 +299,14 @@ typedef struct {
 #define N_SELECT  2
 #define N_DBLCLK  3
 #define N_ENTER   4
+/* Nachrichten an Steuerelemente (DlgSetText usw. benutzen sie) */
+#define C_SETTEXT  0x0340                         /* p2 = Text */
+#define C_GETTEXT  0x0341                         /* p1 = Puffergroesse, p2 = Puffer; liefert Laenge */
+#define C_SETCHECK 0x0342                         /* p1 = 0/1 */
+#define C_GETCHECK 0x0343
+#define C_SETLIMIT 0x0344                         /* EDIT: hoechstens p1 Zeichen (1..80) */
+#define C_CLICK    0x0345                         /* wie ein Mausklick */
+#define C_MNEMO    0x0346                         /* liefert den Buchstaben hinter & (gross) */
 
 /* Fensterstile */
 #define WS_TITLE    0x00000001UL
@@ -328,6 +336,7 @@ typedef struct {
 #define MF_CHECK 0x0010
 #define CS_DBLCLKS  0x0001
 #define CS_SAVEBITS 0x0002                        /* Hintergrund sichern (kleine Popups) */
+#define CS_SYSTEM   0x8000                        /* Systemklasse: bleibt nach dem Programmende (RDCTL) */
 #define CW_DEFAULT  ((short)0x8000)
 #define SW_HIDE 0
 #define SW_SHOW 1

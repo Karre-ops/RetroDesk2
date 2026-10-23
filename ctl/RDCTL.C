@@ -1,0 +1,564 @@
+/* RDCTL.C - Steuerelemente und Dialoge (verwerfbares Modul, laedt beim ersten Aufruf nach).
+ * Klassen BUTTON, CHECK, RADIO, STATIC, GROUP, EDIT und RDDIALOG; DialogRun, DialogEnd,
+ * DlgItem, DlgSet/GetText, DlgSet/GetInt, DlgCheck/Checked, MsgBox.
+ * Kein Zustand ueber einen Aufruf hinaus: alles steht in den Fensterdaten (data 0..3) oder
+ * in Speicher, der dem Programm gehoert. Die Klassen meldet CtlInit an (RDUSER ruft es, wenn
+ * ein CreateWindow eine Standardklasse nicht findet); Fensterfunktion = Sprungstueck des
+ * Kerns, damit das Modul dazwischen verworfen werden darf.
+ * data[3] = 'R','C' + Typ: so erkennen Dialog und Tabulator die eigenen Steuerelemente. */
+#include "RD2.H"
+
+#define T_BUTTON 1
+#define T_CHECK  2
+#define T_RADIO  3
+#define T_STATIC 4
+#define T_GROUP  5
+#define T_EDIT   6
+#define T_DLG    7
+#define MAGIC 0x52430000UL
+#define TYP(h) (((GetWindowData(h, 3) & 0xFFFF0000UL) == MAGIC) ? (WORD)GetWindowData(h, 3) : 0)
+#define DLG_ENDE 0x80000000UL
+#define MAXK 40
+
+/* ---- Hilfen ------------------------------------------------------------------------ */
+static DWORD callp(FARPROC f, HWND w, WORD m, WORD p1, DWORD p2)   /* Programmfunktion: DS = SS */
+{
+    WORD lo = 0, hi = 0;
+    _asm {
+        push ds
+        push w
+        push m
+        push p1
+        push word ptr p2+2
+        push word ptr p2
+        mov  ax, ss
+        mov  ds, ax
+        call dword ptr f
+        pop  ds
+        mov  lo, ax
+        mov  hi, dx
+    }
+    return MAKELONG(lo, hi);
+}
+static void melde(HWND h, WORD n)                 /* M_COMMAND an die Eltern */
+{
+    HWND p = GetParent(h);
+    if (p) SendMessage(p, M_COMMAND, (WORD)GetWindowData(h, WD_ID), MAKELONG(h, n));
+}
+static short th_(HDC d) { return GetCaps(d, CAPS_TEXTH); }
+/* Text mit &: unterstreicht den Buchstaben dahinter. zeichnen 0 = nur messen */
+static short ctext(HDC d, short x, short y, LPCSTR s, int zeichnen)
+{
+    char b[48]; WORD n = 0, u = 0xFFFF; short w, ux, h = th_(d);
+    while (*s && n < sizeof b - 1) { if (*s == '&' && s[1] && s[1] != '&' && u == 0xFFFF) { u = n; s++; continue; } if (*s == '&') s++; b[n++] = *s++; }
+    w = TextWidth(d, b, n);
+    if (zeichnen && n) {
+        TextOut(d, x, y, b, n);
+        if (u != 0xFFFF) { ux = (short)(x + TextWidth(d, b, u)); Line(d, ux, (short)(y + h - 1), (short)(ux + TextWidth(d, b + u, 1) - 1), (short)(y + h - 1)); }
+    }
+    return w;
+}
+static char mkey(LPCSTR s)
+{
+    for (; *s; s++) if (*s == '&' && s[1] && s[1] != '&') return (char)(s[1] >= 'a' && s[1] <= 'z' ? s[1] - 32 : s[1]);
+    return 0;
+}
+static void punkte(HDC d, short l, short t, short r, short b)   /* Fokusrahmen gepunktet */
+{
+    RECT q;
+    SetBrush(d, C_BLACK, PAT_GRAY50); SetBkColor(d, C_WHITE);
+    q.l = l; q.r = r; q.t = t; q.b = t + 1; FillRect(d, &q); q.t = b - 1; q.b = b; FillRect(d, &q);
+    q.t = t; q.r = l + 1; FillRect(d, &q); q.l = r - 1; q.r = r; FillRect(d, &q);
+}
+static void grau(HDC d, const RECT FAR *r)        /* gesperrt: jedes zweite Pixel weiss */
+{
+    SetRop(d, ROP_OR); SetBkColor(d, C_BLACK); SetBrush(d, C_WHITE, PAT_GRAY50); FillRect(d, r); SetRop(d, ROP_COPY);
+}
+static void weiss(HDC d, const RECT FAR *r) { SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, r); }
+static WORD gesperrt(HWND h) { return (GetWindowData(h, WD_STIL) & WS_DISABLED) ? 1 : 0; }
+static WORD kinder(HWND p, HWND *k)               /* Kinder in Erstellungsreihenfolge */
+{
+    WORD n = 0, i; HWND c = 0, t;
+    while (n < MAXK && (c = GetChild(p, c)) != 0) k[n++] = c;
+    for (i = 0; i < n / 2; i++) { t = k[i]; k[i] = k[n - 1 - i]; k[n - 1 - i] = t; }
+    return n;
+}
+static void neu(HWND h) { InvalidateRect(h, 0, FALSE); }
+
+/* ---- Knopf, Kaestchen, Optionsfeld: gemeinsame Maus- und Tastenfuehrung ------------ */
+static void ausloesen(HWND h, WORD typ)           /* Klick oder Leertaste */
+{
+    HWND p, k[MAXK]; WORD n, i, j, a;
+    if (typ == T_CHECK) { SetWindowData(h, 0, GetWindowData(h, 0) ? 0 : 1); neu(h); }
+    else if (typ == T_RADIO) {                    /* Gruppe: zusammenhaengende Optionsfelder */
+        if ((p = GetParent(h)) != 0) {
+            n = kinder(p, k);
+            for (i = 0; i < n && k[i] != h; i++) ;
+            for (a = i; a > 0 && TYP(k[a - 1]) == T_RADIO; a--) ;
+            for (j = a; j < n && TYP(k[j]) == T_RADIO; j++)
+                if (k[j] != h && GetWindowData(k[j], 0)) { SetWindowData(k[j], 0, 0); neu(k[j]); }
+        }
+        if (!GetWindowData(h, 0)) { SetWindowData(h, 0, 1); neu(h); }
+    }
+    melde(h, N_CLICKED);
+}
+static int maus(HWND h, WORD typ, WORD msg, DWORD p2)   /* 1 = verarbeitet; data 1: Bit 0 gedrueckt, Bit 1 gefangen */
+{
+    RECT r; short x = (short)LOWORD(p2), y = (short)HIWORD(p2); WORD drin, z = (WORD)GetWindowData(h, 1);
+    if (msg == M_BUTTONDOWN) {
+        if (gesperrt(h)) return 1;
+        SetFocus(h); CaptureMouse(h);
+        SetWindowData(h, 1, 3); neu(h); return 1;
+    }
+    if (!(z & 2)) return 0;
+    GetClientRect(h, &r); drin = x >= r.l && x < r.r && y >= r.t && y < r.b;
+    if (msg == M_MOUSEMOVE) { if ((z & 1) != drin) { SetWindowData(h, 1, 2 | drin); neu(h); } return 1; }
+    ReleaseMouse(); SetWindowData(h, 1, 0); neu(h);
+    if (drin) ausloesen(h, typ);
+    return 1;
+}
+/* Tasten, die der Dialog fuehrt (Tab, Eingabe, Esc, Pfeile, Alt+Buchstabe), an die Eltern */
+static int weiterkey(HWND h, WORD k, DWORD p2, WORD pfeile)
+{
+    HWND p;
+    if (k == K_TAB || k == K_ENTER || k == K_ESC || (HIWORD(p2) & KS_ALT) ||
+        (pfeile && (k == K_UP || k == K_DOWN || k == K_LEFT || k == K_RIGHT))) {
+        if ((p = GetParent(h)) != 0 && TYP(p) == T_DLG) { SendMessage(p, M_KEY, k, p2); return 1; }
+    }
+    return 0;
+}
+static DWORD gemeinsam(HWND h, WORD typ, WORD msg, WORD p1, DWORD p2)
+{
+    char t[33];
+    switch (msg) {
+    case M_CREATE: SetWindowData(h, 3, MAGIC | typ); if (GetWindowData(h, WD_STIL) & ES_CHECKED) SetWindowData(h, 0, 1); return 0;
+    case M_SETFOCUS: case M_KILLFOCUS: case M_ENABLE: neu(h); return 0;
+    case C_SETTEXT: SetWindowText(h, (LPCSTR)p2); InvalidateRect(h, 0, TRUE); return 0;
+    case C_GETTEXT: return GetWindowText(h, (LPSTR)p2, p1);
+    case C_SETCHECK: if (GetWindowData(h, 0) != (p1 ? 1UL : 0UL)) { SetWindowData(h, 0, p1 ? 1 : 0); neu(h); } return 0;
+    case C_GETCHECK: return GetWindowData(h, 0);
+    case C_CLICK: if (!gesperrt(h)) ausloesen(h, typ); return 0;
+    case C_MNEMO: GetWindowText(h, t, sizeof t); return mkey(t);
+    case M_KEY:
+        if (p1 == ' ' && typ <= T_RADIO) { if (!gesperrt(h)) ausloesen(h, typ); return 0; }
+        if (weiterkey(h, p1, p2, typ <= T_RADIO)) return 0;
+        break;
+    case M_BUTTONDOWN: case M_MOUSEMOVE: case M_BUTTONUP:
+        if (typ <= T_RADIO && maus(h, typ, msg, p2)) return 0;
+        break;
+    }
+    return DefWindowProc(h, msg, p1, p2);
+}
+
+/* ---- BUTTON ------------------------------------------------------------------------ */
+DWORD RDEXPORT c_Button(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    PAINT ps; RECT r, q; HDC d; char t[33]; short w, x, y, hh;
+    if (msg != M_PAINT) return gemeinsam(h, T_BUTTON, msg, p1, p2);
+    d = BeginPaint(h, &ps); GetClientRect(h, &r);
+    weiss(d, &r); SetPen(d, C_BLACK);
+    q = r; q.l++; q.r--; Frame(d, &q); q = r; q.t++; q.b--; Frame(d, &q);   /* abgerundet */
+    if (GetWindowData(h, WD_STIL) & ES_DEFAULT) { q.l = r.l + 1; q.t = r.t + 1; q.r = r.r - 1; q.b = r.b - 1; Frame(d, &q); }
+    GetWindowText(h, t, sizeof t); hh = th_(d);
+    w = ctext(d, 0, 0, t, 0); x = (short)((r.r - w) / 2); y = (short)((r.b - hh) / 2);
+    SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK); ctext(d, x, y, t, 1);
+    if (GetFocus() == h) punkte(d, (short)(x - 2), (short)(y - 1), (short)(x + w + 2), (short)(y + hh + 1));
+    if (GetWindowData(h, 1) & 1) { q.l = r.l + 2; q.t = r.t + 2; q.r = r.r - 2; q.b = r.b - 2; InvertRect(d, &q); }
+    if (gesperrt(h)) { q.l = r.l + 2; q.t = r.t + 2; q.r = r.r - 2; q.b = r.b - 2; grau(d, &q); }
+    EndPaint(h, &ps);
+    return 0;
+}
+/* ---- CHECK / RADIO ----------------------------------------------------------------- */
+static void kasten(HWND h, WORD typ)
+{
+    PAINT ps; RECT r, q; HDC d; char t[33]; short s, sb, y, w, hh, x;
+    d = BeginPaint(h, &ps); GetClientRect(h, &r); weiss(d, &r); hh = th_(d);
+    s = (short)(hh - 2); if (s < 6) s = 6;
+    sb = (short)((long)s * GetCaps(d, CAPS_ASPY) / GetCaps(d, CAPS_ASPX));   /* auf CGA breiter */
+    y = (short)((r.b - s) / 2);
+    q.l = 0; q.t = y; q.r = sb; q.b = (short)(y + s);
+    SetPen(d, C_BLACK);
+    if (typ == T_CHECK) {
+        Frame(d, &q);
+        if (GetWindowData(h, 0)) { Line(d, 0, y, (short)(sb - 1), (short)(y + s - 1)); Line(d, (short)(sb - 1), y, 0, (short)(y + s - 1)); }
+    } else {
+        SetBrush(d, C_WHITE, PAT_SOLID); Ellipse(d, &q, 1);
+        if (GetWindowData(h, 0)) { q.l += sb / 4 + 1; q.r -= sb / 4 + 1; q.t += s / 4 + 1; q.b -= s / 4 + 1; SetBrush(d, C_BLACK, PAT_SOLID); Ellipse(d, &q, 1); }
+    }
+    if (GetWindowData(h, 1) & 1) { q.l = 0; q.t = y; q.r = sb; q.b = (short)(y + s); InvertRect(d, &q); }
+    GetWindowText(h, t, sizeof t); x = (short)(sb + 6);
+    SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
+    w = ctext(d, x, (short)((r.b - hh) / 2), t, 1);
+    if (GetFocus() == h) punkte(d, (short)(x - 2), (short)((r.b - hh) / 2 - 1), (short)(x + w + 2), (short)((r.b + hh) / 2 + 1));
+    if (gesperrt(h)) grau(d, &r);
+    EndPaint(h, &ps);
+}
+DWORD RDEXPORT c_Check(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    if (msg == M_PAINT) { kasten(h, T_CHECK); return 0; }
+    return gemeinsam(h, T_CHECK, msg, p1, p2);
+}
+DWORD RDEXPORT c_Radio(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    if (msg == M_PAINT) { kasten(h, T_RADIO); return 0; }
+    return gemeinsam(h, T_RADIO, msg, p1, p2);
+}
+/* ---- STATIC / GROUP ---------------------------------------------------------------- */
+DWORD RDEXPORT c_Static(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    PAINT ps; RECT r; HDC d; char t[33];
+    if (msg != M_PAINT) return gemeinsam(h, T_STATIC, msg, p1, p2);
+    d = BeginPaint(h, &ps); GetClientRect(h, &r); weiss(d, &r);
+    GetWindowText(h, t, sizeof t);
+    SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
+    if (mkey(t)) ctext(d, 0, 0, t, 1); else TextBox(d, &r, t, TB_WRAP);
+    if (gesperrt(h)) grau(d, &r);
+    EndPaint(h, &ps);
+    return 0;
+}
+DWORD RDEXPORT c_Group(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    PAINT ps; RECT r, q; HDC d; char t[33]; short hh, w;
+    if (msg != M_PAINT) return gemeinsam(h, T_GROUP, msg, p1, p2);
+    d = BeginPaint(h, &ps); GetClientRect(h, &r); hh = th_(d);
+    q = r; q.t = (short)(hh / 2); SetPen(d, C_BLACK); Frame(d, &q);
+    GetWindowText(h, t, sizeof t);
+    if (t[0]) {
+        w = ctext(d, 0, 0, t, 0);
+        q.l = 6; q.t = 0; q.r = (short)(w + 10); q.b = hh; weiss(d, &q);
+        SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK); ctext(d, 8, 0, t, 1);
+    }
+    EndPaint(h, &ps);
+    return 0;
+}
+/* ---- EDIT (einzeilig): data 0 = Speicher, 1 = Schreibmarke | erstes sichtbares << 16, 2 = Grenze */
+#define ELIM 80
+static LPSTR epuf(HWND h) { return (LPSTR)MemLock((HMEM)GetWindowData(h, 0)); }
+static void eunlock(HWND h) { MemUnlock((HMEM)GetWindowData(h, 0)); }
+static WORD slen(LPCSTR s) { WORD n = 0; while (s[n]) n++; return n; }
+static void eset(HWND h, LPCSTR s)
+{
+    LPSTR b = epuf(h); WORD i, n = (WORD)GetWindowData(h, 2);
+    if (!b) return;
+    for (i = 0; i < n && s && s[i]; i++) b[i] = s[i];
+    b[i] = 0; eunlock(h);
+    SetWindowData(h, 1, MAKELONG(i, 0)); neu(h);
+}
+static void epaint(HWND h)
+{
+    PAINT ps; RECT r, q; HDC d; LPSTR b; WORD cur, off, n, i; short hh, x, y; char st[ELIM + 1];
+    d = BeginPaint(h, &ps); GetClientRect(h, &r); weiss(d, &r); SetPen(d, C_BLACK); Frame(d, &r);
+    hh = th_(d); y = (short)((r.b - hh) / 2);
+    cur = LOWORD(GetWindowData(h, 1)); off = HIWORD(GetWindowData(h, 1));
+    if ((b = epuf(h)) != 0) {
+        n = slen(b);
+        if (GetWindowData(h, WD_STIL) & ES_PASSWORD) { for (i = 0; i < n && i < ELIM; i++) st[i] = '*'; st[i] = 0; b = st; }
+        q.l = 2; q.t = 1; q.r = (short)(r.r - 2); q.b = (short)(r.b - 1); SetClip(d, &q);
+        SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
+        if (off < n) TextOut(d, 3, y, b + off, (short)(n - off));
+        if (GetFocus() == h) { x = (short)(3 + TextWidth(d, b + off, (short)(cur - off))); Line(d, x, (short)(y - 1), x, (short)(y + hh)); }
+        SetClip(d, 0);
+        eunlock(h);
+    }
+    if (gesperrt(h)) grau(d, &r);
+    EndPaint(h, &ps);
+}
+static void esicht(HWND h, WORD cur)              /* Schreibmarke sichtbar halten */
+{
+    HDC d = GetDC(h); RECT r; LPSTR b; WORD off = HIWORD(GetWindowData(h, 1));
+    GetClientRect(h, &r);
+    if (cur < off) off = cur;
+    if (d && (b = epuf(h)) != 0) {
+        while (off < cur && TextWidth(d, b + off, (short)(cur - off)) > r.r - 7) off++;
+        eunlock(h);
+    }
+    if (d) ReleaseDC(h, d);
+    SetWindowData(h, 1, MAKELONG(cur, off)); neu(h);
+}
+static void etaste(HWND h, WORD k, WORD ch)
+{
+    LPSTR b = epuf(h); WORD cur = LOWORD(GetWindowData(h, 1)), n, i, lim = (WORD)GetWindowData(h, 2), ro;
+    DWORD st = GetWindowData(h, WD_STIL); int geaendert = 0;
+    if (!b) return;
+    n = slen(b); ro = (st & ES_READONLY) ? 1 : 0;
+    if (cur > n) cur = n;
+    if (ch) {
+        if (!ro && n < lim && (!(st & ES_NUMBER) || (ch >= '0' && ch <= '9') || (ch == '-' && cur == 0))) {
+            for (i = n + 1; i > cur; i--) b[i] = b[i - 1];
+            b[cur++] = (char)ch; geaendert = 1;
+        } else SndBeep(880, 30);
+    } else switch (k) {
+        case K_LEFT: if (cur) cur--; break;
+        case K_RIGHT: if (cur < n) cur++; break;
+        case K_HOME: cur = 0; break;
+        case K_END: cur = n; break;
+        case K_BACK: if (!ro && cur) { for (i = --cur; i < n; i++) b[i] = b[i + 1]; geaendert = 1; } break;
+        case K_DEL: if (!ro && cur < n) { for (i = cur; i < n; i++) b[i] = b[i + 1]; geaendert = 1; } break;
+    }
+    eunlock(h);
+    esicht(h, cur);
+    if (geaendert) melde(h, N_CHANGE);
+}
+DWORD RDEXPORT c_Edit(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    char t[33]; HMEM m; LPSTR b; WORD n, cur, off; HDC d; short x;
+    switch (msg) {
+    case M_CREATE:
+        SetWindowData(h, 3, MAGIC | T_EDIT); SetWindowData(h, 2, ELIM);
+        if (!(m = MemAlloc(ELIM + 1, MEM_MOVABLE | MEM_ZEROINIT))) return 0xFFFFFFFFUL;
+        SetWindowData(h, 0, m);
+        GetWindowText(h, t, sizeof t); eset(h, t);
+        return 0;
+    case M_DESTROY: if ((m = (HMEM)GetWindowData(h, 0)) != 0) { MemFree(m); SetWindowData(h, 0, 0); } return 0;
+    case M_PAINT: epaint(h); return 0;
+    case M_SETFOCUS: case M_KILLFOCUS: case M_ENABLE: neu(h); return 0;
+    case C_SETTEXT: eset(h, (LPCSTR)p2); return 0;
+    case C_GETTEXT:
+        if (!p1 || !(b = epuf(h))) return 0;
+        for (n = 0; n + 1 < p1 && b[n]; n++) ((LPSTR)p2)[n] = b[n];
+        ((LPSTR)p2)[n] = 0; eunlock(h); return n;
+    case C_SETLIMIT: SetWindowData(h, 2, p1 && p1 <= ELIM ? p1 : ELIM); return 0;
+    case C_MNEMO: return 0;
+    case M_KEY:
+        if (weiterkey(h, p1, p2, 0)) return 0;
+        if (p1 >= 0x100 || p1 == K_BACK) etaste(h, p1, 0);
+        return 0;
+    case M_CHAR: if (p1 >= ' ' && !(HIWORD(p2) & (KS_CTRL | KS_ALT))) etaste(h, 0, p1); return 0;
+    case M_BUTTONDOWN:
+        if (gesperrt(h)) return 0;
+        SetFocus(h);
+        if ((d = GetDC(h)) != 0 && (b = epuf(h)) != 0) {    /* Schreibmarke an die Klickstelle */
+            off = HIWORD(GetWindowData(h, 1)); n = slen(b); x = (short)LOWORD(p2);
+            for (cur = off; cur < n && 3 + TextWidth(d, b + off, (short)(cur - off + 1)) - TextWidth(d, b + cur, 1) / 2 <= x; cur++) ;
+            eunlock(h); ReleaseDC(h, d); d = 0;
+            SetWindowData(h, 1, MAKELONG(cur, off)); neu(h);
+        }
+        if (d) ReleaseDC(h, d);
+        return 0;
+    }
+    return DefWindowProc(h, msg, p1, p2);
+}
+
+/* ---- Dialog ------------------------------------------------------------------------ */
+/* data 0 = DLGPROC, 1 = Parameter, 2 = Ergebnis | DLG_ENDE */
+static BOOL dproc(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    FARPROC f = (FARPROC)GetWindowData(h, 0);
+    return f ? (BOOL)callp(f, h, msg, p1, p2) : FALSE;
+}
+static WORD fokusbar(HWND c) { WORD t = TYP(c); return t && t != T_STATIC && t != T_GROUP && !gesperrt(c); }
+static void fokusweiter(HWND h, int rueck)
+{
+    HWND k[MAXK], f = GetFocus(); WORD n = kinder(h, k), i, j;
+    for (i = 0; i < n && k[i] != f; i++) ;
+    for (j = 1; j <= n; j++) {
+        WORD z = (WORD)(rueck ? (i + 2 * n - j) % n : (i == n ? j - 1 : (i + j) % n));
+        if (fokusbar(k[z])) { SetFocus(k[z]); return; }
+    }
+}
+static void mnemo(HWND h, char c)                 /* Alt+Buchstabe bzw. Buchstabe */
+{
+    HWND k[MAXK]; WORD n = kinder(h, k), i, j;
+    if (c >= 'a' && c <= 'z') c -= 32;
+    for (i = 0; i < n; i++) if ((char)SendMessage(k[i], C_MNEMO, 0, 0) == c && !gesperrt(k[i])) break;
+    if (i == n) return;
+    if (!fokusbar(k[i])) {                        /* Beschriftung: das naechste Feld */
+        for (j = i + 1; j < n && !fokusbar(k[j]); j++) ;
+        if (j < n) SetFocus(k[j]);
+        return;
+    }
+    SetFocus(k[i]);
+    if (TYP(k[i]) != T_EDIT) SendMessage(k[i], C_CLICK, 0, 0);
+}
+static const char sc1[] = "qwertzuiop\0\0\0\0asdfghjkl\0\0\0\0\0yxcvbnm";   /* Scancode 10h.. (deutsche Tastatur) */
+DWORD RDEXPORT c_Dialog(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    HWND k[MAXK], f; WORD n, i;
+    switch (msg) {
+    case M_CREATE: SetWindowData(h, 3, MAGIC | T_DLG); return 0;
+    case M_KEY:
+        if (dproc(h, msg, p1, p2)) return 0;
+        f = GetFocus();
+        if (p1 == K_TAB) { fokusweiter(h, (HIWORD(p2) & KS_SHIFT) != 0); return 0; }
+        if (p1 == K_UP || p1 == K_LEFT) { fokusweiter(h, 1); return 0; }
+        if (p1 == K_DOWN || p1 == K_RIGHT) { fokusweiter(h, 0); return 0; }
+        if (p1 == K_ESC) { SendMessage(h, M_COMMAND, ID_CANCEL, MAKELONG(0, N_CLICKED)); return 0; }
+        if (p1 == K_ENTER) {
+            if (f && TYP(f) == T_BUTTON && GetParent(f) == h) { SendMessage(f, C_CLICK, 0, 0); return 0; }
+            n = kinder(h, k);
+            for (i = 0; i < n; i++) if (TYP(k[i]) == T_BUTTON && (GetWindowData(k[i], WD_STIL) & ES_DEFAULT) && !gesperrt(k[i])) { SendMessage(k[i], C_CLICK, 0, 0); return 0; }
+            SendMessage(h, M_COMMAND, ID_OK, MAKELONG(0, N_CLICKED));
+            return 0;
+        }
+        if ((HIWORD(p2) & KS_ALT) && p1 >= 0x110 && p1 < 0x110 + sizeof sc1 && sc1[p1 - 0x110]) { mnemo(h, sc1[p1 - 0x110]); return 0; }
+        if (p1 > ' ' && p1 < 0x80 && (!f || TYP(f) != T_EDIT)) { mnemo(h, (char)p1); return 0; }
+        return 0;
+    case M_COMMAND:
+        if (!dproc(h, msg, p1, p2) && (p1 == ID_OK || p1 == ID_CANCEL || p1 == ID_YES || p1 == ID_NO) && HIWORD(p2) == N_CLICKED)
+            DialogEnd(h, (short)p1);
+        return 0;
+    case M_CLOSE: SendMessage(h, M_COMMAND, ID_CANCEL, MAKELONG(0, N_CLICKED)); return 0;
+    case M_SETFOCUS:                              /* Dialog selbst aktiviert: Fokus aufs erste Feld */
+        n = kinder(h, k);
+        for (i = 0; i < n; i++) if (fokusbar(k[i])) { SetFocus(k[i]); break; }
+        return 0;
+    }
+    if (msg != M_PAINT && msg != M_ERASEBKGND && msg != M_DESTROY && dproc(h, msg, p1, p2)) return 0;
+    return DefWindowProc(h, msg, p1, p2);
+}
+
+/* ---- Klassen anmelden --------------------------------------------------------------- */
+#define EXP_KLASSEN 0x22                           /* Export-Nummer von c_Button, dann der Reihe nach */
+static const char * const kn[] = { CL_BUTTON, CL_CHECK, CL_RADIO, CL_STATIC, CL_GROUP, CL_EDIT, "RDDIALOG" };
+void RDEXPORT c_CtlInit(void)
+{
+    WNDCLASS wc; HMOD m; WORD i;
+    if (!(m = ModLoad("RDCTL.MOD"))) return;      /* schon geladen: nur Zaehler */
+    for (i = 0; i < sizeof kn / sizeof kn[0]; i++) {
+        wc.name = kn[i]; wc.proc = (WNDPROC)ModProc(m, EXP_KLASSEN + i); wc.stil = CS_SYSTEM; wc.daten = 0;
+        wc.inst = 0; wc.symbol = 0; wc.hinter = C_WHITE;
+        if (wc.proc) RegisterClass(&wc);
+    }
+    ModFree(m);
+}
+
+/* ---- Dialog aus Vorlage ------------------------------------------------------------ */
+/* Vorlage wie RT_DIALOG: DWORD stil, short x,y,w,h, WORD n, Titel\0, je Element
+   Klasse\0 Text\0 WORD id, short x,y,w,h, DWORD stil. Masse in Dialogeinheiten. */
+static LPCSTR ueber(LPCSTR s) { while (*s) s++; return s + 1; }
+static short lauf(HINST inst, const BYTE FAR *v, HWND owner, DLGPROC proc, DWORD param)
+{
+    HWND dlg, c; HDC d; short cw, ch, x, y, w, hh, sw, sh, dw, dh; WORD n, i, id; DWORD st, es; LPCSTR titel, kl, tx;
+    RECT r, a; MSG m; const short FAR *q; short e[4]; DWORD erg;
+    c_CtlInit();
+    if (!(d = GetDC(0))) return -1;
+    cw = TextWidth(d, "0", 1); ch = GetCaps(d, CAPS_TEXTH); sw = GetCaps(d, CAPS_W); sh = GetCaps(d, CAPS_H);
+    ReleaseDC(0, d);
+    st = *(const DWORD FAR *)v; q = (const short FAR *)(v + 4);
+    x = q[0]; y = q[1]; w = (short)(q[2] * cw / 4); hh = (short)(q[3] * ch / 8); n = (WORD)q[4];
+    titel = (LPCSTR)(v + 14);
+    dlg = CreateWindow("RDDIALOG", titel, (st & ~(WS_VISIBLE | WS_SIZE | WS_MIN)) | WS_TITLE | WS_BORDER | WS_CLOSE | WS_POPUP, 0, 0, w, hh, 0, 0, inst);
+    if (!dlg) return -1;
+    SetWindowData(dlg, 0, (DWORD)proc); SetWindowData(dlg, 1, param);
+    GetWindowRect(dlg, &a); GetClientRect(dlg, &r);
+    dw = (short)(w + (a.r - a.l) - r.r); dh = (short)(hh + (a.b - a.t) - r.b);   /* aussen fuer gewuenschte Innengroesse */
+    if (x || y) { x = (short)(x * cw / 4); y = (short)(y * ch / 8); }
+    else { x = (short)((sw - dw) / 2); y = (short)((sh - dh) / 2); }
+    MoveWindow(dlg, x, y, dw, dh, FALSE);
+    tx = ueber(titel);
+    for (i = 0; i < n; i++) {
+        kl = tx; tx = ueber(kl); q = (const short FAR *)ueber(tx);
+        id = (WORD)q[0]; e[0] = (short)(q[1] * cw / 4); e[1] = (short)(q[2] * ch / 8); e[2] = (short)(q[3] * cw / 4); e[3] = (short)(q[4] * ch / 8);
+        es = *(const DWORD FAR *)(q + 5);
+        c = CreateWindow(kl, ueber(kl), es | WS_CHILD | WS_VISIBLE, e[0], e[1], e[2], e[3], dlg, id, inst);
+        (void)c;
+        tx = (LPCSTR)(q + 7);
+    }
+    if (owner) EnableWindow(owner, FALSE);
+    ShowWindow(dlg, SW_SHOW); SetActive(dlg);
+    if (!dproc(dlg, M_INITDIALOG, 0, param)) SendMessage(dlg, M_SETFOCUS, 0, 0);
+    while (!((erg = GetWindowData(dlg, 2)) & DLG_ENDE) && IsWindow(dlg)) {
+        if (!GetMessage(&m)) { PostQuit((WORD)m.p1); erg = DLG_ENDE | (WORD)ID_CANCEL; break; }
+        DispatchMessage(&m);
+    }
+    if (owner) EnableWindow(owner, TRUE);
+    if (IsWindow(dlg)) DestroyWindow(dlg);
+    if (owner && IsWindow(owner)) SetActive(owner);
+    return (short)LOWORD(erg);
+}
+short RDEXPORT c_DialogRun(HINST inst, WORD id, HWND owner, DLGPROC proc, DWORD param)
+{
+    HMEM r = ResLoad(inst, RT_DIALOG, id); const BYTE FAR *v; short e = -1;
+    if (!r) return -1;
+    if ((v = (const BYTE FAR *)MemLock(r)) != 0) { e = lauf(inst, v, owner, proc, param); MemUnlock(r); }
+    ResFree(r);
+    return e;
+}
+void RDEXPORT c_DialogEnd(HWND dlg, short e) { SetWindowData(dlg, 2, DLG_ENDE | (WORD)e); }
+HWND RDEXPORT c_DlgItem(HWND dlg, WORD id)
+{
+    HWND c = 0;
+    while ((c = GetChild(dlg, c)) != 0) if ((WORD)GetWindowData(c, WD_ID) == id) return c;
+    SetLastError(RD_ERR_NOTFOUND);
+    return 0;
+}
+void RDEXPORT c_DlgSetText(HWND dlg, WORD id, LPCSTR s) { HWND c = c_DlgItem(dlg, id); if (c) SendMessage(c, C_SETTEXT, 0, (DWORD)s); }
+WORD RDEXPORT c_DlgGetText(HWND dlg, WORD id, LPSTR b, WORD n) { HWND c = c_DlgItem(dlg, id); if (b && n) b[0] = 0; return c ? (WORD)SendMessage(c, C_GETTEXT, n, (DWORD)b) : 0; }
+void RDEXPORT c_DlgSetInt(HWND dlg, WORD id, long v)
+{
+    char b[12], *p = b + 11; DWORD u = v < 0 ? (DWORD)-v : (DWORD)v;
+    *p = 0;
+    do { *--p = (char)('0' + u % 10); u /= 10; } while (u);
+    if (v < 0) *--p = '-';
+    c_DlgSetText(dlg, id, p);
+}
+long RDEXPORT c_DlgGetInt(HWND dlg, WORD id, BOOL FAR *ok)
+{
+    char b[16]; WORD i = 0; long v = 0; int neg = 0, gut = 0;
+    c_DlgGetText(dlg, id, b, sizeof b);
+    while (b[i] == ' ') i++;
+    if (b[i] == '-') { neg = 1; i++; }
+    for (; b[i] >= '0' && b[i] <= '9'; i++) { v = v * 10 + (b[i] - '0'); gut = 1; }
+    while (b[i] == ' ') i++;
+    if (b[i]) gut = 0;
+    if (ok) *ok = gut;
+    return neg ? -v : v;
+}
+void RDEXPORT c_DlgCheck(HWND dlg, WORD id, WORD an) { HWND c = c_DlgItem(dlg, id); if (c) { if (an && TYP(c) == T_RADIO) SendMessage(c, C_CLICK, 0, 0); else SendMessage(c, C_SETCHECK, an, 0); } }
+WORD RDEXPORT c_DlgChecked(HWND dlg, WORD id) { HWND c = c_DlgItem(dlg, id); return c ? (WORD)SendMessage(c, C_GETCHECK, 0, 0) : 0; }
+
+/* ---- MsgBox: Vorlage im Speicher bauen ---------------------------------------------- */
+static BYTE FAR *put(BYTE FAR *p, LPCSTR s) { do *p++ = *s; while (*s++); return p; }
+static BYTE FAR *elem(BYTE FAR *p, LPCSTR kl, LPCSTR tx, WORD id, short x, short y, short w, short h, DWORD st)
+{
+    short FAR *q;
+    p = put(p, kl); p = put(p, tx); q = (short FAR *)p;
+    q[0] = (short)id; q[1] = x; q[2] = y; q[3] = w; q[4] = h; *(DWORD FAR *)(q + 5) = st;
+    return (BYTE FAR *)(q + 7);
+}
+short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
+{
+    HMEM hm; BYTE FAR *v, FAR *p; short FAR *q; HDC d; short cw, tw, zw, zeilen, w, h, bx, n, i; LPCSTR s;
+    static const WORD knr[4][3] = { { 2, 0, 0 }, { 2, 3, 0 }, { 4, 5, 3 }, { 4, 5, 0 } };   /* Texte in DE.LNG */
+    static const WORD kid[4][3] = { { ID_OK, 0, 0 }, { ID_OK, ID_CANCEL, 0 }, { ID_YES, ID_NO, ID_CANCEL }, { ID_YES, ID_NO, 0 } };
+    WORD art = (fl & 7) == MB_YESNO ? 3 : (fl & 7) == MB_YESNOCANCEL ? 2 : (fl & 7) == MB_OKCANCEL ? 1 : 0;
+    char kt[3][16]; short erg;
+    if (!text) text = "";
+    if (!(d = GetDC(0))) return -1;
+    cw = TextWidth(d, "0", 1); tw = TextWidth(d, text, -1);
+    ReleaseDC(0, d);
+    zw = (short)(48 * 4);                          /* hoechstens 48 Zeichen je Zeile (Dialogeinheiten) */
+    zeilen = (short)((long)tw * 4 / cw / zw + 1);
+    for (s = text; *s; s++) if (*s == '\n') zeilen++;
+    w = (short)((long)tw * 4 / cw); if (w > zw) w = zw;
+    n = kid[art][2] ? 3 : kid[art][1] ? 2 : 1;
+    if (w < n * 48 - 8) w = (short)(n * 48 - 8);
+    w += 16; h = (short)(zeilen * 8 + 34);
+    if (!(hm = MemAlloc(512, MEM_MOVABLE))) return -1;
+    v = (BYTE FAR *)MemLock(hm);
+    *(DWORD FAR *)v = 0; q = (short FAR *)(v + 4); q[0] = q[1] = 0; q[2] = w; q[3] = h; q[4] = (short)(n + 1);
+    p = put(v + 14, titel ? titel : StrGet(0, (fl & 0xF0) == MB_ERROR ? 6 : 1));
+    p = elem(p, CL_STATIC, text, 0xFFFF, 8, 6, (short)(w - 16), (short)(zeilen * 8), 0);
+    bx = (short)((w - (n * 48 - 8)) / 2);
+    for (i = 0; i < n; i++) {
+        LPCSTR t = StrGet(0, knr[art][i]); WORD j;
+        for (j = 0; j < 15 && t && t[j]; j++) kt[i][j] = t[j];
+        kt[i][j] = 0;
+        p = elem(p, CL_BUTTON, kt[i], kid[art][i], (short)(bx + i * 48), (short)(h - 18), 40, 14, i == 0 ? ES_DEFAULT : 0);
+    }
+    erg = lauf(0, v, owner, 0, 0);
+    MemUnlock(hm); MemFree(hm);
+    return erg;
+}
+
+static void RDEXPORT c_ende(void) { }
+#define C(n) (FARPROC)c_##n
+/* Exporte: 1 = Ende, 2 + (API - 0x2C0) bis 0x2DF (CtlInit), dann 0x22.. die Klassen */
+static struct { WORD n; FARPROC f[0x28]; } ext = { 0x28, {
+    C(ende), C(DialogRun), C(DialogEnd), C(DlgItem), C(DlgSetText), C(DlgGetText), C(DlgSetInt), C(DlgGetInt),
+    C(DlgCheck), C(DlgChecked), 0, 0, 0, 0, 0, 0,
+    0, C(MsgBox), 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    C(CtlInit), C(Button), C(Check), C(Radio), C(Static), C(Group), C(Edit), C(Dialog),
+} };
+void FAR * RDAPI RdModInit(void) { return &ext; }

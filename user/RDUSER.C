@@ -103,20 +103,23 @@ static WORD top(WORD i) { while (i && w_[i].parent) i = w_[i].parent; return i; 
 static int sichtbar(WORD i) { for (; i; i = w_[i].parent) if (!w_[i].vis) return 0; return 1; }
 
 /* ---- sichtbare Flaeche ----------------------------------------------------------- */
-static RECT vt[MAXCLIP * 2];
+static RECT vt[MAXCLIP];
+static BYTE kmod, ueber;                          /* kmod: Kinder abziehen; ueber: dabei Liste voll */
 static WORD minus(RECT *v, WORD n, const RECT *b)  /* b aus der Liste schneiden */
 {
     WORD i, k = 0; RECT a, s;
     for (i = 0; i < n; i++) {
         a = v[i];
         if (b->l >= a.r || b->r <= a.l || b->t >= a.b || b->b <= a.t) { vt[k++] = a; continue; }
-        if (k + 4 > MAXCLIP * 2) { vt[k++] = a; continue; }   /* voll: lieber zu viel zeichnen */
+        if (k + 4 + (n - i - 1) > MAXCLIP) {    /* voll: ueber Kinder zeichnen (die zeichnen danach neu), sonst weglassen */
+            if (kmod) { vt[k++] = a; ueber = 1; }
+            continue;
+        }
         if (b->t > a.t) { s = a; s.b = b->t; vt[k++] = s; a.t = b->t; }
         if (b->b < a.b) { s = a; s.t = b->b; vt[k++] = s; a.b = b->b; }
         if (b->l > a.l) { s = a; s.r = b->l; vt[k++] = s; }
         if (b->r < a.r) { s = a; s.l = b->r; vt[k++] = s; }
     }
-    if (k > MAXCLIP) k = MAXCLIP;
     for (i = 0; i < k; i++) v[i] = vt[i];
     return k;
 }
@@ -139,9 +142,12 @@ static WORD vis(WORD i, int client, RECT *v)
             if (w_[j].vis) { wrect(j, &c); if (!(n = minus(v, n, &c))) return 0; }
         if (!w_[p].parent) break;
     }
-    if (!i || client)
+    if (!i || client) {
+        kmod = 1;
         for (j = w_[i].child; j; j = w_[j].next)
-            if (w_[j].vis) { wrect(j, &c); if (!(n = minus(v, n, &c))) return 0; }
+            if (w_[j].vis) { wrect(j, &c); if (!(n = minus(v, n, &c))) break; }
+        kmod = 0;
+    }
     return n;
 }
 
@@ -299,7 +305,7 @@ WORD RDEXPORT u_RegisterClass(const WNDCLASS FAR *wc)
     if ((k = klasse(wc->name)) != 0) { if (kl[k - 1].task != (BYTE)TaskSelf()) { SetLastError(RD_ERR_BUSY); return 0; } k--; }
     else { for (k = 0; k < MAXCL && kl[k].name[0]; k++) ; if (k == MAXCL) { SetLastError(RD_ERR_FULL); return 0; } }
     scpy(kl[k].name, wc->name, 16); kl[k].proc = wc->proc; kl[k].stil = wc->stil; kl[k].inst = wc->inst;
-    kl[k].hinter = wc->hinter; kl[k].task = (BYTE)TaskSelf(); kl[k].intern = 0;
+    kl[k].hinter = wc->hinter; kl[k].task = (wc->stil & CS_SYSTEM) ? 0xFF : (BYTE)TaskSelf(); kl[k].intern = 0;
     return k + 1;
 }
 static void link(WORD i, WORD p)                  /* ganz oben einhaengen */
@@ -316,6 +322,7 @@ static void unlink(WORD i)
 HWND RDEXPORT u_CreateWindow(LPCSTR kn, LPCSTR titel_, DWORD stil, short x, short y, short b, short h, HWND eltern, WORD id, HINST inst)
 {
     WORD k = klasse(kn), i, p = 0; WND *w;
+    if (!k) { CtlInit(); k = klasse(kn); }   /* Standardklassen: RDCTL meldet sie an */
     if (!k) { SetLastError(RD_ERR_NOTFOUND); return 0; }
     if (!schirm_()) return 0;
     if (eltern && !(p = idx(eltern))) return bad();
@@ -452,8 +459,9 @@ HDC RDEXPORT u_BeginPaint(HWND h, PAINT FAR *ps)
     w_[i].flags &= ~F_PAINTQ;
     a = w_[i].inv; ps->neu = a; ps->loeschen = TRUE;
     { short x, y; org(i, &x, &y); off(&a, x, y); }
-    d = ndc(i, 1, &a);
+    ueber = 0; d = ndc(i, 1, &a);
     ps->dc = d;
+    if (ueber) { WORD j; for (j = w_[i].child; j; j = w_[j].next) if (w_[j].vis) inval(j, 0, 1); }   /* uebermalt: neu zeichnen */
     if (d && (w_[i].flags & F_ERASE)) { a = w_[i].inv; hinter(i, d, &a); }
     w_[i].inv.l = w_[i].inv.r = 0; w_[i].inv.t = w_[i].inv.b = 0; w_[i].flags &= ~F_ERASE;
     return d;
@@ -548,6 +556,15 @@ HWND RDEXPORT u_CaptureMouse(HWND h) { WORD alt = cap; cap = (BYTE)idx(h); retur
 void RDEXPORT u_ReleaseMouse(void) { cap = 0; }
 
 /* ---- Nachrichten ---------------------------------------------------------------- */
+HWND RDEXPORT u_GetChild(HWND h, HWND nach)
+{
+    WORD p = h ? idx(h) : 0, c;
+    if (h && !p) return (HWND)bad();
+    c = nach ? idx(nach) : 0;
+    if (nach && (!c || w_[c].parent != p)) return (HWND)bad();
+    c = c ? w_[c].next : w_[p].child;
+    return c ? hw(c) : 0;
+}
 DWORD RDEXPORT u_SendMessage(HWND h, WORD m, WORD p1, DWORD p2)
 {
     WORD i = idx(h);
@@ -1097,6 +1114,7 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
             m->w = hw(act); m->msg = M_NCBUTTONDOWN; m->p1 = 1; return w_[act].task;
         }
         if (!(i = bei(0, x, y))) return 0;        /* Schreibtisch: spaeter die Shell */
+        for (j = i; j; j = w_[j].parent) if (w_[j].dis) return 0;   /* gesperrt (auch Eltern, z. B. unter einem Dialog) */
         crect(i, &r);
         if (x < r.l || x >= r.r || y < r.t || y >= r.b) {
             if (msg != M_BUTTONDOWN) return 0;
@@ -1113,7 +1131,6 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
             if (t && y < r.t + b + t) m->p1 = (w_[i].stil & WS_CLOSE) && x < r.l + b + t ? HT_CLOSE : HT_TITLE;
             m->w = hw(i); return w_[i].task;
         }
-        if (w_[i].dis) return 0;
     }
     org(i, &x, &y);
     m->p2 = MAKELONG(m->pt.x - x, m->pt.y - y);
@@ -1144,7 +1161,7 @@ static struct { WORD n; FARPROC f[72]; } ext = { 72, {
     U(ende), U(RegisterClass), U(CreateWindow), U(DestroyWindow), U(ShowWindow), U(MoveWindow), U(SetWindowText), U(GetWindowText),
     U(GetClientRect), U(GetWindowRect), U(InvalidateRect), U(ValidateRect), U(UpdateWindow), U(BeginPaint), U(EndPaint), U(GetDC),
     U(ReleaseDC), U(SetFocus), U(GetFocus), U(SetActive), U(GetActive), U(DefWindowProc), U(SetWindowData), U(GetWindowData),
-    U(GetParent), U(WindowFromPoint), U(ClientToScreen), U(ScreenToClient), U(IsWindow), U(EnableWindow), U(ScrollWindow), 0,
+    U(GetParent), U(WindowFromPoint), U(ClientToScreen), U(ScreenToClient), U(IsWindow), U(EnableWindow), U(ScrollWindow), U(GetChild),
     0, U(ScrollSet), U(ScrollGet), 0, 0, 0, 0, 0,
     0, U(CaptureMouse), U(ReleaseMouse), U(CursorSet), U(CursorBusy), U(CursorPos), 0, 0,
     0, U(MenuLoad), U(MenuSet), U(MenuCheck), U(MenuEnable), U(MenuFree), U(MenuPopup), U(MenuText),

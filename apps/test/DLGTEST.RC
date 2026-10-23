@@ -1,0 +1,13 @@
+; Ressourcen fuer DLGTEST.EXE
+SPRACHE ALLE
+DIALOG 10 "Einstellungen" 0 0 200 100
+  STATIC   "&Name:"     -1   8  10  40 10
+  EDIT                  20  50   8 140 12
+  CHECK    "&Ton"       21   8  26  80 10 AN
+  GROUP    "Anzeige"    -1   8  40 110 34
+  RADIO    "&Klein"     31  14  50  90 10 AN
+  RADIO    "&Gross"     32  14  61  90 10
+  STATIC   "Ein Text, der in zwei Zeilen umbricht." -1 124 44 70 20
+  BUTTON   "OK"          1  40  80  50 14 STANDARD
+  BUTTON   "Abbruch"     2 110  80  50 14
+ENDE

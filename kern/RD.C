@@ -64,7 +64,7 @@ WORD RDK KernInfo(SYSINFO FAR *si)
 
 int main(int argc, char **argv)
 {
-    WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0;
+    WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0, ctl = 0;
     static const WORD kx[] = { 2, RDO_TimeGet, 3, RDO_TimeSet, 4, RDO_LangGet, 5, RDO_ResLoad, 6, RDO_ResFree,
                                7, RDO_StrLoad, 8, RDO_StrGet, 9, RDO_DbgBreak,
                                10, RDO_BmpLoad, 11, RDO_BmpLoadFile, 12, RDO_IconDraw, 0 };
@@ -137,6 +137,7 @@ int main(int argc, char **argv)
     if (gdi && (user = k_sysmod("RDUSER.MOD", 0x200, 0x42, ux)) != 0) {   /* Oberflaeche: Fenster, Eingabe */
         ((void (__far __pascal *)(void __far *, void __far *, void __far *))k_modraw(user, 0x45))(k_modraw(gdi, 0x3C + 7), k_modraw(gdi, 0x3C + 8), k_modraw(gdi, 0x3C + 1));
         k_wnd = (DWORD (__far __pascal *)(WORD, HWND, WORD, WORD, DWORD))k_modraw(user, 0x44);
+        ctl = k_sysmod("RDCTL.MOD", 0x2C0, 0x20, 0);      /* Steuerelemente, Dialoge (verwerfbar) */
     }
     k_hex("RD: Speicher frei", vor, 1);
     k_hex("RD: CPU", k_cpu, 1);
@@ -150,6 +151,7 @@ int main(int argc, char **argv)
     clip_done();                                  /* Zwischenablage gehoert dem Kern */
     rd_timer_off();
     k_mausget = 0; k_gdipause = 0; k_wnd = 0;
+    k_sysend(ctl);
     k_sysend(user);
     k_sysend(gdi);                                /* zurueck in den Textmodus, Maus aus */
     k_sysend(kxm);

@@ -185,6 +185,7 @@ RDF(0x21A, void,    ScreenToClient, (HWND w, POINT FAR *p))
 RDF(0x21B, BOOL,    IsWindow,       (HWND w))
 RDF(0x21C, void,    EnableWindow,   (HWND w, BOOL an))
 RDF(0x21D, void,    ScrollWindow,   (HWND w, short dx, short dy, const RECT FAR *r))
+RDF(0x21E, HWND,    GetChild,       (HWND eltern, HWND nach))     /* naechstes Kind (oberstes zuerst), nach 0 = erstes */
 RDF(0x220, void,    ScrollSet,      (HWND w, WORD balken, short pos, short max, short seite)) /* SB_* */
 RDF(0x221, short,   ScrollGet,      (HWND w, WORD balken))
 RDF(0x228, HWND,    CaptureMouse,   (HWND w))
@@ -215,6 +216,7 @@ RDF(0x2D0, short,   MsgBox,         (HWND owner, LPCSTR text, LPCSTR titel, WORD
 RDF(0x2D1, BOOL,    FileDialog,     (HWND owner, FILEDLG FAR *fd))
 RDF(0x2D2, BOOL,    InputBox,       (HWND owner, LPCSTR frage, LPCSTR titel, LPSTR buf, WORD len))
 RDF(0x2D3, BOOL,    HelpShow,       (HWND owner, LPCSTR datei, WORD thema)) /* F1-Hilfe */
+RDF(0x2DF, void,    CtlInit,        (void))                       /* intern: Standardklassen anmelden (RDUSER) */
 
 /* ---- Sound (RDSND) -------------------------------------------------------- */
 RDF(0x300, WORD,    SndCaps,        (void))                       /* SC_* */
