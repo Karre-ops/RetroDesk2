@@ -777,13 +777,13 @@ WORD RDEXPORT g_GfxSelect(WORD typ)
  * Zeichensatz: Codepage 437. */
 #define MAXPF 4
 #define MAXLF 12
-typedef struct { BYTE used, refs; HMEM m; char datei[13]; } PFONT;
+typedef struct { BYTE used, refs; HMEM m; BYTE FAR *p; char datei[13]; } PFONT;   /* p: dauerhaft gesperrt */
 typedef struct { BYTE used, refs, pf; WORD stil; } LFONT;
 static PFONT pfs[MAXPF];
 static LFONT lfs[MAXLF + 1];                       /* HFONT 1..MAXLF */
 static HFONT sysf;
 static BYTE FAR *fp, FAR *fbr, FAR *fdat; static WORD FAR *fof;
-static WORD fober, ferst, fletzt, fstil; static HMEM fm;
+static WORD fober, ferst, fletzt, fstil; static HFONT flast;   /* flast: zuletzt eingestellte Schrift */
 #define TBZ 8                                     /* Zeilen je Treiberaufruf */
 static BYTE tb[RB * TBZ];
 static char fpfad[80];
@@ -807,15 +807,14 @@ static WORD pfload(const char *datei)              /* Index + 1, 0 = Fehler */
     if (n != (WORD)len || p[0] != 'R' || p[1] != 'D' || p[2] != 'F' || p[3] != '1' || p[12] < p[11] || !*(WORD FAR *)(p + 4)) {
         MemUnlock(m); MemFree(m); SetLastError(RD_ERR_FORMAT); return 0;
     }
-    MemUnlock(m);
-    pfs[i].used = 1; pfs[i].refs = 1; pfs[i].m = m;
+    pfs[i].used = 1; pfs[i].refs = 1; pfs[i].m = m; pfs[i].p = p;   /* bleibt gesperrt: kein Sperren je Textaufruf */
     for (q = datei, k = 0; *q && k < 12; ) pfs[i].datei[k++] = *q++;
     pfs[i].datei[k] = 0;
     return i + 1;
 }
 static void pffree(WORD i)
 {
-    if (i && pfs[i - 1].used && !--pfs[i - 1].refs) { MemFree(pfs[i - 1].m); pfs[i - 1].used = 0; }
+    if (i && pfs[i - 1].used && !--pfs[i - 1].refs) { MemFree(pfs[i - 1].m); pfs[i - 1].used = 0; flast = 0; }
 }
 
 HFONT RDEXPORT g_FontLoad(LPCSTR name, WORD hoehe, WORD stil)
@@ -842,7 +841,7 @@ HFONT RDEXPORT g_FontLoad(LPCSTR name, WORD hoehe, WORD stil)
 void RDEXPORT g_FontFree(HFONT f)
 {
     if (f < 1 || f > MAXLF || !lfs[f].used || f == sysf) return;
-    if (!--lfs[f].refs) { pffree(lfs[f].pf); lfs[f].used = 0; }
+    if (!--lfs[f].refs) { pffree(lfs[f].pf); lfs[f].used = 0; flast = 0; }
 }
 static HFONT sysfont(void)
 {
@@ -854,15 +853,16 @@ static int flock(HFONT f)
     WORD n;
     if (f < 1 || f > MAXLF || !lfs[f].used) f = sysfont();
     if (!f) return 0;
-    fm = pfs[lfs[f].pf - 1].m;
-    if (!(fp = (BYTE FAR *)MemLock(fm))) return 0;
+    if (f == flast) return 1;                     /* Normalfall: dieselbe Schrift wie zuletzt */
+    fp = pfs[lfs[f].pf - 1].p;
     fh = *(WORD FAR *)(fp + 4); fober = *(WORD FAR *)(fp + 6);
     fstil = lfs[f].stil; ferst = fp[11]; fletzt = fp[12];
     n = fletzt - ferst + 1;
     fbr = fp + 27; fof = (WORD FAR *)(fp + 27 + n); fdat = fp + 27 + 3 * n;
+    flast = f;
     return 1;
 }
-static void funlock(void) { MemUnlock(fm); }
+#define funlock()
 static WORD gidx(BYTE c)                          /* Zeichen -> Index, fehlende als '?' */
 {
     if (c < ferst || c > fletzt) c = '?';
@@ -886,29 +886,125 @@ static WORD go[MAXBW / 8 + 2]; static BYTE gw[MAXBW / 8 + 2];
 void sammeln(BYTE *t, const WORD *o, const BYTE __far *z, WORD n);
 #pragma aux sammeln = "g1: lodsw" "mov bx,ax" "add bx,dx" "mov al,es:[bx]" "mov [di],al" "inc di" "loop g1" \
     parm [di] [si] [es dx] [cx] modify [ax bx cx si di]
+/* Spaltenweise: fuer jedes Zeichen 2 * s_cnt Zeilen (paarweise, eine Zeile mehr ist harmlos) seiner Glyphe (Versatz s_o[i] + s_z0 im
+   Segment s_seg) untereinander nach s_t (Abstand s_nb), danach eine Fuellspalte. Mit s_inv
+   invertiert, dann kann der Treiber schlicht kopieren (rep movsw). Ein Aufruf je Treiberblock. */
+static WORD *s_o, s_n, s_seg, s_z0, s_nb, s_cnt, s_inv; static BYTE *s_t;
+static void spalten(void)
+{
+    _asm {
+        push si
+        push di
+        push ds
+        push es
+        push bp
+        cld
+        mov  ax, ds
+        mov  es, ax
+        mov  bx, s_o
+        mov  di, s_t
+        mov  cx, s_n
+        mov  dx, s_nb
+        dec  dx
+        mov  bp, s_z0
+        mov  ah, byte ptr s_cnt
+        cmp  s_inv, 0
+        mov  si, s_seg
+        mov  ds, si
+        jne  vi
+    v1: mov  si, es:[bx]
+        add  bx, 2
+        add  si, bp
+        push di
+        mov  ch, ah
+    v2: movsb
+        add  di, dx
+        movsb
+        add  di, dx
+        dec  ch
+        jnz  v2
+        pop  di
+        inc  di
+        dec  cl
+        jnz  v1
+        xor  al, al
+        jmp  vz
+    vi: mov  si, es:[bx]
+        add  bx, 2
+        add  si, bp
+        push di
+        mov  ch, ah
+    v3: lodsb
+        not  al
+        stosb
+        add  di, dx
+        lodsb
+        not  al
+        stosb
+        add  di, dx
+        dec  ch
+        jnz  v3
+        pop  di
+        inc  di
+        dec  cl
+        jnz  vi
+        mov  al, 0FFh
+    vz: mov  ch, ah
+    v4: stosb
+        add  di, dx
+        stosb
+        add  di, dx
+        dec  ch
+        jnz  v4
+        pop  bp
+        pop  es
+        pop  ds
+        pop  di
+        pop  si
+    }
+}
 static void tzeile(short x, short y, LPCSTR s, WORD n)
 {
     WORD tw = 0, i, r, k, nb, rop = cd->rop, fg = txtb, bg = bkb, fett = (fstil & FS_BOLD) ? 1 : 0, schnell;
     const BYTE FAR *fd = fdat;
     if (n > MAXBW / 8) n = MAXBW / 8;
-    for (i = 0; i < n; i++) {
-        WORD g = gidx((BYTE)s[i]), w = fbr[g];
-        if (tw + w + fett > MAXBW - 16) break;
-        go[i] = fof[g]; gw[i] = (BYTE)w; tw += w + fett;
-    }
-    n = i;
-    if (fstil & FS_ITALIC) tw += (fh - 1) / 4;
-    if (!tw) return;
     schnell = !(fstil & (FS_BOLD | FS_ITALIC)) && fp[10] && fbr[0] == 8;
+    if (schnell) {                                /* feste 8er-Schrift: Breite steht fest, nur Versatz holen */
+        WORD e = ferst, sp = fletzt - e, q = gidx('?'), fo = FP_OFF(fd);
+        if (n > (MAXBW - 16) / 8) n = (MAXBW - 16) / 8;
+        for (i = 0; i < n; i++) { WORD c = (BYTE)s[i] - e; go[i] = fof[c <= sp ? c : q] + fo; }
+        tw = n << 3;
+    } else {
+        for (i = 0; i < n; i++) {
+            WORD g = gidx((BYTE)s[i]), w = fbr[g];
+            if (tw + w + fett > MAXBW - 16) break;
+            go[i] = fof[g]; gw[i] = (BYTE)w; tw += w + fett;
+        }
+        n = i;
+        if (fstil & FS_ITALIC) tw += (fh - 1) / 4;
+    }
+    if (!tw) return;
     nb = ((tw + 7) >> 3) + 1;
     if (cd->bkmode == BK_TRANSPARENT) {
         if (rop == ROP_COPY) rop = ROP_MASK;
         else { fg = (rop == ROP_XOR || rop == ROP_NOT) ? 1 : txtb; bg = rop == ROP_AND ? 1 : 0; }
     }
+    if (schnell && !(fstil & FS_UNDER)) {          /* Normalfall: ganze Bloecke in Assembler */
+        WORD zb = ((RB * TBZ) / nb) & ~1;         /* so viele Zeilen passen in tb (kurze Texte: alle), gerade */
+        s_inv = rop == ROP_COPY && !fg && bg && !(x & 7);   /* schwarz auf weiss, ausgerichtet: hier invertieren, Treiber kopiert */
+        if (s_inv) { fg = 1; bg = 0; }
+        s_o = go; s_n = n; s_seg = FP_SEG(fd); s_nb = nb; s_t = tb;
+        for (r = 0; r < fh; r += zb) {
+            k = fh - r < zb ? fh - r : zb; s_cnt = (k + 1) >> 1; s_z0 = r;
+            spalten();
+            crows((short)(y + r), x, (short)tw, (short)k, tb, nb, rop, (BYTE)fg, (BYTE)bg);
+        }
+        return;
+    }
     for (r = 0; r < fh; r++) {
         BYTE *t = tb + (r % TBZ) * nb;
         if (schnell) {
-            sammeln(t, go, fd + r, n);
+            sammeln(t, go, MK_FP(FP_SEG(fd), r), n);
             t[n] = 0;
         } else {
             WORD px = (fstil & FS_ITALIC) ? (fh - 1 - r) / 4 : 0;
@@ -1037,6 +1133,7 @@ void RDEXPORT g_Ende(void)
     if (xm) { ModFree(xm); xm = 0; for (i = 0; i < 5; i++) xf[i] = 0; }
     if (drv) { drv->textmode(); drv = 0; }
     for (i = 0; i < MAXPF; i++) if (pfs[i].used) { MemFree(pfs[i].m); pfs[i].used = 0; }
+    flast = 0;
     for (i = 1; i <= MAXLF; i++) lfs[i].used = 0;
     sysf = 0;
     if (drvmod) { ModFree(drvmod); drvmod = 0; }

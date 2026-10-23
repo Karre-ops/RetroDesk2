@@ -8,7 +8,7 @@ err = 0; lim = {}; ram = {}
 for line in open(os.path.join(D, "budget.txt"), encoding="latin-1"):
     t = line.split("#")[0].split()
     if len(t) >= 2: lim[t[0]] = int(t[1])
-    if len(t) >= 3 and t[2].isdigit(): ram[t[0]] = int(t[2])
+    if len(t) >= 3 and t[2].replace('.', '', 1).isdigit(): ram[t[0]] = float(t[2])   # KB, auch 18.5
 def speicher(p):                                  # belegte Bytes nach dem Laden, 0 = kein MZ
     h = open(p, "rb").read(28)
     if h[:2] != b"MZ": return 0
@@ -23,7 +23,7 @@ for name, mx in lim.items():
     ok = n <= mx; err += not ok
     m = speicher(p); belegt[name] = m; r = ram.get(name, 0)
     rok = not m or not r or m <= r * 1024; err += not rok
-    print(f"{'ok    ' if ok and rok else 'FEHLER'} {name:13} {n:7} / {mx:7} Bytes" + (f"   Speicher {m:6} / {r * 1024:6}" if m and r else ""))
+    print(f"{'ok    ' if ok and rok else 'FEHLER'} {name:13} {n:7} / {mx:7} Bytes" + (f"   Speicher {m:6} / {int(r * 1024):6}" if m and r else ""))
 for f in sorted(os.listdir(out)):
     if f.upper() == f and f not in lim and f.endswith((".EXE", ".MOD", ".DRV", ".FNT", ".LNG")):
         print(f"FEHLER {f:13} fehlt in budget.txt"); err += 1
