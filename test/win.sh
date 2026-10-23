@@ -16,7 +16,7 @@ timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,form
 QP=$!
 sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_win.py
 Q() { python3 obj/qmon_win.py "$@"; }
-waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null)" -ge "$2" ] && return 0; sleep 0.2; done; return 1; }
+waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 waitn "WINTEST: bild" 1 && sleep 0.5 && Q "screendump obj/win_cga.ppm" "pmemsave 0xb8000 16384 obj/win_cga.vram"
 waitn "WINTEST: bild" 2 && sleep 0.5 && Q "screendump obj/win_vga.ppm"
 wait $QP

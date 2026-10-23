@@ -23,6 +23,9 @@ typedef struct {
     HFONT font;
     short cx, cy;
 } DCX;
+/* Export 0x3C + 8: gemeinsame Daten RDGDI/RDUSER. kclip = 1 nach Clip-Aenderung, zb = Zeigerbild
+   (32 Bytes UND, 32 Bytes XOR), hx/hy = Hotspot. Neu zeigen: GetPixel am Zeiger (nimmt ihn weg, danach kommt er mit zb wieder) */
+typedef struct { BYTE kclip, zneu, hx, hy; const BYTE FAR *zb; } GK;
 typedef struct {
     short ox, oy;                                 /* Ursprung des DC */
     BYTE  brnone;                                 /* Pinsel "keiner" */

@@ -12,7 +12,7 @@
 #include "RD2.H"
 #include "../gdi/GDII.H"
 
-#define MAXW   48
+#define MAXW   40
 #define MAXCL  16
 #define NSLOT  6                                  /* gleichzeitig offene Fenster-DCs */
 #define F_PAINTQ 0x01                             /* M_PAINT eingestellt */
@@ -32,7 +32,6 @@ typedef struct {
     RECT  r, inv;
     WNDPROC proc;
     HMENU menu;
-    short sb[2][3];                               /* Rollbalken: pos, max, seite */
     DWORD data[4];
     char  text[32];
 } WND;
@@ -42,10 +41,12 @@ static WND w_[MAXW + 1];                          /* 0 = Wurzel (Schreibtisch) *
 static KLASSE kl[MAXCL];
 static BYTE act, foc, cap;                        /* Nummern, 0 = keines */
 static short sw, sh, mh, th;                      /* Schirm, Menueleiste, Titelzeile */
-static DCX FAR *dcs; static BYTE FAR *kclip;
+static DCX FAR *dcs; static GK FAR *gk;
 static HDC (FAR __pascal *gdc)(HWND);
 static struct { HDC dc; WORD n; RECT r[MAXCLIP]; } sl[NSLOT];
 static RECT lim; static BYTE limon;
+#define NSB 12                                    /* Fenster mit Rollbalken-Werten */
+static struct { BYTE w; short v[2][3]; } sbt[NSB]; /* v: pos, max, seite */
 static short bx[14]; static BYTE bn;              /* Menueleiste: Anfang je Titel, bx[bn] = Ende */               /* Aufdecken: nur hier zeichnen */
 
 void RDEXPORT u_ShowWindow(HWND h, WORD art);
@@ -163,13 +164,13 @@ static HDC ndc(WORD i, int client, const RECT *nur)   /* nur: zusaetzlich begren
     else if (i) { RECT w; wrect(i, &w); x = w.l; y = w.t; }
     else { x = 0; y = 0; }
     d->ox = x; d->oy = y; d->clip = (const RECT FAR *)sl[s].r; d->nclip = n;
-    *kclip = 1;
+    gk->kclip = 1;
     return h;
 }
 static void fdc(HDC h)
 {
     WORD s;
-    for (s = 0; s < NSLOT; s++) if (sl[s].dc == h) { sl[s].dc = 0; dcs[h - 1].nclip = 0; *kclip = 1; }
+    for (s = 0; s < NSLOT; s++) if (sl[s].dc == h) { sl[s].dc = 0; dcs[h - 1].nclip = 0; gk->kclip = 1; }
     DCFree(h);
 }
 
@@ -346,6 +347,7 @@ static void weg(WORD i, int melden)               /* samt Kindern, ohne Neuzeich
     if (cap == i) cap = 0;
     if (foc == i) foc = 0;
     unlink(i); w_[i].used = 0; w_[i].child = 0;
+    { WORD k; for (k = 0; k < NSB; k++) if (sbt[k].w == (BYTE)i) sbt[k].w = 0; }
 }
 static void neuaktiv(void)
 {
@@ -606,6 +608,16 @@ DWORD RDEXPORT u_DefWindowProc(HWND h, WORD m, WORD p1, DWORD p2)
 }
 /* ---- Rollbalken (SPEC.md 5) -------------------------------------------------------- */
 #define SBW 16                                    /* senkrechter Balken: Breite; waagrechter: Hoehe th */
+static short sb0[3];
+static short *sbw(WORD i, WORD bar, int neu)      /* Werte des Balkens, neu: Eintrag anlegen */
+{
+    WORD k, f = NSB;
+    for (k = 0; k < NSB; k++) { if (sbt[k].w == (BYTE)i) return sbt[k].v[bar]; if (!sbt[k].w && f == NSB) f = k; }
+    if (!neu || f == NSB) { sb0[0] = sb0[1] = sb0[2] = 0; return sb0; }
+    sbt[f].w = (BYTE)i;
+    for (k = 0; k < 6; k++) (&sbt[f].v[0][0])[k] = 0;
+    return sbt[f].v[bar];
+}
 static void sbrect(WORD i, WORD bar, RECT *r)     /* Fensterkoordinaten */
 {
     short b = rand_(i), t = titel(i), wd = w_[i].r.r - w_[i].r.l, ht = w_[i].r.b - w_[i].r.t;
@@ -616,7 +628,7 @@ static void sbrect(WORD i, WORD bar, RECT *r)     /* Fensterkoordinaten */
 /* Teile entlang des Balkens: a = Pfeillaenge, Daumen von d0 bis d1 (relativ zum Anfang), len gesamt */
 static void sbteile(WORD i, WORD bar, short *a, short *len, short *d0, short *d1)
 {
-    RECT r; short *s = w_[i].sb[bar], spur, dl;
+    RECT r; short *s = sbw(i, bar, 0), spur, dl;
     sbrect(i, bar, &r);
     *len = bar == SB_VERT ? r.b - r.t : r.r - r.l;
     *a = bar == SB_VERT ? (th < SBW ? th : SBW) : SBW;
@@ -663,12 +675,13 @@ void RDEXPORT u_ScrollSet(HWND h, WORD bar, short pos, short max, short seite)
     if (!i || bar > SB_VERT) { bad(); return; }
     if (max < 0) max = 0;
     if (pos > max) pos = max; if (pos < 0) pos = 0;
-    s = w_[i].sb[bar];
+    s = sbw(i, bar, 1);
+    if (s == sb0) { SetLastError(RD_ERR_FULL); return; }
     if (s[0] == pos && s[1] == max && s[2] == seite) return;
     s[0] = pos; s[1] = max; s[2] = seite;
     sbneu(i, bar);
 }
-short RDEXPORT u_ScrollGet(HWND h, WORD bar) { WORD i = idx(h); if (!i || bar > SB_VERT) return (short)bad(); return w_[i].sb[bar][0]; }
+short RDEXPORT u_ScrollGet(HWND h, WORD bar) { WORD i = idx(h); if (!i || bar > SB_VERT) return (short)bad(); return sbw(i, bar, 0)[0]; }
 static void sbklick(WORD i, WORD bar, short x, short y)   /* Bildschirmkoordinaten */
 {
     RECT r, w; short a, len, d0, d1, p, code, alt, neu, start; MSG m; DWORD t0, warte = 400; HDC d;
@@ -676,7 +689,7 @@ static void sbklick(WORD i, WORD bar, short x, short y)   /* Bildschirmkoordinat
     sbteile(i, bar, &a, &len, &d0, &d1);
     p = bar == SB_VERT ? y - r.t : x - r.l;
     if (p >= d0 && p < d1 && d1 > d0) {           /* Daumen ziehen: Umriss folgt, Wert beim Loslassen */
-        RECT q = r; short pos = w_[i].sb[bar][0], spur = len - 2 * a - (d1 - d0);
+        RECT q = r; short pos = sbw(i, bar, 0)[0], spur = len - 2 * a - (d1 - d0);
         if (!(d = gdc(0))) return;
         SetRop(d, ROP_XOR); SetPen(d, C_WHITE); start = p; alt = d0;
         if (bar == SB_VERT) { q.t = r.t + d0; q.b = r.t + d1; } else { q.l = r.l + d0; q.r = r.l + d1; }
@@ -696,13 +709,13 @@ static void sbklick(WORD i, WORD bar, short x, short y)   /* Bildschirmkoordinat
             } else if (m.msg != M_BUTTONDOWN && m.msg != M_KEY) u_DispatchMessage(&m);
         }
         cap = 0; DCFree(d);
-        if (spur > 0) pos = (short)(((long)(alt - a) * w_[i].sb[bar][1] + spur / 2) / spur);
+        if (spur > 0) pos = (short)(((long)(alt - a) * sbw(i, bar, 0)[1] + spur / 2) / spur);
         sendi(i, M_SCROLL, SB_THUMB, MAKELONG(pos, bar));
         return;
     }
     code = p < a ? SB_LINEUP : p >= len - a ? SB_LINEDOWN : p < d0 ? SB_PAGEUP : SB_PAGEDOWN;
     cap = (BYTE)i;
-    sendi(i, M_SCROLL, code, MAKELONG(w_[i].sb[bar][0], bar));
+    sendi(i, M_SCROLL, code, MAKELONG(sbw(i, bar, 0)[0], bar));
     for (t0 = TickCount(); idx(hw(i)); ) {        /* gedrueckt halten: wiederholen */
         if (PeekMessage(&m, TRUE)) {
             if (m.msg == M_BUTTONUP) break;
@@ -710,7 +723,7 @@ static void sbklick(WORD i, WORD bar, short x, short y)   /* Bildschirmkoordinat
             if (m.msg == M_QUIT) { PostQuit(0); break; }
             continue;
         }
-        if (TickCount() - t0 >= warte) { t0 = TickCount(); warte = 80; sendi(i, M_SCROLL, code, MAKELONG(w_[i].sb[bar][0], bar)); }
+        if (TickCount() - t0 >= warte) { t0 = TickCount(); warte = 80; sendi(i, M_SCROLL, code, MAKELONG(sbw(i, bar, 0)[0], bar)); }
         else TaskYield();
     }
     cap = 0;
@@ -986,6 +999,71 @@ WORD RDEXPORT u_MsgRegister(LPCSTR name)          /* ab 0xC000, gleicher Name = 
 /* ---- Kern-Haken ----------------------------------------------------------------- */
 /* Art 0: Task des Fensters. Art 2: Eingabe zuordnen (p2 = MSG FAR *), 0xFFFF = wie ohne RDUSER.
    Art 3: Task w ist beendet. */
+/* ---- Mauszeiger: Form je Programm (Bit 7 = beschaeftigt), gilt ueber dessen Fenstern ------- */
+static const BYTE zbild[4][66] = {   /* CUR_WAIT, CUR_TEXT, CUR_CROSS, CUR_HAND: Hotspot x, y, UND, XOR */
+    { 7, 7, 0x00,0x03,0x00,0x03,0x80,0x07,0x80,0x07,0xC0,0x0F,0xE0,0x1F,0xF0,0x3F,0xF8,0x7F,0xF8,0x7F,0xF0,0x3F,0xE0,0x1F,0xC0,0x0F,0x80,0x07,0x80,0x07,0x00,0x03,0x00,0x03,0x00,0x00,0x7F,0xF8,0x3F,0xF0,0x3F,0xF0,0x18,0x60,0x0C,0xC0,0x07,0x80,0x03,0x00,0x03,0x00,0x06,0x80,0x0F,0xC0,0x1C,0xE0,0x30,0x30,0x20,0x10,0x7F,0xF8,0x00,0x00 },   /* WAIT */
+    { 4, 8, 0x11,0xFF,0x01,0xFF,0x83,0xFF,0xEF,0xFF,0xEF,0xFF,0xEF,0xFF,0xEF,0xFF,0xEF,0xFF,0xEF,0xFF,0xEF,0xFF,0xEF,0xFF,0xEF,0xFF,0xEF,0xFF,0x83,0xFF,0x01,0xFF,0x11,0xFF,0x00,0x00,0x6C,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x10,0x00,0x6C,0x00,0x00,0x00 },   /* TEXT */
+    { 7, 7, 0xFC,0x7F,0xFC,0x7F,0xFC,0x7F,0xFC,0x7F,0xFC,0x7F,0xFC,0x7F,0x00,0x01,0x00,0x01,0x00,0x01,0xFC,0x7F,0xFC,0x7F,0xFC,0x7F,0xFC,0x7F,0xFC,0x7F,0xFC,0x7F,0xFF,0xFF,0x00,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x7F,0xFC,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x00,0x00,0x00,0x00 },   /* CROSS */
+    { 5, 0, 0xF3,0xFF,0xE1,0xFF,0xE1,0xFF,0xE0,0x7F,0xE0,0x0F,0xE0,0x03,0x80,0x01,0x00,0x01,0x00,0x01,0x80,0x01,0x80,0x03,0xC0,0x03,0xC0,0x07,0xE0,0x07,0xE0,0x07,0xE0,0x07,0x00,0x00,0x0C,0x00,0x0C,0x00,0x0C,0x00,0x0D,0x80,0x0D,0xB0,0x0D,0xB4,0x6F,0xFC,0x7F,0xFC,0x3F,0xFC,0x3F,0xF8,0x1F,0xF8,0x1F,0xF0,0x0F,0xF0,0x0F,0xF0,0x00,0x00 },   /* HAND */
+};
+static const BYTE FAR *pfeil0;                   /* Pfeil aus RDGDI */
+static BYTE tz[16], zakt, zeig[66], zeigt;        /* zeig: eigene Form (Ressource RT_CURSOR), zeigt = Programm */
+static short mpx, mpy;
+static BYTE zwo(short x, short y)                 /* Form fuer den Punkt */
+{
+    WORD z = cap ? cap : y < mh ? 0 : bei(0, x, y); BYTE f; RECT r;
+    if (!z || w_[z].task >= 16) return 0;
+    f = tz[w_[z].task]; crect(z, &r);
+    if (f & 0x80) return CUR_WAIT;
+    return x < r.l || x >= r.r || y < r.t || y >= r.b ? 0 : f;
+}
+void cli_(void);
+#pragma aux cli_ = "cli"
+void sti_(void);
+#pragma aux sti_ = "sti"
+static int zform(BYTE k)                          /* 1 = geaendert */
+{
+    const BYTE FAR *b;
+    if (k == zakt) return 0;
+    zakt = k;
+    cli_();
+    if (!k) { gk->hx = gk->hy = 0; gk->zb = pfeil0; }
+    else { b = k == 5 ? zeig : zbild[k - 1]; gk->hx = b[0]; gk->hy = b[1]; gk->zb = b + 2; }
+    sti_();
+    return 1;
+}
+static void zjetzt(void)                          /* aus einem API-Aufruf: gleich neu zeigen */
+{
+    HDC d;
+    if (zform(zwo(mpx, mpy)) && (d = gdc(0)) != 0) { GetPixel(d, mpx, mpy); DCFree(d); }
+}
+void RDEXPORT u_CursorSet(HINST inst, WORD id)
+{
+    WORD t = TaskSelf(), k; BYTE f = 0; HMEM r; BYTE FAR *p;
+    if (t >= 16) return;
+    if (inst) {
+        if (!(r = ResLoad(inst, RT_CURSOR, id))) return;
+        if ((p = (BYTE FAR *)MemLock(r)) != 0 && MemSize(r) >= 66) {
+            if (zakt == 5) zform(0);
+            for (k = 0; k < 66; k++) zeig[k] = p[k];
+            zeigt = (BYTE)t; f = 5;
+        } else SetLastError(RD_ERR_FORMAT);
+        if (p) MemUnlock(r);
+        ResFree(r);
+        if (!f) return;
+    } else f = id <= CUR_HAND ? (BYTE)id : 0;
+    tz[t] = (BYTE)((tz[t] & 0x80) | f);
+    zakt = 0xFF; zjetzt();
+}
+void RDEXPORT u_CursorBusy(BOOL an)
+{
+    WORD t = TaskSelf();
+    if (t >= 16) return;
+    if (an) tz[t] |= 0x80; else tz[t] &= 0x7F;
+    zjetzt();
+}
+void RDEXPORT u_CursorPos(POINT FAR *p) { if (p) { p->x = mpx; p->y = mpy; } }
+
 DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
 {
     WORD i, j, n; MSG FAR *m; RECT r; short x, y, b, t;
@@ -998,6 +1076,8 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
         for (j = 0; j < MAXCL; j++) if (kl[j].task == (BYTE)h && !kl[j].intern) kl[j].name[0] = 0;
         for (j = 0; j < MAXM; j++) if (mt[j].h && mt[j].task == (BYTE)h) mt[j].h = 0;   /* Speicher gibt der Kern frei */
         if (n && !w_[act].used) neuaktiv();
+        if (h < 16) { tz[h] = 0; if (zeigt == (BYTE)h) zeigt = 0; }
+        zjetzt();
         return 0;
     }
     if (art != 2) return 0;
@@ -1009,6 +1089,7 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
         m->w = hw(i); return w_[i].task;
     }
     x = m->pt.x; y = m->pt.y;
+    mpx = x; mpy = y; zform(zwo(x, y));           /* Form wechselt mit der naechsten Bewegung */
     i = cap;
     if (!i) {
         if (y < mh) {                             /* Menueleiste: gehoert dem aktiven Fenster */
@@ -1041,7 +1122,7 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
 }
 void RDEXPORT u_init(void FAR *d, void FAR *k, void FAR *g)
 {
-    dcs = (DCX FAR *)d; kclip = (BYTE FAR *)k; gdc = (HDC (FAR __pascal *)(HWND))g;
+    dcs = (DCX FAR *)d; gk = (GK FAR *)k; pfeil0 = gk->zb; gdc = (HDC (FAR __pascal *)(HWND))g;
     w_[0].used = 1; w_[0].vis = 1;
 }
 static void RDEXPORT u_ende(void) { }
@@ -1065,7 +1146,7 @@ static struct { WORD n; FARPROC f[72]; } ext = { 72, {
     U(ReleaseDC), U(SetFocus), U(GetFocus), U(SetActive), U(GetActive), U(DefWindowProc), U(SetWindowData), U(GetWindowData),
     U(GetParent), U(WindowFromPoint), U(ClientToScreen), U(ScreenToClient), U(IsWindow), U(EnableWindow), U(ScrollWindow), 0,
     0, U(ScrollSet), U(ScrollGet), 0, 0, 0, 0, 0,
-    0, U(CaptureMouse), U(ReleaseMouse), 0, 0, 0, 0, 0,
+    0, U(CaptureMouse), U(ReleaseMouse), U(CursorSet), U(CursorBusy), U(CursorPos), 0, 0,
     0, U(MenuLoad), U(MenuSet), U(MenuCheck), U(MenuEnable), U(MenuFree), U(MenuPopup), U(MenuText),
     0, 0, 0, 0, 0, 0, 0, 0,
     0, U(KeyState), 0, U(hook), (FARPROC)u_init, U(SendMessage), U(DispatchMessage), U(MsgRegister),

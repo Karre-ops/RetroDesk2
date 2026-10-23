@@ -153,6 +153,8 @@ static void mkbrush(DCX *d)
  * weg (ex). Ereignisse sammelt ein Ring, der Kern holt sie mit g_MausHole ab. */
 static const BYTE cmb[64] = { 0x7F,0xFF,0x3F,0xFF,0x1F,0xFF,0x0F,0xFF,0x07,0xFF,0x03,0xFF,0x01,0xFF,0x00,0xFF,0x00,0x7F,0x00,0x3F,0x01,0xFF,0x10,0xFF,0x30,0xFF,0x78,0x7F,0xF8,0x7F,0xFC,0xFF,
                                0x00,0x00,0x00,0x00,0x40,0x00,0x60,0x00,0x70,0x00,0x78,0x00,0x7C,0x00,0x7E,0x00,0x7F,0x00,0x7C,0x00,0x6C,0x00,0x46,0x00,0x06,0x00,0x03,0x00,0x03,0x00,0x00,0x00 };
+static GK gk = { 1, 0, 0, 0, cmb };               /* kclip: Ursprung/Clip/Treiber geaendert */
+#define kclip gk.kclip
 static SYSINFO si;
 static BYTE maus, con, cvis;
 static volatile BYTE gbusy, moved;
@@ -181,12 +183,12 @@ static void zweg(void)                            /* Zeiger entfernen */
 static void zhin(void)                            /* Zeiger an (mx, my) zeichnen */
 {
     if (con || !cvis || !drv) return;
-    zx = mx; zy = my;
+    zx = mx - gk.hx; zy = my - gk.hy; if (zx < 0) zx = 0; if (zy < 0) zy = 0;
     zw = (short)gm.w - zx; if (zw > 16) zw = 16;
     zh = (short)gm.h - zy; if (zh > 16) zh = 16;
     if (zw <= 0 || zh <= 0) return;
     con = 1;
-    drv->cursor(zx, zy, (const BYTE FAR *)cmb);
+    drv->cursor(zx, zy, gk.zb);
 }
 /* Zeichenaufruf beruehrt l..r-1, t..b-1 (Geraetekoordinaten) */
 static void ex(short l, short t, short r, short b)
@@ -207,7 +209,7 @@ static void __far __loadds mhandler(WORD ev, WORD bt, WORD x, WORD y)
             mqs++;
         }
     }
-    if (!gbusy && con && (zx != mx || zy != my)) { zweg(); zhin(); }
+    if (!gbusy && con && (zx != mx - gk.hx || zy != my - gk.hy)) { zweg(); zhin(); }
 }
 static void mausan(void)                          /* Kern hat den Treiber schon gefunden und zurueckgesetzt */
 {
@@ -256,7 +258,7 @@ static void isect(RECT *a, const RECT *b)
     if (b->b < a->b) a->b = b->b;
 }
 /* Zeichenziel waehlen: Treiber/Bitmap, Clipliste berechnen. 0 = nichts zu zeichnen */
-static DCX *kd, *kc; static BYTE kdirty = 1, kclip = 1;   /* kclip: Ursprung/Clip/Treiber geaendert */
+static DCX *kd, *kc; static BYTE kdirty = 1;
 static int sel(DCX *d)
 {
     static RECT dev, u, r; WORD i;
@@ -294,7 +296,7 @@ static void unsel(void)
     cd = 0;
     if (!gbusy) return;
     cli();                                        /* Zeiger nachziehen/wieder zeigen */
-    if (con && (zx != mx || zy != my)) zweg();
+    if (con && (zx != mx - gk.hx || zy != my - gk.hy)) zweg();
     zhin();
     gbusy = 0;
     sti();
@@ -590,7 +592,7 @@ static int zget(DCX *d, ZIEL *z)
 static void blitrows(DCX *dd, short x, short y, short w, short h, DCX *sd, short sx, short sy,
                      WORD rop, WORD sw, WORD shh, WORD dw, WORD dh)
 {
-    static ZIEL zs, zd; short i, n, ys, yd, step;
+    static ZIEL zs, zd; short i, n, ys, yd, step; WORD yq, yr;
     if (!zget(sd, &zs)) return;
     if (!sel(dd)) { if (sd->typ == 1) MemUnlock(sd->bmp); return; }
     if (zs.dv == drv) zweg();                      /* Quelle Schirm: Zeiger nicht mitkopieren */
@@ -618,9 +620,14 @@ static void blitrows(DCX *dd, short x, short y, short w, short h, DCX *sd, short
     }
     step = 1; i = 0;
     if (!sw && sd == dd && y > sy) { step = -1; i = (short)(n - 1); }   /* ueberlappend: von unten */
+    yq = 0; yr = 0;                               /* StretchBlt: yq = i * shh / dh schrittweise (step 1) */
     for (; i >= 0 && i < n; i = (short)(i + step)) {
         if (!sw) { ys = (short)(sy + i); yd = (short)(y + i); }
-        else { ys = (short)(sy + (long)i * shh / dh); yd = (short)(y + i); if (ys >= (short)zs.h || ys < 0) continue; }
+        else {
+            ys = (short)(sy + yq); yd = (short)(y + i);
+            for (yr += shh; yr >= dh; yr -= dh) yq++;
+            if (ys >= (short)zs.h || ys < 0) continue;
+        }
         zset(&zs);
         if (!sw) zs.dv->get(sx, ys, w, 1, (BYTE FAR *)rbuf, RB);
         else {                                     /* StretchBlt: Spalten waehlen */
@@ -1150,6 +1157,6 @@ static struct { WORD n; FARPROC f[N + 9]; } ext = { N + 9, {
     0, 0, (FARPROC)g_ColorNearest, (FARPROC)g_PaletteSet,
     (FARPROC)g_GetDC, (FARPROC)g_ReleaseDC, (FARPROC)g_GfxList, (FARPROC)g_GfxSelect,
     (FARPROC)g_MausHole, (FARPROC)g_Pause,
-    (FARPROC)(void FAR *)dcs, (FARPROC)(void FAR *)&kclip,   /* Daten fuer RDUSER (GDII.H): DC-Tabelle, Clip neu */
+    (FARPROC)(void FAR *)dcs, (FARPROC)(void FAR *)&gk,   /* Daten fuer RDUSER (GDII.H): DC-Tabelle, Clip neu */
 } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

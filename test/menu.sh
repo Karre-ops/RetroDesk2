@@ -16,7 +16,7 @@ timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,form
 QP=$!
 sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_menu.py
 Q() { python3 obj/qmon_menu.py "$@"; }
-waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null)" -ge "$2" ] && return 0; sleep 0.2; done; return 1; }
+waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 for n in 1 2; do
   waitn "MENUTEST: bereit" $n || break; sleep 0.5
   K=$([ $n = 1 ] && echo cga || echo vga)
