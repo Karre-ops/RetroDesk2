@@ -19,6 +19,7 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x00C | Kern | `WORD LastError(void)` |
 | 0x00D | Kern | `void SetLastError(WORD e)` |
 | 0x00E | Kern | `void ExitRD(WORD flags)` |
+| 0x00F | Kern | `DWORD InstRes(HINST i, LPSTR pfad, WORD len)` |
 | 0x010 | Kern | `BOOL GetMessage(MSG FAR *m)` |
 | 0x011 | Kern | `BOOL PeekMessage(MSG FAR *m, WORD remove)` |
 | 0x012 | Kern | `BOOL PostMessage(HWND w, WORD msg, WORD p1, DWORD p2)` |
@@ -117,6 +118,8 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x138 | Grafik | `void IconDraw(HDC dc, short x, short y, HINST i, WORD id)` |
 | 0x139 | Grafik | `COLOR ColorNearest(HDC dc, COLOR c)` |
 | 0x13A | Grafik | `WORD PaletteSet(HDC dc, WORD first, WORD n, const COLOR FAR *c)` |
+| 0x13B | Grafik | `WORD GfxList(GFXINFO FAR *l, WORD max)` |
+| 0x13C | Grafik | `WORD GfxSelect(WORD typ)` |
 | 0x200 | Oberflaeche | `WORD RegisterClass(const WNDCLASS FAR *wc)` |
 | 0x201 | Oberflaeche | `HWND CreateWindow(LPCSTR klasse, LPCSTR titel, DWORD stil, short x, short y, short w, short h, HWND eltern, WORD id, HINST i)` |
 | 0x202 | Oberflaeche | `BOOL DestroyWindow(HWND w)` |
@@ -203,3 +206,4 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x3C1 | Drucker | `WORD PrnPage(HDC dc)` |
 | 0x3C2 | Drucker | `WORD PrnClose(HDC dc)` |
 | 0x3C3 | Drucker | `void PrnAbort(HDC dc)` |
+202 Funktionen, 0 Fehler

@@ -44,7 +44,7 @@ static void reap(void)
             file_owner_close(i);
             mem_owner_free(i);
             if (k_task[i].stk) mem_put(k_task[i].stk);
-            k_task[i].stk = k_task[i].base = k_task[i].paras = k_task[i].q = 0;
+            k_task[i].stk = k_task[i].base = k_task[i].paras = k_task[i].q = k_task[i].xs = 0;
             k_task[i].state = T_FREE;
         }
 }
@@ -252,7 +252,7 @@ static void task_start(void)                      /* laeuft auf dem Startstack d
     TASK *t = &k_task[k_cur];
     short res;
     t->lastget = ms_now();
-    res = (short)rd_enter(t->base + t->ecs, t->eip, (void __far *)rd_api, k_cur, t->show, (char __far *)t->cmd);
+    res = (short)rd_enter(t->base + t->ecs, t->eip, (void __far *)rd_api, k_cur, t->show, TX(t)->cmd);
     /* Programm ist zurueckgekehrt. Aufraeumen erledigt reap() im naechsten Task. */
     t = &k_task[k_cur];
     t->quitcode = res;
@@ -261,10 +261,15 @@ static void task_start(void)                      /* laeuft auf dem Startstack d
     schedule(1);                                  /* kehrt nie zurueck */
 }
 
+static void fcpy(char __far *d, const char __far *s, WORD n)   /* hoechstens n - 1 Zeichen und 0 */
+{
+    while (--n && *s) *d++ = *s++;
+    *d = 0;
+}
 WORD task_load(LPCSTR app, LPCSTR cmd, WORD show)
 {
     WORD i, n, e; static WORD seg, paras;
-    TASK *t;
+    TASK *t; TASKX __far *x;
     reap();
     for (n = 1; n < MAXTASK && k_task[n].state != T_FREE; n++) ;
     if (n == MAXTASK) return FAIL(RD_ERR_FULL);
@@ -273,20 +278,20 @@ WORD task_load(LPCSTR app, LPCSTR cmd, WORD show)
     t = &k_task[n];
     t->stk = mem_get(STK_PARAS, 0, 0);
     t->q = mem_get((QLEN * sizeof(MSG) + 15) >> 4, 0, n);
-    if (!t->stk || !t->q) {
+    t->xs = mem_get((sizeof(TASKX) + 15) >> 4, 0, n);
+    if (!t->stk || !t->q || !t->xs) {
         if (t->stk) mem_put(t->stk);
         if (t->q) mem_put(t->q);
-        mem_put(seg); t->stk = t->q = 0;
+        if (t->xs) mem_put(t->xs);
+        mem_put(seg); t->stk = t->q = t->xs = 0;
         return FAIL(RD_ERR_NOMEM);
     }
     mem_chown(seg, n);                            /* Programmbild gehoert dem Task */
     t->base = seg; t->paras = paras; t->ecs = k_mz.cs; t->eip = k_mz.ip; t->show = show;
     t->qh = t->qn = t->quit = 0; t->quitcode = 0; t->rsp = 0;
     for (i = 0; i < NTIMER; i++) t->tm[i].ms = 0;
-    for (i = 0; i < 15 && k_rb.name[i]; i++) t->name[i] = k_rb.name[i];
-    t->name[i] = 0;
-    for (i = 0; i < 79 && cmd && cmd[i]; i++) t->cmd[i] = cmd[i];
-    t->cmd[i] = 0;
+    fcpy(t->name, k_rb.name, 16);
+    x = TX(t); fcpy(x->cmd, cmd ? cmd : "", 80); fcpy(x->path, path, 80); x->blk = k_rb.nres ? tr.blk : 0;
     if (k_fpu) { rd_fsave(FPU(n)); rd_frstor(FPU(n)); }  /* Startzustand = aktueller 8087 */
     t->ss = t->stk;
     t->sp = rd_newstack(t->stk, STK_PARAS * 16, task_start);
@@ -410,8 +415,52 @@ void task_init(void)
     if (k_fpu && !(k_fpuseg = mem_get((MAXTASK * 94 + 15) / 16, 0, 0))) k_fpu = 0;
 }
 
+/* Fensternachrichten: Fenster verwaltet RDUSER (k_wnd, Art 0 = einstellen, 1 = senden).
+   Ohne RDUSER geht nur Fenster 0 = der eigene Task. */
+DWORD (__far __pascal *k_wnd)(WORD art, HWND w, WORD msg, WORD p1, DWORD p2);
+BOOL RDK PostMessage(HWND w, WORD msg, WORD p1, DWORD p2)
+{
+    if (k_wnd) return (BOOL)k_wnd(0, w, msg, p1, p2);
+    if (w) return FAIL(RD_ERR_NOTSUP);
+    return enqueue(k_cur, 0, msg, p1, p2) ? TRUE : FALSE;
+}
+DWORD RDK SendMessage(HWND w, WORD msg, WORD p1, DWORD p2)
+{
+    if (k_wnd) return k_wnd(1, w, msg, p1, p2);
+    return FAIL(RD_ERR_NOTSUP);
+}
+/* eigene Nachrichtennummern ab 0xC000, gleicher Name = gleiche Nummer (Gross/klein egal) */
+static char mreg[8][12];
+WORD RDK MsgRegister(LPCSTR name)
+{
+    WORD i, j;
+    if (!name || !*name) return FAIL(RD_ERR_FORMAT);
+    for (i = 0; i < 8 && mreg[i][0]; i++) {
+        for (j = 0; j < 11 && name[j] && (mreg[i][j] | 0x20) == (name[j] | 0x20); j++) ;
+        if (j == 11 || (!name[j] && !mreg[i][j])) return 0xC000 + i;
+    }
+    if (i == 8) return FAIL(RD_ERR_FULL);
+    for (j = 0; j < 11 && name[j]; j++) mreg[i][j] = name[j];
+    return 0xC000 + i;
+}
+/* Shell: alle Programme bekommen M_QUIT, danach endet RD */
+void RDK ExitRD(WORD flags)
+{
+    WORD i;
+    for (i = 1; i < MAXTASK; i++) if (k_task[i].state == T_READY || k_task[i].state == T_WAIT) { k_task[i].quit = 1; k_task[i].quitcode = flags; }
+}
+DWORD RDK InstRes(HINST i, LPSTR pfad, WORD len)
+{
+    TASK *t = &k_task[i];
+    if (i < 1 || i >= MAXTASK || !t->xs || t->state == T_FREE || t->state == T_ZOMBIE) return FAIL(RD_ERR_HANDLE);
+    if (pfad && len) fcpy(pfad, TX(t)->path, len);
+    return TX(t)->blk;
+}
+
 void task_api(void)
 {
+    KAPI(PostMessage, PostMessage); KAPI(SendMessage, SendMessage); KAPI(MsgRegister, MsgRegister);
+    KAPI(ExitRD, ExitRD); KAPI(InstRes, InstRes);
     KAPI(GetMessage, GetMessage); KAPI(PeekMessage, PeekMessage); KAPI(WaitMessage, WaitMessage);
     KAPI(TaskYield, TaskYield); KAPI(PostTask, PostTask); KAPI(PostQuit, PostQuit);
     KAPI(DispatchMessage, DispatchMessage); KAPI(TimerSet, TimerSet); KAPI(TimerKill, TimerKill);

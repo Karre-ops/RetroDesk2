@@ -72,6 +72,9 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     SetRop(dc, ROP_XOR); TextOut(dc, 20, (short)(y + 16), "XOR auf Schwarz", -1);
     SetTextColor(dc, C_BLACK); TextOut(dc, 150, (short)(y + 16), "XOR", -1);   /* schwarz XOR = nichts */
     SetRop(dc, ROP_COPY); SetBkMode(dc, BK_OPAQUE); SetTextColor(dc, C_BLACK);
+    TextOut(dc, 213, (short)(y + 16), "deckend x=213", -1);           /* deckend verschoben (Treiber-Glyphen) */
+    SetTextColor(dc, C_WHITE); SetBkColor(dc, C_BLACK); TextOut(dc, 323, (short)(y + 16), "weiss/schwarz", -1);
+    SetTextColor(dc, C_BLACK); SetBkColor(dc, C_WHITE);
     y += 36;
 
     /* TextBox: links umbrochen, zentriert, rechts, senkrecht mittig; mit Rahmen */

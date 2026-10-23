@@ -991,9 +991,9 @@ static void tzeile(short x, short y, LPCSTR s, WORD n)
     }
     if (schnell && !(fstil & FS_UNDER)) {          /* Normalfall: ganze Bloecke in Assembler */
         WORD zb;
-        if (cd->bkmode == BK_TRANSPARENT && (rop == ROP_MASK || rop == ROP_XOR) && dv->glyphs && nec == 1
-            && x >= ec[0].l && (short)(x + tw) <= ec[0].r && y >= ec[0].t && (short)(y + fh) <= ec[0].b) {
-            ex(x, y, (short)(x + tw), (short)(y + fh));   /* ganz sichtbar: Treiber liest die Schrift selbst */
+        if (dv->glyphs && nec == 1 && x >= ec[0].l && (short)(x + tw) <= ec[0].r && y >= ec[0].t && (short)(y + fh) <= ec[0].b
+            && (cd->bkmode == BK_TRANSPARENT ? rop == ROP_MASK || rop == ROP_XOR : rop == ROP_COPY && (x & 7) && fg != bg)) {
+            ex(x, y, (short)(x + tw), (short)(y + fh));   /* ganz sichtbar: Treiber liest die Schrift selbst (deckend nur verschoben) */
             dv->glyphs(x, y, (const WORD FAR *)go, FP_SEG(fd), fh, n, fg, 0, rop);
             return;
         }

@@ -57,7 +57,7 @@ static void hgc(int gr)
     WORD i;
     outp(0x3BF, gr);                              /* Grafik erlauben, nur Seite 0 */
     outp(0x3B8, gr ? 0x02 : 0x20);                /* Bild aus beim Umprogrammieren */
-    for (i = 0; i < 12; i++) { outp(0x3B4, i); outp(0x3B5, crt[gr][i]); }
+    for (i = 0; i < 12; i++) outpw(0x3B4, i | ((WORD)crt[gr][i] << 8));   /* Index und Wert in einem Wortzugriff */
     outp(0x3B8, gr ? 0x0A : 0x28);
     *(BYTE __far *)MK_FP(0x40, 0x49) = (BYTE)(gr ? 6 : 7);   /* Maustreiber: 6 = Hercules-Grafik */
 }
@@ -126,21 +126,14 @@ static void RDEXPORT d_textmode(void)
 #endif
 }
 
-/* ein Byte mit Maske m und Wert v nach Rasteroperation schreiben */
-static void wr(BYTE __far *p, BYTE m, BYTE v, WORD rop)
-{
-    switch (rop) {
-    case ROP_COPY: *p = (BYTE)((*p & ~m) | (v & m)); break;
-    case ROP_OR:   *p |= (BYTE)(v & m); break;
-    case ROP_AND:  *p &= (BYTE)(v | ~m); break;
-    case ROP_XOR:  *p ^= (BYTE)(v & m); break;
-    case ROP_NOT:  *p ^= m; break;
-    }
-}
-
 static void RDEXPORT d_pixel(short x, short y, WORD farbe, WORD rop)
 {
-    wr(VP(x, y), (BYTE)(0x80 >> (x & 7)), (BYTE)(farbe ? 0xFF : 0), rop);
+    BYTE __far *p = VP(x, y); BYTE m = (BYTE)(0x80 >> (x & 7)), v = (BYTE)(farbe ? m : 0);
+    if (rop == ROP_NOT) { v = m; rop = ROP_XOR; }
+    if (rop == ROP_COPY) *p = (BYTE)((*p & ~m) | v);
+    else if (rop == ROP_OR) *p |= v;
+    else if (rop == ROP_AND) *p &= (BYTE)(v | ~m);
+    else if (rop == ROP_XOR) *p ^= v;
 }
 
 static WORD RDEXPORT d_getpixel(short x, short y)
@@ -656,34 +649,39 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
     putq();
 }
 
-/* Zeichen direkt aus der Schrift, spaltenweise (ein Zeichen nach dem anderen, alle Zeilen),
-   leere Glyphenzeilen werden uebersprungen. ror legt die verschobene Zeile auf zwei Bytes. */
-static WORD g_toff, g_tseg, g_fseg, g_row, g_h, g_n; static BYTE g_sh, g_op;
-static void gly(void)
+/* Zeichen direkt aus der Schrift, spaltenweise (ein Zeichen nach dem anderen, alle Zeilen).
+   Durchsichtig (ODER/UND/XOR): leere Glyphenzeilen werden uebersprungen. Deckend (COPY,
+   nur verschoben): Wort je Zeile, Bits ausserhalb der Zelle bleiben (Nachbarzeichen).
+   ror legt die verschobene Zeile auf zwei Bytes. */
+static void RDEXPORT d_glyphs(short x, short y, const WORD FAR *offs, WORD fseg, WORD h, WORD n, WORD fg, WORD bg, WORD rop)
 {
+    WORD row = ROW(y) + ((WORD)x >> 3), tof = FP_OFF(offs), ts = FP_SEG(offs); BYTE sh = (BYTE)(x & 7), op;
+    (void)bg;
+    if (!n || !h) return;
+    op = (BYTE)(rop == ROP_COPY ? (fg ? 4 : 5) : rop == ROP_XOR ? 3 : fg ? 1 : 2);
+#if defined(VGAM)                               /* VGA linear: Zeile weiter ohne Bankpruefung */
     _asm {
         push si
         push di
         push es
         push ds
-        push bp
-        mov  ax, g_toff
-        push ax
-        mov  ax, g_tseg
-        push ax
-        mov  ax, g_n
-        push ax
-        mov  ax, g_h
-        push ax
-        mov  ax, g_fseg
-        push ax
-        mov  bp, sp
-        mov  dx, g_row
-        mov  cl, g_sh
-        mov  ch, g_op
+        mov  dx, row
+        mov  cl, sh
+        mov  ch, op
+        mov  ax, 00FFh
+        ror  ax, cl
+        not  ax
+        mov  bx, ax
         mov  ax, VSEG
         mov  es, ax
         cld
+        push bp
+        push tof
+        push ts
+        push n
+        push h
+        push fseg
+        mov  bp, sp
     gc: mov  ds, [bp+6]
         mov  si, [bp+8]
         mov  si, [si]
@@ -692,87 +690,98 @@ static void gly(void)
         mov  di, dx
         push dx
         mov  dx, [bp+2]
-        or   cl, cl              ; ausgerichtet: ein Byte je Zeile
+        cmp  ch, 4
+        jb   gt
+        jmp  gd
+    gt: or   cl, cl              ; ausgerichtet: ein Byte je Zeile
         jnz  gv
         cmp  ch, 2
         je   ha
-        ja   hx
+        ja   gv                  ; XOR ausgerichtet: verschobener Weg (cl = 0)
     ho: lodsb
         or   al, al
-        jz   ho2
-        or  es:[di], al
-    ho2: add di, ZADD
-        cmp  di, ZLIM
-        jb   ho3
-        sub  di, ZSUB
-    ho3: dec dx
+        jz   hoz
+        or   es:[di], al
+    hoz:
+        add  di, ZADD
+        dec  dx
         jnz  ho
         jmp  gn
     ha: lodsb
         or   al, al
-        jz   ha2
+        jz   haz
         not  al
         and  es:[di], al
-    ha2: add di, ZADD
-        cmp  di, ZLIM
-        jb   ha3
-        sub  di, ZSUB
-    ha3: dec dx
+    haz:
+        add  di, ZADD
+        dec  dx
         jnz  ha
-        jmp  gn
-    hx: lodsb
-        or   al, al
-        jz   hx2
-        xor  es:[di], al
-    hx2: add di, ZADD
-        cmp  di, ZLIM
-        jb   hx3
-        sub  di, ZSUB
-    hx3: dec dx
-        jnz  hx
         jmp  gn
     gv: cmp  ch, 2
         je   ga
         ja   gx
     go: lodsb
         or   al, al
-        jz   go2
+        jz   goz
         xor  ah, ah
         ror  ax, cl
         or   es:[di], ax
-    go2: add di, ZADD
-        cmp  di, ZLIM
-        jb   go3
-        sub  di, ZSUB
-    go3: dec dx
+    goz:
+        add  di, ZADD
+        dec  dx
         jnz  go
         jmp  gn
     ga: lodsb
         or   al, al
-        jz   ga2
+        jz   gaz
         xor  ah, ah
         ror  ax, cl
         not  ax
         and  es:[di], ax
-    ga2: add di, ZADD
-        cmp  di, ZLIM
-        jb   ga3
-        sub  di, ZSUB
-    ga3: dec dx
+    gaz:
+        add  di, ZADD
+        dec  dx
         jnz  ga
         jmp  gn
     gx: lodsb
         or   al, al
-        jz   gx2
+        jz   gxz
         xor  ah, ah
         ror  ax, cl
         xor  es:[di], ax
-    gx2: add di, ZADD
-        cmp  di, ZLIM
-        jb   gx3
-        sub  di, ZSUB
-    gx3: dec dx
+    gxz:
+        add  di, ZADD
+        dec  dx
         jnz  gx
+        jmp  gn
+    gd: push bp                  ; deckend: Zelle samt Hintergrund, bx = Maske des Rests
+        cmp  ch, 5
+        je   gi
+    gdk: lodsb
+        xor  ah, ah
+        ror  ax, cl
+        mov  bp, es:[di]
+        and  bp, bx
+        or   bp, ax
+        mov  es:[di], bp
+        add  di, ZADD
+        dec  dx
+        jnz  gdk
+        pop  bp
+        jmp  gn
+    gi: lodsb
+        xor  ah, ah
+        ror  ax, cl
+        xor  ax, bx
+        not  ax
+        mov  bp, es:[di]
+        and  bp, bx
+        or   bp, ax
+        mov  es:[di], bp
+        add  di, ZADD
+        dec  dx
+        jnz  gi
+        pop  bp
     gn: pop  dx
         inc  dx
         dec  word ptr [bp+4]
@@ -785,14 +794,170 @@ static void gly(void)
         pop  di
         pop  si
     }
-}
-static void RDEXPORT d_glyphs(short x, short y, const WORD FAR *offs, WORD seg, WORD h, WORD n, WORD fg, WORD bg, WORD rop)
-{
-    (void)bg;
-    if (!n || !h) return;
-    g_row = ROW(y) + ((WORD)x >> 3); g_toff = FP_OFF(offs); g_tseg = FP_SEG(offs); g_fseg = seg;
-    g_h = h; g_n = n; g_sh = (BYTE)(x & 7); g_op = (BYTE)(rop == ROP_XOR ? 3 : fg ? 1 : 2);
-    gly();
+#else
+    _asm {
+        push si
+        push di
+        push es
+        push ds
+        mov  dx, row
+        mov  cl, sh
+        mov  ch, op
+        mov  ax, 00FFh
+        ror  ax, cl
+        not  ax
+        mov  bx, ax
+        mov  ax, VSEG
+        mov  es, ax
+        cld
+        push bp
+        push tof
+        push ts
+        push n
+        push h
+        push fseg
+        mov  bp, sp
+    gc: mov  ds, [bp+6]
+        mov  si, [bp+8]
+        mov  si, [si]
+        add  word ptr [bp+8], 2
+        mov  ds, [bp+0]
+        mov  di, dx
+        push dx
+        mov  dx, [bp+2]
+        cmp  ch, 4
+        jb   gt
+        jmp  gd
+    gt: or   cl, cl              ; ausgerichtet: ein Byte je Zeile
+        jnz  gv
+        cmp  ch, 2
+        je   ha
+        ja   gv                  ; XOR ausgerichtet: verschobener Weg (cl = 0)
+    ho: lodsb
+        or   al, al
+        jz   hoz
+        or   es:[di], al
+    hoz:
+        add  di, ZADD
+        cmp  di, ZLIM
+        jb   how
+        sub  di, ZSUB
+    how:
+        dec  dx
+        jnz  ho
+        jmp  gn
+    ha: lodsb
+        or   al, al
+        jz   haz
+        not  al
+        and  es:[di], al
+    haz:
+        add  di, ZADD
+        cmp  di, ZLIM
+        jb   haw
+        sub  di, ZSUB
+    haw:
+        dec  dx
+        jnz  ha
+        jmp  gn
+    gv: cmp  ch, 2
+        je   ga
+        ja   gx
+    go: lodsb
+        or   al, al
+        jz   goz
+        xor  ah, ah
+        ror  ax, cl
+        or   es:[di], ax
+    goz:
+        add  di, ZADD
+        cmp  di, ZLIM
+        jb   gow
+        sub  di, ZSUB
+    gow:
+        dec  dx
+        jnz  go
+        jmp  gn
+    ga: lodsb
+        or   al, al
+        jz   gaz
+        xor  ah, ah
+        ror  ax, cl
+        not  ax
+        and  es:[di], ax
+    gaz:
+        add  di, ZADD
+        cmp  di, ZLIM
+        jb   gaw
+        sub  di, ZSUB
+    gaw:
+        dec  dx
+        jnz  ga
+        jmp  gn
+    gx: lodsb
+        or   al, al
+        jz   gxz
+        xor  ah, ah
+        ror  ax, cl
+        xor  es:[di], ax
+    gxz:
+        add  di, ZADD
+        cmp  di, ZLIM
+        jb   gxw
+        sub  di, ZSUB
+    gxw:
+        dec  dx
+        jnz  gx
+        jmp  gn
+    gd: push bp                  ; deckend: Zelle samt Hintergrund, bx = Maske des Rests
+        cmp  ch, 5
+        je   gi
+    gdk: lodsb
+        xor  ah, ah
+        ror  ax, cl
+        mov  bp, es:[di]
+        and  bp, bx
+        or   bp, ax
+        mov  es:[di], bp
+        add  di, ZADD
+        cmp  di, ZLIM
+        jb   gdw
+        sub  di, ZSUB
+    gdw:
+        dec  dx
+        jnz  gdk
+        pop  bp
+        jmp  gn
+    gi: lodsb
+        xor  ah, ah
+        ror  ax, cl
+        xor  ax, bx
+        not  ax
+        mov  bp, es:[di]
+        and  bp, bx
+        or   bp, ax
+        mov  es:[di], bp
+        add  di, ZADD
+        cmp  di, ZLIM
+        jb   giw
+        sub  di, ZSUB
+    giw:
+        dec  dx
+        jnz  gi
+        pop  bp
+    gn: pop  dx
+        inc  dx
+        dec  word ptr [bp+4]
+        jz   ge
+        jmp  gc
+    ge: add  sp, 10
+        pop  bp
+        pop  ds
+        pop  es
+        pop  di
+        pop  si
+    }
+#endif
 }
 
 static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WORD dstbytes)

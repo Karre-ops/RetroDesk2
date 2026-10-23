@@ -122,8 +122,10 @@ typedef struct {
     BYTE  rsp;                                    /* Ruecksprungstapel fuer Modulaufrufe */
     struct { WORD ip, cs, mod; } rs[12];
     char  name[16];
-    char  cmd[80];
+    WORD  xs;                                     /* Zusatzblock des Tasks: Befehlszeile, Pfad, RD2-Block */
 } TASK;
+typedef struct { char cmd[80], path[80]; DWORD blk; } TASKX;
+#define TX(t) ((TASKX __far *)MK_FP((t)->xs, 0))
 extern TASK k_task[MAXTASK];
 extern WORD k_cur;
 void  task_init(void);
@@ -135,6 +137,7 @@ typedef struct { char sig[4]; WORD api, flags, stack, kb; char name[16]; WORD ve
 extern KMZ k_mz; extern KRD2 k_rb;
 WORD  k_imgload(const char *path, const char *typen, WORD *seg, WORD *paras);   /* 0 = ok, sonst RD_ERR_* */
 void  task_api(void);
+extern DWORD (__far __pascal *k_wnd)(WORD art, HWND w, WORD msg, WORD p1, DWORD p2);   /* von RDUSER */
 WORD  task_load(LPCSTR path, LPCSTR cmd, WORD show);   /* HTASK oder 0 */
 void  task_run_all(void);                         /* Kern wartet, bis alle Programme beendet sind */
 void  __cdecl task_tick(WORD cs);                 /* aus dem Zeitgeber-Interrupt */
