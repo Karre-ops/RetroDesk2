@@ -2,12 +2,35 @@
  *  1. Dialog 10: Name ergaenzen, Ton aus (Leertaste), Gross waehlen (Pfeil, Leertaste), Eingabe
  *  2. MsgBox OK/Abbruch: Esc
  *  3. Dialog 10 (neu, Ton an): Alt+T schaltet Ton aus, Esc bricht ab
+ *  4. InputBox mit "Retro": X anhaengen, Eingabe
+ *  5. Dialog 11 (Liste, 10 Rechner, 4 sichtbar): c, c, Ende, Pfeil hoch, Eingabe
  * Am Ende: "DLGTEST: Fehler n" (0 = alles wie erwartet). */
 #include "RD2.H"
 
 static WORD fehler, lauf;
 static void pruef(LPCSTR was, int ok) { DbgPrint(was); if (!ok) { fehler++; DbgPrint("DLGTEST: ^^^ FALSCH"); } }
 static int gleich(LPCSTR a, LPCSTR b) { while (*a && *a == *b) a++, b++; return *a == *b; }
+static const char * const rech[] = { "Amiga", "Atari ST", "C64", "CPC 464", "Dragon 32", "IBM PC", "KC 85", "MSX", "Oric", "ZX81" };
+static BOOL RDCALLBACK lproc(HWND d, WORD msg, WORD p1, DWORD p2)
+{
+    HWND l = DlgItem(d, 40); WORD i; char b[40];
+    (void)p2;
+    if (msg == M_INITDIALOG) {
+        for (i = 0; i < 10; i++) SendMessage(l, L_ADD, 0, (DWORD)(LPCSTR)rech[i]);
+        SendMessage(DlgItem(d, 41), C_SETPOS, 0, 60);
+        pruef("DLGTEST: Liste 10 Eintraege, keine Auswahl", SendMessage(l, L_COUNT, 0, 0) == 10 && SendMessage(l, L_GETSEL, 0, 0) == 0xFFFF);
+        DbgPrint("DLGTEST: Liste bereit");
+    }
+    if (msg == M_COMMAND && p1 == 40 && HIWORD(p2) == N_SELECT) DbgPrint("DLGTEST: N_SELECT");
+    if (msg == M_COMMAND && p1 == ID_OK) {
+        DlgGetText(d, 40, b, sizeof b); DbgPrint(b);
+        pruef("DLGTEST: Auswahl 8 = Oric", SendMessage(l, L_GETSEL, 0, 0) == 8 && gleich(b, "Oric"));
+        SendMessage(l, L_DELETE, 0, 0); DlgGetText(d, 40, b, sizeof b);
+        pruef("DLGTEST: nach L_DELETE 0: 9 Eintraege, Auswahl 7 = Oric", SendMessage(l, L_COUNT, 0, 0) == 9 && SendMessage(l, L_GETSEL, 0, 0) == 7 && gleich(b, "Oric"));
+        SendMessage(l, L_GETTEXT, 0, (DWORD)(LPSTR)b); pruef("DLGTEST: L_GETTEXT 0 = Atari ST", gleich(b, "Atari ST"));
+    }
+    return FALSE;
+}
 static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
 {
     char b[40]; BOOL ok;
@@ -53,6 +76,12 @@ short RDAPI RdMain(HINST inst, LPCSTR cl, WORD show)
     DbgHex("DLGTEST: MsgBox ->", (WORD)e); pruef("DLGTEST: MsgBox Esc = Abbruch", e == ID_CANCEL);
     lauf = 2; e = DialogRun(inst, 10, w, dproc, 0);
     DbgHex("DLGTEST: Dialog 2 ->", (WORD)e); pruef("DLGTEST: Dialog 2 Esc = Abbruch", e == ID_CANCEL);
+    { char b[20] = "Retro"; BOOL r;
+      DbgPrint("DLGTEST: Eingabe");
+      r = InputBox(w, "Wie heisst der Rechner?", "Frage", b, sizeof b);
+      DbgPrint(b); pruef("DLGTEST: InputBox OK, Retro + X", r && gleich(b, "RetroX")); }
+    e = DialogRun(inst, 11, w, lproc, 0);
+    DbgHex("DLGTEST: Dialog 3 ->", (WORD)e); pruef("DLGTEST: Dialog 3 endet mit OK", e == ID_OK);
     pruef("DLGTEST: CreateWindow BUTTON direkt", (e = (short)CreateWindow(CL_BUTTON, "Knopf", WS_CHILD | WS_VISIBLE, 200, 10, 60, 20, w, 5, inst)) != 0);
     DestroyWindow(w);
     DbgHex("DLGTEST: Fehler", fehler);

@@ -11,3 +11,9 @@ DIALOG 10 "Einstellungen" 0 0 200 100
   BUTTON   "OK"          1  40  80  50 14 STANDARD
   BUTTON   "Abbruch"     2 110  80  50 14
 ENDE
+DIALOG 11 "Rechnerwahl" 0 0 160 84
+  LIST                  40   8   8 100 50 WS_VSCROLL
+  PROGRESS              41   8  66 144  8
+  BUTTON   "OK"          1 112   8  40 14 STANDARD
+  BUTTON   "Abbruch"     2 112  26  40 14
+ENDE

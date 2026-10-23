@@ -11,7 +11,7 @@ A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/ae_dlg.txt
 rm -f $SER $SOCK obj/dlg?_*.ppm
-timeout 230 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
+timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
 sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_dlg.py
@@ -26,9 +26,13 @@ for n in 1 2; do
   Q "screendump obj/dlg2_$K.ppm" sleep0.3 "sendkey esc"
   waitn "DLGTEST: bereit" $((2 * n)) || { echo "FEHLER: Dialog 2 kommt nicht"; break; }; sleep 1
   Q "sendkey alt-t" sleep0.5 "sendkey esc"
+  waitn "DLGTEST: Eingabe" $n || { echo "FEHLER: keine InputBox"; break; }; sleep 2
+  Q "sendkey shift-x" sleep0.3 "screendump obj/dlg4_$K.ppm" sleep0.3 "sendkey ret"
+  waitn "DLGTEST: Liste bereit" $n || { echo "FEHLER: Dialog 3 kommt nicht"; break; }; sleep 3
+  Q "sendkey c" sleep0.3 "sendkey c" sleep0.3 "sendkey kp_1" sleep0.3 "sendkey kp_8" sleep0.6 "screendump obj/dlg3_$K.ppm" sleep0.3 "sendkey ret"
   waitn "DLGTEST: Fehler" $n || echo "FEHLER: kein Ende"
 done
 wait $QP
 tr -d '\r' < $SER | grep -E "DLGTEST|RD: (Speicher|SPEICHER|alle|Fehler|Modul)"
-[ -f test/ref/dlg1_cga.png ] && python3 test/bildvergleich.py obj/dlg1_cga.ppm test/ref/dlg1_cga.png obj/dlg1_vga.ppm test/ref/dlg1_vga.png obj/dlg2_cga.ppm test/ref/dlg2_cga.png obj/dlg2_vga.ppm test/ref/dlg2_vga.png
+[ -f test/ref/dlg1_cga.png ] && python3 test/bildvergleich.py obj/dlg1_cga.ppm test/ref/dlg1_cga.png obj/dlg1_vga.ppm test/ref/dlg1_vga.png obj/dlg2_cga.ppm test/ref/dlg2_cga.png obj/dlg2_vga.ppm test/ref/dlg2_vga.png obj/dlg3_cga.ppm test/ref/dlg3_cga.png obj/dlg3_vga.ppm test/ref/dlg3_vga.png obj/dlg4_cga.ppm test/ref/dlg4_cga.png obj/dlg4_vga.ppm test/ref/dlg4_vga.png
 exit 0

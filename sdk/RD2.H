@@ -307,6 +307,15 @@ typedef struct {
 #define C_SETLIMIT 0x0344                         /* EDIT: hoechstens p1 Zeichen (1..80) */
 #define C_CLICK    0x0345                         /* wie ein Mausklick */
 #define C_MNEMO    0x0346                         /* liefert den Buchstaben hinter & (gross) */
+#define C_SETPOS   0x0347                         /* PROGRESS: p2 = Stand */
+#define C_SETRANGE 0x0348                         /* PROGRESS: p2 = Hoechstwert (Vorgabe 100) */
+#define L_ADD      0x0350                         /* LIST: p2 = Text, liefert Index oder 0xFFFF */
+#define L_CLEAR    0x0351
+#define L_COUNT    0x0352
+#define L_GETSEL   0x0353                         /* 0xFFFF = keine Auswahl */
+#define L_SETSEL   0x0354                         /* p1 = Index (0xFFFF = keine) */
+#define L_GETTEXT  0x0355                         /* p1 = Index, p2 = Puffer (33 Zeichen); C_GETTEXT = Auswahl */
+#define L_DELETE   0x0356                         /* p1 = Index */
 
 /* Fensterstile */
 #define WS_TITLE    0x00000001UL

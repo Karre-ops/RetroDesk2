@@ -150,6 +150,7 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x21B | Oberflaeche | `BOOL IsWindow(HWND w)` |
 | 0x21C | Oberflaeche | `void EnableWindow(HWND w, BOOL an)` |
 | 0x21D | Oberflaeche | `void ScrollWindow(HWND w, short dx, short dy, const RECT FAR *r)` |
+| 0x21E | Oberflaeche | `HWND GetChild(HWND eltern, HWND nach)` |
 | 0x220 | Oberflaeche | `void ScrollSet(HWND w, WORD balken, short pos, short max, short seite)` |
 | 0x221 | Oberflaeche | `short ScrollGet(HWND w, WORD balken)` |
 | 0x228 | Oberflaeche | `HWND CaptureMouse(HWND w)` |
@@ -178,6 +179,7 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x2D1 | Dialoge | `BOOL FileDialog(HWND owner, FILEDLG FAR *fd)` |
 | 0x2D2 | Dialoge | `BOOL InputBox(HWND owner, LPCSTR frage, LPCSTR titel, LPSTR buf, WORD len)` |
 | 0x2D3 | Dialoge | `BOOL HelpShow(HWND owner, LPCSTR datei, WORD thema)` |
+| 0x2DF | Dialoge | `void CtlInit(void)` |
 | 0x300 | Sound | `WORD SndCaps(void)` |
 | 0x301 | Sound | `void SndBeep(WORD hz, WORD ms)` |
 | 0x302 | Sound | `void SndSystem(LPCSTR name)` |
@@ -206,4 +208,5 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x3C1 | Drucker | `WORD PrnPage(HDC dc)` |
 | 0x3C2 | Drucker | `WORD PrnClose(HDC dc)` |
 | 0x3C3 | Drucker | `void PrnAbort(HDC dc)` |
-202 Funktionen, 0 Fehler
+
+204 Funktionen, 0 Fehler

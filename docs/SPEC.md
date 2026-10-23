@@ -159,6 +159,15 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 - Neu zeichnen über `M_PAINT`. Popups mit `CS_SAVEBITS` sichern den Hintergrund, wenn genug Speicher frei ist.
 - Tastatur: Alt bzw. F10 öffnet die Menüleiste, Alt+Buchstabe ein Menü, Tab wechselt das Steuerelement, Alt+Tab das Programm, Alt+F4 schließt, F1 öffnet die Hilfe.
 
+### 5.1 Steuerelemente und Dialoge (RDCTL, 23.10.2026)
+
+`RDCTL.MOD` ist verwerfbar und wird erst geladen, wenn ein Programm einen Dialog oder eine Standardklasse braucht (RDUSER ruft bei unbekannter Klasse `CtlInit`). Fertig: `BUTTON`, `CHECK`, `RADIO`, `STATIC`, `GROUP`, `EDIT` (einzeilig, höchstens 80 Zeichen), `LIST` (mit `WS_VSCROLL`), `PROGRESS`, dazu `DialogRun`, `DialogEnd`, `DlgItem`, `DlgSet/GetText`, `DlgSet/GetInt`, `DlgCheck/Checked`, `MsgBox` und `InputBox`. Offen: `TEXT`, `COMBO`, `SCROLL`, `FileDialog`, `HelpShow`.
+
+- Zustand steht nur in den Fensterdaten (`data` 0..3) und in Speicher des Programms, damit das Modul zwischen zwei Aufrufen verworfen werden darf. `data[3]` = `'RC'` + Typ.
+- Nachrichten an Steuerelemente: `C_SETTEXT`, `C_GETTEXT`, `C_SETCHECK`, `C_GETCHECK`, `C_SETLIMIT`, `C_CLICK`, `C_MNEMO`, `C_SETPOS`, `C_SETRANGE`; Listen `L_ADD`, `L_CLEAR`, `L_COUNT`, `L_GETSEL`, `L_SETSEL`, `L_GETTEXT`, `L_DELETE`. Meldungen an die Eltern als `M_COMMAND` mit `N_CLICKED`, `N_CHANGE`, `N_SELECT`, `N_DBLCLK`.
+- Tastatur im Dialog: Tab/Shift+Tab und Pfeile wechseln das Feld, Eingabe löst den fokussierten Knopf bzw. den Standardknopf aus, Esc = `ID_CANCEL`, Leertaste schaltet, Alt+Buchstabe (bzw. Buchstabe, wenn kein Eingabefeld den Fokus hat) wählt das Feld mit `&`. In Listen springt ein Buchstabe zum nächsten Eintrag damit.
+- Modal: Der Besitzer ist gesperrt, solange der Dialog läuft; gesperrte Eltern sperren auch alle Kinder.
+
 ## 6. Ressourcen
 
 Quelltext für `RDRC` (Textdatei `.RC`, CP437):
