@@ -477,6 +477,7 @@ static void putq(void)
         mov  ds, ax
     rl: mov  si, [bp+10]
         mov  di, dx
+        push dx                  ; dx dient in der Mitte als Zwischenspeicher
         xor  bl, bl
         lodsb
         mov  ah, bl
@@ -494,12 +495,31 @@ static void putq(void)
         mov  ch, [bp+4]
         or   ch, ch
         jz   r3
-    r4: lodsb
+        test ch, 1
+        jz   r7
+        lodsb                    ; ungerade: ein Byte vorweg
         mov  ah, bl
         mov  bl, al
         shr  ax, cl
         xor  al, bh
         stosb
+        dec  ch
+        jz   r3
+    r7: shr  ch, 1
+    r4: lodsb                    ; je zwei Bytes, als Wort in den Bildspeicher
+        mov  ah, bl
+        mov  bl, al
+        shr  ax, cl
+        xor  al, bh
+        mov  dl, al
+        lodsb
+        mov  ah, bl
+        mov  bl, al
+        shr  ax, cl
+        xor  al, bh
+        mov  ah, al
+        mov  al, dl
+        stosw
         dec  ch
         jnz  r4
     r3: cmp  byte ptr [bp+8], 0
@@ -519,7 +539,8 @@ static void putq(void)
         xor  es:[di], ch
         inc  di
         ret
-    rn: mov  ax, [bp+0]
+    rn: pop  dx
+        mov  ax, [bp+0]
         add  [bp+10], ax
         add  dx, ZADD
         cmp  dx, ZLIM
@@ -527,8 +548,9 @@ static void putq(void)
         sub  dx, ZSUB
     rw:
         dec  word ptr [bp+2]
-        jnz  rl
-        add  sp, 12
+        jz   rx
+        jmp  rl
+    rx: add  sp, 12
         pop  bp
         pop  ds
         pop  es

@@ -48,10 +48,15 @@ static void reap(void)
             k_task[i].state = T_FREE;
         }
 }
+#if NTIMER != 4
+#error TAKTIV anpassen
+#endif
+#define TAKTIV(t) ((t)->tm[0].ms | (t)->tm[1].ms | (t)->tm[2].ms | (t)->tm[3].ms)   /* ein Zeitgeber laeuft */
 static int has_work(TASK *t)
 {
     WORD j; DWORD now;
     if (t->qn || t->quit) return 1;
+    if (!TAKTIV(t)) return 0;
     now = ms_now();
     for (j = 0; j < NTIMER; j++) if (t->tm[j].ms && (long)(now - t->tm[j].next) >= 0) return 1;
     return 0;
@@ -138,14 +143,13 @@ void input_poll(void)
 
 static void schedule(int wait)
 {
-    WORD i, n;
+    WORD i, n; TASK *t;
     if (wait && k_cur && k_task[k_cur].state == T_READY) k_task[k_cur].state = T_WAIT;
     for (;;) {
-        for (i = 1; i <= MAXTASK; i++) {
-            n = (k_cur + i) % MAXTASK;
-            if (n == 0) continue;
-            if (k_task[n].state == T_READY || (k_task[n].state == T_WAIT && has_work(&k_task[n]))) {
-                k_task[n].state = T_READY;
+        for (i = 1, n = k_cur, t = &k_task[n]; i <= MAXTASK; i++) {   /* reihum ohne Division */
+            if (++n == MAXTASK) { n = 1; t = &k_task[1]; i++; } else t++;
+            if (t->state == T_READY || (t->state == T_WAIT && has_work(t))) {
+                t->state = T_READY;
                 switch_to(n);
                 return;
             }
@@ -305,15 +309,14 @@ static int enqueue(WORD n, HWND w, WORD msg, WORD p1, DWORD p2)
 /* Naechste Nachricht holen (Schlange, dann Zeitgeber, dann Ende). 0 = nichts da */
 static int fetch(MSG FAR *m, int remove)
 {
-    TASK *t = &k_task[k_cur]; MSG __far *q; WORD j; DWORD now;
-    t->lastget = ms_now();
+    TASK *t = &k_task[k_cur]; MSG __far *q; WORD j; DWORD now = ms_now();
+    t->lastget = now;
     if (t->qn) {
         q = (MSG __far *)MK_FP(t->q, 0) + t->qh;
         *m = *q;
         if (remove) { t->qh = (t->qh + 1) % QLEN; t->qn--; }
         return 1;
     }
-    now = ms_now();
     for (j = 0; j < NTIMER; j++)
         if (t->tm[j].ms && (long)(now - t->tm[j].next) >= 0) {
             m->w = t->tm[j].w; m->msg = M_TIMER; m->p1 = t->tm[j].id; m->p2 = 0; m->time = now; m->pt.x = m->pt.y = 0;

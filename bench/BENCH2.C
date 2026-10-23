@@ -18,8 +18,11 @@ static void miss(LPCSTR name, void (*fn)(void))
     DbgPrint(name);
     DbgHex("BENCH2: us", (36UL * 54925UL) / n);
 }
-static void a_text13(void) { TextOut(dc, 13, 40, "RDEDIT.EXE     51110", -1); }
-static void a_text16(void) { TextOut(dc, 16, 40, "RDEDIT.EXE     51110", -1); }
+/* "Text 20 Zeichen" wie RD1: durchsichtig (nur die Schrift). "deckend": mit Hintergrund */
+static void a_text13(void) { SetBkMode(dc, BK_TRANSPARENT); TextOut(dc, 13, 40, "RDEDIT.EXE     51110", -1); SetBkMode(dc, BK_OPAQUE); }
+static void a_text16(void) { SetBkMode(dc, BK_TRANSPARENT); TextOut(dc, 16, 40, "RDEDIT.EXE     51110", -1); SetBkMode(dc, BK_OPAQUE); }
+static void a_dtext13(void) { TextOut(dc, 13, 40, "RDEDIT.EXE     51110", -1); }
+static void a_dtext16(void) { TextOut(dc, 16, 40, "RDEDIT.EXE     51110", -1); }
 static void a_fill(void)   { SetBrush(dc, C_WHITE, PAT_SOLID); FillRect(dc, &r); }
 static void a_pat(void)    { SetBrush(dc, C_BLACK, PAT_GRAY50); FillRect(dc, &r); }
 static void a_inv(void)    { InvertRect(dc, &ri); }
@@ -55,6 +58,8 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     if (!bdc) { DbgHex("BENCH2: keine Bitmap", LastError()); return 2; }
     miss("BENCH2: Text 20 Zeichen, x=13", a_text13);
     miss("BENCH2: Text 20 Zeichen, x=16", a_text16);
+    miss("BENCH2: Text deckend, x=13", a_dtext13);
+    miss("BENCH2: Text deckend, x=16", a_dtext16);
     miss("BENCH2: Schirm fuellen", a_fill);
     miss("BENCH2: Muster 50% voll", a_pat);
     miss("BENCH2: Rechteck 200x100 invertieren", a_inv);

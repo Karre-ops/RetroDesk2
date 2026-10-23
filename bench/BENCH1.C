@@ -32,6 +32,9 @@ static void a_blk(void)    { gfx_getblock(8, 20, 208, 150, blk); gfx_putblock(8,
 static volatile unsigned rz;
 static void a_calc(void)   { unsigned i; for (i = 0; i < 1000; i++) rz += i; }
 static void a_inp(void)    { kbhit(); mouse_read(&mx, &my, &mb); }
+/* deckend wie TextOut mit BK_OPAQUE: erst Hintergrund, dann Schrift */
+static void a_dtext13(void) { gfx_fill(13, 40, 160, gfx_fh, 1); gfx_text(13, 40, "RDEDIT.EXE     51110", 0); }
+static void a_dtext16(void) { gfx_fill(16, 40, 160, gfx_fh, 1); gfx_text(16, 40, "RDEDIT.EXE     51110", 0); }
 
 int main(int argc, char **argv)
 {
@@ -46,6 +49,8 @@ int main(int argc, char **argv)
     mouse_init();
     miss("Text 20 Zeichen, x=13", a_text13);
     miss("Text 20 Zeichen, x=16", a_text16);
+    miss("Text deckend, x=13", a_dtext13);
+    miss("Text deckend, x=16", a_dtext16);
     miss("Schirm fuellen", a_fill);
     miss("Muster 50% voll", a_pat);
     miss("Rechteck 200x100 invertieren", a_inv);
