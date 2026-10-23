@@ -495,7 +495,10 @@ static void putq(void)
         mov  ch, [bp+4]
         or   ch, ch
         jz   r3
-        test ch, 1
+        cmp  byte ptr [bp+9], 0  ; ODER/UND/XOR: eigene Schleifen
+        je   rc
+        jmp  rm
+    rc: test ch, 1
         jz   r7
         lodsb                    ; ungerade: ein Byte vorweg
         mov  ah, bl
@@ -533,12 +536,118 @@ static void putq(void)
         mov  ah, [bp+7]
         call mw
         jmp  rn
-    mw: mov  ch, es:[di]
+    mw: cmp  byte ptr [bp+9], 0  ; Randbyte al unter Maske ah schreiben
+        jne  mo
+        mov  ch, es:[di]
         xor  ch, al
         and  ch, ah
         xor  es:[di], ch
         inc  di
         ret
+    mo: cmp  byte ptr [bp+9], 2
+        jne  m1
+        not  ah                  ; UND: Maske aussen mit Einsen
+        or   al, ah
+        and  es:[di], al
+        inc  di
+        ret
+    m1: and  al, ah
+        cmp  byte ptr [bp+9], 1
+        jne  m3
+        or   es:[di], al
+        inc  di
+        ret
+    m3: xor  es:[di], al
+        inc  di
+        ret
+    rm: or   cl, cl              ; ausgerichtet: wortweise
+        jnz  rs
+        mov  bl, bh
+        cmp  byte ptr [bp+9], 2
+        je   wa
+        jb   wo
+        jmp  wx
+    wo: shr  ch, 1
+        jnc  wo1
+        lodsb
+        xor  al, bh
+        or  es:[di], al
+        inc  di
+    wo1: or   ch, ch
+        jz   woe
+    wo2: lodsw
+        xor  ax, bx
+        or  es:[di], ax
+        inc  di
+        inc  di
+        dec  ch
+        jnz  wo2
+    woe: jmp  r3
+    wa: shr  ch, 1
+        jnc  wa1
+        lodsb
+        xor  al, bh
+        and  es:[di], al
+        inc  di
+    wa1: or   ch, ch
+        jz   wae
+    wa2: lodsw
+        xor  ax, bx
+        and  es:[di], ax
+        inc  di
+        inc  di
+        dec  ch
+        jnz  wa2
+    wae: jmp  r3
+    wx: shr  ch, 1
+        jnc  wx1
+        lodsb
+        xor  al, bh
+        xor  es:[di], al
+        inc  di
+    wx1: or   ch, ch
+        jz   wxe
+    wx2: lodsw
+        xor  ax, bx
+        xor  es:[di], ax
+        inc  di
+        inc  di
+        dec  ch
+        jnz  wx2
+    wxe: jmp  r3
+    rs: cmp  byte ptr [bp+9], 2  ; verschoben: ganze Bytes verknuepfen
+        je   ra
+        jb   ro
+    rz: lodsb
+        mov  ah, bl
+        mov  bl, al
+        shr  ax, cl
+        xor  al, bh
+        xor  es:[di], al
+        inc  di
+        dec  ch
+        jnz  rz
+        jmp  r3
+    ro: lodsb
+        mov  ah, bl
+        mov  bl, al
+        shr  ax, cl
+        xor  al, bh
+        or   es:[di], al
+        inc  di
+        dec  ch
+        jnz  ro
+        jmp  r3
+    ra: lodsb
+        mov  ah, bl
+        mov  bl, al
+        shr  ax, cl
+        xor  al, bh
+        and  es:[di], al
+        inc  di
+        dec  ch
+        jnz  ra
+        jmp  r3
     rn: pop  dx
         mov  ax, [bp+0]
         add  [bp+10], ax
@@ -559,53 +668,25 @@ static void putq(void)
     }
 }
 
-/* 1-Bit-Quelle (Bit 7 = links) an x,y bringen. ROP_MASK: nur gesetzte Bits in fg.
-   Randbytes in C (Masken), dazwischen ganze Bytes in Assembler. */
+/* 1-Bit-Quelle (Bit 7 = links) an x,y bringen. Wert v = Quelle (bg gesetzt: invertiert),
+   ROP_MASK: gesetzte Bits in fg. Einfarbig und ROP_NOT gehen an d_box, alles andere an
+   blk (ausgerichtet kopieren) oder putq (Assembler). */
 static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *src, WORD srcbytes,
                         WORD srcbpp, WORD rop, WORD fg, WORD bg)
 {
-    WORD sh = x & 7, nb = (sh + w + 7) >> 3, sb = (w + 7) >> 3, i, art, nsh;
-    BYTE lm = (BYTE)(0xFF >> sh), rm = (BYTE)(0xFF << (7 - ((x + w - 1) & 7)));
-    BYTE vf = (BYTE)(fg ? 0xFF : 0), vb = (BYTE)(bg ? 0xFF : 0);
+    WORD sh = x & 7, nb = (sh + w + 7) >> 3, op;
+    BYTE rm = (BYTE)(0xFF << (7 - ((x + w - 1) & 7))), inv = (BYTE)(bg ? 0xFF : 0);
     (void)srcbpp;
-    /* art: 1 kopieren, 2 kopieren invertiert, 3 einfarbig, 4 ODER, 5 UND-NICHT, 6 XOR, 0 C */
-    if (rop == ROP_COPY) art = vf == vb ? 3 : vf ? 1 : 2;
-    else if (rop == ROP_MASK) art = vf ? 4 : 5;
-    else if (rop == ROP_OR) art = vf && !vb ? 4 : 0;
-    else if (rop == ROP_XOR) art = vf && !vb ? 6 : 0;
-    else art = 0;
-    nsh = ((nb - 2) << 8) | sh;
-    if (art <= 2 && art && !sh && rm == 0xFF) { blk(x, y, nb, h, src, srcbytes, (BYTE)art); return; }
-    if ((art == 1 || art == 2) && h > 0) {        /* kopieren, auch verschoben/invertiert: Assembler */
-        q_row = ROW(y) + ((WORD)x >> 3); q_soff = FP_OFF(src); q_sseg = FP_SEG(src); q_st = srcbytes; q_n = (WORD)h;
-        q_mid = nb == 1 ? 0xFFFF : nb - 2; q_mask = lm | ((WORD)rm << 8); q_ext = nb > sb; q_sh = (BYTE)sh;
-        q_inv = (BYTE)(art == 2 ? 0xFF : 0);
-        putq(); return;
-    }
-    for (; h > 0; h--, y++, src += srcbytes) {
-        BYTE __far *p = VP(x, y);
-        WORD acc = 0;
-        for (i = 0; i < nb; i++) {
-            BYTE b, m = 0xFF;
-            if (art && i == 1 && nb > 2) {        /* ganze Bytes 1 .. nb-2 */
-                BYTE pv = src[0];
-                switch (art) {
-                case 3: m_set(p + 1, nb - 2, vf); break;
-                case 4: m_or(p + 1, src + 1, nsh, pv); break;
-                case 5: m_andn(p + 1, src + 1, nsh, pv); break;
-                case 6: m_xor(p + 1, src + 1, nsh, pv); break;
-                }
-                i = nb - 1;
-                acc = src[nb - 2];
-            }
-            acc = (WORD)((acc << 8) | (i < sb ? src[i] : 0));
-            b = (BYTE)(acc >> sh);
-            if (i == 0) m &= lm;
-            if (i == nb - 1) m &= rm;
-            if (rop == ROP_MASK) wr(p + i, (BYTE)(m & b), vf, ROP_COPY);
-            else wr(p + i, m, (BYTE)((vf & b) | (vb & ~b)), rop);
-        }
-    }
+    if (h <= 0 || w <= 0) return;
+    if (rop == ROP_MASK) { op = fg ? 1 : 2; inv = (BYTE)(fg ? 0 : 0xFF); }   /* ODER b / UND ~b */
+    else if (rop == ROP_NOT || !fg == !bg) { d_box(x, y, x + w - 1, y + h - 1, fg, 0, rop); return; }
+    else if (rop > ROP_XOR) return;
+    else op = rop;                                /* ROP_COPY..ROP_XOR = 0..3 wie in putq */
+    if (!op && !sh && rm == 0xFF) { blk(x, y, nb, h, src, srcbytes, (BYTE)(inv ? 2 : 1)); return; }
+    q_row = ROW(y) + ((WORD)x >> 3); q_soff = FP_OFF(src); q_sseg = FP_SEG(src); q_st = srcbytes; q_n = (WORD)h;
+    q_mid = nb == 1 ? 0xFFFF : nb - 2; q_mask = (BYTE)(0xFF >> sh) | ((WORD)rm << 8);
+    q_ext = (nb > ((w + 7) >> 3)) | (op << 8); q_sh = (BYTE)sh; q_inv = inv;
+    putq();
 }
 
 static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WORD dstbytes)
