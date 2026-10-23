@@ -21,6 +21,9 @@
 #define M_NCBUTTONDOWN 0x00A1                     /* p1 = HT_*, p2 = Bildschirm */
 #define HT_TITLE 2
 #define HT_CLOSE 3
+#define HT_MENU  1
+#define HT_VSCROLL 4
+#define HT_HSCROLL 5
 
 typedef struct {
     BYTE  gen, used, vis, cls, task, flags, parent, child, next, dis;
@@ -29,8 +32,9 @@ typedef struct {
     RECT  r, inv;
     WNDPROC proc;
     HMENU menu;
+    short sb[2][3];                               /* Rollbalken: pos, max, seite */
     DWORD data[4];
-    char  text[40];
+    char  text[32];
 } WND;
 typedef struct { char name[16]; WNDPROC proc; WORD stil, inst; COLOR hinter; BYTE task, intern; } KLASSE;
 
@@ -41,13 +45,20 @@ static short sw, sh, mh, th;                      /* Schirm, Menueleiste, Titelz
 static DCX FAR *dcs; static BYTE FAR *kclip;
 static HDC (FAR __pascal *gdc)(HWND);
 static struct { HDC dc; WORD n; RECT r[MAXCLIP]; } sl[NSLOT];
-static RECT lim; static BYTE limon;               /* Aufdecken: nur hier zeichnen */
+static RECT lim; static BYTE limon;
+static short bx[14]; static BYTE bn;              /* Menueleiste: Anfang je Titel, bx[bn] = Ende */               /* Aufdecken: nur hier zeichnen */
 
 void RDEXPORT u_ShowWindow(HWND h, WORD art);
 HWND RDEXPORT u_SetActive(HWND h);
 static void desk(void);
 static void leiste(void);
 static int schirm_(void);
+static void leistemenue(HDC d);
+static void sbmal(WORD i, WORD bar, HDC d);
+static void menulauf(WORD i, int bar, int maus);
+static void sbklick(WORD i, WORD bar, short x, short y);
+static void aufdecken(const RECT *scr);
+static void inval(WORD i, const RECT *r, BYTE erase);
 
 /* ---- Hilfen ------------------------------------------------------------------- */
 static WORD idx(HWND h)
@@ -84,6 +95,8 @@ static void crect(WORD i, RECT *r)                /* Client, Bildschirm */
 {
     short b = rand_(i);
     wrect(i, r); r->l += b; r->r -= b; r->b -= b; r->t += b + titel(i);
+    if (w_[i].stil & WS_VSCROLL) r->r -= 16;       /* SBW */
+    if (w_[i].stil & WS_HSCROLL) r->b -= th;
 }
 static WORD top(WORD i) { while (i && w_[i].parent) i = w_[i].parent; return i; }
 static int sichtbar(WORD i) { for (; i; i = w_[i].parent) if (!w_[i].vis) return 0; return 1; }
@@ -208,13 +221,13 @@ static void leiste(void)
     SetPen(d, C_BLACK); Line(d, 0, mh - 1, sw - 1, mh - 1);
     SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
     TextOut(d, 8, 1, "RD", 2);
-    if (act) TextOut(d, 40, 1, w_[act].text, -1);
+    leistemenue(d);
     DCFree(d);
 }
 static void rahmen(WORD i)
 {
     HDC d; RECT r, c; short b = rand_(i), t = titel(i), wd;
-    if (!b && !t) return;
+    if (!b && !t && !(w_[i].stil & (WS_VSCROLL | WS_HSCROLL))) return;
     if (!(d = ndc(i, 0, limon ? &lim : 0))) return;
     r = w_[i].r; off(&r, (short)-r.l, (short)-r.t); wd = r.r;
     SetPen(d, C_BLACK);
@@ -230,6 +243,8 @@ static void rahmen(WORD i)
             SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &c); SetPen(d, C_BLACK); Frame(d, &c);
         }
     }
+    if (w_[i].stil & WS_VSCROLL) sbmal(i, SB_VERT, d);
+    if (w_[i].stil & WS_HSCROLL) sbmal(i, SB_HORZ, d);
     fdc(d);
 }
 static void inval(WORD i, const RECT *r, BYTE erase)   /* r: Client-Koordinaten, 0 = alles */
@@ -575,17 +590,384 @@ DWORD RDEXPORT u_DefWindowProc(HWND h, WORD m, WORD p1, DWORD p2)
     if (!i) return 0;
     switch (m) {
     case M_NCBUTTONDOWN:
-        if (p1 == HT_CLOSE) PostMessage(h, M_CLOSE, 0, 0);
+        if (p1 == HT_MENU) { short x = (short)LOWORD(p2); WORD k; for (k = 0; k < bn && !(x >= bx[k] && x < bx[k + 1]); k++) ; if (k < bn) menulauf(top(i), k, 1); }
+        else if (p1 == HT_VSCROLL || p1 == HT_HSCROLL) sbklick(i, p1 == HT_VSCROLL ? SB_VERT : SB_HORZ, (short)LOWORD(p2), (short)HIWORD(p2));
+        else if (p1 == HT_CLOSE) PostMessage(h, M_CLOSE, 0, 0);
         else if (p1 == HT_TITLE) ziehen(i, (short)LOWORD(p2), (short)HIWORD(p2));
         return 0;
     case M_CLOSE: u_DestroyWindow(h); return 0;
     case M_PAINT: u_BeginPaint(h, &ps); u_EndPaint(h, &ps); return 0;
     case M_KEY:
         if (p1 == 0x100 + 0x3E && (HIWORD(p2) & KS_ALT)) PostMessage(hw(top(i)), M_CLOSE, 0, 0);   /* Alt+F4 */
+        else if (p1 == K_F10 && top(i) == act) menulauf(act, 0, 0);
         return 0;
     }
     return 0;
 }
+/* ---- Rollbalken (SPEC.md 5) -------------------------------------------------------- */
+#define SBW 16                                    /* senkrechter Balken: Breite; waagrechter: Hoehe th */
+static void sbrect(WORD i, WORD bar, RECT *r)     /* Fensterkoordinaten */
+{
+    short b = rand_(i), t = titel(i), wd = w_[i].r.r - w_[i].r.l, ht = w_[i].r.b - w_[i].r.t;
+    short hv = (w_[i].stil & WS_VSCROLL) ? SBW : 0, hh = (w_[i].stil & WS_HSCROLL) ? th : 0;
+    if (bar == SB_VERT) { r->l = wd - b - hv; r->r = wd - b; r->t = b + t; r->b = ht - b - hh; }
+    else { r->l = b; r->r = wd - b - hv; r->t = ht - b - hh; r->b = ht - b; }
+}
+/* Teile entlang des Balkens: a = Pfeillaenge, Daumen von d0 bis d1 (relativ zum Anfang), len gesamt */
+static void sbteile(WORD i, WORD bar, short *a, short *len, short *d0, short *d1)
+{
+    RECT r; short *s = w_[i].sb[bar], spur, dl;
+    sbrect(i, bar, &r);
+    *len = bar == SB_VERT ? r.b - r.t : r.r - r.l;
+    *a = bar == SB_VERT ? (th < SBW ? th : SBW) : SBW;
+    spur = *len - 2 * *a;
+    if (s[1] <= 0 || spur < 8) { *d0 = *d1 = 0; return; }
+    dl = (short)((long)spur * (s[2] > 0 ? s[2] : 1) / (s[1] + (s[2] > 0 ? s[2] : 1)));
+    if (dl < 8) dl = 8; if (dl > spur) dl = spur;
+    *d0 = *a + (short)((long)(spur - dl) * s[0] / s[1]); *d1 = *d0 + dl;
+}
+static void pfeil(HDC d, RECT *r, int richt)      /* 0 hoch, 1 runter, 2 links, 3 rechts */
+{
+    POINT p[3]; short mx = (r->l + r->r) / 2, my = (r->t + r->b) / 2, k = (r->b - r->t) / 4, j = (r->r - r->l) / 4;
+    if (k < 2) k = 2; if (j < 2) j = 2; if (k > j) k = j; else j = k;
+    SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, r); SetPen(d, C_BLACK); Frame(d, r);
+    if (richt < 2) { p[0].x = mx - 2 * j; p[1].x = mx + 2 * j; p[2].x = mx; p[0].y = p[1].y = my + (richt ? -k : k); p[2].y = my + (richt ? k : -k); }
+    else { p[0].y = my - 2 * k; p[1].y = my + 2 * k; p[2].y = my; p[0].x = p[1].x = mx + (richt == 3 ? -j : j); p[2].x = mx + (richt == 3 ? j : -j); }
+    SetBrush(d, C_BLACK, PAT_SOLID); Polygon(d, p, 3, 1);
+}
+static void sbmal(WORD i, WORD bar, HDC d)        /* d: Fenster-DC */
+{
+    RECT r, q; short a, len, d0, d1;
+    sbrect(i, bar, &r);
+    if (leer(&r)) return;
+    sbteile(i, bar, &a, &len, &d0, &d1);
+    q = r;
+    if (bar == SB_VERT) { q.b = q.t + a; pfeil(d, &q, 0); q.t = r.b - a; q.b = r.b; pfeil(d, &q, 1); q.t = r.t + a - 1; q.b = r.b - a + 1; }
+    else { q.r = q.l + a; pfeil(d, &q, 2); q.l = r.r - a; q.r = r.r; pfeil(d, &q, 3); q.l = r.l + a - 1; q.r = r.r - a + 1; }
+    SetBrush(d, C_BLACK, PAT_GRAY50); SetBkColor(d, C_WHITE); FillRect(d, &q); SetPen(d, C_BLACK); Frame(d, &q);
+    if (d1 > d0) {
+        q = r;
+        if (bar == SB_VERT) { q.t = r.t + d0; q.b = r.t + d1; } else { q.l = r.l + d0; q.r = r.l + d1; }
+        SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &q); Frame(d, &q);
+    }
+}
+static void sbneu(WORD i, WORD bar)
+{
+    HDC d; DWORD f = bar == SB_VERT ? WS_VSCROLL : WS_HSCROLL;
+    if (!(w_[i].stil & f) || !sichtbar(i) || !(d = ndc(i, 0, 0))) return;
+    sbmal(i, bar, d); fdc(d);
+}
+void RDEXPORT u_ScrollSet(HWND h, WORD bar, short pos, short max, short seite)
+{
+    WORD i = idx(h); short *s;
+    if (!i || bar > SB_VERT) { bad(); return; }
+    if (max < 0) max = 0;
+    if (pos > max) pos = max; if (pos < 0) pos = 0;
+    s = w_[i].sb[bar];
+    if (s[0] == pos && s[1] == max && s[2] == seite) return;
+    s[0] = pos; s[1] = max; s[2] = seite;
+    sbneu(i, bar);
+}
+short RDEXPORT u_ScrollGet(HWND h, WORD bar) { WORD i = idx(h); if (!i || bar > SB_VERT) return (short)bad(); return w_[i].sb[bar][0]; }
+static void sbklick(WORD i, WORD bar, short x, short y)   /* Bildschirmkoordinaten */
+{
+    RECT r, w; short a, len, d0, d1, p, code, alt, neu, start; MSG m; DWORD t0, warte = 400; HDC d;
+    wrect(i, &w); sbrect(i, bar, &r); off(&r, w.l, w.t);
+    sbteile(i, bar, &a, &len, &d0, &d1);
+    p = bar == SB_VERT ? y - r.t : x - r.l;
+    if (p >= d0 && p < d1 && d1 > d0) {           /* Daumen ziehen: Umriss folgt, Wert beim Loslassen */
+        RECT q = r; short pos = w_[i].sb[bar][0], spur = len - 2 * a - (d1 - d0);
+        if (!(d = gdc(0))) return;
+        SetRop(d, ROP_XOR); SetPen(d, C_WHITE); start = p; alt = d0;
+        if (bar == SB_VERT) { q.t = r.t + d0; q.b = r.t + d1; } else { q.l = r.l + d0; q.r = r.l + d1; }
+        cap = (BYTE)i; Frame(d, &q);
+        for (;;) {
+            if (!GetMessage(&m)) { PostQuit(0); break; }
+            if (m.msg == M_MOUSEMOVE || m.msg == M_BUTTONUP) {
+                neu = d0 + (bar == SB_VERT ? m.pt.y - r.t : m.pt.x - r.l) - start;
+                if (neu < a) neu = a; if (neu > a + spur) neu = a + spur;
+                if (neu != alt || m.msg == M_BUTTONUP) {
+                    Frame(d, &q);
+                    if (bar == SB_VERT) { q.t = r.t + neu; q.b = q.t + d1 - d0; } else { q.l = r.l + neu; q.r = q.l + d1 - d0; }
+                    alt = neu;
+                    if (m.msg == M_BUTTONUP) break;
+                    Frame(d, &q);
+                }
+            } else if (m.msg != M_BUTTONDOWN && m.msg != M_KEY) u_DispatchMessage(&m);
+        }
+        cap = 0; DCFree(d);
+        if (spur > 0) pos = (short)(((long)(alt - a) * w_[i].sb[bar][1] + spur / 2) / spur);
+        sendi(i, M_SCROLL, SB_THUMB, MAKELONG(pos, bar));
+        return;
+    }
+    code = p < a ? SB_LINEUP : p >= len - a ? SB_LINEDOWN : p < d0 ? SB_PAGEUP : SB_PAGEDOWN;
+    cap = (BYTE)i;
+    sendi(i, M_SCROLL, code, MAKELONG(w_[i].sb[bar][0], bar));
+    for (t0 = TickCount(); idx(hw(i)); ) {        /* gedrueckt halten: wiederholen */
+        if (PeekMessage(&m, TRUE)) {
+            if (m.msg == M_BUTTONUP) break;
+            if (m.msg != M_MOUSEMOVE && m.msg != M_BUTTONDOWN && m.msg != M_KEY) u_DispatchMessage(&m);
+            if (m.msg == M_QUIT) { PostQuit(0); break; }
+            continue;
+        }
+        if (TickCount() - t0 >= warte) { t0 = TickCount(); warte = 80; sendi(i, M_SCROLL, code, MAKELONG(w_[i].sb[bar][0], bar)); }
+        else TaskYield();
+    }
+    cap = 0;
+}
+void RDEXPORT u_ScrollWindow(HWND h, short dx, short dy, const RECT FAR *rr)
+{
+    WORD i = idx(h), n; RECT c, a, v[MAXCLIP], f; HDC d;
+    if (!i) { bad(); return; }
+    if (!sichtbar(i)) return;
+    u_GetClientRect(h, &c);
+    if (rr) { a = *rr; isect(&a, &c); } else a = c;
+    if (leer(&a)) return;
+    n = vis(i, 1, v); crect(i, &f);
+    if (n != 1 || v[0].l != f.l || v[0].t != f.t || v[0].r != f.r || v[0].b != f.b ||
+        dx >= a.r - a.l || -dx >= a.r - a.l || dy >= a.b - a.t || -dy >= a.b - a.t) { inval(i, &a, 1); return; }
+    if (!(d = ndc(i, 1, 0))) { inval(i, &a, 1); return; }
+    BitBlt(d, (short)(a.l + (dx > 0 ? dx : 0)), (short)(a.t + (dy > 0 ? dy : 0)), (short)(a.r - a.l - (dx < 0 ? -dx : dx)),
+           (short)(a.b - a.t - (dy < 0 ? -dy : dy)), d, (short)(a.l - (dx < 0 ? dx : 0)), (short)(a.t - (dy < 0 ? dy : 0)), ROP_COPY);
+    fdc(d);
+    f = a;                                        /* frei gewordene Streifen neu */
+    if (dy > 0) { f.b = f.t + dy; inval(i, &f, 1); } else if (dy < 0) { f.t = f.b + dy; inval(i, &f, 1); }
+    f = a;
+    if (dx > 0) { f.r = f.l + dx; inval(i, &f, 1); } else if (dx < 0) { f.l = f.r + dx; inval(i, &f, 1); }
+}
+
+/* ---- Menues (SPEC.md 5): Ressource RT_MENU, eigene Kopie je Menue ------------------- */
+#define MAXM 12
+#define MAXI 24
+static struct { HMEM h; BYTE task; } mt[MAXM];
+static BYTE FAR *mlock(HMENU m) { return m && m <= MAXM && mt[m - 1].h ? (BYTE FAR *)MemLock(mt[m - 1].h) : 0; }
+static void munlock(HMENU m) { MemUnlock(mt[m - 1].h); }
+/* eine Ebene ab p durchgehen; liefert den Eintrag mit id (auch tiefer), *end = hinter der Ebene */
+static WORD FAR *mfind(BYTE FAR *p, WORD id, BYTE FAR **end)
+{
+    WORD f; WORD FAR *r = 0, FAR *q; BYTE FAR *e;
+    do {
+        f = *(WORD FAR *)p;
+        if (!r && !(f & (MF_POPUP | MF_SEP)) && ((WORD FAR *)p)[1] == id) r = (WORD FAR *)p;
+        p += 4; while (*p++) ;
+        if (f & MF_POPUP) { q = mfind(p, id, &e); p = e; if (!r) r = q; }
+    } while (!(f & MF_END));
+    *end = p;
+    return r;
+}
+static BYTE FAR *mnext(BYTE FAR *p)               /* naechster Eintrag derselben Ebene, 0 = Ende */
+{
+    WORD f = *(WORD FAR *)p; BYTE FAR *e;
+    if (f & MF_END) return 0;
+    p += 4; while (*p++) ;
+    if (f & MF_POPUP) { mfind(p, 0xFFFF, &e); p = e; }
+    return p;
+}
+#define MTEXT(p) ((LPCSTR)((p) + 4))
+/* Menuetext: & unterstreicht den naechsten Buchstaben, \t trennt die Tastenangabe (rechtsbuendig).
+   zeichnen = 0: nur messen. Liefert Breite Haupttext, *acc = Breite Tastenangabe */
+static char mb[40];
+static short mtxt(HDC d, short x, short y, LPCSTR s, short rechts, short *acc, int zeichnen)
+{
+    WORD n = 0, u = 0xFFFF; short w, ux;
+    while (*s && *s != '\t' && n < sizeof mb - 1) { if (*s == '&' && s[1] && s[1] != '&' && u == 0xFFFF) { u = n; s++; continue; } if (*s == '&') s++; mb[n++] = *s++; }
+    w = TextWidth(d, mb, n);
+    if (zeichnen && n) {
+        TextOut(d, x, y, mb, n);
+        if (u != 0xFFFF) { ux = x + TextWidth(d, mb, u); Line(d, ux, y + th - 4, ux + TextWidth(d, mb + u, 1) - 1, y + th - 4); }
+    }
+    *acc = 0;
+    if (*s == '\t') { s++; *acc = TextWidth(d, s, -1); if (zeichnen) TextOut(d, rechts - *acc, y, s, -1); }
+    return w;
+}
+static char mkey(LPCSTR s)                        /* Buchstabe hinter &, gross */
+{
+    for (; *s && *s != '\t'; s++) if (*s == '&' && s[1] && s[1] != '&') return (char)(s[1] >= 'a' && s[1] <= 'z' ? s[1] - 32 : s[1]);
+    return 0;
+}
+HMENU RDEXPORT u_MenuLoad(HINST inst, WORD id)
+{
+    WORD k; HMEM h;
+    for (k = 0; k < MAXM && mt[k].h; k++) ;
+    if (k == MAXM) { SetLastError(RD_ERR_FULL); return 0; }
+    if (!(h = ResLoad(inst, RT_MENU, id))) return 0;
+    mt[k].h = h; mt[k].task = (BYTE)TaskSelf();
+    return k + 1;
+}
+void RDEXPORT u_MenuFree(HMENU m)
+{
+    WORD i;
+    if (!m || m > MAXM || !mt[m - 1].h) { bad(); return; }
+    ResFree(mt[m - 1].h); mt[m - 1].h = 0;
+    for (i = 1; i <= MAXW; i++) if (w_[i].used && w_[i].menu == m) { w_[i].menu = 0; if (i == act) leiste(); }
+}
+void RDEXPORT u_MenuSet(HWND h, HMENU m)
+{
+    WORD i = top(idx(h));
+    if (!i) { bad(); return; }
+    w_[i].menu = m;
+    if (i == act) leiste();
+}
+static WORD mflag(HMENU m, WORD id, WORD bit, BOOL an)
+{
+    BYTE FAR *p = mlock(m), FAR *e; WORD FAR *x; WORD alt = 0;
+    if (!p) return bad();
+    if ((x = mfind(p, id, &e)) != 0) { alt = *x & bit; if (an) *x |= bit; else *x &= ~bit; }
+    else SetLastError(RD_ERR_NOTFOUND);
+    munlock(m);
+    return alt;
+}
+void RDEXPORT u_MenuCheck(HMENU m, WORD id, BOOL an) { mflag(m, id, MF_CHECK, an); }
+void RDEXPORT u_MenuEnable(HMENU m, WORD id, BOOL an) { mflag(m, id, MF_GRAY, !an); }
+WORD RDEXPORT u_MenuText(HMENU m, WORD id, LPCSTR s)   /* nur gleich lang oder kuerzer (Kopie hat feste Laenge) */
+{
+    BYTE FAR *p = mlock(m), FAR *e; WORD FAR *x; LPSTR t; WORD n = 0, k;
+    if (!p) return bad();
+    if ((x = mfind(p, id, &e)) != 0) {
+        t = (LPSTR)(x + 2);
+        for (k = 0; t[k]; k++) ;
+        while (s && s[n] && n < k) { t[n] = s[n]; n++; }
+        while (n < k) t[n++] = ' ';               /* Rest mit Leerzeichen: Laenge bleibt */
+    } else SetLastError(RD_ERR_NOTFOUND);
+    munlock(m);
+    return x ? 1 : 0;
+}
+static void leistemenue(HDC d)                    /* Titel des aktiven Menues, Positionen merken */
+{
+    BYTE FAR *p; short x = 40;
+    bn = 0; bx[0] = x;
+    if (!act || !(p = mlock(w_[act].menu))) { if (act) TextOut(d, x, 1, w_[act].text, -1); return; }
+    for (; p && bn < 13; p = mnext(p)) {
+        short a;
+        x += mtxt(d, (short)(x + 6), 1, MTEXT(p), 0, &a, 1) + 12;
+        bx[++bn] = x;
+    }
+    munlock(w_[act].menu);
+}
+/* Klappmenue: Eintraege ab q (erste Ebene der Kinder), links oben x, y. Liefert ID oder 0.
+   bar: Index in der Leiste, *weiter = neuer Index (Pfeil links/rechts, anderer Titel), -1 = Ende */
+static WORD klapp(WORD i, BYTE FAR *q, short x, short y, int bar, int *weiter, int maus)
+{
+    BYTE FAR *it[MAXI]; short iy[MAXI + 1], wd = 0, aw = 0, k, n = 0, sel = -1, s2, ww, a; WORD id = 0, f;
+    HDC d = gdc(0), bd = 0; HBMP bm = 0; RECT r, z; MSG m; BYTE FAR *p;
+    *weiter = -1;
+    if (!d) return 0;
+    for (p = q; p && n < MAXI; p = mnext(p)) {
+        it[n] = p; iy[n] = n ? iy[n - 1] + ((*(WORD FAR *)it[n - 1] & MF_SEP) ? th / 2 : th) : 1;
+        if ((ww = mtxt(d, 0, 0, MTEXT(p), 0, &a, 0)) > wd) wd = ww;
+        if (a > aw) aw = a;
+        n++;
+    }
+    if (!n) { DCFree(d); return 0; }
+    iy[n] = iy[n - 1] + ((*(WORD FAR *)it[n - 1] & MF_SEP) ? th / 2 : th);
+    r.l = x; r.t = y; r.r = x + wd + (aw ? aw + 16 : 0) + 28; r.b = y + iy[n] + 2;
+    if (r.r > sw) off(&r, sw - r.r, 0);
+    if (r.b > sh) off(&r, 0, sh - r.b);
+    if (r.l < 0) off(&r, (short)-r.l, 0);
+    if ((bm = BmpCreate(r.r - r.l, r.b - r.t, 1)) != 0 && (bd = BmpDC(bm)) != 0)   /* Hintergrund retten */
+        BitBlt(bd, 0, 0, r.r - r.l, r.b - r.t, d, r.l, r.t, ROP_COPY);
+    SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &r); SetPen(d, C_BLACK); Frame(d, &r);
+    SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
+    for (k = 0; k < n; k++) {
+        f = *(WORD FAR *)it[k];
+        if (f & MF_SEP) { SetBrush(d, C_BLACK, PAT_GRAY50); z.l = r.l + 2; z.r = r.r - 2; z.t = r.t + iy[k] + th / 4 - 1; z.b = z.t + 1; FillRect(d, &z); continue; }
+        mtxt(d, (short)(r.l + 16), (short)(r.t + iy[k] + 1), MTEXT(it[k]), (short)(r.r - 12), &a, 1);
+        if (f & MF_CHECK) TextOut(d, (short)(r.l + 4), (short)(r.t + iy[k] + 1), "\xFB", 1);
+        if (f & MF_POPUP) TextOut(d, (short)(r.r - 10), (short)(r.t + iy[k] + 1), "\x10", 1);
+        if (f & MF_GRAY) {                        /* grau: jedes zweite Pixel weiss */
+            z.l = r.l + 1; z.r = r.r - 1; z.t = r.t + iy[k]; z.b = r.t + iy[k + 1];
+            SetRop(d, ROP_OR); SetBkColor(d, C_BLACK); SetBrush(d, C_WHITE, PAT_GRAY50); FillRect(d, &z); SetRop(d, ROP_COPY);
+        }
+    }
+#define WAEHLBAR(k) (!(*(WORD FAR *)it[k] & (MF_SEP | MF_GRAY | MF_POPUP)))
+#define ZEILE(k) (z.l = r.l + 1, z.r = r.r - 1, z.t = r.t + iy[k], z.b = r.t + iy[(k) + 1], &z)
+    if (!maus) for (sel = 0; sel < n && !WAEHLBAR(sel); sel++) ;
+    if (sel >= n) sel = -1;
+    if (sel >= 0) InvertRect(d, ZEILE(sel));
+    cap = (BYTE)i;
+    for (;;) {
+        if (!GetMessage(&m)) { PostQuit(0); break; }
+        if (m.msg == M_MOUSEMOVE || m.msg == M_BUTTONDOWN || m.msg == M_BUTTONUP) {
+            s2 = -1;
+            if (m.pt.x >= r.l && m.pt.x < r.r && m.pt.y >= r.t && m.pt.y < r.b)
+                for (k = 0; k < n; k++) if (m.pt.y < r.t + iy[k + 1]) { if (WAEHLBAR(k)) s2 = k; break; }
+            if (s2 != sel) { if (sel >= 0) InvertRect(d, ZEILE(sel)); sel = s2; if (sel >= 0) InvertRect(d, ZEILE(sel)); }
+            if (bar >= 0 && m.pt.y < mh && m.msg != M_BUTTONUP) {   /* anderer Titel */
+                for (k = 0; k < bn && !(m.pt.x >= bx[k] && m.pt.x < bx[k + 1]); k++) ;
+                if (k < bn && k != bar) { *weiter = k; break; }
+                if (k == bar && m.msg == M_BUTTONDOWN) break;     /* derselbe Titel nochmal: zu */
+            }
+            if (m.msg == M_BUTTONUP && sel >= 0) { id = ((WORD FAR *)it[sel])[1]; break; }
+            if (m.msg == M_BUTTONDOWN && s2 < 0 && !(m.pt.x >= r.l && m.pt.x < r.r && m.pt.y >= r.t && m.pt.y < r.b) && !(bar >= 0 && m.pt.y < mh)) break;
+        } else if (m.msg == M_KEY) {
+            k = sel;
+            if (m.p1 == K_ESC) break;
+            if (m.p1 == K_ENTER) { if (sel >= 0) id = ((WORD FAR *)it[sel])[1]; break; }
+            if (m.p1 < 0x100) {                   /* Buchstabe: Eintrag mit & */
+                char c = (char)(m.p1 >= 'a' && m.p1 <= 'z' ? m.p1 - 32 : m.p1);
+                for (k = 0; k < n && !(WAEHLBAR(k) && mkey(MTEXT(it[k])) == c); k++) ;
+                if (k < n) { id = ((WORD FAR *)it[k])[1]; break; }
+            }
+            if (m.p1 == K_DOWN || m.p1 == K_UP) {
+                for (s2 = 0; s2 < n; s2++) {
+                    k = m.p1 == K_DOWN ? (k + 1) % n : (k <= 0 ? n - 1 : k - 1);
+                    if (WAEHLBAR(k)) break;
+                }
+                if (s2 < n && k != sel) { if (sel >= 0) InvertRect(d, ZEILE(sel)); sel = k; InvertRect(d, ZEILE(sel)); }
+            }
+            if (bar >= 0 && bn && (m.p1 == K_LEFT || m.p1 == K_RIGHT)) { *weiter = m.p1 == K_RIGHT ? (bar + 1) % bn : (bar + bn - 1) % bn; break; }
+        } else if (m.msg == M_PAINT) { WORD j = idx(m.w); if (j) w_[j].flags &= ~F_PAINTQ; }   /* spaeter */
+        else if (m.msg == M_QUIT) { PostQuit(m.p1); break; }
+        else u_DispatchMessage(&m);
+    }
+    cap = 0;
+    if (bd) { BitBlt(d, r.l, r.t, r.r - r.l, r.b - r.t, bd, 0, 0, ROP_COPY); DCFree(bd); }
+    if (bm) BmpFree(bm); else { DCFree(d); d = 0; aufdecken(&r); }
+    if (d) DCFree(d);
+    for (k = 1; k <= MAXW; k++)                   /* zurueckgestellte Zeichenwuensche */
+        if (w_[k].used && !leer(&w_[k].inv) && !(w_[k].flags & F_PAINTQ)) { w_[k].flags |= F_PAINTQ; PostMessage(hw(k), M_PAINT, 0, 0); }
+    return id;
+}
+static BYTE FAR *ntes(BYTE FAR *p, int k) { while (p && k--) p = mnext(p); return p; }
+static void menulauf(WORD i, int bar, int maus)   /* Menueleiste des Fensters i, Titel bar */
+{
+    HMENU hm = w_[i].menu; BYTE FAR *p, FAR *q; HDC d; RECT r; int w; WORD id = 0;
+    if (!hm || !bn) return;
+    while (bar >= 0 && bar < bn) {
+        if (!(p = mlock(hm))) return;
+        sendi(i, M_MENUOPEN, (WORD)bar, hm);
+        q = ntes(p, bar);
+        r.l = bx[bar]; r.r = bx[bar + 1]; r.t = 0; r.b = mh - 1;
+        if ((d = gdc(0)) != 0) { InvertRect(d, &r); DCFree(d); }
+        id = 0; w = -1;
+        if (q && (*(WORD FAR *)q & MF_POPUP)) { q += 4; while (*q++) ; id = klapp(i, q, r.l, mh - 1, bar, &w, maus); }
+        else if (q) { id = ((WORD FAR *)q)[1]; }  /* Titel ohne Klappmenue: gleich Befehl */
+        if ((d = gdc(0)) != 0) { InvertRect(d, &r); DCFree(d); }
+        munlock(hm);
+        bar = w; maus = 0;
+    }
+    if (id) PostMessage(hw(i), M_COMMAND, id, 0);
+}
+WORD RDEXPORT u_MenuPopup(HWND h, HMENU hm, WORD sub, short x, short y)   /* x, y: Client von h */
+{
+    WORD i = idx(h), id = 0; BYTE FAR *p, FAR *q; POINT pt; int w;
+    if (!i || !(p = mlock(hm))) return bad();
+    pt.x = x; pt.y = y; u_ClientToScreen(h, &pt);
+    sendi(i, M_MENUOPEN, sub, hm);
+    q = ntes(p, sub);
+    if (q && (*(WORD FAR *)q & MF_POPUP)) { q += 4; while (*q++) ; id = klapp(i, q, pt.x, pt.y, -1, &w, 1); }
+    munlock(hm);
+    return id;
+}
+WORD RDEXPORT u_KeyState(WORD taste)              /* 0: KS_* der Umschalttasten */
+{
+    BYTE b = *(BYTE FAR *)0x00400017UL;
+    WORD ks = (b & 3 ? KS_SHIFT : 0) | (b & (KS_CTRL | KS_ALT));
+    if (!taste) return ks;
+    if (taste == KS_SHIFT || taste == KS_CTRL || taste == KS_ALT) return ks & taste;
+    return 0;
+}
+
 static WORD my[16][12];
 WORD RDEXPORT u_MsgRegister(LPCSTR name)          /* ab 0xC000, gleicher Name = gleiche Nummer */
 {
@@ -614,6 +996,7 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
             if (w_[i].used && w_[i].task == (BYTE)h && !w_[i].parent) { wrect(i, &r); weg(i, 0); aufdecken(&r); n = 1; }
         for (i = 1; i <= MAXW; i++) if (w_[i].used && w_[i].task == (BYTE)h) weg(i, 0);   /* Kinder in fremden Fenstern */
         for (j = 0; j < MAXCL; j++) if (kl[j].task == (BYTE)h && !kl[j].intern) kl[j].name[0] = 0;
+        for (j = 0; j < MAXM; j++) if (mt[j].h && mt[j].task == (BYTE)h) mt[j].h = 0;   /* Speicher gibt der Kern frei */
         if (n && !w_[act].used) neuaktiv();
         return 0;
     }
@@ -638,6 +1021,14 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
             if (msg != M_BUTTONDOWN) return 0;
             wrect(i, &r); b = rand_(i); t = titel(i);
             m->msg = M_NCBUTTONDOWN; m->p1 = 0;
+            if (w_[i].stil & (WS_VSCROLL | WS_HSCROLL)) {
+                RECT q; WORD bar;
+                for (bar = 0; bar < 2; bar++) {
+                    if (!(w_[i].stil & (bar == SB_VERT ? WS_VSCROLL : WS_HSCROLL))) continue;
+                    sbrect(i, bar, &q); off(&q, r.l, r.t);
+                    if (x >= q.l && x < q.r && y >= q.t && y < q.b) m->p1 = bar == SB_VERT ? HT_VSCROLL : HT_HSCROLL;
+                }
+            }
             if (t && y < r.t + b + t) m->p1 = (w_[i].stil & WS_CLOSE) && x < r.l + b + t ? HT_CLOSE : HT_TITLE;
             m->w = hw(i); return w_[i].task;
         }
@@ -672,11 +1063,11 @@ static struct { WORD n; FARPROC f[72]; } ext = { 72, {
     U(ende), U(RegisterClass), U(CreateWindow), U(DestroyWindow), U(ShowWindow), U(MoveWindow), U(SetWindowText), U(GetWindowText),
     U(GetClientRect), U(GetWindowRect), U(InvalidateRect), U(ValidateRect), U(UpdateWindow), U(BeginPaint), U(EndPaint), U(GetDC),
     U(ReleaseDC), U(SetFocus), U(GetFocus), U(SetActive), U(GetActive), U(DefWindowProc), U(SetWindowData), U(GetWindowData),
-    U(GetParent), U(WindowFromPoint), U(ClientToScreen), U(ScreenToClient), U(IsWindow), U(EnableWindow), 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
+    U(GetParent), U(WindowFromPoint), U(ClientToScreen), U(ScreenToClient), U(IsWindow), U(EnableWindow), U(ScrollWindow), 0,
+    0, U(ScrollSet), U(ScrollGet), 0, 0, 0, 0, 0,
     0, U(CaptureMouse), U(ReleaseMouse), 0, 0, 0, 0, 0,
+    0, U(MenuLoad), U(MenuSet), U(MenuCheck), U(MenuEnable), U(MenuFree), U(MenuPopup), U(MenuText),
     0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, U(hook), (FARPROC)u_init, U(SendMessage), U(DispatchMessage), U(MsgRegister),
+    0, U(KeyState), 0, U(hook), (FARPROC)u_init, U(SendMessage), U(DispatchMessage), U(MsgRegister),
 } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

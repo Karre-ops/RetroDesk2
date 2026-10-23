@@ -1,0 +1,14 @@
+; Ressourcen fuer MENUTEST.EXE
+SPRACHE ALLE
+MENU 1
+  POPUP "&Datei"
+    ITEM "&Neu\tStrg+N"   101
+    ITEM "&Öffnen..."     102 GRAU
+    TRENNER
+    ITEM "&Beenden"       109
+  ENDE
+  POPUP "&Ansicht"
+    ITEM "&Raster"        201 HAKEN
+    ITEM "&Gross"         202
+  ENDE
+ENDE

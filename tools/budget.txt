@@ -53,3 +53,4 @@ FREIMEM.EXE     16384    0   T  Test: normales DOS-Programm fuer DOSTEST
 BENCH2.EXE       4096    0   T  Leistungsvergleich RD2-Seite (BENCH1 baut aus RD1, nicht auf der Diskette)
 RESTEST.EXE      8192    0   S  Test Ressourcen, Texte, Uhrzeit
 WINTEST.EXE      8192    0   P  Test: Fenster
+MENUTEST.EXE     8192    0   P  Test: Menues, Rollbalken
