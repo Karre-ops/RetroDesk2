@@ -112,6 +112,10 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     SetBrush(dc, C_BLACK, PAT_SOLID);
     rc(X(600), Y(640), X(800), Y(760)); FillRect(dc, &r);
     SetBrush(dc, C_WHITE, PAT_SOLID); SetRop(dc, ROP_XOR); rc(X(650), Y(680), X(900), Y(800)); FillRect(dc, &r); SetRop(dc, ROP_COPY);
+    SetBrush(dc, C_WHITE, PAT_HATCH); SetRop(dc, ROP_OR); rc(X(603), Y(643), X(641), Y(675)); FillRect(dc, &r);   /* ODER/UND, schraege Raender */
+    rc(X(611), Y(700), X(613), Y(750)); FillRect(dc, &r);
+    SetBrush(dc, C_BLACK, PAT_GRAY50); SetRop(dc, ROP_AND); rc(X(661), Y(691), X(797), Y(757)); FillRect(dc, &r);
+    rc(X(662), Y(761), X(665), Y(797)); FillRect(dc, &r); SetRop(dc, ROP_COPY);
     for (i = 0; i < 40; i++) Pixel(dc, (short)(X(820) + i * 3), (short)(Y(900) + (i & 7)), C_BLACK);
     n = (WORD)(GetPixel(dc, X(620), Y(660)) == C_BLACK) | (WORD)((GetPixel(dc, X(700), Y(720)) == C_WHITE) << 1)
       | (WORD)((GetPixel(dc, X(850), Y(780)) == C_BLACK) << 2);

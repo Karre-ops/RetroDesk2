@@ -178,8 +178,8 @@ void m_andb(BYTE __far *d, WORD n, BYTE v);
 #pragma aux m_andb = "jcxz e" "l: and es:[di],al" "inc di" "loop l" "e:" parm [es di] [cx] [al] modify [cx di]
 
 /* Rechteck am Stueck (wie RD1 rows()): Zeilenschleife ganz in Assembler, die Zeilenadresse
-   wird weitergezaehlt (CGA/HGC: Baenke zu 2000h, VGA: linear). COPY und XOR/NOT schnell,
-   OR/AND selten: in C. */
+   wird weitergezaehlt (CGA/HGC: Baenke zu 2000h, VGA: linear). alle ROPs in Assembler
+   (COPY wortweise mit rep stosw, XOR wortweise, OR/AND bytweise). */
 /* Naechste Zeile im Assembler: dx += ZADD, ab ZLIM dx -= ZSUB. Kein #if im _asm-Block
    (Watcom nimmt dort sonst still den #else-Zweig), daher feste Zahlen je Karte. */
 #if defined(VGAM)
@@ -195,25 +195,15 @@ void m_andb(BYTE __far *d, WORD n, BYTE v);
 #  define ZLIM 8000h
 #  define ZSUB 7FA6h
 #endif
-static BYTE pt[8], b_lm, b_rm, b_one, b_xor;
-static WORD b_row, b_col, b_mid, b_n, b_y;
+static BYTE pt[8], b_lm, b_rm, b_xor;
+static WORD b_row, b_n;
 static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, const BYTE FAR *mu, WORD rop)
 {
-    WORD b0 = (WORD)x0 >> 3, n = ((WORD)x1 >> 3) - b0, y, i;
-    BYTE lm = (BYTE)(0xFF >> (x0 & 7)), rm = (BYTE)(0xFF << (7 - (x1 & 7))), v = (BYTE)(farbe ? 0xFF : 0);
+    WORD b0 = (WORD)x0 >> 3, n = ((WORD)x1 >> 3) - b0, i, mid, row, cnt;
+    BYTE op, one, lm = (BYTE)(0xFF >> (x0 & 7)), rm = (BYTE)(0xFF << (7 - (x1 & 7))), v = (BYTE)(farbe ? 0xFF : 0);
     if (!n) lm &= rm;
     if (rop == ROP_NOT) { v = 0xFF; rop = ROP_XOR; mu = 0; }
-    if (rop == ROP_OR || rop == ROP_AND) {
-        for (y = (WORD)y0; y <= (WORD)y1; y++) {
-            BYTE __far *p = VP(x0, y);
-            if (mu) v = mu[y & 7];
-            wr(p, lm, v, rop);
-            for (i = 1; i < n; i++) wr(p + i, 0xFF, v, rop);
-            if (n) wr(p + n, rm, v, rop);
-        }
-        return;
-    }
-    if (!n && !mu) {                              /* eine Spalte (senkrechte Linie): zwei Befehle je Zeile */
+    if (!n && !mu && (rop == ROP_COPY || rop == ROP_XOR)) {   /* eine Spalte (senkrechte Linie): zwei Befehle je Zeile */
         b_row = ROW(y0) + b0; b_n = (WORD)(y1 - y0 + 1);
         b_lm = (BYTE)(rop == ROP_XOR ? 0xFF : ~lm); b_rm = (BYTE)(v & lm);   /* (p UND b_lm) ODER/XOR b_rm */
         b_xor = (BYTE)(rop == ROP_XOR);
@@ -248,32 +238,35 @@ static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, c
         return;
     }
     for (i = 0; i < 8; i++) pt[i] = mu ? mu[i] : v;
-    b_lm = lm; b_rm = rm; b_one = (BYTE)!n; b_xor = (BYTE)(rop == ROP_XOR);
-    b_row = ROW(y0); b_col = b0; b_mid = n ? n - 1 : 0; b_n = (WORD)(y1 - y0 + 1); b_y = (WORD)y0;
-    _asm {
+    if (rop > ROP_XOR) return;
+    op = (BYTE)rop; one = (BYTE)!n; mid = n ? n - 1 : 0; row = ROW(y0); cnt = (WORD)(y1 - y0 + 1);
+    _asm {                                        /* alle Zeilen; Randbytes ueber ed (al Wert, ah Maske) */
         push si
         push di
         push es
         cld
         mov  ax, VSEG
         mov  es, ax
-        mov  dx, b_row
-        mov  si, b_y
+        mov  dx, row
+        mov  si, y0
     zl: mov  bx, si
         and  bx, 7
         mov  al, pt[bx]
         mov  di, dx
-        add  di, b_col
-        cmp  b_xor, 0
-        jne  zx
-        mov  ah, es:[di]
+        add  di, b0
+        cmp  op, 0
+        je   zc
+        cmp  op, 3
+        je   zx
+        jmp  zo
+    zc: mov  ah, es:[di]         ; kopieren
         xor  ah, al
-        and  ah, b_lm
+        and  ah, lm
         xor  es:[di], ah
-        cmp  b_one, 0
+        cmp  one, 0
         jne  zn
         inc  di
-        mov  cx, b_mid
+        mov  cx, mid
         mov  ah, al
         shr  cx, 1
         rep  stosw
@@ -281,16 +274,16 @@ static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, c
         rep  stosb
         mov  ah, es:[di]
         xor  ah, al
-        and  ah, b_rm
+        and  ah, rm
         xor  es:[di], ah
         jmp  zn
-    zx: mov  ah, al
-        and  ah, b_lm
+    zx: mov  ah, al              ; XOR
+        and  ah, lm
         xor  es:[di], ah
-        cmp  b_one, 0
+        cmp  one, 0
         jne  zn
         inc  di
-        mov  cx, b_mid
+        mov  cx, mid
         mov  ah, al
         shr  cx, 1
         jnc  zq
@@ -301,23 +294,51 @@ static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, c
         inc  di
         inc  di
         loop zm
-    zr: and  al, b_rm
+    zr: and  al, rm
         xor  es:[di], al
     zn: inc  si
         add  dx, ZADD
         cmp  dx, ZLIM
         jb   zw
         sub  dx, ZSUB
-    zw:
-        dec  b_n
+    zw: dec  cnt
         jz   ze
         jmp  zl
+    zo: mov  ah, lm              ; ODER/UND (selten): Raender ueber ed, Mitte bytweise
+        call ed
+        cmp  one, 0
+        jne  zn
+        mov  cx, mid
+        jcxz zg
+        cmp  op, 2
+        je   za
+    zp: or   es:[di], al
+        inc  di
+        loop zp
+        jmp  zg
+    za: and  es:[di], al
+        inc  di
+        loop za
+    zg: mov  ah, rm
+        call ed
+        jmp  zn
+    ed: cmp  op, 2               ; Randbyte al unter Maske ah: ODER oder UND
+        je   e2
+        and  ah, al
+        or   es:[di], ah
+        inc  di
+        ret
+    e2: not  ah
+        or   ah, al
+        and  es:[di], ah
+        inc  di
+        ret
     ze: pop  es
         pop  di
         pop  si
     }
 }
-/* waagerechte Linie = Rechteck mit einer Zeile */
+
 static void RDEXPORT d_span(short y, short x0, short x1, WORD farbe, const BYTE FAR *mu, WORD rop)
 {
     d_box(x0, y, x1, y, farbe, mu, rop);
@@ -671,7 +692,46 @@ static void gly(void)
         mov  di, dx
         push dx
         mov  dx, [bp+2]
+        or   cl, cl              ; ausgerichtet: ein Byte je Zeile
+        jnz  gv
         cmp  ch, 2
+        je   ha
+        ja   hx
+    ho: lodsb
+        or   al, al
+        jz   ho2
+        or  es:[di], al
+    ho2: add di, ZADD
+        cmp  di, ZLIM
+        jb   ho3
+        sub  di, ZSUB
+    ho3: dec dx
+        jnz  ho
+        jmp  gn
+    ha: lodsb
+        or   al, al
+        jz   ha2
+        not  al
+        and  es:[di], al
+    ha2: add di, ZADD
+        cmp  di, ZLIM
+        jb   ha3
+        sub  di, ZSUB
+    ha3: dec dx
+        jnz  ha
+        jmp  gn
+    hx: lodsb
+        or   al, al
+        jz   hx2
+        xor  es:[di], al
+    hx2: add di, ZADD
+        cmp  di, ZLIM
+        jb   hx3
+        sub  di, ZSUB
+    hx3: dec dx
+        jnz  hx
+        jmp  gn
+    gv: cmp  ch, 2
         je   ga
         ja   gx
     go: lodsb
