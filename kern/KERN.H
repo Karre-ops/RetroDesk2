@@ -52,6 +52,7 @@ extern volatile WORD  rd_preempt;                 /* 1 = Zeitscheiben an */
 #define CARRY (kr.flags & 1)
 
 /* ---- RD.C ------------------------------------------------------------------- */
+void k_txt(LPCSTR s, int scr);
 void k_out(LPCSTR s, int scr);
 void k_hex(LPCSTR s, DWORD v, int scr);
 extern WORD k_lasterr;
@@ -63,6 +64,7 @@ extern BYTE k_fpu;
 #define B_FREE   0x8000                           /* intern: freier Bereich */
 #define B_INTERN 0x1000                           /* intern: Kern (Stack, Schlange), kein Handle */
 #define B_HIGH   0x0400                           /* nur Wunsch an mem_get: hoher Speicher (UMB) zuerst */
+extern WORD mem_resv;                             /* Reserve (Paragraphen) zum Nachladen verwerfbarer Module */
 #define B_MOD    0x0800                           /* Modulbild: fest, aber verwerfbar wenn nicht in Benutzung */
 void  mem_init(WORD reserve_paras);
 void  mem_done(void);

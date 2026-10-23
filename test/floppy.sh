@@ -77,7 +77,10 @@ INI=$(mtype -i $IMG ::/TEST.INI 2>/dev/null | tr -d '\r')
 chk "TEST.INI auf der Diskette richtig"  '[[ "$INI" == "[Benutzer]"$'"'"'\n'"'"'"Name=PC10-III"$'"'"'\n'"'"'"Zahl=42"$'"'"'\n'"'"'"[Rechner]"$'"'"'\n'"'"'"CPU=8088" ]]'
 echo "--- Phase 2 Module und Diskettenwechsel"
 chk "Modul: Quadrat(7) = 49"             '[[ "$S" == *"MODTEST: Quadrat(7) 0x00000031"* ]]'
-chk "Modul verworfen bei Speicherdruck"  '[[ "$S" == *"RD: Modul verworfen: Testmodul"* ]]'
+chk "Reserve: Fuellen verdraengt Modul nicht" '[[ "$S" == *"MODTEST: Modul nach Fuellen noch da"* ]]'
+chk "zweites Modul laeuft in der Reserve"  '[[ "$S" == *"MODTEST: zweites Modul 0x00000019"* ]]'
+chk "es verdraengt das erste"            'echo "$S" | tr -d "\r" | grep -qx "RD: Modul verworfen: Testmodul"'
+chk "Speicher voll: Nachladen klappt trotzdem" '[[ "$S" == *"MODTEST: Quadrat(8) 0x00000040"* ]]'
 chk "Kern fragt nach Diskette RD2SYSTEM" '[ "$SAWASK" = 1 ]'
 chk "leeres Laufwerk: keine DOS-Meldung" '[ "$SAWDOS" != 1 ]'
 chk "nachgeladen, Quadrat(8) = 64"       '[[ "$S" == *"RD: Modul nachgeladen"* ]] && [[ "$S" == *"MODTEST: Quadrat(8) 0x00000040"* ]]'

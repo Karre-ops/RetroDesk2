@@ -35,6 +35,7 @@ modul() {   # $1 Quelle  $2 Datei  $3 Anzeigename  $4 Flags  [$5 Typ M/D  $6 Com
 }
 app apps/leer/LEER.C LEER.EXE "Leer"
 modul apps/test/TESTMOD.C TESTMOD.MOD "Testmodul" 0x0080
+modul apps/test/TESTMOD.C TESTMOD2.MOD "Testmodul2" 0x0080
 modul gdi/RDGDI.C RDGDI.MOD "RDGDI" 0 M -i=gdi
 modul gdi/RDGDIX.C RDGDIX.MOD "RDGDI Zusatz" 0x0080 M -i=gdi
 modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA

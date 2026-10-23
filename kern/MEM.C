@@ -157,38 +157,45 @@ static void compact(void)
 int (*mem_mod_discard)(WORD mod);
 DWORD (*mem_mod_stamp)(WORD mod);
 
+/* Verwerfbar? Liefert den Zeitstempel des letzten Zugriffs, 0xFFFFFFFF = nein (frei, fest, gesperrt) */
+static DWORD vstamp(WORD i)
+{
+    WORD h = blk[i].h, f = blk[i].flags;
+    if (f & B_FREE) return 0xFFFFFFFFUL;
+    if (f & B_MOD) return mem_mod_stamp ? mem_mod_stamp(blk[i].owner) : 0xFFFFFFFFUL;
+    if (!(f & MEM_DISCARDABLE) || !h || hnd[h].lock) return 0xFFFFFFFFUL;
+    return hnd[h].stamp;
+}
 /* Aeltesten verwerfbaren, nicht gesperrten Block verwerfen (Daten oder Modul). 1 = einer verworfen */
 static int discard_one(void)
 {
     WORD i, best = 0xFFFF; DWORD bs = 0xFFFFFFFFUL, st;
-    for (i = 0; i < nblk; i++) {
-        WORD h = blk[i].h;
-        if (blk[i].flags & B_FREE) continue;
-        if (blk[i].flags & B_MOD) {
-            if (!mem_mod_stamp || (st = mem_mod_stamp(blk[i].owner)) == 0xFFFFFFFFUL) continue;  /* in Benutzung */
-            if (st < bs) { bs = st; best = i; }
-            continue;
-        }
-        if (!(blk[i].flags & MEM_DISCARDABLE) || !h || hnd[h].lock) continue;
-        if (hnd[h].stamp < bs) { bs = hnd[h].stamp; best = i; }
-    }
+    for (i = 0; i < nblk; i++) if ((st = vstamp(i)) < bs) { bs = st; best = i; }
     if (best == 0xFFFF) return 0;
-    if (blk[best].flags & B_MOD) {
-        mem_mod_discard(blk[best].owner);         /* Modul merkt sich: nicht geladen */
-        blk[best].flags = B_FREE; blk[best].h = 0; blk[best].owner = 0;
-        merge();
-        return 1;
-    }
-    hnd[blk[best].h].seg = 0;                     /* Handle bleibt, Inhalt ist weg */
+    if (blk[best].flags & B_MOD) mem_mod_discard(blk[best].owner);   /* Modul merkt sich: nicht geladen */
+    else hnd[blk[best].h].seg = 0;                /* Handle bleibt, Inhalt ist weg */
     blk[best].flags = B_FREE; blk[best].h = 0; blk[best].owner = 0;
     merge();
     return 1;
+}
+
+/* Reserve zum Nachladen: so viele Paragraphen bleiben fuer das groesste verwerfbare Modul
+   erreichbar (frei oder verwerfbar). Nur Modulbilder selbst duerfen sie nutzen (MOD.C setzt
+   mem_resv waehrend des Ladens auf 0). Sonst koennte ein Programm alles belegen und der
+   naechste Aufruf eines verworfenen Moduls scheitern. */
+WORD mem_resv;
+static WORD erreichbar(void)
+{
+    WORD i, n = 0;
+    for (i = 0; i < nblk; i++) if ((blk[i].flags & B_FREE) || vstamp(i) != 0xFFFFFFFFUL) n += blk[i].paras;
+    return n;
 }
 
 static WORD get(WORD paras, WORD flags, WORD h, WORD owner)
 {
     WORD seg;
     if (!paras) paras = 1;
+    if (mem_resv && (DWORD)paras + mem_resv > erreichbar()) return 0;
     if (flags & B_HIGH) {                         /* erst nur im hohen Speicher */
         flags &= ~B_HIGH;
         if (numb) { minseg = 0xA000; seg = take(paras, flags, h, owner); minseg = 0; if (seg) return seg; }

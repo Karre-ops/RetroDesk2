@@ -32,7 +32,7 @@ static void con(char c) { kr.ax = 0x0200; kr.dx = (BYTE)c; rd_int(0x21, &kr); }
 static WORD dlog; static char __far *dbuf; static WORD dn;
 static void dput(char c) { if (dbuf && dn < DBUF) dbuf[dn++] = c; }
 static void k_ch(char c, int scr) { ser(c); dput(c); if (scr) con(c); }
-static void k_txt(LPCSTR s, int scr) { while (*s) k_ch(*s++, scr); }
+void k_txt(LPCSTR s, int scr) { while (*s) k_ch(*s++, scr); }
 void k_out(LPCSTR s, int scr) { k_txt(s, scr); k_txt("\r\n", scr); }
 void k_hex(LPCSTR s, DWORD v, int scr)
 {
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
     file_api();
     mod_api();
     k_out("RD: RetroDesk 2 Kern (Phase 3), API 1.0", 1);
-    if (a >= argc) { k_out("Aufruf: RD [/schalter] programm [parameter]", 1); return 1; }
+    if (a >= argc) { k_out("Aufruf: RD [/x] programm", 1); return 1; }
     for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {
         for (s = argv[i]; *s && h < 78; ) cmdline[h++] = *s++;
         if (i + 1 < argc && h < 78) cmdline[h++] = ' ';

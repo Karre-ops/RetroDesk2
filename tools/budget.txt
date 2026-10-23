@@ -39,6 +39,7 @@ GFXWAHL.EXE      4096    0   S  Test Grafikwahl
 TEXTTEST.EXE     4096    0   S  Testbild Schriften
 INPTEST.EXE      4096    0   S  Testprogramm Tastatur und Maus
 TESTMOD.MOD      2048    0   S
+TESTMOD2.MOD     2048    0   S
 RDNET.MOD       20480   18   P  TCP/IP, DHCP, DNS
 RDCALC.EXE      90112   80   P
 RDEDIT.EXE      65536   60   P

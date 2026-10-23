@@ -106,7 +106,7 @@ static WORD xload(MODUL *x, WORD *seg)
 }
 
 /* Bild laden (Datei oder XMS) und initialisieren. 0 = ok */
-static WORD load(WORD m)
+static WORD load2(WORD m)
 {
     MODUL *x = &md[m]; WORD i, e; static WORD seg, paras; DWORD tab;
     WORD __far *t;
@@ -130,6 +130,16 @@ static WORD load(WORD m)
     return 0;
 }
 
+/* Laden darf die Reserve nutzen; danach waechst sie auf das groesste verwerfbare Modul */
+static WORD load(WORD m)
+{
+    WORD r = mem_resv, e;
+    mem_resv = 0;
+    if (!(e = load2(m)) && (md[m].flags & PF_DISCARD) && md[m].paras > r) r = md[m].paras;
+    mem_resv = r;
+    return e;
+}
+
 static DWORD mstamp(WORD m)
 {
     if (m < 1 || m > MAXMOD || !md[m].loaded || md[m].lock) return 0xFFFFFFFFUL;
@@ -139,7 +149,7 @@ static int mdiscard(WORD m)
 {
     if (m < 1 || m > MAXMOD || !md[m].loaded || md[m].lock) return 0;
     md[m].loaded = 0;
-    { static char b[40]; WORD n = 0; LPCSTR s = "RD: Modul verworfen: "; while (*s) b[n++] = *s++; s = md[m].name; while (*s && n < 38) b[n++] = *s++; b[n] = 0; k_out(b, 0); }
+    k_txt("RD: Modul verworfen: ", 0); k_out(md[m].name, 0);
     return 1;
 }
 
@@ -226,7 +236,7 @@ DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs)
     TASK *t = &k_task[k_cur]; WORD m = th[idx].mod, nr = th[idx].nr; MODUL *x = &md[m];
     /* ungueltig, Stapel voll, nicht nachladbar oder Funktion fehlt (Grund: RD /D, Modulliste) */
     if (!m || !x->used || t->rsp >= 12 || (!x->loaded && reload(m)) || nr > x->nexp || !x->tab[nr - 1]) {
-        k_out("RD: Modulaufruf nicht moeglich, Abbruch", 0);
+        k_out("RD: Modulaufruf scheitert", 0);
         TaskKill(k_cur, 0xFFFE);
     }
     t->rs[t->rsp].ip = ip; t->rs[t->rsp].cs = cs; t->rs[t->rsp].mod = m; t->rsp++;
