@@ -25,12 +25,6 @@ static struct { char sig[4]; DWORD blk, len; WORD sum, res; } tr;
 static char path[80];
 
 WORD RDK TaskKill(HTASK n, WORD code);
-static DWORD ms_now(void)                         /* Ergebnis bis zum naechsten Takt merken (32-Bit-Multiplikation ist teuer) */
-{
-    static DWORD lt = 0xFFFFFFFFUL, lm; DWORD t = rd_ticks;
-    if (t != lt) { lt = t; lm = t * 13 + ((t * 47) >> 6); }
-    return lm;
-}
 
 /* ---- Umschalten ----------------------------------------------------------- */
 /* Beendete Tasks aufraeumen. Laeuft nie im Kontext des beendeten Tasks selbst
@@ -241,6 +235,7 @@ WORD k_imgload(const char *path, const char *typen, WORD *seg, WORD *paras)
     img = (DWORD)k_mz.cp * 512 - (k_mz.cblp ? 512 - k_mz.cblp : 0) - (DWORD)k_mz.cparhdr * 16;
     if (img > 0x9FFF0UL) return RD_ERR_FORMAT;
     *paras = (WORD)((img + 15) >> 4) + k_mz.minalloc;
+    if (*paras < k_mz.minalloc) return RD_ERR_FORMAT;   /* G12: Ueberlauf ueber 64K Paragraphen */
     if (!(*seg = mem_get(*paras, typen[0] == 'M' ? B_HIGH : 0, 0))) return RD_ERR_NOMEM;
     pb.seg = *seg; pb.reloc = *seg;
     kr.ax = 0x4B03; kr.dx = (WORD)path; kr.ds = FP_SEG((void __far *)&kr); kr.bx = (WORD)&pb; kr.es = kr.ds;

@@ -27,6 +27,7 @@ if [ -z "$NUR" ]; then   # Vorgabe: Systemdateien (S) + alle in AUTOEXEC/SHELL g
   case " $NUR " in *" RESTEST.EXE "*) NUR="$NUR RESTEST.RDB";; esac
   case " $NUR " in *" DOSTEST.EXE "*) NUR="$NUR FREIMEM.EXE";; esac
   case " $NUR " in *" MODTEST.EXE "*) NUR="$NUR TESTMOD.MOD TESTMOD2.MOD";; esac
+  case " $NUR " in *" WINTEST.EXE "*) NUR="$NUR UEBER.EXE";; esac
   case " $NUR " in *" STRESS.EXE "*) NUR="$NUR WURM.EXE";; esac
   case " $NUR " in *" PING.EXE "*) NUR="$NUR PONG.EXE RECHNE.EXE MEMTEST.EXE";; esac
 fi

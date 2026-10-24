@@ -18,6 +18,8 @@ old24       dd 0
 tdiv        dw 0
 old8        dd 0
 old23       dd 0
+mslt        dd 0FFFFFFFFh            ; ms_now: letzter Takt
+mslm        dd 0                     ; ms_now: Millisekunden dazu
 _DATA ends
 _BSS segment word public 'BSS'
 _BSS ends
@@ -506,6 +508,44 @@ i8_done:
     pop  ds
     pop  ax
     iret
+
+; ---------------------------------------------------------------------------
+; DWORD ms_now(void): Millisekunden = (t*879)>>6 = t*13 + (t*47)>>6 (t = Takte zu 13,7 ms, 48 Bit gerechnet), Ergebnis bis zum naechsten
+; Takt gemerkt. Mit gesperrten Interrupts (M9): rd_ticks sind zwei Woerter, INT 8 ruft ms_now ebenfalls.
+public _ms_now
+_ms_now proc near
+    pushf
+    cli
+    mov  ax, word ptr _rd_ticks
+    mov  dx, word ptr _rd_ticks+2
+    cmp  ax, word ptr mslt
+    jne  msn_neu
+    cmp  dx, word ptr mslt+2
+    je   msn_alt
+msn_neu:
+    mov  word ptr mslt, ax
+    mov  word ptr mslt+2, dx
+    mov  bx, 879                     ; 13*64 + 47: t*879 als 48 Bit, dann >> 6
+    mul  bx
+    mov  word ptr mslm, ax
+    mov  cx, dx
+    mov  ax, word ptr mslt+2
+    mul  bx
+    add  ax, cx
+    adc  dx, 0                       ; dx:ax:mslm
+    mov  cx, 6
+msn_s:
+    shr  dx, 1
+    rcr  ax, 1
+    rcr  word ptr mslm, 1
+    loop msn_s
+    mov  word ptr mslm+2, ax
+msn_alt:
+    mov  ax, word ptr mslm
+    mov  dx, word ptr mslm+2
+    popf
+    ret
+_ms_now endp
 
 ; ---------------------------------------------------------------------------
 public _rd_idle

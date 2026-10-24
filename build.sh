@@ -71,4 +71,6 @@ python3 tools/mkfont.py $O >/dev/null
 $W -fpi87 -fo=obj/setasm.obj setup/SETASM.ASM
 wcc -0 -ms -os -s -zq -w4 -bt=dos -fo=obj/rd2setup.obj setup/RD2SETUP.C
 wlink option quiet system dos name $O/RD2SETUP.EXE file obj/rd2setup.obj,obj/setasm.obj option map=obj/rd2setup.map >/dev/null
+# G12-Test: LEER.EXE mit Mindestzuteilung FFFFh (Bild + minalloc laeuft ueber 64K Paragraphen), muss RD_ERR_FORMAT liefern
+python3 -c "import sys; d=bytearray(open('$O/LEER.EXE','rb').read()); d[10:12]=b'\xff\xff'; open('$O/UEBER.EXE','wb').write(d)"
 python3 tools/budget.py $O ${1:+$1}

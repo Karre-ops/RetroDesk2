@@ -90,6 +90,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         d = GetDC(a);
         ok(d != 0, "WINTEST: nach 25 beendeten Programmen mit offenem DC geht GetDC noch");
         if (d) ReleaseDC(a, d);
+        ok(!TaskExec("UEBER.EXE", "", SW_SHOW) && LastError() == RD_ERR_FORMAT, "WINTEST: G12 Programmgroesse ueber 64K Paragraphen abgelehnt");
     }
     DestroyWindow(a);
     ok(!IsWindow(a) && !IsWindow(kind) && !GetActive(), "WINTEST: DestroyWindow samt Kind");
