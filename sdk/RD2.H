@@ -308,7 +308,8 @@ typedef struct {
 #define C_CLICK    0x0345                         /* wie ein Mausklick */
 #define C_MNEMO    0x0346                         /* liefert den Buchstaben hinter & (gross) */
 #define C_SETPOS   0x0347                         /* PROGRESS: p2 = Stand */
-#define C_SETRANGE 0x0348                         /* PROGRESS: p2 = Hoechstwert (Vorgabe 100) */
+#define C_SETRANGE 0x0348                         /* PROGRESS/SCROLL: p2 = Hoechstwert (Vorgabe 100) */
+#define C_GETPOS   0x0349                         /* SCROLL: liefert den Stand */
 #define L_ADD      0x0350                         /* LIST: p2 = Text, liefert Index oder 0xFFFF */
 #define L_CLEAR    0x0351
 #define L_COUNT    0x0352

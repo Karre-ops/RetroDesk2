@@ -180,7 +180,7 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x2D1 | Dialoge | `BOOL FileDialog(HWND owner, FILEDLG FAR *fd)` |
 | 0x2D2 | Dialoge | `BOOL InputBox(HWND owner, LPCSTR frage, LPCSTR titel, LPSTR buf, WORD len)` |
 | 0x2D3 | Dialoge | `BOOL HelpShow(HWND owner, LPCSTR datei, WORD thema)` |
-| 0x2DF | Dialoge | `void CtlInit(void)` |
+| 0x2DF | Dialoge | `void CtlInit(LPCSTR klasse)` |
 | 0x300 | Sound | `WORD SndCaps(void)` |
 | 0x301 | Sound | `void SndBeep(WORD hz, WORD ms)` |
 | 0x302 | Sound | `void SndSystem(LPCSTR name)` |

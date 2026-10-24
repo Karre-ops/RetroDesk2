@@ -557,9 +557,11 @@ DWORD RDEXPORT c_Dialog(HWND h, WORD msg, WORD p1, DWORD p2)
 /* ---- Klassen anmelden --------------------------------------------------------------- */
 #define EXP_KLASSEN 0x22                           /* Export-Nummer von c_Button, dann der Reihe nach */
 static const char * const kn[] = { CL_BUTTON, CL_CHECK, CL_RADIO, CL_STATIC, CL_GROUP, CL_EDIT, "RDDIALOG", CL_LIST, CL_PROGRESS };
-void RDEXPORT c_CtlInit(void)
+static const char * const kx[] = { CL_TEXT, CL_COMBO, CL_SCROLL };
+static int gl(LPCSTR a, LPCSTR b) { while (*a && *a == *b) a++, b++; return *a == *b; }
+void RDEXPORT c_CtlInit(LPCSTR kl)
 {
-    WNDCLASS wc; HMOD m; WORD i;
+    WNDCLASS wc; HMOD m; WORD i, j;
     if (!(m = ModLoad("RDCTL.MOD"))) return;      /* schon geladen: nur Zaehler */
     for (i = 0; i < sizeof kn / sizeof kn[0]; i++) {
         wc.name = kn[i]; wc.proc = (WNDPROC)ModProc(m, EXP_KLASSEN + i); wc.stil = CS_SYSTEM; wc.daten = 0;
@@ -567,6 +569,11 @@ void RDEXPORT c_CtlInit(void)
         if (wc.proc) RegisterClass(&wc);
     }
     ModFree(m);
+    for (j = 0; kl && j < 3; j++) if (gl(kl, kx[j])) {    /* TEXT, COMBO, SCROLL stehen in RDCTLX */
+        if (!(m = ModLoad("RDCTLX.MOD"))) return;
+        for (i = 0; i < 3; i++) { wc.name = kx[i]; wc.proc = (WNDPROC)ModProc(m, 3 + i); wc.inst = i ? 0 : (0x8000 | m); if (wc.proc) RegisterClass(&wc); }
+        return;                                   /* Referenz behalten (verwerfbar bleibt es), RDUSER gibt sie am Ende frei */
+    }
 }
 
 /* ---- Dialog aus Vorlage ------------------------------------------------------------ */
@@ -577,7 +584,7 @@ static short lauf(HINST inst, const BYTE FAR *v, HWND owner, DLGPROC proc, DWORD
 {
     HWND dlg, c; HDC d; short cw, ch, x, y, w, hh, sw, sh, dw, dh; WORD n, i, id; DWORD st, es; LPCSTR titel, kl, tx;
     RECT r, a; MSG m; const short FAR *q; short e[4]; DWORD erg;
-    c_CtlInit();
+    c_CtlInit(0);
     if (!(d = GetDC(0))) return -1;
     cw = TextWidth(d, "0", 1); ch = GetCaps(d, CAPS_TEXTH); sw = GetCaps(d, CAPS_W); sh = GetCaps(d, CAPS_H);
     ReleaseDC(0, d);

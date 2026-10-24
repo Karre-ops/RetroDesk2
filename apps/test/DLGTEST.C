@@ -6,6 +6,8 @@
  *  5. Dialog 11 (Liste, 10 Rechner, 4 sichtbar): c, c, Ende, Pfeil hoch, Eingabe
  *  6. FileDialog Oeffnen (*.EXE): rd2 + Eingabe, Tab, d, Eingabe -> A:\RD2\DLGTEST.EXE
  *  7. FileDialog Speichern RD.EXE: Eingabe -> Rueckfrage Ersetzen, Esc, Esc -> abgebrochen
+ *  8. Dialog 12: TEXT a b Eingabe c d, hoch, X; Tab SCROLL Bild ab + runter; Tab Tab Tab COMBO:
+ *     runter, F4 (auf), runter, Eingabe (zu), Eingabe -> Text "abX\ncd", Stand 11, VGA
  * Am Ende: "DLGTEST: Fehler n" (0 = alles wie erwartet). */
 #include "RD2.H"
 
@@ -30,6 +32,26 @@ static BOOL RDCALLBACK lproc(HWND d, WORD msg, WORD p1, DWORD p2)
         SendMessage(l, L_DELETE, 0, 0); DlgGetText(d, 40, b, sizeof b);
         pruef("DLGTEST: nach L_DELETE 0: 9 Eintraege, Auswahl 7 = Oric", SendMessage(l, L_COUNT, 0, 0) == 9 && SendMessage(l, L_GETSEL, 0, 0) == 7 && gleich(b, "Oric"));
         SendMessage(l, L_GETTEXT, 0, (DWORD)(LPSTR)b); pruef("DLGTEST: L_GETTEXT 0 = Atari ST", gleich(b, "Atari ST"));
+    }
+    return FALSE;
+}
+static BOOL RDCALLBACK nproc(HWND d, WORD msg, WORD p1, DWORD p2)
+{
+    HWND c = DlgItem(d, 52); char b[40];
+    (void)p2;
+    if (msg == M_INITDIALOG) {
+        SendMessage(c, L_ADD, 0, (DWORD)(LPCSTR)"CGA"); SendMessage(c, L_ADD, 0, (DWORD)(LPCSTR)"HGC"); SendMessage(c, L_ADD, 0, (DWORD)(LPCSTR)"VGA");
+        SendMessage(c, L_SETSEL, 0, 0);
+        DlgGetText(d, 52, b, sizeof b); pruef("DLGTEST: COMBO vorbelegt CGA", gleich(b, "CGA"));
+        DbgPrint("DLGTEST: Notiz bereit");
+    }
+    if (msg == M_COMMAND && p1 == 52 && HIWORD(p2) == N_SELECT) DbgPrint("DLGTEST: COMBO N_SELECT");
+    if (msg == M_COMMAND && p1 == ID_OK) {
+        DlgGetText(d, 50, b, sizeof b); pruef("DLGTEST: TEXT = abX\\ncd", gleich(b, "abX\ncd"));
+        DbgHex("DLGTEST: SCROLL", (WORD)SendMessage(DlgItem(d, 51), C_GETPOS, 0, 0));
+        pruef("DLGTEST: SCROLL Stand 11", SendMessage(DlgItem(d, 51), C_GETPOS, 0, 0) == 11);
+        DlgGetText(d, 52, b, sizeof b); DbgPrint(b);
+        pruef("DLGTEST: COMBO = VGA, Auswahl 2", gleich(b, "VGA") && SendMessage(c, L_GETSEL, 0, 0) == 2);
     }
     return FALSE;
 }
@@ -91,6 +113,8 @@ short RDAPI RdMain(HINST inst, LPCSTR cl, WORD show)
       fd.flags = FD_SAVE | FD_ASKOVER; gleich(b, b); { LPCSTR q = "A:\\RD2\\RD.EXE"; WORD i; for (i = 0; q[i]; i++) b[i] = q[i]; b[i] = 0; }
       DbgPrint("DLGTEST: Speichern"); r = FileDialog(w, &fd);
       pruef("DLGTEST: Speichern abgebrochen, Name unveraendert", !r && gleich(b, "A:\\RD2\\RD.EXE")); }
+    e = DialogRun(inst, 12, w, nproc, 0);
+    DbgHex("DLGTEST: Dialog 4 ->", (WORD)e); pruef("DLGTEST: Dialog 4 endet mit OK", e == ID_OK);
     pruef("DLGTEST: CreateWindow BUTTON direkt", (e = (short)CreateWindow(CL_BUTTON, "Knopf", WS_CHILD | WS_VISIBLE, 200, 10, 60, 20, w, 5, inst)) != 0);
     DestroyWindow(w);
     DbgHex("DLGTEST: Fehler", fehler);

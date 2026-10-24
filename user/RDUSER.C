@@ -322,7 +322,7 @@ static void unlink(WORD i)
 HWND RDEXPORT u_CreateWindow(LPCSTR kn, LPCSTR titel_, DWORD stil, short x, short y, short b, short h, HWND eltern, WORD id, HINST inst)
 {
     WORD k = klasse(kn), i, p = 0; WND *w;
-    if (!k) { CtlInit(); k = klasse(kn); }   /* Standardklassen: RDCTL meldet sie an */
+    if (!k) { CtlInit(kn); k = klasse(kn); }   /* Standardklassen: RDCTL meldet sie an */
     if (!k) { SetLastError(RD_ERR_NOTFOUND); return 0; }
     if (!schirm_()) return 0;
     if (eltern && !(p = idx(eltern))) return bad();
@@ -1142,7 +1142,11 @@ void RDEXPORT u_init(void FAR *d, void FAR *k, void FAR *g)
     dcs = (DCX FAR *)d; gk = (GK FAR *)k; pfeil0 = gk->zb; gdc = (HDC (FAR __pascal *)(HWND))g;
     w_[0].used = 1; w_[0].vis = 1;
 }
-static void RDEXPORT u_ende(void) { }
+static void RDEXPORT u_ende(void)                 /* Systemklassen mit inst 0x8000|Modul: Modul freigeben (RDCTLX) */
+{
+    KLASSE *k;
+    for (k = kl; k < kl + MAXCL; k++) if ((short)k->inst < 0 && k->task == 0xFF) ModFree(k->inst & 0x7FFF);
+}
 static int schirm_(void)                           /* erst beim ersten Fenster: Grafik an, Schreibtisch */
 {
     HDC d;

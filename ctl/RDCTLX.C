@@ -1,6 +1,8 @@
 /* RDCTLX.C - Zusatz zu RDCTL (verwerfbar): Dateidialog. RDCTL laedt es erst, wenn ein Programm
  * FileDialog ruft. Der Dialog benutzt die Klassen aus RDCTL (EDIT, LIST, STATIC, BUTTON) und
  * DialogIndirect; der Zustand steht in einer Struktur auf dem Stapel des Aufrufers.
+ * Dazu die Klassen TEXT (mehrzeilig), COMBO (Klappliste) und SCROLL; RDCTL meldet sie erst
+ * an, wenn ein Programm eine davon anlegt.
  * Rechte Liste: [..], [ORDNER], [-A-] Laufwerke. Eingabe von *.X aendert das Muster. */
 #include "RD2.H"
 
@@ -144,6 +146,279 @@ static BOOL RDEXPORT x_FileDialog(HWND owner, FILEDLG FAR *fd)
     return e == ID_OK;
 }
 
+/* ---- gemeinsame Hilfen (wie RDCTL) ------------------------------------------------- */
+#define MAGIC 0x52430000UL
+#define T_DLG    7
+#define T_TEXT   10
+#define T_COMBO  11
+#define T_SCROLL 12
+#define K_F4     0x13E
+static WORD istdlg(HWND p) { return p && GetWindowData(p, 3) == (MAGIC | T_DLG); }
+static void melde(HWND h, WORD n) { HWND p = GetParent(h); if (p) SendMessage(p, M_COMMAND, (WORD)GetWindowData(h, WD_ID), MAKELONG(h, n)); }
+static int weiter(HWND h, WORD k, DWORD p2)       /* Tab, Esc, Alt+.. an den Dialog */
+{
+    HWND p = GetParent(h);
+    if ((k == K_TAB || k == K_ESC || (HIWORD(p2) & KS_ALT)) && istdlg(p)) { SendMessage(p, M_KEY, k, p2); return 1; }
+    return 0;
+}
+static void neu(HWND h) { InvalidateRect(h, 0, FALSE); }
+static WORD gesperrt(HWND h) { return (GetWindowData(h, WD_STIL) & WS_DISABLED) ? 1 : 0; }
+static void weiss(HDC d, const RECT FAR *r) { SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, r); }
+static void grau(HDC d, const RECT FAR *r) { SetRop(d, ROP_OR); SetBkColor(d, C_BLACK); SetBrush(d, C_WHITE, PAT_GRAY50); FillRect(d, r); SetRop(d, ROP_COPY); }
+static void punkte(HDC d, short l, short t, short r, short b)
+{
+    RECT q;
+    SetBrush(d, C_BLACK, PAT_GRAY50); SetBkColor(d, C_WHITE);
+    q.l = l; q.r = r; q.t = t; q.b = t + 1; FillRect(d, &q); q.t = b - 1; q.b = b; FillRect(d, &q);
+    q.t = t; q.r = l + 1; FillRect(d, &q); q.l = r - 1; q.r = r; FillRect(d, &q);
+}
+static short zh(HWND h) { HDC d = GetDC(h); short z = 8; if (d) { z = GetCaps(d, CAPS_TEXTH); ReleaseDC(h, d); } return z; }
+
+/* ---- TEXT: mehrzeilig. data 0 = Speicher, 1 = Schreibmarke | oberste Zeile << 16, 2 = Grenze */
+#define TLIM 4096
+static LPSTR tb(HWND h) { return (LPSTR)MemLock((HMEM)GetWindowData(h, 0)); }
+static void tu(HWND h) { MemUnlock((HMEM)GetWindowData(h, 0)); }
+static WORD zeile(LPCSTR b, WORD pos) { WORD z = 0, i; for (i = 0; i < pos && b[i]; i++) if (b[i] == '\n') z++; return z; }
+static WORD zanf(LPCSTR b, WORD z) { WORD i = 0; while (z && b[i]) { if (b[i++] == '\n') z--; } return i; }
+static WORD zlen(LPCSTR b, WORD a) { WORD n = 0; while (b[a + n] && b[a + n] != '\n') n++; return n; }
+static short tsicht(HWND h) { RECT r; GetClientRect(h, &r); return (short)((r.b - 4) / zh(h)) > 0 ? (short)((r.b - 4) / zh(h)) : 1; }
+static void tset(HWND h, WORD cur, WORD top)      /* Schreibmarke sichtbar halten, Balken setzen */
+{
+    LPSTR b = tb(h); WORD z, n; short v = tsicht(h);
+    if (!b) return;
+    z = zeile(b, cur); n = zeile(b, 0xFFFF) + 1; tu(h);
+    if (z < top) top = z;
+    if (z >= top + v) top = (WORD)(z - v + 1);
+    if (n <= (WORD)v) top = 0; else if (top > n - v) top = (WORD)(n - v);
+    SetWindowData(h, 1, MAKELONG(cur, top));
+    if (GetWindowData(h, WD_STIL) & WS_VSCROLL) ScrollSet(h, SB_VERT, (short)top, (short)(n > (WORD)v ? n - v : 0), v);
+    neu(h);
+}
+static void tpaint(HWND h)
+{
+    PAINT ps; RECT r, q; HDC d; LPSTR b; WORD cur = LOWORD(GetWindowData(h, 1)), top = HIWORD(GetWindowData(h, 1)), a, n, z; short hh, y, x;
+    d = BeginPaint(h, &ps); GetClientRect(h, &r); weiss(d, &r); SetPen(d, C_BLACK); Frame(d, &r);
+    hh = zh(h); q.l = 2; q.t = 1; q.r = (short)(r.r - 1); q.b = (short)(r.b - 1); SetClip(d, &q);
+    if ((b = tb(h)) != 0) {
+        SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
+        a = zanf(b, top);
+        for (z = top, y = 2; y < r.b - 1; z++, y += hh) {
+            n = zlen(b, a);
+            if (n) TextOut(d, 3, y, b + a, (short)n);
+            if (GetFocus() == h && cur >= a && cur <= a + n) { x = (short)(3 + TextWidth(d, b + a, (short)(cur - a))); Line(d, x, (short)(y - 1), x, (short)(y + hh)); }
+            if (!b[a + n]) break;
+            a += n + 1;
+        }
+        tu(h);
+    }
+    SetClip(d, 0);
+    if (gesperrt(h)) grau(d, &r);
+    EndPaint(h, &ps);
+}
+static void ttaste(HWND h, WORD k, WORD ch)
+{
+    LPSTR b = tb(h); WORD cur = LOWORD(GetWindowData(h, 1)), top = HIWORD(GetWindowData(h, 1)), n, i, a, sp, z, lim = (WORD)GetWindowData(h, 2);
+    int ro = (GetWindowData(h, WD_STIL) & ES_READONLY) != 0, ge = 0; short v;
+    if (!b) return;
+    n = slen(b); if (cur > n) cur = n;
+    z = zeile(b, cur); a = zanf(b, z); sp = cur - a;
+    if (ch) {
+        if (!ro && n < lim) { for (i = n + 1; i > cur; i--) b[i] = b[i - 1]; b[cur++] = (char)ch; ge = 1; }
+        else SndBeep(880, 30);
+    } else switch (k) {
+        case K_LEFT: if (cur) cur--; break;
+        case K_RIGHT: if (cur < n) cur++; break;
+        case K_HOME: cur = a; break;
+        case K_END: cur = a + zlen(b, a); break;
+        case K_UP: case K_PGUP: case K_DOWN: case K_PGDN:
+            v = (k == K_PGUP || k == K_PGDN) ? tsicht(h) : 1;
+            if (k == K_UP || k == K_PGUP) z = z > (WORD)v ? z - v : 0;
+            else { WORD m = zeile(b, 0xFFFF); z = z + v > m ? m : z + v; }
+            a = zanf(b, z); i = zlen(b, a); cur = a + (sp < i ? sp : i);
+            break;
+        case K_BACK: if (!ro && cur) { for (i = --cur; i < n; i++) b[i] = b[i + 1]; ge = 1; } break;
+        case K_DEL: if (!ro && cur < n) { for (i = cur; i < n; i++) b[i] = b[i + 1]; ge = 1; } break;
+    }
+    tu(h); tset(h, cur, top);
+    if (ge) melde(h, N_CHANGE);
+}
+static DWORD RDEXPORT x_Text(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    HMEM m; LPSTR b; WORD i, j, n, top; HDC d; short hh, x, y;
+    switch (msg) {
+    case M_CREATE:
+        SetWindowData(h, 3, MAGIC | T_TEXT); SetWindowData(h, 2, TLIM); SetWindowData(h, 1, 0);
+        if (!(m = MemAlloc(TLIM + 1, MEM_MOVABLE | MEM_ZEROINIT))) return 0xFFFFFFFFUL;
+        SetWindowData(h, 0, m); tset(h, 0, 0); return 0;
+    case M_DESTROY: if ((m = (HMEM)GetWindowData(h, 0)) != 0) { MemFree(m); SetWindowData(h, 0, 0); } return 0;
+    case M_PAINT: tpaint(h); return 0;
+    case M_SIZE: case M_SETFOCUS: case M_KILLFOCUS: case M_ENABLE: neu(h); return 0;
+    case C_MNEMO: return 0;
+    case C_SETLIMIT: SetWindowData(h, 2, p1 && p1 <= TLIM ? p1 : TLIM); return 0;
+    case C_SETTEXT:                               /* \r\n und \n; \r faellt weg */
+        if (!(b = tb(h))) return 0;
+        n = (WORD)GetWindowData(h, 2);
+        for (i = j = 0; p2 && ((LPCSTR)p2)[i] && j < n; i++) if (((LPCSTR)p2)[i] != '\r') b[j++] = ((LPCSTR)p2)[i];
+        b[j] = 0; tu(h); tset(h, 0, 0); return 0;
+    case C_GETTEXT:
+        if (!p1 || !(b = tb(h))) return 0;
+        for (n = 0; n + 1 < p1 && b[n]; n++) ((LPSTR)p2)[n] = b[n];
+        ((LPSTR)p2)[n] = 0; tu(h); return n;
+    case M_SCROLL:
+        top = HIWORD(GetWindowData(h, 1));
+        switch (p1) {
+        case SB_LINEUP: if (top) top--; break;
+        case SB_LINEDOWN: top++; break;
+        case SB_PAGEUP: top = top > (WORD)tsicht(h) ? top - tsicht(h) : 0; break;
+        case SB_PAGEDOWN: top += tsicht(h); break;
+        case SB_THUMB: top = LOWORD(p2); break;
+        }
+        if ((b = tb(h)) != 0) { n = zeile(b, 0xFFFF); tu(h); if (top > n) top = n; }
+        SetWindowData(h, 1, MAKELONG(LOWORD(GetWindowData(h, 1)), top));
+        ScrollSet(h, SB_VERT, (short)top, ScrollGet(h, SB_VERT) >= 0 ? (short)0x7FFF : 0, tsicht(h));
+        tset(h, LOWORD(GetWindowData(h, 1)) , top);   /* Balken neu; Schreibmarke bleibt */
+        SetWindowData(h, 1, MAKELONG(LOWORD(GetWindowData(h, 1)), top)); neu(h);
+        return 0;
+    case M_KEY:
+        if (weiter(h, p1, p2)) return 0;
+        if (p1 == K_ENTER) ttaste(h, 0, '\n');
+        else if (p1 >= 0x100 || p1 == K_BACK) ttaste(h, p1, 0);
+        return 0;
+    case M_CHAR: if (p1 >= ' ' && !(HIWORD(p2) & (KS_CTRL | KS_ALT))) ttaste(h, 0, p1); return 0;
+    case M_BUTTONDOWN:
+        if (gesperrt(h)) return 0;
+        SetFocus(h);
+        if ((b = tb(h)) != 0 && (d = GetDC(h)) != 0) {
+            hh = GetCaps(d, CAPS_TEXTH); top = HIWORD(GetWindowData(h, 1));
+            y = (short)HIWORD(p2) - 2; x = (short)LOWORD(p2);
+            i = zanf(b, top + (y > 0 ? y / hh : 0)); n = zlen(b, i);
+            for (j = 0; j < n && 3 + TextWidth(d, b + i, (short)(j + 1)) - TextWidth(d, b + i + j, 1) / 2 <= x; j++) ;
+            ReleaseDC(h, d); tu(h); tset(h, i + j, top);
+        } else if (b) tu(h);
+        return 0;
+    }
+    return DefWindowProc(h, msg, p1, p2);
+}
+
+/* ---- COMBO: Klappliste. data 0 = Liste (Kind), 1 = volle Hoehe, 2 = Bit 0 offen, Bit 1 Taste weitergereicht.
+   Offen waechst das Fenster nach unten; darunter sollte im Dialog nichts liegen (letztes Element). */
+static void kauf(HWND h, int auf)
+{
+    RECT a; POINT pt; HWND l = (HWND)GetWindowData(h, 0); short bh = (short)(zh(h) + 4);
+    if (((GetWindowData(h, 2) & 1) != 0) == (auf != 0)) return;
+    GetWindowRect(h, &a); pt.x = a.l; pt.y = a.t; ScreenToClient(GetParent(h), &pt);
+    SetWindowData(h, 2, auf ? 1 : 0);
+    MoveWindow(h, pt.x, pt.y, (short)(a.r - a.l), auf ? (short)GetWindowData(h, 1) : bh, TRUE);
+    if (auf) { MoveWindow(l, 0, bh, (short)(a.r - a.l), (short)((short)GetWindowData(h, 1) - bh), FALSE); ShowWindow(l, SW_SHOW); }
+    else ShowWindow(l, SW_HIDE);
+    neu(h);
+}
+static DWORD RDEXPORT x_Combo(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    HWND l = (HWND)GetWindowData(h, 0); PAINT ps; RECT r, q; HDC d; char t[34]; short bh, x, y, i; DWORD f;
+    switch (msg) {
+    case M_CREATE:
+        SetWindowData(h, 3, MAGIC | T_COMBO);
+        GetClientRect(h, &r); bh = (short)(zh(h) + 4);
+        SetWindowData(h, 1, r.b > bh * 2 ? r.b : bh * 5); SetWindowData(h, 2, 0);
+        if (!(l = CreateWindow(CL_LIST, "", WS_CHILD | WS_VSCROLL, 0, bh, r.r, (short)(GetWindowData(h, 1) - bh), h, 1, 0))) return 0xFFFFFFFFUL;
+        SetWindowData(h, 0, l);
+        { RECT a; POINT pt; GetWindowRect(h, &a); pt.x = a.l; pt.y = a.t; ScreenToClient(GetParent(h), &pt); MoveWindow(h, pt.x, pt.y, r.r, bh, FALSE); }
+        return 0;
+    case M_PAINT:
+        d = BeginPaint(h, &ps); GetClientRect(h, &r); bh = (short)(zh(h) + 4); r.b = bh;
+        weiss(d, &r); SetPen(d, C_BLACK); Frame(d, &r);
+        q = r; q.l = (short)(r.r - bh); Frame(d, &q);
+        x = (short)(q.l + bh / 2); y = (short)(bh / 2 - 1);
+        for (i = 0; i < 4; i++) Line(d, (short)(x - 3 + i), (short)(y - 1 + i), (short)(x + 3 - i), (short)(y - 1 + i));
+        SendMessage(l, C_GETTEXT, sizeof t, (DWORD)(LPSTR)t);
+        SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
+        q.l = 2; q.t = 1; q.r = (short)(r.r - bh); q.b = (short)(bh - 1); SetClip(d, &q);
+        TextOut(d, 4, 2, t, -1); SetClip(d, 0);
+        if (GetFocus() == h) punkte(d, 2, 2, (short)(r.r - bh - 1), (short)(bh - 2));
+        if (gesperrt(h)) grau(d, &r);
+        EndPaint(h, &ps); return 0;
+    case M_SETFOCUS: case M_ENABLE: neu(h); return 0;
+    case M_KILLFOCUS: if (GetFocus() != l) kauf(h, 0); neu(h); return 0;
+    case C_MNEMO: return 0;
+    case L_ADD: case L_CLEAR: case L_COUNT: case L_GETSEL: case L_SETSEL: case L_GETTEXT: case L_DELETE: case C_GETTEXT:
+        f = SendMessage(l, msg, p1, p2); if (msg != L_COUNT && msg != L_GETSEL && msg != L_GETTEXT && msg != C_GETTEXT) neu(h); return f;
+    case M_COMMAND:                               /* von der Liste */
+        if (HIWORD(p2) == N_SELECT || HIWORD(p2) == N_DBLCLK) {
+            if ((GetWindowData(h, 2) & 3) == 1) { kauf(h, 0); SetFocus(h); }   /* Mausklick in der offenen Liste */
+            neu(h); melde(h, N_SELECT);
+        }
+        return 0;
+    case M_KEY:
+        f = GetWindowData(h, 2);
+        if ((p1 == K_DOWN && (HIWORD(p2) & KS_ALT)) || p1 == K_F4) { kauf(h, !(f & 1)); return 0; }
+        if (f & 1) {
+            if (p1 == K_ENTER || p1 == K_ESC) { kauf(h, 0); return 0; }
+            if (p1 == K_TAB) kauf(h, 0);
+        }
+        if (weiter(h, p1, p2)) return 0;
+        if (p1 == K_ENTER && istdlg(GetParent(h))) { SendMessage(GetParent(h), M_KEY, p1, p2); return 0; }
+        if (p1 == K_UP || p1 == K_DOWN || p1 == K_HOME || p1 == K_END || p1 == K_PGUP || p1 == K_PGDN) {
+            SetWindowData(h, 2, f | 2); SendMessage(l, M_KEY, p1, p2); SetWindowData(h, 2, f);
+        }
+        return 0;
+    case M_CHAR: SetWindowData(h, 2, GetWindowData(h, 2) | 2); SendMessage(l, M_CHAR, p1, p2); SetWindowData(h, 2, GetWindowData(h, 2) & ~2UL); return 0;
+    case M_BUTTONDOWN:
+        if (gesperrt(h)) return 0;
+        SetFocus(h); kauf(h, !(GetWindowData(h, 2) & 1)); return 0;
+    }
+    return DefWindowProc(h, msg, p1, p2);
+}
+
+/* ---- SCROLL: eigener Rollbalken (WS_VSCROLL oder WS_HSCROLL angeben). data 0 = Stand, 1 = Hoechstwert, 2 = Seite */
+static WORD sbar(HWND h) { return (GetWindowData(h, WD_STIL) & WS_HSCROLL) ? SB_HORZ : SB_VERT; }
+static void sset(HWND h, long p)
+{
+    long mx = (long)GetWindowData(h, 1);
+    if (p < 0) p = 0;
+    if (p > mx) p = mx;
+    SetWindowData(h, 0, (DWORD)p);
+    ScrollSet(h, sbar(h), (short)p, (short)mx, (short)GetWindowData(h, 2));
+}
+static DWORD RDEXPORT x_Scroll(HWND h, WORD msg, WORD p1, DWORD p2)
+{
+    long p = (long)GetWindowData(h, 0), pg = (long)GetWindowData(h, 2), alt = p; PAINT ps; RECT r; HDC d;
+    switch (msg) {
+    case M_CREATE: SetWindowData(h, 3, MAGIC | T_SCROLL); SetWindowData(h, 1, 100); SetWindowData(h, 2, 10); sset(h, 0); return 0;
+    case C_SETPOS: sset(h, (long)p2); return 0;
+    case C_SETRANGE: SetWindowData(h, 1, p2); sset(h, p); return 0;
+    case C_GETPOS: return (DWORD)p;
+    case C_MNEMO: return 0;
+    case M_SETFOCUS: case M_KILLFOCUS: neu(h); return 0;
+    case M_PAINT:
+        d = BeginPaint(h, &ps); GetClientRect(h, &r); weiss(d, &r);
+        if (GetFocus() == h && r.r > 2 && r.b > 2) punkte(d, 0, 0, r.r, r.b);
+        EndPaint(h, &ps); return 0;
+    case M_SCROLL: case M_KEY:
+        if (msg == M_KEY) {
+            if (weiter(h, p1, p2)) return 0;
+            if (p1 == K_UP || p1 == K_LEFT) p1 = SB_LINEUP; else if (p1 == K_DOWN || p1 == K_RIGHT) p1 = SB_LINEDOWN;
+            else if (p1 == K_PGUP) p1 = SB_PAGEUP; else if (p1 == K_PGDN) p1 = SB_PAGEDOWN;
+            else if (p1 == K_HOME) p1 = SB_TOP; else if (p1 == K_END) p1 = SB_BOTTOM;
+            else { if (p1 == K_ENTER && istdlg(GetParent(h))) SendMessage(GetParent(h), M_KEY, p1, p2); return 0; }
+        }
+        switch (p1) {
+        case SB_LINEUP: p--; break;
+        case SB_LINEDOWN: p++; break;
+        case SB_PAGEUP: p -= pg; break;
+        case SB_PAGEDOWN: p += pg; break;
+        case SB_THUMB: p = (short)LOWORD(p2); break;
+        case SB_TOP: p = 0; break;
+        case SB_BOTTOM: p = (long)GetWindowData(h, 1); break;
+        }
+        sset(h, p);
+        if ((long)GetWindowData(h, 0) != alt) melde(h, N_CHANGE);
+        return 0;
+    case M_BUTTONDOWN: if (!gesperrt(h)) SetFocus(h); return 0;
+    }
+    return DefWindowProc(h, msg, p1, p2);
+}
+
 static void RDEXPORT x_ende(void) { }
-static struct { WORD n; FARPROC f[2]; } ext = { 2, { (FARPROC)x_ende, (FARPROC)x_FileDialog } };
+static struct { WORD n; FARPROC f[5]; } ext = { 5, { (FARPROC)x_ende, (FARPROC)x_FileDialog, (FARPROC)x_Text, (FARPROC)x_Combo, (FARPROC)x_Scroll } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

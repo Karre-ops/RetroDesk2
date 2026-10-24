@@ -217,7 +217,7 @@ RDF(0x2D0, short,   MsgBox,         (HWND owner, LPCSTR text, LPCSTR titel, WORD
 RDF(0x2D1, BOOL,    FileDialog,     (HWND owner, FILEDLG FAR *fd))
 RDF(0x2D2, BOOL,    InputBox,       (HWND owner, LPCSTR frage, LPCSTR titel, LPSTR buf, WORD len))
 RDF(0x2D3, BOOL,    HelpShow,       (HWND owner, LPCSTR datei, WORD thema)) /* F1-Hilfe */
-RDF(0x2DF, void,    CtlInit,        (void))                       /* intern: Standardklassen anmelden (RDUSER) */
+RDF(0x2DF, void,    CtlInit,        (LPCSTR klasse))                       /* intern: Standardklassen anmelden (RDUSER) */
 
 /* ---- Sound (RDSND) -------------------------------------------------------- */
 RDF(0x300, WORD,    SndCaps,        (void))                       /* SC_* */

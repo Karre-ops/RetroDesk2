@@ -17,3 +17,10 @@ DIALOG 11 "Rechnerwahl" 0 0 160 84
   BUTTON   "OK"          1 112   8  40 14 STANDARD
   BUTTON   "Abbruch"     2 112  26  40 14
 ENDE
+DIALOG 12 "Notiz" 0 0 200 112
+  TEXT                  50   8   8 140 50 WS_VSCROLL
+  SCROLL                51 154   8  10 50 WS_VSCROLL
+  BUTTON   "OK"          1 152  66  40 14 STANDARD
+  BUTTON   "Abbruch"     2 152  84  40 14
+  COMBO                 52   8  66 100 40
+ENDE

@@ -9,8 +9,8 @@ RDSWAP.BIN       1536    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speic
 RDGDI.MOD       16384 18.5   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5); 23.10.: 18,5 KB fuer schnelle Textausgabe (statt Auslagern, Text wird staendig gebraucht)
 RDKX.MOD         6144    6   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.)
 RDGDIX.MOD       4096    4   S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf)
-RDCTL.MOD       16384   14   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
-RDCTLX.MOD       6144    5   S  Dateidialog (verwerfbar, nur waehrend FileDialog)
+RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
+RDCTLX.MOD      12288   10   S  Dateidialog, TEXT, COMBO, SCROLL (verwerfbar)
 RDUSER.MOD      26624   26   S  Fenster, Menues, Steuerelemente, Dialoge
 RDSND.MOD        4096    4   S  Sound-API, Musik-Player
 CGA.DRV          4096    4   S
