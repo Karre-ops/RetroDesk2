@@ -25,7 +25,11 @@
 
 #include "format.h"
 #include "userint.h"
+#ifndef RD2
 #include "msghlpr.h"
+#else
+#include "../rdfmtui.h"
+#endif
 
 
 #define KEYGET_ECHO regs.h.ah = 0x07; /* Get keypress, upcase and echo */ \
@@ -141,6 +145,7 @@ void ASCII_CD_Number(unsigned long number)
 } /* ASCII_CD_Number */
 
 
+#ifndef RD2
 void Ask_User_To_Insert_Disk()
 {
   printf(catgets(catalog, 9, 0, " Insert new diskette for drive %c:\n"), param.drive_letter[0]);
@@ -159,8 +164,12 @@ void Ask_User_To_Insert_Disk()
 
   printf(catgets(catalog, 1, 0, "\n"));
 } /* Ask_User_To_Insert_Disk */
+#else
+void Ask_User_To_Insert_Disk() { rd_einlegen(); }
+#endif
 
 
+#ifndef RD2
 void Confirm_Hard_Drive_Formatting(int format) /* 0 unformat, 1 format */
 {
   char const *yes = catgets(catalog, 1, 3, "YES");
@@ -216,6 +225,9 @@ void Confirm_Hard_Drive_Formatting(int format) /* 0 unformat, 1 format */
   KEYGET_ECHO;  /* (usually the ENTER after YES - accept anything here) */
   printf(catgets(catalog, 1, 0, "\n")); /* enter is only \r, so we still need the \n ... */
 } /* Confirm_Hard_Drive_Formatting */
+#else
+void Confirm_Hard_Drive_Formatting(int format) { rd_bestaetigen(format); }
+#endif
 
 
 int isLabelChar(int ch)		/* return non-0 if char is okay for label: 0.91u+ */
@@ -231,6 +243,7 @@ int isLabelChar(int ch)		/* return non-0 if char is okay for label: 0.91u+ */
 } /* isLabelChar */
 
 
+#ifndef RD2
 int Ask_Label(char * str)
 {
   int label_len;
@@ -286,12 +299,18 @@ int Ask_Label(char * str)
         } /* switch */
     };
 } /* Ask_Label */
+#else
+int Ask_Label(char * str) { return rd_label(str); }
+#endif
 
 
 void Critical_Error_Handler(int source, unsigned int error_code)
 {
   unsigned int error_code_high = (error_code & 0xff00) >> 8;
   unsigned int error_code_low  = error_code & 0x00ff;
+#ifdef RD2
+  rd_kritisch(source, error_code);   /* RD2: Meldung im Dialog */
+#endif
 
   if (source==BIOS) {
     error_code_high = error_code_low;
@@ -576,6 +595,7 @@ char const * const detailed_help[] = {
 /* There should be an help file which explains everything in detail,    */
 /* including the (hardly ever used but still supported) legacy options! */
 /* 0.91n - if detailed is non-zero, display multi-page help screen. */
+#ifndef RD2
 void Display_Help_Screen(int detailed)
 {
 #if LEGACY_HELP
@@ -601,8 +621,12 @@ void Display_Help_Screen(int detailed)
   Key_For_Next_Page();  
   Print_Messages_With_Pauses(catalog, 3, detailed_help);
 } /* Display_Help_Screen */
+#else
+void Display_Help_Screen(int detailed) { (void)detailed; Exit(2,2); }
+#endif
 
 
+#ifndef RD2
 void Display_Percentage_Formatted(unsigned long percentage)
 {
 #if I_AM_ALAIN
@@ -625,6 +649,9 @@ void Display_Percentage_Formatted(unsigned long percentage)
     /* \r re-positions cursor back to the beginning of the line */
     }
 } /* Display_Percentage_Formatted */
+#else
+void Display_Percentage_Formatted(unsigned long percentage) { rd_prozent(percentage); }
+#endif
 
 
 void IllegalArg(char *option, char *argptr)

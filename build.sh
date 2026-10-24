@@ -50,9 +50,12 @@ modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D -dVGAM
 for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST MENUTEST ZEIGTEST DLGTEST; do app apps/test/$t.C $t.EXE "$t"; done
 app shell/SHELL.C SHELL.EXE "Shell"
-APPFLAGS=-i=disk app disk/RDFORMAT.C RDFORMAT.EXE "Formatieren"
-# FreeDOS-Bootsektor (FAT12, GPL) fuer RDFORMAT: BPB wird beim Schreiben durch den der Diskette ersetzt
-python3 -c "d=open('../test/qemu/boot.img','rb').read(512); assert d[510:]==b'\\x55\\xaa'; open('$O/BOOT12.BIN','wb').write(d)"
+# RDFORMAT: RD2-Oberflaeche + FreeDOS FORMAT 0.92a (GPL v2); FreeDOS-Dateien mit disk/fdshim.h (DOS ueber RDDISK.MOD)
+FDF="createfs floppy hdisk main savefs bcread prf userint driveio getopt init recordbc uformat msghlpr"
+for f in $FDF; do wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=disk/fdshim.h -dRD2 -dNOCATS -i=disk/fdformat -fo=obj/fdf_$f.obj disk/fdformat/$f.c || exit 1; done
+wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -i=disk -fo=obj/RDFORMAT.EXE.obj disk/RDFORMAT.C || exit 1
+wlink option quiet format dos name $O/RDFORMAT.EXE file obj/rd2start.obj,obj/RDFORMAT.EXE.obj$(for f in $FDF; do printf ",obj/fdf_$f.obj"; done) library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/RDFORMAT.EXE.map >/dev/null || { echo "RDFORMAT: Linkfehler"; wlink option quiet format dos name $O/RDFORMAT.EXE file obj/rd2start.obj,obj/RDFORMAT.EXE.obj$(for f in $FDF; do printf ",obj/fdf_$f.obj"; done) library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs 2>&1 | head -20; exit 1; }
+python3 tools/rdrc.py disk/RDFORMAT.RC obj/RDFORMAT.res >/dev/null || exit 1; python3 tools/rd2link.py $O/RDFORMAT.EXE "Formatieren" --res obj/RDFORMAT.res >/dev/null
 # Leistungsvergleich RD1 gegen RD2 (test/bench.sh): BENCH2 ueber die RD2-API, BENCH1 mit dem RD1-Renderer aus main
 app bench/BENCH2.C BENCH2.EXE "Bench2"
 ( T=obj/bench1; mkdir -p $T; rm -f $T/*; cp bench/BENCH1.C $T/bench1.c; cp ../gfx.c ../mouse.c ../gfx.h ../mouse.h $T/

@@ -14,7 +14,7 @@ DIALOG 10 "Formatieren" 0 0 200 118
   BUTTON   "Abbruch"       2 106 100  50 14
 ENDE
 DIALOG 11 "Formatieren" 0 0 180 56
-  STATIC   "Spur 0"       40   8   6 164 10
+  STATIC   "0 Prozent formatiert"       40   8   6 164 10
   PROGRESS                41   8  20 164  8
   BUTTON   "Abbruch"       2  65  36  50 14
 ENDE
@@ -22,23 +22,18 @@ TEXTE
   1 "Formatieren"
   2 "BootfÑhig machen"
   3 "Laufwerk %s:"
-  4 "Alle Daten auf der Diskette in Laufwerk %s: werden gelîscht.\nBitte die richtige Diskette einlegen."
-  6 "Spur %s von %s"
+  4 "Bitte die Diskette in Laufwerk %s: einlegen.\nAlle Daten darauf werden gelîscht."
+  6 "%s Prozent formatiert"
   7 "Fertig.\n%s KB frei, %s KB defekt."
   8 "Die Diskette ist schreibgeschÅtzt."
   9 "Laufwerk %s: ist nicht bereit."
-  10 "Spur 0 ist defekt, die Diskette ist unbrauchbar."
-  11 "Schreibfehler oder Diskette voll."
-  12 "Die Diskette hat ein anderes Format.\nBitte ohne 'Schnell' formatieren."
-  13 "Systemdatei fehlt:\n%s\nBootfÑhig machen geht nur mit dem FreeDOS-Kern, bei MS-DOS bitte SYS verwenden."
   14 "Formatieren geht nur bei Diskettenlaufwerken."
   15 "RDDISK.MOD fehlt."
-  16 "Diskette in Laufwerk %s: bootfÑhig machen?\nBootsektor, KERNEL.SYS und COMMAND.COM werden geschrieben."
-  17 "Die Diskette ist jetzt bootfÑhig."
   18 "Abgebrochen. Die Diskette ist nur teilweise formatiert."
-  19 "\nKein COMMAND.COM: Die Diskette braucht eine CONFIG.SYS mit SHELL=."
-  20 "Nicht genug Speicher fÅr die Systemdateien."
-  21 "\nDie Diskette ist bootfÑhig."
+  22 "Festplatte %s: formatieren?\nAlle Daten gehen verloren."
+  23 "FORMAT meldet einen Fehler:\n%s"
+  24 "BootfÑhig machen (FreeDOS SYS) wird gerade umgestellt und folgt im nÑchsten Schritt."
+  25 "Fehler beim Diskzugriff (BIOS-Status %s)."
 ENDE
 SPRACHE EN
 DIALOG 10 "Format" 0 0 200 118
@@ -55,7 +50,7 @@ DIALOG 10 "Format" 0 0 200 118
   BUTTON   "Cancel"        2 106 100  50 14
 ENDE
 DIALOG 11 "Format" 0 0 180 56
-  STATIC   "Track 0"      40   8   6 164 10
+  STATIC   "0 percent formatted"      40   8   6 164 10
   PROGRESS                41   8  20 164  8
   BUTTON   "Cancel"        2  65  36  50 14
 ENDE
@@ -63,21 +58,16 @@ TEXTE
   1 "Format"
   2 "Make bootable"
   3 "Drive %s:"
-  4 "All data on the disk in drive %s: will be erased.\nPlease insert the right disk."
-  6 "Track %s of %s"
+  4 "Please insert the disk into drive %s:.\nAll data on it will be erased."
+  6 "%s percent formatted"
   7 "Done.\n%s KB free, %s KB bad."
   8 "The disk is write-protected."
   9 "Drive %s: is not ready."
-  10 "Track 0 is bad, the disk is unusable."
-  11 "Write error or disk full."
-  12 "The disk has a different format.\nPlease format without 'Quick'."
-  13 "System file missing:\n%s\nMaking bootable needs the FreeDOS kernel; with MS-DOS please use SYS."
   14 "Only floppy drives can be formatted."
   15 "RDDISK.MOD is missing."
-  16 "Make the disk in drive %s: bootable?\nBoot sector, KERNEL.SYS and COMMAND.COM will be written."
-  17 "The disk is now bootable."
   18 "Cancelled. The disk is only partly formatted."
-  19 "\nNo COMMAND.COM: the disk needs a CONFIG.SYS with SHELL=."
-  20 "Not enough memory for the system files."
-  21 "\nThe disk is bootable."
+  22 "Format hard disk %s:?\nAll data will be lost."
+  23 "FORMAT reports an error:\n%s"
+  24 "Make bootable (FreeDOS SYS) is being ported and follows in the next step."
+  25 "Disk access error (BIOS status %s)."
 ENDE
