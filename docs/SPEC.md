@@ -297,10 +297,12 @@ Siehe `tools/budget.txt`. Ab Phase 1 prüft der Build jede Datei und rechnet jed
 
 | Diskette | Name | Inhalt | Grenze |
 |---|---|---|---|
-| 1 | `RD2SYSTEM` | bootfähig: DOS 5 (IO.SYS, MSDOS.SYS), CTMOUSE, Kern, RDGDI/X, RDKX, RDUSER, RDCTL/X, RDSND, Treiber CGA/HGC/VGA/Lautsprecher/AdLib, Schriften, Sprachen, RD2SETUP, später SHELL (Desktop, Dateimanager) | höchstens 300 KB, damit ≥ 50 KB für `RD2.INI`, `RD2.STA` und Daten frei bleiben |
-| 2 | `RD2 PROG` | Zubehör (Uhr, Notizblock, Rechner), RDCALC, RDEDIT, Druckertreiber, COMMAND.COM für die DOS-Shell | 354 KB |
-| 3 | `RD2 NETZ` | RDNET, FTP, IRC, SNTP | 354 KB |
-| (4) | `RD2 SDK` | Kopfdateien, RD2.LIB, Werkzeuge; nur für Entwickler | 354 KB |
+| 1 | `RD2SYSTEM` | bootfähig: FreeDOS-Kern (8086-Fassung, GPL) oder eigenes DOS per `SYS A:`, CTMOUSE, Kern, RDGDI/X, RDKX, RDUSER, RDCTL/X, RDSND, Grafiktreiber CGA/HGC/VGA, Lautsprecher, Schriften, Sprachen, RD2SETUP, SHELL (Desktop, Dateimanager), Start der Installation, `COPYING`, `LIZENZ.TXT` | höchstens 300 KB, damit ≥ 50 KB für `RD2.INI`, `RD2.STA` und Daten frei bleiben |
+| 2 | `RD2 PROG` | Werkzeuge (RDFDISK, RDFORMAT, RDSYS, RDDISK.MOD), Zubehör (Uhr, Notizblock, Rechner), RDCALC, RDEDIT, weitere Treiber (AdLib, Drucker), `COPYING` | 354 KB |
+| 3 | `RD2 NETZ` | RDNET, FTP, IRC, SNTP, weiteres | 354 KB |
+| 4 | `RD2 EXTRA` | SDK (Kopfdateien, RD2.LIB, Werkzeuge), Quelltext der GPL-Teile, weiteres | 354 KB |
+
+Treiber, die zum Starten nötig sind (Grafik, Lautsprecher), bleiben auf Diskette 1. Lizenzen: [LIZENZ.md](LIZENZ.md).
 
 Für den Alltag reichen Diskette 1 und 2. Der Kern fragt beim Nachladen per Dialog nach der richtigen Diskette (Abschnitt 9). Die Tests booten von einem 360-KB-Abbild mit FreeDOS.
 
