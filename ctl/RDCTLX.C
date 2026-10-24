@@ -10,6 +10,7 @@
 #define ID_DAT  31
 #define ID_ORD  32
 #define ID_PFAD 33
+#define ID_TYP  34
 #define FA_DIR  0x10
 
 typedef struct {
@@ -60,6 +61,15 @@ static void wechsel(HWND d, FDS FAR *st, LPCSTR e)   /* Eintrag der rechten List
     else { WORD n = slen(st->dir); scpy(st->dir + n, e + 1, sizeof st->dir - n); n = slen(st->dir); if (n) st->dir[n - 1] = '\\'; }
     fuellen(d, st);
 }
+static WORD fteil(LPCSTR f, WORD k, LPSTR o, WORD max)   /* Teil k von "Name|Muster|..." */
+{
+    WORD i;
+    if (!f) return 0;
+    while (k && *f) { if (*f++ == '|') k--; }
+    if (k || !*f) return 0;
+    for (i = 0; i + 1 < max && f[i] && f[i] != '|'; i++) o[i] = f[i];
+    o[i] = 0; return 1;
+}
 static int istordner(LPCSTR p) { WORD a = FileAttr(p, 0, 0); return a != 0xFFFF && (a & FA_DIR); }
 static int gibts(LPCSTR p) { WORD a = FileAttr(p, 0, 0); return a != 0xFFFF && !(a & FA_DIR); }
 
@@ -69,6 +79,10 @@ static BOOL RDEXPORT fdproc(HWND d, WORD msg, WORD p1, DWORD p2)
     if (msg == M_INITDIALOG) {
         SendMessage(DlgItem(d, ID_NAME), C_SETLIMIT, 79, 0);
         { LPCSTR s = st->fd->datei, a = s; for (; *s; s++) if (*s == '\\' || *s == ':') a = s + 1; DlgSetText(d, ID_NAME, a); }
+        for (i = 0; fteil(st->fd->filter, 2 * i, t, 40) && fteil(st->fd->filter, 2 * i + 1, v, 13); i++)
+            SendMessage(DlgItem(d, ID_TYP), L_ADD, 0, (DWORD)(LPCSTR)t);
+        if (!i) SendMessage(DlgItem(d, ID_TYP), L_ADD, 0, (DWORD)(LPCSTR)"*.*");
+        SendMessage(DlgItem(d, ID_TYP), L_SETSEL, 0, 0);
         fuellen(d, st);
         return FALSE;
     }
@@ -76,6 +90,10 @@ static BOOL RDEXPORT fdproc(HWND d, WORD msg, WORD p1, DWORD p2)
     if (p1 == ID_DAT && HIWORD(p2) == N_SELECT) { DlgGetText(d, ID_DAT, t, sizeof t); DlgSetText(d, ID_NAME, t); return TRUE; }
     if (p1 == ID_DAT && HIWORD(p2) == N_DBLCLK) { SendMessage(d, M_COMMAND, ID_OK, MAKELONG(0, N_CLICKED)); return TRUE; }
     if (p1 == ID_ORD && HIWORD(p2) == N_DBLCLK) { DlgGetText(d, ID_ORD, t, sizeof t); wechsel(d, st, t); return TRUE; }
+    if (p1 == ID_TYP && HIWORD(p2) == N_SELECT) {
+        if (!fteil(st->fd->filter, 2 * (WORD)SendMessage(DlgItem(d, ID_TYP), L_GETSEL, 0, 0) + 1, st->pat, sizeof st->pat)) scpy(st->pat, "*.*", sizeof st->pat);
+        fuellen(d, st); return TRUE;
+    }
     if (p1 != ID_OK || HIWORD(p2) != N_CLICKED) return FALSE;
     if (GetFocus() == DlgItem(d, ID_ORD)) { DlgGetText(d, ID_ORD, t, sizeof t); wechsel(d, st, t); return TRUE; }
     DlgGetText(d, ID_NAME, t, sizeof t);
@@ -115,12 +133,10 @@ static BYTE FAR *elem(BYTE FAR *p, LPCSTR kl, LPCSTR tx, WORD id, short x, short
 }
 static BOOL RDEXPORT x_FileDialog(HWND owner, FILEDLG FAR *fd)
 {
-    HMEM hm; BYTE FAR *v, FAR *p; short FAR *q; FDS st; short e; WORD i, n; char k[3][20]; LPCSTR f;
+    HMEM hm; BYTE FAR *v, FAR *p; short FAR *q; FDS st; short e; WORD i, n; char k[4][20];
     if (!fd || !fd->datei || fd->len < 4) { SetLastError(RD_ERR_HANDLE); return FALSE; }
     st.fd = fd; st.pat[0] = 0;
-    f = fd->filter;                               /* "Texte|*.TXT|..." : erstes Muster */
-    if (f) { while (*f && *f != '|') f++; if (*f) f++; for (i = 0; i < 12 && f[i] && f[i] != '|'; i++) st.pat[i] = f[i]; st.pat[i] = 0; }
-    if (!st.pat[0]) scpy(st.pat, "*.*", sizeof st.pat);
+    if (!fteil(fd->filter, 1, st.pat, sizeof st.pat)) scpy(st.pat, "*.*", sizeof st.pat);
     if (fd->datei[0] && fd->datei[1] == ':') {    /* Ordner aus dem Vorschlag */
         scpy(st.dir, fd->datei, sizeof st.dir);
         for (i = slen(st.dir); i && st.dir[i - 1] != '\\'; i--) ;
@@ -129,18 +145,20 @@ static BOOL RDEXPORT x_FileDialog(HWND owner, FILEDLG FAR *fd)
         DirGet(0, st.dir); n = slen(st.dir);
         if (st.dir[n - 1] != '\\') scat(st.dir, "\\", sizeof st.dir);
     }
-    for (i = 0; i < 3; i++) scpy(k[i], StrGet(0, i == 0 ? 12 : i + 1), sizeof k[i]);   /* Datei:, OK, Abbruch */
+    for (i = 0; i < 4; i++) scpy(k[i], StrGet(0, i == 0 ? 12 : i == 3 ? 15 : i + 1), sizeof k[i]);   /* Datei:, OK, Abbruch, Dateityp: */
     if (!(hm = MemAlloc(512, MEM_MOVABLE))) return FALSE;
     v = (BYTE FAR *)MemLock(hm);
-    *(DWORD FAR *)v = 0; q = (short FAR *)(v + 4); q[0] = q[1] = 0; q[2] = 228; q[3] = 124; q[4] = 7;
+    *(DWORD FAR *)v = 0; q = (short FAR *)(v + 4); q[0] = q[1] = 0; q[2] = 228; q[3] = 126; q[4] = 9;
     p = put(v + 14, fd->titel ? fd->titel : StrGet(0, (fd->flags & FD_SAVE) ? 11 : 10));
     p = elem(p, CL_STATIC, k[0], 0xFFFF, 8, 6, 60, 10, 0);
     p = elem(p, CL_EDIT, "", ID_NAME, 8, 17, 160, 12, 0);
-    p = elem(p, CL_STATIC, "", ID_PFAD, 8, 33, 212, 10, 0);
-    p = elem(p, CL_LIST, "", ID_DAT, 8, 45, 96, 72, WS_VSCROLL);
-    p = elem(p, CL_LIST, "", ID_ORD, 110, 45, 64, 72, WS_VSCROLL);
+    p = elem(p, CL_STATIC, k[3], 0xFFFF, 8, 33, 46, 10, 0);
+    p = elem(p, CL_STATIC, "", ID_PFAD, 8, 48, 212, 10, 0);
+    p = elem(p, CL_LIST, "", ID_DAT, 8, 60, 96, 60, WS_VSCROLL);
+    p = elem(p, CL_LIST, "", ID_ORD, 110, 60, 64, 60, WS_VSCROLL);
     p = elem(p, CL_BUTTON, k[1], ID_OK, 180, 16, 40, 14, ES_DEFAULT);
     p = elem(p, CL_BUTTON, k[2], ID_CANCEL, 180, 34, 40, 14, 0);
+    p = elem(p, CL_COMBO, "", ID_TYP, 56, 31, 112, 56, 0);        /* zuletzt: liegt aufgeklappt oben */
     e = DialogIndirect(0, v, owner, (DLGPROC)fdproc, (DWORD)(FDS FAR *)&st);
     MemUnlock(hm); MemFree(hm);
     return e == ID_OK;

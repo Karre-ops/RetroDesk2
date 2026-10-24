@@ -34,7 +34,7 @@ for n in 1 2; do
   Q "sendkey r" sleep0.2 "sendkey d" sleep0.2 "sendkey 2" sleep0.3 "sendkey ret"; sleep 4
   Q "sendkey tab" sleep0.3 "sendkey d" sleep0.6 "screendump obj/dlg5_$K.ppm" sleep0.3 "sendkey ret"
   waitn "DLGTEST: Speichern" $n || { echo "FEHLER: kein Speichern"; break; }; sleep 4
-  Q "sendkey ret"; sleep 2.5; Q "screendump obj/dlg6_$K.ppm" sleep0.3 "sendkey esc" sleep1 "sendkey esc"
+  Q "sendkey shift-tab" sleep0.4 "sendkey kp_2" sleep2 "screendump obj/dlg9_$K.ppm" sleep0.3 "sendkey tab" sleep0.4 "sendkey ret"; sleep 2.5; Q "screendump obj/dlg6_$K.ppm" sleep0.3 "sendkey esc" sleep1 "sendkey esc"
   waitn "DLGTEST: Notiz bereit" $n || { echo "FEHLER: Dialog 4 kommt nicht"; break; }; sleep 4
   Q "sendkey a" sleep0.2 "sendkey b" sleep0.2 "sendkey ret" sleep0.2 "sendkey c" sleep0.2 "sendkey d" sleep0.2 "sendkey kp_8" sleep0.2 "sendkey shift-x" sleep0.3 \
     "sendkey tab" sleep0.3 "sendkey kp_3" sleep0.3 "sendkey kp_2" sleep0.3 "sendkey tab" sleep0.3 "sendkey tab" sleep0.3 "sendkey tab" sleep0.3 \
@@ -43,5 +43,5 @@ for n in 1 2; do
 done
 wait $QP
 tr -d '\r' < $SER | grep -E "DLGTEST|RD: (Speicher|SPEICHER|alle|Fehler|Modul)"
-[ -f test/ref/dlg1_cga.png ] && python3 test/bildvergleich.py obj/dlg1_cga.ppm test/ref/dlg1_cga.png obj/dlg1_vga.ppm test/ref/dlg1_vga.png obj/dlg2_cga.ppm test/ref/dlg2_cga.png obj/dlg2_vga.ppm test/ref/dlg2_vga.png obj/dlg3_cga.ppm test/ref/dlg3_cga.png obj/dlg3_vga.ppm test/ref/dlg3_vga.png obj/dlg4_cga.ppm test/ref/dlg4_cga.png obj/dlg4_vga.ppm test/ref/dlg4_vga.png obj/dlg5_cga.ppm test/ref/dlg5_cga.png obj/dlg5_vga.ppm test/ref/dlg5_vga.png obj/dlg6_cga.ppm test/ref/dlg6_cga.png obj/dlg6_vga.ppm test/ref/dlg6_vga.png obj/dlg7_cga.ppm test/ref/dlg7_cga.png obj/dlg7_vga.ppm test/ref/dlg7_vga.png obj/dlg8_cga.ppm test/ref/dlg8_cga.png obj/dlg8_vga.ppm test/ref/dlg8_vga.png
+[ -f test/ref/dlg1_cga.png ] && python3 test/bildvergleich.py obj/dlg1_cga.ppm test/ref/dlg1_cga.png obj/dlg1_vga.ppm test/ref/dlg1_vga.png obj/dlg2_cga.ppm test/ref/dlg2_cga.png obj/dlg2_vga.ppm test/ref/dlg2_vga.png obj/dlg3_cga.ppm test/ref/dlg3_cga.png obj/dlg3_vga.ppm test/ref/dlg3_vga.png obj/dlg4_cga.ppm test/ref/dlg4_cga.png obj/dlg4_vga.ppm test/ref/dlg4_vga.png obj/dlg5_cga.ppm test/ref/dlg5_cga.png obj/dlg5_vga.ppm test/ref/dlg5_vga.png obj/dlg6_cga.ppm test/ref/dlg6_cga.png obj/dlg6_vga.ppm test/ref/dlg6_vga.png obj/dlg7_cga.ppm test/ref/dlg7_cga.png obj/dlg7_vga.ppm test/ref/dlg7_vga.png obj/dlg8_cga.ppm test/ref/dlg8_cga.png obj/dlg8_vga.ppm test/ref/dlg8_vga.png obj/dlg9_cga.ppm test/ref/dlg9_cga.png obj/dlg9_vga.ppm test/ref/dlg9_vga.png
 exit 0
