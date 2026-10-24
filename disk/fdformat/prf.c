@@ -84,7 +84,9 @@ void put_console(int c)
   if (c == '\n')
     put_console('\r');
 
-#ifdef __WATCOMC__
+#if defined(RD2)
+  rd_putch(c);                       /* RD2: ins Protokoll statt per DOS auf den Bildschirm */
+#elif defined(__WATCOMC__)
   writechar(c);
 #else
  

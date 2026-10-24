@@ -62,6 +62,10 @@ int rd_int86x(int nr, union REGS *ein, union REGS *aus, struct SREGS *s)
     if (nr == 0x21 && ein->h.ah == 0x0B) { aus->h.al = (BYTE)(abbruch ? 0xFF : 0); return aus->x.ax; }   /* Tastatur: Esc = Abbruch */
     if (nr == 0x21 && ein->h.ah == 0x07) { aus->h.al = (BYTE)(abbruch ? 27 : 'N'); return aus->x.ax; }   /* "noch eine Diskette?" nein */
     if (!s) { segread(&t); s = &t; }
+#ifdef RDF_SPUR
+    { char b[12]; static const char h[] = "0123456789ABCDEF"; WORD v = ein->x.ax; b[0]='I'; b[1]=h[nr>>4&15]; b[2]=h[nr&15]; b[3]=' ';
+      b[4]=h[v>>12]; b[5]=h[v>>8&15]; b[6]=h[v>>4&15]; b[7]=h[v&15]; b[8]=0; DbgPrint(b); }
+#endif
     return dInt((WORD)nr, (union REGS FAR *)ein, (union REGS FAR *)aus, (struct SREGS FAR *)s);
 }
 void rd_exit(int code) { fd_code = code; longjmp(jb, 1); }
@@ -85,7 +89,8 @@ int rd_label(char *str) { scpy(str, name, 12); return (int)slen(str); }
 void rd_kritisch(int quelle, unsigned int code) { kr_quelle = (WORD)quelle; kr_code = code; }
 void rd_prozent(unsigned long p)
 {
-    MSG m; char a[8];
+    MSG m; char a[8]; static unsigned long naechst;
+    if (p >= naechst) { zahl(a, p); fmt(txt, 6, a, 0); DbgPrint(txt); naechst = p + 25; }
     if (pdlg) {
         zahl(a, p); fmt(txt, 6, a, 0); DlgSetText(pdlg, ID_STAND, txt);
         SendMessage(DlgItem(pdlg, ID_BALKEN), C_SETPOS, 0, p);
