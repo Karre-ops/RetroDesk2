@@ -27,6 +27,7 @@
 #define CM_LOESCH 108
 #define CM_LWINFO 301
 #define CM_FORMAT 302
+#define CM_FDISK  303                             /* Festplatte einrichten (RDFDISK; leere Platten haben keinen Buchstaben) */
 #define CM_NEU    201
 #define MAXE      240                             /* Eintraege je Ordner */
 #define MAXO      6                               /* Ordnerfenster */
@@ -468,13 +469,21 @@ static short lwbei(short x, short y)
     for (i = 0; i < nlw; i++) { lwfeld(i, &r); if (x >= r.l && x < r.r && y >= r.t && y < r.b) return i; }
     return -1;
 }
-static WORD rdformat(char *p)                      /* <RD2>\RDFORMAT.EXE, 1 = vorhanden */
+static WORD werkzeug(char *p, LPCSTR n)            /* <RD2>\n, 1 = vorhanden */
 {
     SYSINFO si; FINDDATA f;
     KernInfo(&si); scpy(p, si.home, 80);
     if (slen(p) && p[slen(p) - 1] != '\\') scat(p, "\\", 80);
-    scat(p, "RDFORMAT.EXE", 80);
+    scat(p, n, 80);
     return FileFindFirst(p, 0, &f) == 0;
+}
+#define rdformat(p) werkzeug(p, "RDFORMAT.EXE")
+static void einrichten(void)                      /* Laufwerksmenue: Festplatte einrichten */
+{
+    char p[80];
+    if (!werkzeug(p, "RDFDISK.EXE")) return;
+    DbgPrint("SHELL: Festplatte einrichten");
+    if (!TaskExec(p, "", SW_SHOW)) { fmt(buf, StrGet(inst, 3), p, 0); MsgBox(0, buf, "RD", MB_OK | MB_ERROR); }
 }
 static void formatieren(void)                     /* Laufwerksmenue: Formatieren */
 {
@@ -521,6 +530,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
             else if ((p1 & 0xFF) == 2) {
                 char p[80]; WORD an = (lt[i] == DT_FLOPPY || lt[i] == DT_HARD) && rdformat(p);
                 MenuEnable(mlw, CM_FORMAT, an);
+                MenuEnable(mlw, CM_FDISK, werkzeug(p, "RDFDISK.EXE"));
                 y = (short)MenuPopup(w, mlw, 0, (short)LOWORD(p2), (short)HIWORD(p2));
                 if (y) PostMessage(w, M_COMMAND, y, 0);
             }
@@ -543,6 +553,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_OEFFNEN && nlw) ordner_auf(lw[lsel]);
         else if (p1 == CM_LWINFO && nlw) lwinfo();
         else if (p1 == CM_FORMAT && nlw) formatieren();
+        else if (p1 == CM_FDISK) einrichten();
         return 0;
     case M_CLOSE: return 0;                       /* der Schreibtisch bleibt */
     }

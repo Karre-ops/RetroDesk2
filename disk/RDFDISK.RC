@@ -1,0 +1,75 @@
+; Ressourcen fuer RDFDISK.EXE (Festplatte einrichten: Partitionen anlegen, loeschen, aktiv setzen)
+SPRACHE DE
+DIALOG 10 "Festplatte einrichten" 0 0 236 136
+  STATIC   "Festplatte"    19   8   6 140 10
+  RADIO    "Platte &1"     21 150   4  40 10 AN
+  RADIO    "Platte &2"     22 192   4  40 10
+  LIST                     30   8  18 220 70 WS_VSCROLL
+  BUTTON   "&Anlegen..."   11   8  94  70 14
+  BUTTON   "&L”schen"      12  83  94  70 14
+  BUTTON   "A&ktiv"        13 158  94  70 14
+  BUTTON   "&Schreiben"     1  44 116  70 14
+  BUTTON   "Schlieáen"      2 122 116  70 14
+ENDE
+TEXTE
+  1 "Festplatte einrichten"
+  2 "Festplatte %s"
+  3 "Festplatte %s: %s MB"
+  4 "Prim„r"
+  5 "Erweitert"
+  6 "Logisch"
+  7 "Frei"
+  8 "aktiv"
+  9 "fremd"
+  10 "Gr”áe des neuen Laufwerks in MB (h”chstens %s):"
+  11 "Laufwerk %s l”schen?\nAlle Daten darauf gehen verloren."
+  12 "Die erweiterte Partition samt allen logischen Laufwerken l”schen?\nAlle Daten darauf gehen verloren."
+  13 "Die Žnderungen auf die Festplatte schreiben?"
+  14 "Die Partitionen sind geschrieben.\nBitte den Rechner neu starten (Strg+Alt+Entf),\ndanach die neuen Laufwerke formatieren."
+  15 "Die Žnderungen verwerfen?"
+  16 "Keine Festplatte gefunden."
+  17 "Die Partitionstabelle l„sst sich nicht lesen (Fehler %s)."
+  18 "Schreiben fehlgeschlagen (Fehler %s).\nDie Festplatte ist unver„ndert oder nur teilweise geschrieben."
+  19 "Das geht nicht (Fehler %s)."
+  20 "Auf Laufwerk %s liegt RD2 selbst.\nDieses Laufwerk l„sst sich nicht l”schen."
+  21 "RDDISK.MOD fehlt."
+  22 "Bitte eine Zahl von 1 bis %s eingeben."
+  23 "Es l„uft schon ein RDFDISK."
+ENDE
+SPRACHE EN
+DIALOG 10 "Set up hard disk" 0 0 236 136
+  STATIC   "Hard disk"     19   8   6 140 10
+  RADIO    "Disk &1"       21 150   4  40 10 AN
+  RADIO    "Disk &2"       22 192   4  40 10
+  LIST                     30   8  18 220 70 WS_VSCROLL
+  BUTTON   "&Create..."    11   8  94  70 14
+  BUTTON   "&Delete"       12  83  94  70 14
+  BUTTON   "Ac&tive"       13 158  94  70 14
+  BUTTON   "&Write"         1  44 116  70 14
+  BUTTON   "Close"          2 122 116  70 14
+ENDE
+TEXTE
+  1 "Set up hard disk"
+  2 "Hard disk %s"
+  3 "Hard disk %s: %s MB"
+  4 "Primary"
+  5 "Extended"
+  6 "Logical"
+  7 "Free"
+  8 "active"
+  9 "foreign"
+  10 "Size of the new drive in MB (at most %s):"
+  11 "Delete drive %s?\nAll data on it will be lost."
+  12 "Delete the extended partition with all logical drives?\nAll data on them will be lost."
+  13 "Write the changes to the hard disk?"
+  14 "The partitions have been written.\nPlease restart the computer (Ctrl+Alt+Del),\nthen format the new drives."
+  15 "Discard the changes?"
+  16 "No hard disk found."
+  17 "Cannot read the partition table (error %s)."
+  18 "Writing failed (error %s).\nThe hard disk is unchanged or only partly written."
+  19 "Not possible (error %s)."
+  20 "RD2 itself is on drive %s.\nThis drive cannot be deleted."
+  21 "RDDISK.MOD is missing."
+  22 "Please enter a number from 1 to %s."
+  23 "RDFDISK is already running."
+ENDE

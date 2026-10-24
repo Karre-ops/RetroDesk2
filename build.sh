@@ -57,6 +57,16 @@ for f in $FDF; do wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=disk/fdshim.h -
 wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -i=disk $RDF_DEF -fo=obj/RDFORMAT.EXE.obj disk/RDFORMAT.C || exit 1
 wlink option quiet format dos name $O/RDFORMAT.EXE file obj/rd2start.obj,obj/RDFORMAT.EXE.obj$(for f in $FDF; do printf ",obj/fdf_$f.obj"; done) library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/RDFORMAT.EXE.map >/dev/null || { echo "RDFORMAT: Linkfehler"; wlink option quiet format dos name $O/RDFORMAT.EXE file obj/rd2start.obj,obj/RDFORMAT.EXE.obj$(for f in $FDF; do printf ",obj/fdf_$f.obj"; done) library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs 2>&1 | head -20; exit 1; }
 python3 tools/rdrc.py disk/RDFORMAT.RC obj/RDFORMAT.res >/dev/null || exit 1; python3 tools/rd2link.py $O/RDFORMAT.EXE "Formatieren" --res obj/RDFORMAT.res >/dev/null
+# RDFDISK: RD2-Oberflaeche + Free FDISK 1.3 (GPL v2): pcompute.c, pdiskio.c, Startcode bootnorm.asm (NASM)
+FDK="pcompute pdiskio"
+for f in $FDK; do wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=disk/fdshim.h -dRD2 -i=disk/fdfdisk -fo=obj/fdk_$f.obj disk/fdfdisk/$f.c || exit 1; done
+wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=disk/fdshim.h -dRD2 -i=disk/fdfdisk -fo=obj/fdk_glue.obj disk/fdglue.c || exit 1
+nasm -f bin -o obj/bootnorm.bin disk/fdfdisk/bootnorm.asm || exit 1
+python3 -c "d=open('obj/bootnorm.bin','rb').read(); open('obj/bootnorm.c','w').write('char bootnormal_code[] = {'+','.join(str(b) for b in d)+'};\n')"
+wcc -0 -mm -os -s -zq -bt=dos -zl -fo=obj/fdk_boot.obj obj/bootnorm.c || exit 1
+wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -i=disk -fo=obj/RDFDISK.EXE.obj disk/RDFDISK.C || exit 1
+wlink option quiet format dos name $O/RDFDISK.EXE file obj/rd2start.obj,obj/RDFDISK.EXE.obj,obj/fdk_glue.obj,obj/fdk_boot.obj$(for f in $FDK; do printf ",obj/fdk_$f.obj"; done) library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/RDFDISK.EXE.map >/dev/null || { wlink option quiet format dos name $O/RDFDISK.EXE file obj/rd2start.obj,obj/RDFDISK.EXE.obj,obj/fdk_glue.obj,obj/fdk_boot.obj$(for f in $FDK; do printf ",obj/fdk_$f.obj"; done) library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/RDFDISK.EXE.map | grep -v "^$" | head -20; exit 1; }
+python3 tools/rdrc.py disk/RDFDISK.RC obj/RDFDISK.res >/dev/null || exit 1; python3 tools/rd2link.py $O/RDFDISK.EXE "Festplatte" --res obj/RDFDISK.res >/dev/null
 # Leistungsvergleich RD1 gegen RD2 (test/bench.sh): BENCH2 ueber die RD2-API, BENCH1 mit dem RD1-Renderer aus main
 app bench/BENCH2.C BENCH2.EXE "Bench2"
 ( T=obj/bench1; mkdir -p $T; rm -f $T/*; cp bench/BENCH1.C $T/bench1.c; cp ../gfx.c ../mouse.c ../gfx.h ../mouse.h $T/

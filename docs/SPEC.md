@@ -177,6 +177,14 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 - Ersetzt: Textausgabe und Rückfragen (`userint.c`, `main.c`, `prf.c`, kitten) durch RD2-Dialoge: Einstellungen, Rückfrage, Fortschrittsbalken (`Display_Percentage_Formatted`), Fehlermeldung (`Critical_Error_Handler`, `Exit` springt zurück in die Oberfläche).
 - DOS- und BIOS-Zugriffe (INT 13h, INT 21h IOCTL 44xxh, INT 25h/26h) laufen über `RDDISK.MOD` (RD2-Programme rufen DOS nie direkt auf).
 - **Festplatte (24.10.2026):** `RDFORMAT C:` zeigt Laufwerk und Größe, Bezeichnung und „Schnell“ (Vorgabe an: sicheres Schnellformat mit UNFORMAT-Daten, aus = `/U` mit Prüfung aller Sektoren). FreeDOS fragt vor dem Löschen nach (Text 22). Das Laufwerk, auf dem RD2 liegt (`SYSINFO.home`), lässt sich nicht formatieren. FAT12/FAT16 bis 2 GB, FAT32 nur unter DOS 7. Dazu erlaubt `RDDISK.MOD` INT 21h 60h (vollständiger Pfad, FORMAT prüft SUBST/Netz). Test `test/hdd.sh` (20-MB-Platte, FAT16): schnell, voll mit Bezeichnung, Nein bei der Rückfrage, RD2-Laufwerk.
+
+`RDFDISK.EXE` (Diskette 2, GPL v2) = Free FDISK 1.3 (`pcompute.c`, `pdiskio.c`, MBR-Startcode `bootnorm.asm`) als Kern, Quellen in `disk/fdfdisk` (Herkunft in `HERKUNFT.txt`). `disk/fdglue.c` ersetzt Oberfläche, Befehlszeile und FDISK.INI, `disk/RDFDISK.C` ist die RD2-Oberfläche. Aufruf über das Laufwerksmenü „Festplatte einrichten...“ (aktiv, wenn RDFDISK.EXE im RD2-Verzeichnis liegt; eine leere Platte hat keinen Buchstaben, deshalb unabhängig vom gewählten Laufwerk).
+- Dialog: Platte 1/2 (nur bei zwei Platten), Liste nach Lage (Laufwerk, Art, Dateisystem, aktiv, Größe; logische Laufwerke eingerückt unter der erweiterten Partition, freier Platz als „Frei“), Knöpfe Anlegen, Löschen, Aktiv, Schreiben, Schließen.
+- Anlegen nach DOS-Regel: das erste DOS-Laufwerk wird primär und aktiv, weitere werden logische Laufwerke in einer erweiterten Partition über den restlichen Platz. Größe per Eingabe (Vorgabe: höchstens möglich); danach ist der restliche freie Platz gewählt.
+- Löschen fragt nach; eine erweiterte Partition samt ihren logischen Laufwerken. Das Laufwerk, auf dem RD2 liegt, lässt sich nicht löschen.
+- Erst „Schreiben“ ändert die Platte (Rückfrage), danach Hinweis auf Neustart und Formatieren. Schließen mit Änderungen fragt nach dem Verwerfen.
+- Immer wie DOS 6: nur FAT12/FAT16 (bis 2 GB je Laufwerk), keine LBA-Typen, keine INT-13h-Erweiterungen, damit auch MS-DOS 5 die Platte liest. Platten über 8 GB: nur der per CHS erreichbare Teil. Lage der logischen Laufwerke aus der EMBR-Kette (Audit M8).
+- Test `test/fdisk.sh`: leere 20-MB-Platte (C: primär, aktiv), 100 MB (C: 40 MB + D: logisch), Löschen, Verwerfen (Platte unverändert); Python prüft MBR und EMBR.
 - RD2SETUP benutzt denselben Kern für die Festplatte.
 - Der eigene Formatier-Code aus RD1 (RDFMT) entfällt, sobald der FreeDOS-Kern läuft.
 
