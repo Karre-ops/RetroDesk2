@@ -44,11 +44,15 @@ modul user/RDUSER.C RDUSER.MOD "RDUSER" 0 M "-i=gdi -ml -r"
 modul gdi/RDGDIX.C RDGDIX.MOD "RDGDI Zusatz" 0x0080 M -i=gdi
 modul ctl/RDCTL.C RDCTL.MOD "Steuerelemente" 0x0080 M "-ml -r"
 modul ctl/RDCTLX.C RDCTLX.MOD "Dateidialog" 0x0080 M "-ml -r"
+modul disk/RDDISK.C RDDISK.MOD "Laufwerke" 0x0080 M -i=disk
 modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D -dVGAM
 for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST MENUTEST ZEIGTEST DLGTEST; do app apps/test/$t.C $t.EXE "$t"; done
 app shell/SHELL.C SHELL.EXE "Shell"
+APPFLAGS=-i=disk app disk/RDFORMAT.C RDFORMAT.EXE "Formatieren"
+# FreeDOS-Bootsektor (FAT12, GPL) fuer RDFORMAT: BPB wird beim Schreiben durch den der Diskette ersetzt
+python3 -c "d=open('../test/qemu/boot.img','rb').read(512); assert d[510:]==b'\\x55\\xaa'; open('$O/BOOT12.BIN','wb').write(d)"
 # Leistungsvergleich RD1 gegen RD2 (test/bench.sh): BENCH2 ueber die RD2-API, BENCH1 mit dem RD1-Renderer aus main
 app bench/BENCH2.C BENCH2.EXE "Bench2"
 ( T=obj/bench1; mkdir -p $T; rm -f $T/*; cp bench/BENCH1.C $T/bench1.c; cp ../gfx.c ../mouse.c ../gfx.h ../mouse.h $T/

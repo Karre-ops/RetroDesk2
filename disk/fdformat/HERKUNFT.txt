@@ -1,0 +1,4 @@
+FreeDOS FORMAT 0.92a (pre-release), Quelle: https://gitlab.com/FreeDOS/base/format (SOURCE/format)
+Lizenz: GNU GPL Version 2 (COPYING). Autoren: Brian E. Reifsnyder, Eric Auer und andere (siehe main.c).
+Stand 24.10.2026 unveraendert uebernommen. Anpassungen fuer RD2 (Oberflaeche statt Textausgabe,
+Laufwerkszugriffe ueber RDDISK.MOD) folgen in eigenen Commits, damit jede Aenderung nachvollziehbar bleibt.

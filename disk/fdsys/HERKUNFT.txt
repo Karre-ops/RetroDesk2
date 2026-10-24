@@ -1,0 +1,3 @@
+FreeDOS SYS (sys/sys.c, sys/talloc.c), Bootsektor boot/boot.asm und Kopfdateien hdr/ aus dem FreeDOS-Kern,
+Quelle: https://github.com/FDOS/kernel (Stand d6791ad, 01.07.2026). Lizenz: GNU GPL Version 2 (COPYING).
+Stand 24.10.2026 unveraendert uebernommen. Anpassungen fuer RD2 folgen in eigenen Commits.

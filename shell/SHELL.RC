@@ -29,6 +29,7 @@ MENU 3
     ITEM "&Eigenschaften\tAlt+Eingabe" 301
     TRENNER
     ITEM "&Formatieren..."     302 GRAU
+    ITEM "&Bootf„hig machen..." 303 GRAU
   ENDE
 ENDE
 TEXTE
@@ -77,6 +78,7 @@ MENU 3
     ITEM "&Properties\tAlt+Enter" 301
     TRENNER
     ITEM "&Format..."          302 GRAU
+    ITEM "Make &bootable..."   303 GRAU
   ENDE
 ENDE
 TEXTE

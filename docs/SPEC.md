@@ -167,7 +167,17 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 - Teil 2: Kopieren (F5), Verschieben (F6, auf demselben Laufwerk per Umbenennen), Umbenennen (F2), Neuer Ordner (F7), Löschen (Entf/F8), jeweils auch ganze Ordner. Markieren mit Einfg oder Strg+Klick, rechte Maustaste öffnet das Menü "Datei". Kopierziel vorgeschlagen: zuletzt aktives anderes Ordnerfenster. Rückfrage beim Ersetzen; Kopie in denselben Ordner oder Ordner in sich selbst wird abgelehnt. Test `test/desk2.sh`.
 - Teil 3: **Ziehen mit der Maus** auf ein Ordnerfenster, einen Ordner darin, `..` oder ein Laufwerk. Gleiches Laufwerk = Verschieben, anderes = Kopieren; Strg erzwingt Kopieren, Umschalt Verschieben. Der Zeiger wird beim Ziehen zur Hand (ab 5 Pixel Weg). Ein Klick ohne Strg auf einen nicht markierten Eintrag hebt die Markierungen auf.
 - **Laufwerksmenü** (Rechtsklick auf ein Laufwerk): Öffnen, Eigenschaften (auch Alt+Eingabe: Name, Gesamt, Frei), Formatieren (grau, bis `RDDISK.MOD` da ist). `MenuPopup` ignoriert das Loslassen der Taste, die das Menü geöffnet hat, solange die Maus nicht bewegt wurde (sonst würde sofort der erste Eintrag gewählt). Test `test/desk3.sh` (PS/2-Maus mit CTMOUSE).
-- Folgt: Formatieren und Bootfähig machen (`RDDISK.MOD`), Listenansicht, `.APP`-Programmliste, Zustand in `RD2.STA`.
+- Laufwerksmenü: „Formatieren...“ und „Bootfähig machen...“ starten `RDFORMAT.EXE A:` bzw. `RDFORMAT.EXE A: /SYS` (aktiv, wenn RDFORMAT.EXE im RD2-Verzeichnis liegt und das Laufwerk ein Diskettenlaufwerk ist).
+- Folgt: Listenansicht, `.APP`-Programmliste, Zustand in `RD2.STA`.
+
+### Formatieren und Bootfähig machen (Beschluss 24.10.2026)
+
+`RDFORMAT.EXE` (Diskette 2, GPL v2) = FreeDOS FORMAT 0.92a und FreeDOS SYS als Kern, mit RD2-Oberfläche. Quellen unverändert in `disk/fdformat` und `disk/fdsys` (Herkunft in `HERKUNFT.txt`), Anpassungen in eigenen Commits.
+- Übernommen: Formatieren (createfs, floppy, hdisk, uformat, savefs, recordbc, bcread, driveio, init), Disketten und Festplatte (FAT12/FAT16), Prüfen, defekte Cluster, Schnellformat mit Wiederherstellungsdaten, SYS mit FreeDOS-Bootsektor (aus `boot.asm`, mit NASM gebaut).
+- Ersetzt: Textausgabe und Rückfragen (`userint.c`, `main.c`, `prf.c`, kitten) durch RD2-Dialoge: Einstellungen, Rückfrage, Fortschrittsbalken (`Display_Percentage_Formatted`), Fehlermeldung (`Critical_Error_Handler`, `Exit` springt zurück in die Oberfläche).
+- DOS- und BIOS-Zugriffe (INT 13h, INT 21h IOCTL 44xxh, INT 25h/26h) laufen über `RDDISK.MOD` (RD2-Programme rufen DOS nie direkt auf).
+- RD2SETUP benutzt denselben Kern für die Festplatte.
+- Der eigene Formatier-Code aus RD1 (RDFMT) entfällt, sobald der FreeDOS-Kern läuft.
 
 ### 5.1 Steuerelemente und Dialoge (RDCTL, 23.10.2026)
 

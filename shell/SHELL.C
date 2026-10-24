@@ -27,6 +27,7 @@
 #define CM_LOESCH 108
 #define CM_LWINFO 301
 #define CM_FORMAT 302
+#define CM_SYS    303
 #define CM_NEU    201
 #define MAXE      240                             /* Eintraege je Ordner */
 #define MAXO      6                               /* Ordnerfenster */
@@ -465,6 +466,23 @@ static short lwbei(short x, short y)
     for (i = 0; i < nlw; i++) { lwfeld(i, &r); if (x >= r.l && x < r.r && y >= r.t && y < r.b) return i; }
     return -1;
 }
+static WORD rdformat(char *p)                      /* <RD2>\RDFORMAT.EXE, 1 = vorhanden */
+{
+    SYSINFO si; FINDDATA f;
+    KernInfo(&si); scpy(p, si.home, 80);
+    if (slen(p) && p[slen(p) - 1] != '\\') scat(p, "\\", 80);
+    scat(p, "RDFORMAT.EXE", 80);
+    return FileFindFirst(p, 0, &f) == 0;
+}
+static void formatieren(WORD sys)                 /* Laufwerksmenue: Formatieren, Bootfaehig machen */
+{
+    char p[80], c[8];
+    if (!rdformat(p)) return;
+    c[0] = lw[lsel]; c[1] = ':'; c[2] = 0;
+    if (sys) scat(c, " /SYS", sizeof c);
+    DbgPrint("SHELL: Formatieren"); DbgPrint(c);
+    if (!TaskExec(p, c, SW_SHOW)) { fmt(buf, StrGet(inst, 3), p, 0); MsgBox(0, buf, "RD", MB_OK | MB_ERROR); }
+}
 static void lwinfo(void)
 {
     DRIVEINFO di; char a[48], g[12], f[12], *p; WORD e;
@@ -500,6 +518,8 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
             if (i != lsel) { lsel = i; InvalidateRect(w, 0, FALSE); }
             if (msg == M_DBLCLK) ordner_auf(lw[i]);
             else if ((p1 & 0xFF) == 2) {
+                char p[80]; WORD an = lt[i] == DT_FLOPPY && rdformat(p);
+                MenuEnable(mlw, CM_FORMAT, an); MenuEnable(mlw, CM_SYS, an);
                 y = (short)MenuPopup(w, mlw, 0, (short)LOWORD(p2), (short)HIWORD(p2));
                 if (y) PostMessage(w, M_COMMAND, y, 0);
             }
@@ -521,6 +541,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_ENDE) { char t[40]; scpy(t, StrGet(inst, 2), sizeof t); if (MsgBox(GetActive(), t, "RD", MB_YESNO | MB_ASK) == ID_YES) PostQuit(0); }
         else if (p1 == CM_OEFFNEN && nlw) ordner_auf(lw[lsel]);
         else if (p1 == CM_LWINFO && nlw) lwinfo();
+        else if ((p1 == CM_FORMAT || p1 == CM_SYS) && nlw) formatieren(p1 == CM_SYS);
         return 0;
     case M_CLOSE: return 0;                       /* der Schreibtisch bleibt */
     }

@@ -47,10 +47,9 @@ RDNET.MOD       20480   18   N  TCP/IP, DHCP, DNS
 RDCALC.EXE      90112   80   P
 RDEDIT.EXE      65536   60   P
 EPSON9.DRV       3072    3   P
-RDDISK.MOD       4096    4   P  Laufwerks-API: Sektoren lesen/schreiben, sperren, Geometrie (24.10.)
+RDDISK.MOD       4096    4   P  Laufwerkszugriff fuer RDFORMAT/RD2SETUP: INT 13h, INT 21h IOCTL 44xxh, INT 25h/26h (24.10.)
 RDFDISK.EXE     40960    0   P  Partitionieren (GPL v2, aus Free FDISK)
-RDFORMAT.EXE    32768    0   P  Formatieren (GPL v2, aus FreeDOS FORMAT)
-RDSYS.EXE       16384    0   P  Bootfaehig machen (GPL v2, aus FreeDOS SYS)
+RDFORMAT.EXE    49152    0   P  Formatieren und Bootfaehig machen (/SYS): FreeDOS FORMAT 0.92a + SYS (GPL v2) mit RD2-Oberflaeche (24.10.: 32 -> 48 KB, Kern allein ca. 36 KB Code+Konstanten)
 # Summen
 @SYSTEM_DISK   307200        360-KB-Systemdiskette: S-Dateien + DOS 5 (@DOS) hoechstens 300 KB, Rest (>= 50 KB) fuer RD2.INI, RD2.STA, Daten
 @DOS            79872        DOS 5: IO.SYS + MSDOS.SYS (kein COMMAND.COM, SHELL=RD.EXE) + CTMOUSE, je auf 1-KB-Cluster gerundet
