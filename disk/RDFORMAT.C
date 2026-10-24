@@ -190,6 +190,13 @@ short RDAPI RdMain(HINST i, LPCSTR cl, WORD show)
     WORD k, t; short e; DRIVEINFO di; SYSINFO si; char a[12], b[12];
     (void)show;
     inst = i;
+    {   /* nur ein RDFORMAT zugleich (sonst zwei Formatierungen auf demselben Laufwerk) */
+        TASKINFO ti; HTASK h, ich = TaskSelf(); static const char n[] = "Formatieren";
+        for (h = TaskFirst(&ti); h; h = TaskNext(h, &ti)) {
+            for (k = 0; n[k] && ti.name[k] == n[k]; k++) ;
+            if (h != ich && !n[k] && !ti.name[k]) { frage(34, 0, MB_OK | MB_WARN); return 1; }
+        }
+    }
     while (*cl == ' ') cl++;
     if (!*cl) { DbgPrint("RDFORMAT: kein Laufwerk"); return 1; }
     lwbuch[0] = (char)(cl[0] >= 'a' ? cl[0] - 32 : cl[0]); lwbuch[1] = 0;

@@ -43,6 +43,7 @@ TEXTE
   31 "Auf Laufwerk %s: liegt RD2 selbst.\nDieses Laufwerk l„sst sich nicht formatieren."
   32 "Gr”áe: %s"
   33 "Abgebrochen. Die Festplatte ist nur teilweise formatiert."
+  34 "Es l„uft schon eine Formatierung.\nBitte warten, bis sie fertig ist."
 ENDE
 SPRACHE EN
 DIALOG 10 "Format" 0 0 200 106
@@ -88,4 +89,5 @@ TEXTE
   31 "RD2 itself is on drive %s:.\nThis drive cannot be formatted."
   32 "Size: %s"
   33 "Cancelled. The hard disk is only partly formatted."
+  34 "A format is already running.\nPlease wait until it has finished."
 ENDE

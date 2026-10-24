@@ -48,7 +48,7 @@ modul disk/RDDISK.C RDDISK.MOD "Laufwerke" 0x0080 M -i=disk
 modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D -dVGAM
-for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG; do app apps/test/$t.C $t.EXE "$t"; done
+for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT; do app apps/test/$t.C $t.EXE "$t"; done
 app shell/SHELL.C SHELL.EXE "Shell"
 # RDFORMAT: RD2-Oberflaeche + FreeDOS FORMAT 0.92a (GPL v2); FreeDOS-Dateien mit disk/fdshim.h (DOS ueber RDDISK.MOD)
 FDF="createfs floppy hdisk main savefs bcread prf userint driveio getopt init recordbc uformat msghlpr"

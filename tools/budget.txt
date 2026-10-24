@@ -64,3 +64,4 @@ MENUTEST.EXE     8192    0   T  Test: Menues, Rollbalken
 ZEIGTEST.EXE     8192    0   T  Test: Mauszeiger-Formen
 DLGTEST.EXE      8192    0   T  Test: Steuerelemente und Dialoge
 DISKFRAG.EXE     4096    0   T  Test: Diskettenabfrage im Grafikbetrieb (Audit K2)
+DOPPFMT.EXE      4096    0   T  Test: RDFORMAT doppelt starten (Audit M4)
