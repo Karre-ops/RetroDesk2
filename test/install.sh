@@ -19,7 +19,7 @@ waitscr "AUTOEXEC.BAT erg" 20; $Q text > obj/schirm_install.txt 2>/dev/null
 $Q "sendkey esc" sleep2 "sendkey n" >/dev/null 2>&1
 wait $QP
 mdir $C -b ::/RD2 > obj/inst_dir.txt 2>&1
-for d in RD.EXE RDGDI.MOD RD2SETUP.EXE RD2.INI; do grep -qi "/$d" obj/inst_dir.txt && echo "ok     C:\\RD2\\$d" || { echo "FEHLER $d fehlt"; F=1; }; done
+for d in RD.EXE RDGDI.MOD RDSWAP.BIN RD2SETUP.EXE RD2.INI; do grep -qi "/$d" obj/inst_dir.txt && echo "ok     C:\\RD2\\$d" || { echo "FEHLER $d fehlt"; F=1; }; done
 mtype $C ::/AUTOEXEC.BAT | tr -d '\r' > obj/inst_ae.txt; grep -q "^C:\\\\RD2\\\\RD.EXE" obj/inst_ae.txt && grep -q "PATH A" obj/inst_ae.txt && echo "ok     AUTOEXEC.BAT ergaenzt" || { echo "FEHLER AUTOEXEC.BAT"; cat obj/inst_ae.txt; F=1; }
 mtype $C ::/AUTOEXEC.RDA >/dev/null 2>&1 && echo "ok     Sicherung AUTOEXEC.RDA" || { echo "FEHLER keine AUTOEXEC.RDA"; F=1; }
 [ $F = 0 ] && echo "Installation: alles ok"

@@ -328,7 +328,7 @@ static int autoexec(const char *ziel)            /* AUTOEXEC.BAT des Ziellaufwer
 }
 static void installieren(void)
 {
-    static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", 0 };
+    static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", 0 };   /* BIN: RDSWAP.BIN fuer RunDos */
     char ziel[64], von[80], nach[80], z[80]; struct find_t ft; int i, k = 0, fehl = 0, y = 17; WORD t;
     sprintf(ziel, "%c:\\RD2", boot() == 'A' ? 'C' : boot());
     zeile(y, "Installieren nach:"); 
