@@ -169,7 +169,6 @@ static BOOL RDEXPORT x_FileDialog(HWND owner, FILEDLG FAR *fd)
 #define T_TEXT   10
 #define T_COMBO  11
 #define T_SCROLL 12
-#define K_F4     0x13E
 static WORD istdlg(HWND p) { return p && GetWindowData(p, 3) == (MAGIC | T_DLG); }
 static void melde(HWND h, WORD n) { HWND p = GetParent(h); if (p) SendMessage(p, M_COMMAND, (WORD)GetWindowData(h, WD_ID), MAKELONG(h, n)); }
 static int weiter(HWND h, WORD k, DWORD p2)       /* Tab, Esc, Alt+.. an den Dialog */

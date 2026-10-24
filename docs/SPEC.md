@@ -164,7 +164,8 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 - `SHELL.EXE` legt ein Fenster mit `WS_DESKTOP` über den ganzen Schirm unter der Menüleiste. RDUSER hält es immer ganz unten (`SetActive` holt es nicht nach oben), es bekommt aber Klicks und kann aktiv sein.
 - Das Menü **"RD"** gehört dem Schreibtisch: Klick auf "RD" oder **Alt+Leertaste** schickt `M_SYSMENU` an das `WS_DESKTOP`-Fenster, egal welches Programm aktiv ist. Die Shell öffnet es mit `MenuPopup`.
 - Teil 1: Laufwerke als Symbole links (Abfrage mit `DI_NURTYP`, keine Diskette wird angefasst), Ordnerfenster mit Symbolraster (Ordner zuerst, bis 240 Einträge), Rollbalken, Ordner wechseln, `..`, Programme starten (RD2-EXE mit `TaskExec`, sonst `RunDos`), RD: Info, Beenden. Tastatur: Pfeile, Eingabe, Rückschritt, Alt+F4.
-- Folgt: Kopieren/Verschieben/Löschen/Umbenennen, Ziehen mit der Maus, Laufwerksmenü (Formatieren, Bootfähig machen), Listenansicht, `.APP`-Programmliste, Zustand in `RD2.STA`.
+- Teil 2: Kopieren (F5), Verschieben (F6, auf demselben Laufwerk per Umbenennen), Umbenennen (F2), Neuer Ordner (F7), Löschen (Entf/F8), jeweils auch ganze Ordner. Markieren mit Einfg oder Strg+Klick, rechte Maustaste öffnet das Menü "Datei". Kopierziel vorgeschlagen: zuletzt aktives anderes Ordnerfenster. Rückfrage beim Ersetzen; Kopie in denselben Ordner oder Ordner in sich selbst wird abgelehnt. Test `test/desk2.sh`.
+- Folgt: Ziehen mit der Maus, Laufwerksmenü (Formatieren, Bootfähig machen), Listenansicht, `.APP`-Programmliste, Zustand in `RD2.STA`.
 
 ### 5.1 Steuerelemente und Dialoge (RDCTL, 23.10.2026)
 

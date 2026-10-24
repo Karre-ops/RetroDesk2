@@ -417,6 +417,14 @@ typedef struct {
 #define K_TAB    9
 #define K_BACK   8
 #define K_F1     0x13B
+#define K_F2     0x13C
+#define K_F3     0x13D
+#define K_F4     0x13E
+#define K_F5     0x13F
+#define K_F6     0x140
+#define K_F7     0x141
+#define K_F8     0x142
+#define K_F9     0x143
 #define K_F10    0x144
 #define K_UP     0x148
 #define K_DOWN   0x150

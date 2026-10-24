@@ -26,7 +26,7 @@ for n in 1 2; do
   waitn 'SHELL: Ordner A:\\ ' $n || { echo "FEHLER: Ordner A: kommt nicht"; break; }; sleep 3
   Q "screendump obj/desk2_$K.ppm" sleep0.3 "sendkey ret"
   waitn 'SHELL: Ordner A:\\RD2\\ ' $n || { echo "FEHLER: Ordner RD2 kommt nicht"; break; }; sleep 4
-  Q "sendkey right" sleep0.3 "sendkey down" sleep0.5 "screendump obj/desk3_$K.ppm" sleep0.3 "sendkey alt-spc" sleep1 "screendump obj/desk4_$K.ppm" sleep0.3 "sendkey i"; sleep 2
+  Q "sendkey kp_6" sleep0.3 "sendkey kp_2" sleep0.5 "screendump obj/desk3_$K.ppm" sleep0.3 "sendkey alt-spc" sleep1 "screendump obj/desk4_$K.ppm" sleep0.3 "sendkey i"; sleep 2
   Q "screendump obj/desk5_$K.ppm" sleep0.3 "sendkey ret" sleep1 "sendkey alt-spc" sleep0.8 "sendkey b"; sleep 2
   Q "screendump obj/desk6_$K.ppm" sleep0.3 "sendkey ret"
   waitn "SHELL: Ende" $n || { echo "FEHLER: Shell endet nicht"; break; }

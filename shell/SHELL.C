@@ -1,7 +1,9 @@
 /* SHELL.C - RD2-Shell Teil 1: Schreibtisch mit Laufwerken, Ordnerfenster (Dateimanager),
  * Systemmenue "RD" (Info, Beenden), Programme starten (RD2 ueber TaskExec, DOS ueber RunDos).
- * Maus: Klick waehlt, Doppelklick oeffnet. Tastatur: Pfeile, Eingabe oeffnet, Rueckschritt geht
- * eine Ebene hoeher, Alt+Leertaste oeffnet "RD", F10 die Menueleiste, Alt+F4 schliesst.
+ * Maus: Klick waehlt, Strg+Klick markiert dazu, Doppelklick oeffnet, rechte Taste: Menue "Datei".
+ * Tastatur: Pfeile, Eingabe oeffnet, Rueckschritt eine Ebene hoeher, Einfg markiert, F5 Kopieren,
+ * F6 Verschieben, F2 Umbenennen, F7 Neuer Ordner, Entf/F8 Loeschen, Alt+Leertaste "RD", F10 Leiste.
+ * Teil 2 (24.10.2026): Dateioperationen, auch ganze Ordner; Ziel vorgeschlagen = anderes Ordnerfenster.
  * Meldungen auf COM1 fuer test/desk.sh: "SHELL: bereit", "SHELL: Ordner <pfad> <n>", "SHELL: Start". */
 #include "RD2.H"
 
@@ -15,19 +17,25 @@
 #define CM_OEFFNEN 101
 #define CM_ZU     102
 #define CM_HOCH   103
+#define CM_KOPIE  104
+#define CM_VERSCH 105
+#define CM_UMBEN  106
+#define CM_MKDIR  107
+#define CM_LOESCH 108
 #define CM_NEU    201
 #define MAXE      240                             /* Eintraege je Ordner */
 #define MAXO      6                               /* Ordnerfenster */
 #define ZB        100                             /* Zellenbreite */
 
-typedef struct { char name[13]; BYTE attr; } EINTRAG;
+typedef struct { char name[13]; BYTE attr, mark; } EINTRAG;
 typedef struct { HWND w; char pfad[68]; HMEM h; short n, sel, oben, spalten, zeilen; } ORDNER;
 
 static HINST inst; static HWND desk; static HMENU msys, mbar;
 static short W, H, mh, th, ih, zh;                /* Schirm, Menueleiste, Textzeile, Symbol, Zellenhoehe */
 static char lw[26], lt[26]; static short nlw, lsel;   /* Laufwerke: Buchstabe, Typ */
 static ORDNER od[MAXO];
-static char buf[160];
+static char buf[160], qv[80], qn[80];            /* Text; Quelle und Ziel beim Kopieren */
+static HWND letzt;                                /* zuletzt aktives Ordnerfenster vor dem jetzigen */
 
 /* ---- kleine Helfer ---------------------------------------------------------------------- */
 static WORD slen(LPCSTR s) { WORD n = 0; while (s[n]) n++; return n; }
@@ -89,7 +97,7 @@ static void einlesen(ORDNER *o)
                 if ((f.attr & FA_LABEL) || (f.name[0] == '.' && !f.name[1])) continue;
                 if (((f.attr & FA_DIR) != 0) != (pass == 0) || n >= MAXE) continue;
                 { short i; for (i = 0; i < 13; i++) e[n].name[i] = f.name[i]; }
-                e[n++].attr = f.attr;
+                e[n].mark = 0; e[n++].attr = f.attr;
             } while (!FileFindNext(&f));
         MemUnlock(o->h);
     }
@@ -144,6 +152,148 @@ static void neusel(ORDNER *o, short s)
     if (s < 0 || s >= o->n || s == o->sel) return;
     o->sel = s; sichtbar(o); InvalidateRect(o->w, 0, FALSE);
 }
+/* ---- Dateioperationen ------------------------------------------------------------------ */
+static void fehler(LPCSTR was, WORD e)
+{
+    char t[8]; zahl(t, e); fmt(buf, StrGet(inst, 6), was, t); MsgBox(GetActive(), buf, "RD", MB_OK | MB_ERROR);
+}
+static int praefix(LPCSTR a, LPCSTR b) { while (*a && (*a | 0x20) == (*b | 0x20)) a++, b++; return !*a && (*b == '\\' || !*b); }
+/* qv nach qn kopieren (Datei oder ganzer Ordner), bei weg danach Quelle loeschen. 0 = ok, 1 = Abbruch */
+static WORD kop(BYTE attr, int weg)
+{
+    WORD e = 0, lv = slen(qv), ln = slen(qn), n; FINDDATA f; short a, b; HMEM hb; BYTE FAR *p;
+    if (attr & FA_DIR) {
+        if (praefix(qv, qn)) return RD_ERR_FORMAT;      /* Ordner in sich selbst */
+        if (FileAttr(qn, 0, 0) == 0xFFFF && (e = DirMake(qn)) != 0) return e;
+        scat(qv, "\\*.*", sizeof qv);
+        if (!FileFindFirst(qv, FA_DIR | FA_HIDDEN | FA_SYSTEM, &f)) do {
+            if (f.name[0] == '.' || (f.attr & FA_LABEL)) continue;
+            qv[lv] = '\\'; scpy(qv + lv + 1, f.name, sizeof qv - lv - 1);
+            qn[ln] = '\\'; scpy(qn + ln + 1, f.name, sizeof qn - ln - 1);
+            e = kop(f.attr, weg);
+            qv[lv] = 0; qn[ln] = 0;
+            if (e) break;                         /* Suchzustand liegt in f, qv braucht kein Muster mehr */
+        } while (!FileFindNext(&f));
+        qv[lv] = 0;
+        if (!e && weg) e = DirRemove(qv);
+        return e;
+    }
+    if (FileAttr(qn, 0, 0) != 0xFFFF) {           /* Ziel gibt es schon */
+        fmt(buf, StrGet(inst, 12), qn, 0);
+        a = MsgBox(GetActive(), buf, "RD", MB_YESNOCANCEL | MB_ASK);
+        if (a == ID_CANCEL) return 1;
+        if (a != ID_YES) return 0;
+        FileAttr(qn, 0, 1);
+    }
+    if (!(hb = MemAlloc(4096, MEM_MOVABLE))) return RD_ERR_NOMEM;
+    if ((a = FileOpen(qv, FO_READ)) < 0) { MemFree(hb); return LastError(); }
+    if ((b = FileCreate(qn, 0)) < 0) { e = LastError(); FileClose(a); MemFree(hb); return e; }
+    p = (BYTE FAR *)MemLock(hb);
+    while ((n = FileRead(a, p, 4096)) > 0) if (FileWrite(b, p, n) != n) { e = RD_ERR_FULL; break; }
+    MemUnlock(hb); MemFree(hb);
+    FileClose(a); FileClose(b);
+    if (e) { FileDelete(qn); return e; }
+    if (attr & (FA_RDONLY | FA_HIDDEN | FA_SYSTEM)) FileAttr(qn, attr & 7, 1);
+    if (weg) { if (attr & FA_RDONLY) FileAttr(qv, 0, 1); e = FileDelete(qv); }
+    return e;
+}
+static void alle_neu(void) { short i; for (i = 0; i < MAXO; i++) if (od[i].w) einlesen(&od[i]); }
+static short anzahl(ORDNER *o, EINTRAG FAR *e)    /* markierte, sonst die Auswahl */
+{
+    short i, n = 0;
+    for (i = 0; i < o->n; i++) if (e[i].mark) n++;
+    return n ? n : (o->sel >= 0 && e[o->sel].name[0] != '.');
+}
+static int betrifft(ORDNER *o, EINTRAG FAR *e, short i, short n) { return e[i].name[0] != '.' && (n ? e[i].mark : i == o->sel); }
+static void kopieren(ORDNER *o, int weg)
+{
+    EINTRAG FAR *e; short i, m, mk = 0; WORD r = 0; char ziel[68]; ORDNER *z = ord(letzt);
+    if (!o->h || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
+    for (i = 0; i < o->n; i++) mk += e[i].mark;
+    if (!anzahl(o, e)) { MemUnlock(o->h); return; }
+    scpy(ziel, z && z != o ? z->pfad : o->pfad, sizeof ziel);
+    if (!InputBox(GetActive(), StrGet(inst, weg ? 11 : 10), "RD", ziel, sizeof ziel)) { MemUnlock(o->h); return; }
+    m = (short)slen(ziel); if (m && ziel[m - 1] != '\\') scat(ziel, "\\", sizeof ziel);
+    if (praefix(o->pfad, ziel) && slen(o->pfad) == slen(ziel)) { MemUnlock(o->h); return; }   /* derselbe Ordner */
+    CursorBusy(TRUE);
+    for (i = 0; i < o->n && !r; i++) if (betrifft(o, e, i, mk)) {
+        scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
+        scpy(qn, ziel, sizeof qn); scat(qn, e[i].name, sizeof qn);
+        if (weg && (qv[0] | 0x20) == (qn[0] | 0x20) && !(e[i].attr & FA_DIR) && !FileRename(qv, qn)) continue;
+        DbgPrint(qn);
+        if ((r = kop(e[i].attr, weg)) > 1) fehler(e[i].name, r);
+    }
+    MemUnlock(o->h);
+    CursorBusy(FALSE);
+    DbgPrint(weg ? "SHELL: verschoben" : "SHELL: kopiert");
+    alle_neu();
+}
+static WORD loesche(BYTE attr)                    /* qv samt Inhalt */
+{
+    WORD e = 0, lv = slen(qv); FINDDATA f;
+    if (attr & FA_DIR) {
+        scat(qv, "\\*.*", sizeof qv);
+        if (!FileFindFirst(qv, FA_DIR | FA_HIDDEN | FA_SYSTEM, &f)) do {
+            if (f.name[0] == '.' || (f.attr & FA_LABEL)) continue;
+            qv[lv] = '\\'; scpy(qv + lv + 1, f.name, sizeof qv - lv - 1);
+            e = loesche(f.attr); qv[lv] = 0;
+            if (e) break;
+        } while (!FileFindNext(&f));
+        qv[lv] = 0;
+        return e ? e : DirRemove(qv);
+    }
+    if (attr & (FA_RDONLY | FA_HIDDEN | FA_SYSTEM)) FileAttr(qv, 0, 1);
+    return FileDelete(qv);
+}
+static void loeschen(ORDNER *o)
+{
+    EINTRAG FAR *e; short i, n, mk = 0; WORD r = 0; char t[8];
+    if (!o->h || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
+    for (i = 0; i < o->n; i++) mk += e[i].mark;
+    if ((n = anzahl(o, e)) == 0) { MemUnlock(o->h); return; }
+    zahl(t, n); fmt(buf, StrGet(inst, 7), t, 0);
+    if (MsgBox(GetActive(), buf, "RD", MB_YESNO | MB_WARN) != ID_YES) { MemUnlock(o->h); return; }
+    CursorBusy(TRUE);
+    for (i = 0; i < o->n && !r; i++) if (betrifft(o, e, i, mk)) {
+        scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
+        if ((r = loesche(e[i].attr)) != 0) fehler(e[i].name, r);
+    }
+    MemUnlock(o->h);
+    CursorBusy(FALSE);
+    DbgPrint("SHELL: geloescht");
+    alle_neu();
+}
+static void umbenennen(ORDNER *o)
+{
+    EINTRAG FAR *e; char n[13]; WORD r;
+    if (o->sel < 0 || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
+    scpy(n, e[o->sel].name, sizeof n); MemUnlock(o->h);
+    if (n[0] == '.') return;
+    scpy(qv, o->pfad, sizeof qv); scat(qv, n, sizeof qv);
+    if (!InputBox(GetActive(), StrGet(inst, 8), "RD", n, sizeof n) || !n[0]) return;
+    scpy(qn, o->pfad, sizeof qn); scat(qn, n, sizeof qn);
+    if ((r = FileRename(qv, qn)) != 0) fehler(n, r);
+    DbgPrint("SHELL: umbenannt");
+    alle_neu();
+}
+static void neuer_ordner(ORDNER *o)
+{
+    char n[13]; WORD r;
+    n[0] = 0;
+    if (!InputBox(GetActive(), StrGet(inst, 9), "RD", n, sizeof n) || !n[0]) return;
+    scpy(qn, o->pfad, sizeof qn); scat(qn, n, sizeof qn);
+    if ((r = DirMake(qn)) != 0) fehler(n, r);
+    DbgPrint("SHELL: Ordner angelegt");
+    alle_neu();
+}
+static void markieren(ORDNER *o, short i)
+{
+    EINTRAG FAR *e;
+    if (i < 0 || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
+    if (e[i].name[0] != '.') e[i].mark ^= 1;
+    MemUnlock(o->h); InvalidateRect(o->w, 0, FALSE);
+}
+
 static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
 {
     ORDNER *o = ord(w); PAINT ps; HDC d; RECT r; EINTRAG FAR *e; short i, x, y;
@@ -159,6 +309,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
                 if (y >= r.b) break;
                 IconDraw(d, x + (ZB - 32) / 2, y + 2, inst, symbol(&e[i]));
                 schild(d, x, y + ih + 3, ZB, e[i].name, i == o->sel);
+                if (e[i].mark) { RECT m; m.l = x + 4; m.t = y + 2; m.r = m.l + 6; m.b = m.t + 6; SetBrush(d, C_BLACK, PAT_SOLID); FillRect(d, &m); }
             }
             MemUnlock(o->h);
         }
@@ -166,7 +317,15 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
     case M_BUTTONDOWN: case M_DBLCLK:
         x = (short)LOWORD(p2) / ZB; y = (short)HIWORD(p2) / zh;
         i = (o->oben + y) * o->spalten + x;
-        if (x < o->spalten && i < o->n) { neusel(o, i); if (msg == M_DBLCLK) oeffnen(o); }
+        if (x < o->spalten && i < o->n) {
+            neusel(o, i);
+            if (msg == M_BUTTONDOWN && (p1 >> 8) & KS_CTRL) markieren(o, i);
+            else if (msg == M_DBLCLK) oeffnen(o);
+            else if ((p1 & 0xFF) == 2) {          /* rechts: Menue "Datei" am Zeiger */
+                i = (short)MenuPopup(w, mbar, 0, (short)LOWORD(p2), (short)HIWORD(p2));
+                if (i) PostMessage(w, M_COMMAND, i, 0);
+            }
+        }
         return 0;
     case M_SCROLL:
         i = o->oben;
@@ -185,16 +344,31 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == K_END) neusel(o, o->n - 1);
         else if (p1 == K_ENTER) oeffnen(o);
         else if (p1 == K_BACK) hoch(o);
+        else if (p1 == K_INS) { markieren(o, o->sel); neusel(o, o->sel + 1); }
+        else if (p1 == K_F5) kopieren(o, 0);
+        else if (p1 == K_F6) kopieren(o, 1);
+        else if (p1 == K_F2) umbenennen(o);
+        else if (p1 == K_F7) neuer_ordner(o);
+        else if (p1 == K_DEL || p1 == K_F8) loeschen(o);
         else return DefWindowProc(w, msg, p1, p2);
         return 0;
     case M_COMMAND:
         if (p1 == CM_OEFFNEN) oeffnen(o);
         else if (p1 == CM_HOCH) hoch(o);
         else if (p1 == CM_NEU) einlesen(o);
+        else if (p1 == CM_KOPIE) kopieren(o, 0);
+        else if (p1 == CM_VERSCH) kopieren(o, 1);
+        else if (p1 == CM_UMBEN) umbenennen(o);
+        else if (p1 == CM_MKDIR) neuer_ordner(o);
+        else if (p1 == CM_LOESCH) loeschen(o);
         else if (p1 == CM_ZU) PostMessage(w, M_CLOSE, 0, 0);
         else PostMessage(desk, M_COMMAND, p1, 0);   /* RD-Befehle */
         return 0;
+    case M_ACTIVATE:
+        if (!p1) letzt = w;                       /* fuer das Kopierziel */
+        return DefWindowProc(w, msg, p1, p2);
     case M_DESTROY:
+        if (letzt == w) letzt = 0;
         if (o->h) MemFree(o->h);
         o->h = 0; o->w = 0;
         return 0;
