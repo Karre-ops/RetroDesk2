@@ -18,6 +18,9 @@ DIALOG 11 "Formatieren" 0 0 180 56
   PROGRESS                41   8  20 164  8
   BUTTON   "Abbruch"       2  65  36  50 14
 ENDE
+DIALOG 12 "BootfÑhig machen" 0 0 180 30
+  STATIC   "Systemdateien werden Åbertragen ..."   42   8  10 164 10
+ENDE
 TEXTE
   1 "Formatieren"
   2 "BootfÑhig machen"
@@ -32,7 +35,12 @@ TEXTE
   18 "Abgebrochen. Die Diskette ist nur teilweise formatiert."
   22 "Festplatte %s: formatieren?\nAlle Daten gehen verloren."
   23 "FORMAT meldet einen Fehler:\n%s"
-  24 "BootfÑhig machen (FreeDOS SYS) wird gerade umgestellt und folgt im nÑchsten Schritt."
+  24 "Laufwerk %s: bootfÑhig machen?\nFreeDOS-Kern und Startsektor werden geschrieben."
+  26 "KERNEL.SYS fehlt auf Laufwerk %s.\nDie Diskette lÑsst sich nicht bootfÑhig machen."
+  27 "In Laufwerk %s: liegt die RD2-Diskette.\nBitte ein anderes Laufwerk wÑhlen."
+  28 "Fertig. Die Diskette in Laufwerk %s: ist bootfÑhig."
+  29 "SYS meldet einen Fehler:\n%s"
+  30 "Fertig, die Diskette ist bootfÑhig.\n%s KB frei, %s KB defekt."
   25 "Fehler beim Diskzugriff (BIOS-Status %s)."
 ENDE
 SPRACHE EN
@@ -54,6 +62,9 @@ DIALOG 11 "Format" 0 0 180 56
   PROGRESS                41   8  20 164  8
   BUTTON   "Cancel"        2  65  36  50 14
 ENDE
+DIALOG 12 "Make bootable" 0 0 180 30
+  STATIC   "Transferring system files ..."   42   8  10 164 10
+ENDE
 TEXTE
   1 "Format"
   2 "Make bootable"
@@ -68,6 +79,11 @@ TEXTE
   18 "Cancelled. The disk is only partly formatted."
   22 "Format hard disk %s:?\nAll data will be lost."
   23 "FORMAT reports an error:\n%s"
-  24 "Make bootable (FreeDOS SYS) is being ported and follows in the next step."
+  24 "Make drive %s: bootable?\nThe FreeDOS kernel and boot sector will be written."
+  26 "KERNEL.SYS is missing on drive %s.\nThe disk cannot be made bootable."
+  27 "Drive %s: holds the RD2 disk.\nPlease choose another drive."
+  28 "Done. The disk in drive %s: is bootable."
+  29 "SYS reports an error:\n%s"
+  30 "Done, the disk is bootable.\n%s KB free, %s KB bad."
   25 "Disk access error (BIOS status %s)."
 ENDE

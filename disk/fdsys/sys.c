@@ -29,7 +29,9 @@
 /* #define DEBUG */           /* to display extra information */
 /* #define DDEBUG */          /* to enable display of sector dumps */
 /* #define WITHOEMCOMPATBS */ /* include support for OEM MS/PC DOS 3.??-6.x */
+#ifndef RD2                   /* RD2: ohne CONFIG-Teil (fdkrncfg.c) */
 #define FDCONFIG              /* include support to configure FD kernel */
+#endif
 
 #define SYS_VERSION "v3.6f"
 #define SYS_NAME "DOS System Installer "
@@ -240,6 +242,16 @@ unsigned getcurdrive(void)
 }
 #endif
 
+#elif defined(RD2)
+/* RD2: Dateien ueber den RD2-Kern, Laufwerk ueber RDDISK.MOD (rd_int86x), siehe disk/RDFORMAT.C */
+#include "rdsysw.h"
+unsigned getcurdrive(void)
+{
+  union REGS regs;
+  regs.h.ah = 0x19;
+  int86(0x21, &regs, &regs);
+  return regs.h.al;
+}
 #else
 
 /* returns current DOS drive, A=0, B=1,C=2, ... */
@@ -302,7 +314,15 @@ int write(int fd, const void *buf, unsigned count)
 #define close _dos_close
 #endif
 
-#if defined(__WATCOMC__) || defined(__GNUC__)
+#if defined(RD2)
+int stat(const char *file_name, struct stat *statbuf)
+{
+  unsigned long n;
+  int ret = rd_ffirst(file_name, &n);
+  statbuf->st_size = (off_t)n;
+  return ret;
+}
+#elif defined(__WATCOMC__) || defined(__GNUC__)
 int stat(const char *file_name, struct stat *statbuf)
 {
   struct find_t find_tbuf;
@@ -314,7 +334,7 @@ int stat(const char *file_name, struct stat *statbuf)
 }
 #endif
 
-#ifdef __WATCOMC__
+#if defined(__WATCOMC__) && !defined(RD2)
 /* WATCOM's getenv is case-insensitive which wastes a lot of space
    for our purposes. So here's a simple case-sensitive one */
 char *getenv(const char *name)
@@ -343,7 +363,11 @@ char *getenv(const char *name)
 BYTE pgm[] = "SYS";
 
 #define SEC_SIZE        512
+#ifdef RD2
+#define COPY_SIZE       0x2000          /* RD2: Puffer von FORMAT mitbenutzt (huge_sector_buffer_0, 9 KB) */
+#else
 #define COPY_SIZE       0x4000
+#endif
 
 struct bootsectortype {
   UBYTE bsJump[3];
@@ -1084,7 +1108,7 @@ VOID dump_sector(unsigned char far * sec)
 #endif
 
 
-#ifdef __WATCOMC__
+#if defined(__WATCOMC__) && !defined(RD2)
 
 int absread(int DosDrive, int nsects, int foo, void *diskReadPacket);
 #pragma aux absread =  \
@@ -1250,7 +1274,7 @@ int MyAbsReadWrite(int DosDrive, int count, ULONG sector, void *buffer,
   return 0;
 } /* MyAbsReadWrite */
 
-#ifdef __WATCOMC__
+#if defined(__WATCOMC__) && !defined(RD2)
 
 unsigned getextdrivespace(void far *drivename, void *buf, unsigned buf_size);
 #pragma aux getextdrivespace =  \
@@ -1283,7 +1307,7 @@ unsigned getextdrivespace(void *drivename, void *buf, unsigned buf_size)
 
 #endif /* defined __WATCOMC__ */
 
-#ifdef __WATCOMC__
+#if defined(__WATCOMC__) && !defined(RD2)
 /*
  * If BIOS has got LBA extensions, after the Int 13h call BX will be 0xAA55.
  * If extended disk access functions are supported, bit 0 of CX will be set.
@@ -1903,7 +1927,12 @@ BOOL check_space(COUNT drive, ULONG bytes)
 } /* check_space */
 
 
+#ifdef RD2
+extern unsigned char huge_sector_buffer_0[];   /* FreeDOS FORMAT driveio.h, waehrend SYS frei */
+#define copybuffer huge_sector_buffer_0
+#else
 BYTE copybuffer[COPY_SIZE];
+#endif
 
 /* allocate memory from DOS, return 0 on success, nonzero otherwise */
 int alloc_dos_mem(ULONG memsize, UWORD *theseg)
