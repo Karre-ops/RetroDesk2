@@ -10,4 +10,9 @@ TEXTE
   7 "Please insert disk %s in drive %c:"
   8 "Not enough memory"
   9 "File not found: %s"
+  10 "Open"
+  11 "Save as"
+  12 "&File:"
+  13 "The file already exists. Replace it?"
+  14 "File not found."
 ENDE

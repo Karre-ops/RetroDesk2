@@ -10,6 +10,7 @@ RDGDI.MOD       16384 18.5   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text 
 RDKX.MOD         6144    6   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.)
 RDGDIX.MOD       4096    4   S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf)
 RDCTL.MOD       16384   14   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
+RDCTLX.MOD       6144    5   S  Dateidialog (verwerfbar, nur waehrend FileDialog)
 RDUSER.MOD      26624   26   S  Fenster, Menues, Steuerelemente, Dialoge
 RDSND.MOD        4096    4   S  Sound-API, Musik-Player
 CGA.DRV          4096    4   S

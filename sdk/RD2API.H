@@ -212,6 +212,7 @@ RDF(0x2C5, void,    DlgSetInt,      (HWND dlg, WORD id, long v))
 RDF(0x2C6, long,    DlgGetInt,      (HWND dlg, WORD id, BOOL FAR *ok))
 RDF(0x2C7, void,    DlgCheck,       (HWND dlg, WORD id, WORD an))
 RDF(0x2C8, WORD,    DlgChecked,     (HWND dlg, WORD id))
+RDF(0x2C9, short,   DialogIndirect, (HINST i, const void FAR *vorlage, HWND owner, DLGPROC proc, DWORD param)) /* Vorlage wie RT_DIALOG im Speicher */
 RDF(0x2D0, short,   MsgBox,         (HWND owner, LPCSTR text, LPCSTR titel, WORD flags)) /* MB_* */
 RDF(0x2D1, BOOL,    FileDialog,     (HWND owner, FILEDLG FAR *fd))
 RDF(0x2D2, BOOL,    InputBox,       (HWND owner, LPCSTR frage, LPCSTR titel, LPSTR buf, WORD len))

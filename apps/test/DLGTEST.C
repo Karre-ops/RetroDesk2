@@ -4,6 +4,8 @@
  *  3. Dialog 10 (neu, Ton an): Alt+T schaltet Ton aus, Esc bricht ab
  *  4. InputBox mit "Retro": X anhaengen, Eingabe
  *  5. Dialog 11 (Liste, 10 Rechner, 4 sichtbar): c, c, Ende, Pfeil hoch, Eingabe
+ *  6. FileDialog Oeffnen (*.EXE): rd2 + Eingabe, Tab, d, Eingabe -> A:\RD2\DLGTEST.EXE
+ *  7. FileDialog Speichern RD.EXE: Eingabe -> Rueckfrage Ersetzen, Esc, Esc -> abgebrochen
  * Am Ende: "DLGTEST: Fehler n" (0 = alles wie erwartet). */
 #include "RD2.H"
 
@@ -82,6 +84,13 @@ short RDAPI RdMain(HINST inst, LPCSTR cl, WORD show)
       DbgPrint(b); pruef("DLGTEST: InputBox OK, Retro + X", r && gleich(b, "RetroX")); }
     e = DialogRun(inst, 11, w, lproc, 0);
     DbgHex("DLGTEST: Dialog 3 ->", (WORD)e); pruef("DLGTEST: Dialog 3 endet mit OK", e == ID_OK);
+    { FILEDLG fd; char b[80]; BOOL r;
+      fd.groesse = sizeof fd; fd.flags = FD_OPEN | FD_MUSTEXIST; fd.titel = 0; fd.filter = "Programme|*.EXE|Alle|*.*|"; fd.datei = b; fd.len = sizeof b; b[0] = 0;
+      DbgPrint("DLGTEST: Datei"); r = FileDialog(w, &fd); DbgPrint(b);
+      pruef("DLGTEST: FileDialog -> A:\\RD2\\DLGTEST.EXE", r && gleich(b, "A:\\RD2\\DLGTEST.EXE"));
+      fd.flags = FD_SAVE | FD_ASKOVER; gleich(b, b); { LPCSTR q = "A:\\RD2\\RD.EXE"; WORD i; for (i = 0; q[i]; i++) b[i] = q[i]; b[i] = 0; }
+      DbgPrint("DLGTEST: Speichern"); r = FileDialog(w, &fd);
+      pruef("DLGTEST: Speichern abgebrochen, Name unveraendert", !r && gleich(b, "A:\\RD2\\RD.EXE")); }
     pruef("DLGTEST: CreateWindow BUTTON direkt", (e = (short)CreateWindow(CL_BUTTON, "Knopf", WS_CHILD | WS_VISIBLE, 200, 10, 60, 20, w, 5, inst)) != 0);
     DestroyWindow(w);
     DbgHex("DLGTEST: Fehler", fehler);

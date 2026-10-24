@@ -621,6 +621,15 @@ short RDEXPORT c_DialogRun(HINST inst, WORD id, HWND owner, DLGPROC proc, DWORD 
     ResFree(r);
     return e;
 }
+short RDEXPORT c_DialogIndirect(HINST inst, const void FAR *v, HWND owner, DLGPROC proc, DWORD param) { return v ? lauf(inst, (const BYTE FAR *)v, owner, proc, param) : -1; }
+BOOL RDEXPORT c_FileDialog(HWND owner, FILEDLG FAR *fd)    /* steht in RDCTLX.MOD */
+{
+    HMOD m = ModLoad("RDCTLX.MOD"); BOOL (__far __pascal *f)(HWND, FILEDLG FAR *); BOOL r = FALSE;
+    if (!m) return FALSE;
+    if ((f = (BOOL (__far __pascal *)(HWND, FILEDLG FAR *))ModProc(m, 2)) != 0) r = f(owner, fd);
+    ModFree(m);
+    return r;
+}
 void RDEXPORT c_DialogEnd(HWND dlg, short e) { SetWindowData(dlg, 2, DLG_ENDE | (WORD)e); }
 HWND RDEXPORT c_DlgItem(HWND dlg, WORD id)
 {
@@ -732,8 +741,8 @@ static void RDEXPORT c_ende(void) { }
 /* Exporte: 1 = Ende, 2 + (API - 0x2C0) bis 0x2DF (CtlInit), dann 0x22.. die Klassen */
 static struct { WORD n; FARPROC f[0x2A]; } ext = { 0x2A, {
     C(ende), C(DialogRun), C(DialogEnd), C(DlgItem), C(DlgSetText), C(DlgGetText), C(DlgSetInt), C(DlgGetInt),
-    C(DlgCheck), C(DlgChecked), 0, 0, 0, 0, 0, 0,
-    0, C(MsgBox), 0, C(InputBox), 0, 0, 0, 0,
+    C(DlgCheck), C(DlgChecked), C(DialogIndirect), 0, 0, 0, 0, 0,
+    0, C(MsgBox), C(FileDialog), C(InputBox), 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
     C(CtlInit), C(Button), C(Check), C(Radio), C(Static), C(Group), C(Edit), C(Dialog), C(List), C(Progress),
 } };

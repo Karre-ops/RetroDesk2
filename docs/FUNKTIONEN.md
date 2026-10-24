@@ -175,6 +175,7 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x2C6 | Dialoge | `long DlgGetInt(HWND dlg, WORD id, BOOL FAR *ok)` |
 | 0x2C7 | Dialoge | `void DlgCheck(HWND dlg, WORD id, WORD an)` |
 | 0x2C8 | Dialoge | `WORD DlgChecked(HWND dlg, WORD id)` |
+| 0x2C9 | Dialoge | `short DialogIndirect(HINST i, const void FAR *vorlage, HWND owner, DLGPROC proc, DWORD param)` |
 | 0x2D0 | Dialoge | `short MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD flags)` |
 | 0x2D1 | Dialoge | `BOOL FileDialog(HWND owner, FILEDLG FAR *fd)` |
 | 0x2D2 | Dialoge | `BOOL InputBox(HWND owner, LPCSTR frage, LPCSTR titel, LPSTR buf, WORD len)` |
@@ -209,4 +210,4 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x3C2 | Drucker | `WORD PrnClose(HDC dc)` |
 | 0x3C3 | Drucker | `void PrnAbort(HDC dc)` |
 
-204 Funktionen, 0 Fehler
+205 Funktionen, 0 Fehler

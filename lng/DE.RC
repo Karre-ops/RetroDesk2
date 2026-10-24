@@ -10,4 +10,9 @@ TEXTE
   7 "Bitte Diskette %s in Laufwerk %c: einlegen"
   8 "Nicht genug Speicher"
   9 "Datei nicht gefunden: %s"
+  10 "™ffnen"
+  11 "Speichern unter"
+  12 "&Datei:"
+  13 "Die Datei gibt es schon. Ersetzen?"
+  14 "Datei nicht gefunden."
 ENDE
