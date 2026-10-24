@@ -493,7 +493,7 @@ static BOOL dproc(HWND h, WORD msg, WORD p1, DWORD p2)
     FARPROC f = (FARPROC)GetWindowData(h, 0);
     return f ? (BOOL)callp(f, h, msg, p1, p2) : FALSE;
 }
-static WORD fokusbar(HWND c) { WORD t = TYP(c); return t && t != T_STATIC && t != T_GROUP && !gesperrt(c); }
+static WORD fokusbar(HWND c) { WORD t = TYP(c); return t && t != T_STATIC && t != T_GROUP && t != T_PROG && !gesperrt(c); }   /* Fortschrittsbalken nimmt keine Tasten */
 static void fokusweiter(HWND h, int rueck)
 {
     HWND k[MAXK], f = GetFocus(); WORD n = kinder(h, k), i, j;

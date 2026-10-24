@@ -53,7 +53,7 @@ static void fmt(LPSTR d, WORD id, LPCSTR a, LPCSTR b)   /* Text id, %s der Reihe
     d[n] = 0;
 }
 static HWND owner(void) { return pdlg; }
-static short frage(WORD id, LPCSTR a, WORD art) { fmt(txt, id, a, 0); return MsgBox(owner(), txt, StrGet(inst, sys ? 2 : 1), art); }
+static short frage(WORD id, LPCSTR a, WORD art) { char m[24]; scpy(m, "RDFORMAT: Meldung ", sizeof m); zahl(m + 18, id); DbgPrint(m); fmt(txt, id, a, 0); return MsgBox(owner(), txt, StrGet(inst, sys ? 2 : 1), art); }
 
 /* ---- Anbindung von FreeDOS FORMAT (fdshim.h, rdfmtui.h) ----------------------------- */
 int rd_int86x(int nr, union REGS *ein, union REGS *aus, struct SREGS *s)
@@ -86,7 +86,7 @@ int rd_system(const char *cmd) { (void)cmd; rd_putch('\n'); DbgPrint("RDFORMAT: 
 void rd_einlegen(void) { if (frage(4, lwbuch, MB_OKCANCEL | MB_WARN) != ID_OK) { abbruch = 1; Exit(3, 3); } }
 void rd_bestaetigen(int format) { (void)format; if (frage(22, lwbuch, MB_YESNO | MB_WARN) != ID_YES) { abbruch = 1; Exit(3, 3); } }
 int rd_label(char *str) { scpy(str, name, 12); return (int)slen(str); }
-void rd_kritisch(int quelle, unsigned int code) { kr_quelle = (WORD)quelle; kr_code = code; }
+void rd_kritisch(int quelle, unsigned int code) { kr_quelle = (WORD)quelle; kr_code = code | 0x8000; }   /* 0x8000: Fehler gemeldet (Code 0 ist gueltig) */
 void rd_prozent(unsigned long p)
 {
     MSG m; char a[8]; static unsigned long naechst;
@@ -95,7 +95,12 @@ void rd_prozent(unsigned long p)
         zahl(a, p); fmt(txt, 6, a, 0); DlgSetText(pdlg, ID_STAND, txt);
         SendMessage(DlgItem(pdlg, ID_BALKEN), C_SETPOS, 0, p);
     }
-    while (PeekMessage(&m, 1)) DispatchMessage(&m);   /* Zeichnen, Abbruch-Knopf */
+    while (PeekMessage(&m, 1)) {
+#ifdef RDF_SPUR
+        { char b[40]; b[0]='M'; zahl(b + 1, m.msg); scat(b, " w", 40); zahl(b + slen(b), (WORD)m.w); scat(b, " d", 40); zahl(b + slen(b), (WORD)pdlg); scat(b, " f", 40); zahl(b + slen(b), (WORD)GetFocus()); scat(b, " a", 40); zahl(b + slen(b), (WORD)GetActive()); if (m.msg != M_PAINT) DbgPrint(b); }
+#endif
+        DispatchMessage(&m);                      /* Zeichnen, Abbruch-Knopf */
+    }
     if (abbruch) Exit(3, 3);
 }
 
@@ -104,7 +109,7 @@ static int fd_argc; static char *fd_argv[8]; static char a_lw[3], a_f[8], a_v[16
 static BOOL RDCALLBACK pproc(HWND d, WORD msg, WORD p1, DWORD p2)   /* Fortschritt; FORMAT laeuft hier */
 {
     (void)p2;
-    if (msg == M_INITDIALOG) { pdlg = d; PostMessage(d, M_COMMAND, ID_SCHRITT, 0); return TRUE; }
+    if (msg == M_INITDIALOG) { pdlg = d; PostMessage(d, M_COMMAND, ID_SCHRITT, 0); return FALSE; }   /* FALSE: Fokus auf Abbruch */
     if (msg == M_COMMAND && p1 == ID_SCHRITT) {
         fd_code = 0;
         if (!setjmp(jb)) fd_main(fd_argc, fd_argv);
@@ -186,10 +191,10 @@ short RDAPI RdMain(HINST i, LPCSTR cl, WORD show)
     if (e == ID_CANCEL) { frage(18, 0, MB_OK | MB_WARN); return 1; }
     if (e != ID_OK) {
         DbgPrint("RDFORMAT: Fehler");
-        if (kr_quelle == 1 && kr_code) {          /* BIOS (INT 13h, FreeDOS BIOS = 1): Status im unteren Byte */
-            k = kr_code & 0xFF;
-            if (k == 3) frage(8, 0, MB_OK | MB_ERROR);
-            else if (k == 0x80) frage(9, lwbuch, MB_OK | MB_ERROR);
+        k = kr_code & 0xFF;
+        if (kr_code && (kr_quelle == 1 || kr_quelle == 2)) {   /* FreeDOS: 1 = BIOS (INT 13h-Status), 2 = DOS (INT 24h-Code) */
+            if (kr_quelle == 1 ? k == 3 : k == 0) frage(8, 0, MB_OK | MB_ERROR);
+            else if (kr_quelle == 1 ? k == 0x80 : k == 2) frage(9, lwbuch, MB_OK | MB_ERROR);
             else { hex2(a, k); frage(25, a, MB_OK | MB_ERROR); }
         } else { fmt(txt, 23, letzte, 0); MsgBox(0, txt, StrGet(inst, 1), MB_OK | MB_ERROR); }
         return 1;
