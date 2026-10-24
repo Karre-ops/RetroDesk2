@@ -2,19 +2,20 @@
 # RDFORMAT auf Festplatte (FreeDOS FORMAT, FAT16) in QEMU, nur Tastatur. Start von der RD2-Diskette A:,
 # Festplatte 20 MB mit einer FAT16-Partition (Typ 04h), vorher formatiert mit ALT.TXT, Bezeichnung ALTHDD.
 # Faelle: schnell (Haken Schnell, Vorgabe), voll (Bezeichnung NEU, Haken aus, /U), nein (Rueckfrage mit Nein: Platte unveraendert),
-#         heim (RDFORMAT A: = RD2-Laufwerk: Meldung, nichts passiert). FAELLE="schnell nein" waehlt aus.
+#         heim (RDFORMAT A: = RD2-Laufwerk: Meldung, nichts passiert),
+#         gross (100 MB, Typ 06h ueber 32 MB: INT 25h/26h mit Paket, Audit M5). FAELLE="schnell nein" waehlt aus.
 # Bilder obj/hdd{1..4}_FALL.ppm: 1 Einstellungen  2 Rueckfrage  3 Fortschritt  4 Ergebnis
 cd "$(dirname "$0")/.."
 SOCK=/tmp/qmon_hdd.sock
 sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_hdd.py
 Q() { python3 obj/qmon_hdd.py "$@"; }
-OFS=32256; NSEK=40257
-neue_platte() {   # $1 = Bild: MBR (16 Koepfe, 63 Sektoren, 40 Zylinder), Partition ab LBA 63, Typ 04h, aktiv
-  python3 - $1 $NSEK <<'PY'
+OFS=32256
+neue_platte() {   # $1 = Bild: MBR (16 Koepfe, 63 Sektoren, ZYL Zylinder), Partition ab LBA 63, Typ TYP, aktiv
+  python3 - $1 $NSEK $ZYL $TYP <<'PY'
 import sys, struct
-f, n = sys.argv[1], int(sys.argv[2])
-d = bytearray(40*16*63*512)
-e = bytes([0x80, 1, 1, 0, 0x04, 15, 63 | ((39 >> 8) << 6), 39 & 255]) + struct.pack('<II', 63, n)
+f, n, z, t = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4], 16)
+d = bytearray(z*16*63*512)
+e = bytes([0x80, 1, 1, 0, t, 15, 63 | (((z-1) >> 8) << 6), (z-1) & 255]) + struct.pack('<II', 63, n)
 d[446:462] = e; d[510] = 0x55; d[511] = 0xAA
 open(f, 'wb').write(d)
 PY
@@ -22,8 +23,10 @@ PY
 }
 waitn() { for i in $(seq ${3:-600}); do grep -q "$1" $2 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 ok=0; fehler=0
-for FALL in ${FAELLE:-schnell voll nein heim}; do
+for FALL in ${FAELLE:-schnell voll nein heim gross}; do
   LW=C:; [ $FALL = heim ] && LW=A:
+  ZYL=40; TYP=04; [ $FALL = gross ] && { ZYL=203; TYP=06; }
+  NSEK=$((ZYL*16*63-63))
   printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\RDFORMAT.EXE %s\nA:\\FDAPM.COM POWEROFF\n' $LW > obj/ae_hdd.txt
   NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDDISK.MOD" bash tools/mkdisk.sh obj/hdd_a.img obj/ae_hdd.txt >/dev/null 2>&1
   SER=obj/hdd_${FALL}_com1.txt; H=obj/hdd_$FALL.img

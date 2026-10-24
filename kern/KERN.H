@@ -83,7 +83,6 @@ extern DWORD (*mem_mod_stamp)(WORD mod);
 void  file_api(void);
 void  file_owner_close(WORD task);
 void  clip_done(void);
-int   k_ask(LPCSTR text);
 int   k_askdisk(WORD drive, LPCSTR label);         /* 0 = Abbruch */
 int   k_dos(void);
 HMOD  k_sysmod(const char *name, WORD base, WORD n, const WORD *extra);

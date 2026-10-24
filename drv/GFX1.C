@@ -73,9 +73,10 @@ static WORD RDEXPORT d_init(WORD param)
         if (altmodus != 7) return RD_ERR_NOTSUP;
         a = (BYTE)(inp(0x3BA) & 0x80);
         for (i = 0; i < 0x8000U; i++) if ((inp(0x3BA) & 0x80) != a) return 0;
-        return RD_ERR_NOTSUP;
     }
-#elif defined(VGAM)
+    return RD_ERR_NOTSUP;
+#else
+#if defined(VGAM)
     if ((BYTE)int10(0x1A00) != 0x1A) return RD_ERR_NOTSUP;
 #else
     /* CGA: VGA/MCGA kann Modus 6 immer; sonst Farbkarte laut BIOS und ein 6845 auf 3D4h
@@ -90,6 +91,7 @@ static WORD RDEXPORT d_init(WORD param)
 #endif
     if (altmodus > 3 && altmodus != 7) altmodus = 3;
     return 0;
+#endif
 }
 static void RDEXPORT d_done(void) { }
 

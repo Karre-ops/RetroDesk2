@@ -65,7 +65,7 @@ MENU 2
     ITEM "&Delete\tDel"         108
     TRENNER
     ITEM "&Parent\tBksp"       103
-    ITEM "&Close\tAlt+F4"      102
+    ITEM "C&lose\tAlt+F4"      102
   ENDE
   POPUP "&View"
     ITEM "&Refresh"            201

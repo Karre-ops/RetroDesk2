@@ -1086,6 +1086,31 @@ void RDEXPORT u_CursorBusy(BOOL an)
 }
 void RDEXPORT u_CursorPos(POINT FAR *p) { if (p) { p->x = mpx; p->y = mpy; } }
 
+/* Diskettenabfrage des Kerns (k_wnd Art 4): nur zeichnen und wieder wegnehmen. Der Kern wartet selbst
+   auf Eingabe oder Esc (mitten in einem Kernaufruf, ohne Nachrichtenschleife). */
+static RECT fr;                                   /* Kasten, fr.r = 0: keiner */
+static WORD spr;                                  /* Sprache, beim ersten Fenster gemerkt (RDKX kann gerade fehlen) */
+static char ft[64]; static WORD fn;
+static void fput(LPCSTR s) { while (s && *s && fn < sizeof ft - 1) ft[fn++] = *s++; ft[fn] = 0; }
+static DWORD frage(WORD lw, WORD an, LPCSTR l)
+{
+    HDC d; short b, w; WORD en = spr == RD_LANG_EN; LPCSTR z2 = en ? "Enter = OK    Esc = Cancel" : "Eingabe = OK    Esc = Abbruch";
+    if (!an) { if (fr.r) { RECT r = fr; fr.r = 0; aufdecken(&r); } return 0; }
+    if (!sw || !(d = gdc(0))) return 0;
+    fn = 0; fput(en ? "Please insert disk " : "Bitte Diskette ");
+    if (l && *l) { fput(l); fput(" "); }
+    fput(en ? "in drive A:." : "in Laufwerk A: einlegen.");
+    ft[fn - (en ? 3 : 12)] = (char)('A' + lw);
+    b = TextWidth(d, ft, -1); w = TextWidth(d, z2, -1); if (w > b) b = w;
+    b += 32;
+    fr.l = (short)((sw - b) / 2); fr.r = fr.l + b; fr.t = (short)((sh - 3 * th) / 2); fr.b = fr.t + 3 * th;
+    SetPen(d, C_BLACK); SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &fr); Frame(d, &fr);
+    SetTextColor(d, C_BLACK); SetBkMode(d, BK_TRANSPARENT);
+    TextOut(d, fr.l + 16, fr.t + th / 2, ft, -1);
+    TextOut(d, fr.l + 16, fr.t + th * 3 / 2 + 2, z2, -1);
+    DCFree(d);
+    return 1;
+}
 DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
 {
     WORD i, j, n; MSG FAR *m; RECT r; short x, y, b, t;
@@ -1102,6 +1127,7 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
         zjetzt();
         return 0;
     }
+    if (art == 4) return frage((WORD)h, p1, (LPCSTR)p2);
     if (art != 2) return 0;
     m = (MSG FAR *)p2;
     if (!w_[0].child) return 0xFFFF;              /* noch keine Fenster: Programm bekommt alles */
@@ -1160,6 +1186,7 @@ static int schirm_(void)                           /* erst beim ersten Fenster: 
     if (sw) return 1;
     if (!(d = gdc(0))) return 0;
     sw = GetCaps(d, CAPS_W); sh = GetCaps(d, CAPS_H); th = GetCaps(d, CAPS_TEXTH) + 3; mh = th + 1;
+    spr = LangGet();
     DCFree(d);
     desk(); leiste();
     return 1;

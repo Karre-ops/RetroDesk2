@@ -1,5 +1,5 @@
 /* RDDISK.C - Laufwerkszugriff fuer RDFORMAT/RD2SETUP (verwerfbar, Diskette 2).
- * RD2-Programme rufen DOS und BIOS nie direkt auf. Die Werkzeuge aus FreeDOS (FORMAT, SYS)
+ * RD2-Programme rufen DOS und BIOS nie direkt auf. Die Werkzeuge aus FreeDOS (FORMAT, spaeter FDISK)
  * brauchen aber INT 13h, INT 25h/26h und einige INT-21h-Funktionen. Dieses Modul fuehrt genau
  * diese Aufrufe aus (Positivliste) und lehnt alles andere ab (Carry, AX = 1, Eintrag im Debug-Log).
  * Module laufen nicht im Programmcode: der Kern schaltet waehrend eines Aufrufs nicht um.

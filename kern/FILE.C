@@ -15,30 +15,33 @@ static void bios_out(LPCSTR s)
 {
     for (; *s; s++) { kr.ax = 0x0E00 | (BYTE)*s; kr.bx = 0x0007; rd_int(0x10, &kr); }
 }
-/* Text zeigen, auf Enter (1) oder Esc (0) warten. Auch auf COM1 (fuer Tests). */
-int k_ask(LPCSTR text)
-{
-    k_out(text, 0);
-    bios_out("\r\n"); bios_out(text); bios_out(" [Enter/Esc]");
-    for (;;) {
-        kr.ax = 0x0100; rd_int(0x16, &kr);
-        if (!(kr.flags & 0x40)) {                 /* ZF = 0: Taste da */
-            kr.ax = 0x0000; rd_int(0x16, &kr);
-            if ((kr.ax & 0xFF) == 13) { bios_out("\r\n"); k_out("RD: Abfrage: Enter", 0); return 1; }
-            if ((kr.ax & 0xFF) == 27) { bios_out("\r\n"); k_out("RD: Abfrage: Esc", 0); return 0; }
-        } else rd_idle();
-    }
-}
 static WORD mn;
 static void put(LPCSTR s) { while (*s && mn < sizeof msg - 1) msg[mn++] = *s++; msg[mn] = 0; }
+/* "Bitte Diskette einlegen": Text auf COM1 (Tests) und im Bild, dann auf Eingabe (1) oder Esc (0)
+   warten. Laeuft mitten in einem Kernaufruf: BIOS-Tastatur, keine Nachrichtenschleife, kein
+   Taskwechsel. Laeuft die Grafik, zeichnet RDUSER einen Kasten (k_wnd Art 4, in der eingestellten
+   Sprache), sonst Text ueber das BIOS. */
 static int ask_insert(WORD drive, LPCSTR label)  /* drive 0 = A: */
 {
     static char lw[3];
+    int g;
     lw[0] = (char)('A' + drive); lw[1] = ':'; lw[2] = 0;
     mn = 0;
     put("Bitte Diskette "); if (label && *label) { put(label); put(" "); }
     put("in Laufwerk "); put(lw); put(" einlegen");
-    return k_ask(msg);
+    k_out(msg, 0);
+    if (!(g = k_wnd && k_wnd(4, drive, 0, 1, (DWORD)label) != 0)) { bios_out("\r\n"); bios_out(msg); bios_out(" [Enter/Esc]\r\n"); }
+    for (;;) {
+        kr.ax = 0x0100; rd_int(0x16, &kr);
+        if (!(kr.flags & 0x40)) {                 /* ZF = 0: Taste da */
+            kr.ax = 0x0000; rd_int(0x16, &kr);
+            if ((kr.ax & 0xFF) == 13 || (kr.ax & 0xFF) == 27) break;
+        } else rd_idle();
+    }
+    if (g) k_wnd(4, 0, 0, 0, 0);
+    g = (kr.ax & 0xFF) == 13;
+    k_out(g ? "RD: Enter" : "RD: Esc", 0);
+    return g;
 }
 
 /* ---- DOS-Aufruf mit Fehlerbehandlung --------------------------------------- */
@@ -229,7 +232,7 @@ WORD RDK DiskRequest(WORD drive, DWORD serial, LPCSTR label)   /* drive 1 = A: *
 
 WORD RDK FileSaveSafe(LPCSTR name, const void FAR *buf, DWORD n)
 {
-    static char tmp[80]; WORD i, j; short f; const BYTE FAR *p = (const BYTE FAR *)buf;
+    char *tmp = (char *)bootsek; WORD i, j; short f; const BYTE FAR *p = (const BYTE FAR *)buf;   /* bootsek ist hier frei (kein media) */
     for (i = 0; i < 76 && name[i]; i++) tmp[i] = name[i];
     for (j = i; j > 0 && tmp[j - 1] != '.' && tmp[j - 1] != '\\' && tmp[j - 1] != ':'; j--) ;
     if (j > 0 && tmp[j - 1] == '.') i = j - 1;
