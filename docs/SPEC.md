@@ -165,7 +165,9 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 - Das Menü **"RD"** gehört dem Schreibtisch: Klick auf "RD" oder **Alt+Leertaste** schickt `M_SYSMENU` an das `WS_DESKTOP`-Fenster, egal welches Programm aktiv ist. Die Shell öffnet es mit `MenuPopup`.
 - Teil 1: Laufwerke als Symbole links (Abfrage mit `DI_NURTYP`, keine Diskette wird angefasst), Ordnerfenster mit Symbolraster (Ordner zuerst, bis 240 Einträge), Rollbalken, Ordner wechseln, `..`, Programme starten (RD2-EXE mit `TaskExec`, sonst `RunDos`), RD: Info, Beenden. Tastatur: Pfeile, Eingabe, Rückschritt, Alt+F4.
 - Teil 2: Kopieren (F5), Verschieben (F6, auf demselben Laufwerk per Umbenennen), Umbenennen (F2), Neuer Ordner (F7), Löschen (Entf/F8), jeweils auch ganze Ordner. Markieren mit Einfg oder Strg+Klick, rechte Maustaste öffnet das Menü "Datei". Kopierziel vorgeschlagen: zuletzt aktives anderes Ordnerfenster. Rückfrage beim Ersetzen; Kopie in denselben Ordner oder Ordner in sich selbst wird abgelehnt. Test `test/desk2.sh`.
-- Folgt: Ziehen mit der Maus, Laufwerksmenü (Formatieren, Bootfähig machen), Listenansicht, `.APP`-Programmliste, Zustand in `RD2.STA`.
+- Teil 3: **Ziehen mit der Maus** auf ein Ordnerfenster, einen Ordner darin, `..` oder ein Laufwerk. Gleiches Laufwerk = Verschieben, anderes = Kopieren; Strg erzwingt Kopieren, Umschalt Verschieben. Der Zeiger wird beim Ziehen zur Hand (ab 5 Pixel Weg). Ein Klick ohne Strg auf einen nicht markierten Eintrag hebt die Markierungen auf.
+- **Laufwerksmenü** (Rechtsklick auf ein Laufwerk): Öffnen, Eigenschaften (auch Alt+Eingabe: Name, Gesamt, Frei), Formatieren (grau, bis `RDDISK.MOD` da ist). `MenuPopup` ignoriert das Loslassen der Taste, die das Menü geöffnet hat, solange die Maus nicht bewegt wurde (sonst würde sofort der erste Eintrag gewählt). Test `test/desk3.sh` (PS/2-Maus mit CTMOUSE).
+- Folgt: Formatieren und Bootfähig machen (`RDDISK.MOD`), Listenansicht, `.APP`-Programmliste, Zustand in `RD2.STA`.
 
 ### 5.1 Steuerelemente und Dialoge (RDCTL, 23.10.2026)
 

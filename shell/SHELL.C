@@ -4,6 +4,9 @@
  * Tastatur: Pfeile, Eingabe oeffnet, Rueckschritt eine Ebene hoeher, Einfg markiert, F5 Kopieren,
  * F6 Verschieben, F2 Umbenennen, F7 Neuer Ordner, Entf/F8 Loeschen, Alt+Leertaste "RD", F10 Leiste.
  * Teil 2 (24.10.2026): Dateioperationen, auch ganze Ordner; Ziel vorgeschlagen = anderes Ordnerfenster.
+ * Teil 3: Ziehen mit der Maus auf ein Ordnerfenster, einen Ordner darin oder ein Laufwerk. Gleiches
+ * Laufwerk = Verschieben, anderes = Kopieren; Strg erzwingt Kopieren, Umschalt Verschieben.
+ * Rechtsklick auf ein Laufwerk: Oeffnen, Eigenschaften (Platz, Name), Formatieren (folgt mit RDDISK).
  * Meldungen auf COM1 fuer test/desk.sh: "SHELL: bereit", "SHELL: Ordner <pfad> <n>", "SHELL: Start". */
 #include "RD2.H"
 
@@ -22,6 +25,8 @@
 #define CM_UMBEN  106
 #define CM_MKDIR  107
 #define CM_LOESCH 108
+#define CM_LWINFO 301
+#define CM_FORMAT 302
 #define CM_NEU    201
 #define MAXE      240                             /* Eintraege je Ordner */
 #define MAXO      6                               /* Ordnerfenster */
@@ -35,7 +40,9 @@ static short W, H, mh, th, ih, zh;                /* Schirm, Menueleiste, Textze
 static char lw[26], lt[26]; static short nlw, lsel;   /* Laufwerke: Buchstabe, Typ */
 static ORDNER od[MAXO];
 static char buf[160], qv[80], qn[80];            /* Text; Quelle und Ziel beim Kopieren */
-static HWND letzt;                                /* zuletzt aktives Ordnerfenster vor dem jetzigen */
+static HWND letzt; static HMENU mlw;
+static HWND zw; static short zx, zy; static BYTE zieht;   /* Ziehen: Quelle, Startpunkt, 1 = gedrueckt, 2 = zieht */
+                                /* zuletzt aktives Ordnerfenster vor dem jetzigen */
 
 /* ---- kleine Helfer ---------------------------------------------------------------------- */
 static WORD slen(LPCSTR s) { WORD n = 0; while (s[n]) n++; return n; }
@@ -205,14 +212,17 @@ static short anzahl(ORDNER *o, EINTRAG FAR *e)    /* markierte, sonst die Auswah
     return n ? n : (o->sel >= 0 && e[o->sel].name[0] != '.');
 }
 static int betrifft(ORDNER *o, EINTRAG FAR *e, short i, short n) { return e[i].name[0] != '.' && (n ? e[i].mark : i == o->sel); }
-static void kopieren(ORDNER *o, int weg)
+static void kopieren(ORDNER *o, int weg, LPCSTR wohin)   /* wohin 0: fragen */
 {
     EINTRAG FAR *e; short i, m, mk = 0; WORD r = 0; char ziel[68]; ORDNER *z = ord(letzt);
     if (!o->h || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
     for (i = 0; i < o->n; i++) mk += e[i].mark;
     if (!anzahl(o, e)) { MemUnlock(o->h); return; }
-    scpy(ziel, z && z != o ? z->pfad : o->pfad, sizeof ziel);
-    if (!InputBox(GetActive(), StrGet(inst, weg ? 11 : 10), "RD", ziel, sizeof ziel)) { MemUnlock(o->h); return; }
+    if (wohin) scpy(ziel, wohin, sizeof ziel);
+    else {
+        scpy(ziel, z && z != o ? z->pfad : o->pfad, sizeof ziel);
+        if (!InputBox(GetActive(), StrGet(inst, weg ? 11 : 10), "RD", ziel, sizeof ziel)) { MemUnlock(o->h); return; }
+    }
     m = (short)slen(ziel); if (m && ziel[m - 1] != '\\') scat(ziel, "\\", sizeof ziel);
     if (praefix(o->pfad, ziel) && slen(o->pfad) == slen(ziel)) { MemUnlock(o->h); return; }   /* derselbe Ordner */
     CursorBusy(TRUE);
@@ -286,6 +296,38 @@ static void neuer_ordner(ORDNER *o)
     DbgPrint("SHELL: Ordner angelegt");
     alle_neu();
 }
+static short treffer(ORDNER *o, short px, short py)   /* Eintrag unter Client-Punkt, -1 = keiner */
+{
+    short x = px / ZB, i = (o->oben + py / zh) * o->spalten + x;
+    return px >= 0 && py >= 0 && x < o->spalten && i < o->n ? i : -1;
+}
+static short lwbei(short x, short y);
+static void fallen(ORDNER *o, short x, short y, WORD ks)   /* Ziehen beendet bei Client-Punkt der Quelle */
+{
+    POINT p; HWND t; ORDNER *z; char ziel[68]; short i; EINTRAG FAR *e; int weg;
+    p.x = x; p.y = y; ClientToScreen(o->w, &p);
+    if ((t = WindowFromPoint(p.x, p.y)) == 0) return;
+    ziel[0] = 0;
+    if ((z = ord(t)) != 0) {
+        scpy(ziel, z->pfad, sizeof ziel);
+        ScreenToClient(t, &p);
+        if ((i = treffer(z, p.x, p.y)) >= 0 && z->h && (e = (EINTRAG FAR *)MemLock(z->h)) != 0) {
+            if ((e[i].attr & FA_DIR) && !(z == o && (i == o->sel || e[i].mark))) {
+                if (e[i].name[0] == '.') { char *q = ziel + slen(ziel) - 1; while (q > ziel + 2 && q[-1] != '\\') q--; *q = 0; }
+                else { scat(ziel, e[i].name, sizeof ziel); scat(ziel, "\\", sizeof ziel); }
+            }
+            MemUnlock(z->h);
+        }
+    } else if (t == desk) {
+        ScreenToClient(t, &p);
+        if ((i = lwbei(p.x, p.y)) >= 0) { ziel[0] = lw[i]; ziel[1] = ':'; ziel[2] = '\\'; ziel[3] = 0; }
+    }
+    if (!ziel[0]) return;
+    weg = (ziel[0] | 0x20) == (o->pfad[0] | 0x20);
+    if (ks & KS_CTRL) weg = 0; else if (ks & KS_SHIFT) weg = 1;
+    DbgPrint(ziel);
+    kopieren(o, weg, ziel);
+}
 static void markieren(ORDNER *o, short i)
 {
     EINTRAG FAR *e;
@@ -315,9 +357,12 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         }
         EndPaint(w, &ps); return 0;
     case M_BUTTONDOWN: case M_DBLCLK:
-        x = (short)LOWORD(p2) / ZB; y = (short)HIWORD(p2) / zh;
-        i = (o->oben + y) * o->spalten + x;
-        if (x < o->spalten && i < o->n) {
+        if ((i = treffer(o, (short)LOWORD(p2), (short)HIWORD(p2))) >= 0) {
+            if (msg == M_BUTTONDOWN && (p1 & 0xFF) == 1 && !((p1 >> 8) & KS_CTRL) && o->h && (e = (EINTRAG FAR *)MemLock(o->h)) != 0) {
+                if (!e[i].mark) { short k, n = 0; for (k = 0; k < o->n; k++) { n |= e[k].mark; e[k].mark = 0; } if (n) InvalidateRect(w, 0, FALSE); }
+                MemUnlock(o->h);
+                zw = w; zx = (short)LOWORD(p2); zy = (short)HIWORD(p2); zieht = 1; CaptureMouse(w);
+            }
             neusel(o, i);
             if (msg == M_BUTTONDOWN && (p1 >> 8) & KS_CTRL) markieren(o, i);
             else if (msg == M_DBLCLK) oeffnen(o);
@@ -325,6 +370,18 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
                 i = (short)MenuPopup(w, mbar, 0, (short)LOWORD(p2), (short)HIWORD(p2));
                 if (i) PostMessage(w, M_COMMAND, i, 0);
             }
+        }
+        return 0;
+    case M_MOUSEMOVE:
+        if (zieht == 1 && zw == w) {
+            x = (short)LOWORD(p2) - zx; y = (short)HIWORD(p2) - zy;
+            if (x > 4 || x < -4 || y > 4 || y < -4) { zieht = 2; CursorSet(0, CUR_HAND); DbgPrint("SHELL: zieht"); }
+        }
+        return 0;
+    case M_BUTTONUP:
+        if (zieht && zw == w) {
+            i = zieht; zieht = 0; ReleaseMouse(); CursorSet(0, CUR_ARROW);
+            if (i == 2) fallen(o, (short)LOWORD(p2), (short)HIWORD(p2), p1 >> 8);
         }
         return 0;
     case M_SCROLL:
@@ -345,8 +402,8 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == K_ENTER) oeffnen(o);
         else if (p1 == K_BACK) hoch(o);
         else if (p1 == K_INS) { markieren(o, o->sel); neusel(o, o->sel + 1); }
-        else if (p1 == K_F5) kopieren(o, 0);
-        else if (p1 == K_F6) kopieren(o, 1);
+        else if (p1 == K_F5) kopieren(o, 0, 0);
+        else if (p1 == K_F6) kopieren(o, 1, 0);
         else if (p1 == K_F2) umbenennen(o);
         else if (p1 == K_F7) neuer_ordner(o);
         else if (p1 == K_DEL || p1 == K_F8) loeschen(o);
@@ -356,8 +413,8 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         if (p1 == CM_OEFFNEN) oeffnen(o);
         else if (p1 == CM_HOCH) hoch(o);
         else if (p1 == CM_NEU) einlesen(o);
-        else if (p1 == CM_KOPIE) kopieren(o, 0);
-        else if (p1 == CM_VERSCH) kopieren(o, 1);
+        else if (p1 == CM_KOPIE) kopieren(o, 0, 0);
+        else if (p1 == CM_VERSCH) kopieren(o, 1, 0);
         else if (p1 == CM_UMBEN) umbenennen(o);
         else if (p1 == CM_MKDIR) neuer_ordner(o);
         else if (p1 == CM_LOESCH) loeschen(o);
@@ -402,6 +459,25 @@ static void lwmal(HDC d, short k)
     t[0] = lw[k]; t[1] = ':'; t[2] = 0;
     schild(d, r.l, r.t + ih + 3, 56, t, k == lsel);
 }
+static short lwbei(short x, short y)
+{
+    short i; RECT r;
+    for (i = 0; i < nlw; i++) { lwfeld(i, &r); if (x >= r.l && x < r.r && y >= r.t && y < r.b) return i; }
+    return -1;
+}
+static void lwinfo(void)
+{
+    DRIVEINFO di; char a[48], g[12], f[12], *p; WORD e;
+    a[0] = lw[lsel]; a[1] = ':'; a[2] = 0;
+    CursorBusy(TRUE); e = DriveInfo((WORD)(lw[lsel] - 'A' + 1), &di); CursorBusy(FALSE);
+    if (e) { fmt(buf, StrGet(inst, 4), a, 0); MsgBox(GetActive(), buf, "RD", MB_OK | MB_WARN); return; }
+    p = zahl(g, di.gesamt >> 10); scpy(p, " KB", 4);
+    p = zahl(f, di.frei >> 10); scpy(p, " KB", 4);
+    if (di.label[0]) { scat(a, " ", sizeof a); scat(a, di.label, sizeof a); }
+    fmt(buf, StrGet(inst, 13), a, g); scat(buf, f, sizeof buf);
+    MsgBox(GetActive(), buf, StrGet(inst, 14), MB_OK | MB_INFO);
+    DbgPrint("SHELL: Laufwerksinfo");
+}
 static void info(void)
 {
     char v[8], f[12], *p; WORD a = KernVersion();
@@ -420,16 +496,19 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         for (i = 0; i < nlw; i++) lwmal(d, i);
         EndPaint(w, &ps); return 0;
     case M_BUTTONDOWN: case M_DBLCLK:
-        y = (short)HIWORD(p2);
-        for (i = 0; i < nlw; i++) { lwfeld(i, &r); if ((short)LOWORD(p2) >= r.l && (short)LOWORD(p2) < r.r && y >= r.t && y < r.b) break; }
-        if (i < nlw) {
+        if ((i = lwbei((short)LOWORD(p2), (short)HIWORD(p2))) >= 0) {
             if (i != lsel) { lsel = i; InvalidateRect(w, 0, FALSE); }
             if (msg == M_DBLCLK) ordner_auf(lw[i]);
+            else if ((p1 & 0xFF) == 2) {
+                y = (short)MenuPopup(w, mlw, 0, (short)LOWORD(p2), (short)HIWORD(p2));
+                if (y) PostMessage(w, M_COMMAND, y, 0);
+            }
         }
         return 0;
     case M_KEY:
         if (p1 == K_DOWN && lsel < nlw - 1) { lsel++; InvalidateRect(w, 0, FALSE); }
         else if (p1 == K_UP && lsel > 0) { lsel--; InvalidateRect(w, 0, FALSE); }
+        else if (p1 == K_ENTER && nlw && (HIWORD(p2) & KS_ALT)) lwinfo();   /* Alt+Eingabe: Eigenschaften */
         else if (p1 == K_ENTER && nlw) ordner_auf(lw[lsel]);
         else return DefWindowProc(w, msg, p1, p2);
         return 0;
@@ -441,6 +520,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         if (p1 == CM_INFO) info();
         else if (p1 == CM_ENDE) { char t[40]; scpy(t, StrGet(inst, 2), sizeof t); if (MsgBox(GetActive(), t, "RD", MB_YESNO | MB_ASK) == ID_YES) PostQuit(0); }
         else if (p1 == CM_OEFFNEN && nlw) ordner_auf(lw[lsel]);
+        else if (p1 == CM_LWINFO && nlw) lwinfo();
         return 0;
     case M_CLOSE: return 0;                       /* der Schreibtisch bleibt */
     }
@@ -456,7 +536,7 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     mh = th + 4; ih = H <= 200 ? 16 : 32; zh = ih + th + 6;
     for (k = 1; k <= 26; k++)                     /* nur Typ, keine Diskette anfassen */
         if (!DriveInfo(k | DI_NURTYP, &di) && di.typ != DT_NONE && !(di.flags & DI_PHANTOM)) { lw[nlw] = (char)('A' + k - 1); lt[nlw++] = (char)di.typ; }
-    msys = MenuLoad(inst, 1); mbar = MenuLoad(inst, 2);
+    msys = MenuLoad(inst, 1); mbar = MenuLoad(inst, 2); mlw = MenuLoad(inst, 3);
     wc.name = "RDDesk"; wc.proc = deskproc; wc.stil = CS_DBLCLKS; wc.daten = 0; wc.inst = inst; wc.symbol = 0; wc.hinter = RD_DEFAULT;
     RegisterClass(&wc);
     wc.name = "RDOrdner"; wc.proc = ordproc;

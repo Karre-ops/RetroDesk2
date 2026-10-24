@@ -40,7 +40,7 @@ typedef struct { char name[16]; WNDPROC proc; WORD stil, inst; COLOR hinter; BYT
 static WND w_[MAXW + 1];                          /* 0 = Wurzel (Schreibtisch) */
 static KLASSE kl[MAXCL];
 static BYTE act, foc, cap, dsk;                   /* Nummern, 0 = keines; dsk = Schreibtisch der Shell */
-static short sw, sh, mh, th;                      /* Schirm, Menueleiste, Titelzeile */
+static short sw, sh, mh, th, mpx, mpy;                     /* Schirm, Menueleiste, Titelzeile */
 static DCX FAR *dcs; static GK FAR *gk;
 static HDC (FAR __pascal *gdc)(HWND);
 static struct { HDC dc; WORD n; RECT r[MAXCLIP]; } sl[NSLOT];
@@ -881,7 +881,7 @@ static void leistemenue(HDC d)                    /* Titel des aktiven Menues, P
    bar: Index in der Leiste, *weiter = neuer Index (Pfeil links/rechts, anderer Titel), -1 = Ende */
 static WORD klapp(WORD i, BYTE FAR *q, short x, short y, int bar, int *weiter, int maus)
 {
-    BYTE FAR *it[MAXI]; short iy[MAXI + 1], wd = 0, aw = 0, k, n = 0, sel = -1, s2, ww, a; WORD id = 0, f;
+    BYTE FAR *it[MAXI]; short iy[MAXI + 1], wd = 0, aw = 0, k, n = 0, sel = -1, s2, ww, a, x0, y0; WORD id = 0, f;
     HDC d = gdc(0), bd = 0; HBMP bm = 0; RECT r, z; MSG m; BYTE FAR *p;
     *weiter = -1;
     if (!d) return 0;
@@ -917,10 +917,12 @@ static WORD klapp(WORD i, BYTE FAR *q, short x, short y, int bar, int *weiter, i
     if (!maus) for (sel = 0; sel < n && !WAEHLBAR(sel); sel++) ;
     if (sel >= n) sel = -1;
     if (sel >= 0) InvertRect(d, ZEILE(sel));
-    cap = (BYTE)i;
+    cap = (BYTE)i; x0 = mpx; y0 = mpy;
     for (;;) {
         if (!GetMessage(&m)) { PostQuit(0); break; }
         if (m.msg == M_MOUSEMOVE || m.msg == M_BUTTONDOWN || m.msg == M_BUTTONUP) {
+            if (bar < 0 && m.msg == M_BUTTONUP && m.pt.x == x0 && m.pt.y == y0) continue;   /* Loslassen des Rechtsklicks, der das Menue geoeffnet hat */
+            x0 = -1;
             s2 = -1;
             if (m.pt.x >= r.l && m.pt.x < r.r && m.pt.y >= r.t && m.pt.y < r.b)
                 for (k = 0; k < n; k++) if (m.pt.y < r.t + iy[k + 1]) { if (WAEHLBAR(k)) s2 = k; break; }
@@ -1028,7 +1030,7 @@ static const BYTE zbild[4][66] = {   /* CUR_WAIT, CUR_TEXT, CUR_CROSS, CUR_HAND:
 };
 static const BYTE FAR *pfeil0;                   /* Pfeil aus RDGDI */
 static BYTE tz[16], zakt, zeig[66], zeigt;        /* zeig: eigene Form (Ressource RT_CURSOR), zeigt = Programm */
-static short mpx, mpy;
+/* mpx, mpy oben */
 static BYTE zwo(short x, short y)                 /* Form fuer den Punkt */
 {
     WORD z = cap ? cap : y < mh ? 0 : bei(0, x, y); BYTE f; RECT r;

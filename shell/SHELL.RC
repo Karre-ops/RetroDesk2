@@ -23,6 +23,14 @@ MENU 2
     ITEM "&Neu einlesen"       201
   ENDE
 ENDE
+MENU 3
+  POPUP "Laufwerk"
+    ITEM "™&ffnen\tEingabe"   101
+    ITEM "&Eigenschaften\tAlt+Eingabe" 301
+    TRENNER
+    ITEM "&Formatieren..."     302 GRAU
+  ENDE
+ENDE
 TEXTE
   1 "RetroDesk 2\nAPI %s\nFrei: %s KB"
   2 "RetroDesk 2 beenden?"
@@ -36,6 +44,8 @@ TEXTE
   10 "Kopieren nach:"
   11 "Verschieben nach:"
   12 "%s gibt es schon. Ersetzen?"
+  13 "Laufwerk %s\nGesamt: %s\nFrei: "
+  14 "Eigenschaften"
 ENDE
 SPRACHE EN
 MENU 1
@@ -61,6 +71,14 @@ MENU 2
     ITEM "&Refresh"            201
   ENDE
 ENDE
+MENU 3
+  POPUP "Drive"
+    ITEM "&Open\tEnter"        101
+    ITEM "&Properties\tAlt+Enter" 301
+    TRENNER
+    ITEM "&Format..."          302 GRAU
+  ENDE
+ENDE
 TEXTE
   1 "RetroDesk 2\nAPI %s\nFree: %s KB"
   2 "Exit RetroDesk 2?"
@@ -74,6 +92,8 @@ TEXTE
   10 "Copy to:"
   11 "Move to:"
   12 "%s already exists. Replace?"
+  13 "Drive %s\nTotal: %s\nFree: "
+  14 "Properties"
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"
