@@ -41,6 +41,27 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     ok(ProfileGetInt("A:\\TEST.INI", "Benutzer", "Fehlt", -5) == -5, "FILETEST: Vorgabewert");
     ProfileGetStr("A:\\TEST.INI", "Rechner", "Weg", "geloescht", buf, sizeof buf);
     ok(same(buf, "geloescht"), "FILETEST: Schluessel loeschen");
+    /* Fehlerfaelle (Audit 24.10.2026) */
+    f = FileCreate("A:\\NURW.DAT", 0); FileWrite(f, "abc", 3); FileClose(f);
+    f = FileOpen("A:\\NURW.DAT", FO_WRITE); SetLastError(0); n = FileRead(f, buf, 3); FileClose(f);
+    ok(n == 0 && LastError() != 0, "FILETEST: Lesefehler -> 0 Bytes und LastError gesetzt");
+    FileDelete("A:\\NURW.DAT");
+    DirMake("A:\\INIDIR");
+    n = ProfileSetStr("A:\\INIDIR", "A", "B", "C");
+    ok(n != 0 && FileAttr("A:\\INIDIR.$$$", 0, 0) == 0xFFFF && (FileAttr("A:\\INIDIR", 0, 0) & FA_DIR), "FILETEST: Profil nicht lesbar -> Fehler, nichts angelegt");
+    DirRemove("A:\\INIDIR");
+    { static char gross[800]; WORD i; DWORD vor, nach;
+      f = FileCreate("A:\\GROSS.INI", 0);
+      for (i = 0; i < 253; i++) gross[i] = (char)(i ? '-' : ';'); gross[252] = 13; gross[253] = 10;
+      for (i = 0; i < 64; i++) FileWrite(f, gross, 254);
+      FileWrite(f, "[S]\r\nK=1\r\n", 10); vor = FileSeek(f, 0, FS_END); FileClose(f);
+      for (i = 0; i < sizeof gross - 1; i++) gross[i] = 'x'; gross[i] = 0;
+      n = ProfileSetStr("A:\\GROSS.INI", "S", "Neu", gross);
+      f = FileOpen("A:\\GROSS.INI", FO_READ); nach = FileSeek(f, 0, FS_END); FileClose(f);
+      ok(n == RD_ERR_FULL && vor == nach, "FILETEST: Profil zu gross -> RD_ERR_FULL, Datei unveraendert");
+      ProfileGetStr("A:\\GROSS.INI", "S", "K", "?", buf, sizeof buf);
+      ok(same(buf, "1"), "FILETEST: grosses Profil noch lesbar");
+      FileDelete("A:\\GROSS.INI"); }
     /* Zwischenablage */
     h = MemAlloc(16, MEM_MOVABLE);
     p = (char FAR *)MemLock(h); p[0] = 'X'; p[1] = 'T'; p[2] = 0; MemUnlock(h);

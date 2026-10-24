@@ -196,9 +196,12 @@ static WORD kop(BYTE attr, int weg)
     if ((a = FileOpen(qv, FO_READ)) < 0) { MemFree(hb); return LastError(); }
     if ((b = FileCreate(qn, 0)) < 0) { e = LastError(); FileClose(a); MemFree(hb); return e; }
     p = (BYTE FAR *)MemLock(hb);
+    SetLastError(0);                              /* FileRead liefert auch bei Lesefehler 0: danach pruefen */
     while ((n = FileRead(a, p, 4096)) > 0) if (FileWrite(b, p, n) != n) { e = RD_ERR_FULL; break; }
+    if (!e && LastError()) e = LastError();       /* Lesefehler: Kopie verwerfen, Quelle behalten */
     MemUnlock(hb); MemFree(hb);
-    FileClose(a); FileClose(b);
+    FileClose(a);
+    if (FileClose(b) && !e) e = LastError() ? LastError() : RD_ERR_DISK;
     if (e) { FileDelete(qn); return e; }
     if (attr & (FA_RDONLY | FA_HIDDEN | FA_SYSTEM)) FileAttr(qn, attr & 7, 1);
     if (weg) { if (attr & FA_RDONLY) FileAttr(qv, 0, 1); e = FileDelete(qv); }

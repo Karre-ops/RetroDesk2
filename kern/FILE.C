@@ -8,7 +8,7 @@
 
 static KREGS kin;
 static BYTE fown[64];                             /* DOS-Handle -> Task */
-static char msg[90];
+static char msg[64];                              /* "Bitte Diskette <11> in Laufwerk A: einlegen" */
 
 /* ---- Abfrage an den Benutzer -------------------------------------------- */
 static void bios_out(LPCSTR s)
@@ -30,7 +30,7 @@ int k_ask(LPCSTR text)
     }
 }
 static WORD mn;
-static void put(LPCSTR s) { while (*s && mn < 88) msg[mn++] = *s++; msg[mn] = 0; }
+static void put(LPCSTR s) { while (*s && mn < sizeof msg - 1) msg[mn++] = *s++; msg[mn] = 0; }
 static int ask_insert(WORD drive, LPCSTR label)  /* drive 0 = A: */
 {
     static char lw[3];
@@ -168,6 +168,7 @@ static int strncmp_k(const char *a, const char *b) { while (*b && *a == *b) a++,
 /* Seriennummer/Name der eingelegten Diskette aus dem Bootsektor (INT 25h: der Treiber
    prueft dabei den Wechsel; 6900h lieferte unter FreeDOS manchmal die alte Diskette). */
 static BYTE bootsek[512];
+static DWORD ms; static char mlab[12];           /* DriveInfo, DiskRequest, ProfileGetInt (nie gleichzeitig) */
 static WORD media(WORD drive, DWORD *serial, char *label)
 {
     WORD i, e;
@@ -188,7 +189,7 @@ WORD k_media(WORD drive, DWORD *serial, char *label) { return media(drive, seria
 
 WORD RDK DriveInfo(WORD drive, DRIVEINFO FAR *di)       /* drive 1 = A: */
 {
-    WORD i, d = drive & 0xFF; static DWORD s; static char lab[12];
+    WORD i, d = drive & 0xFF;
     BYTE FAR *p = (BYTE FAR *)di;
     for (i = 0; i < sizeof(DRIVEINFO); i++) p[i] = 0;
     if (!d) { kr.ax = 0x1900; rd_int(0x21, &kr); d = (kr.ax & 0xFF) + 1; }
@@ -207,21 +208,20 @@ WORD RDK DriveInfo(WORD drive, DRIVEINFO FAR *di)       /* drive 1 = A: */
         DWORD kb = di->gesamt >> 10;
         di->format_kb = kb > 2000 ? 2880 : kb > 1300 ? 1440 : kb > 1000 ? 1200 : kb > 600 ? 720 : kb > 300 ? 360 : 180;
     }
-    if (!media(d - 1, &s, lab)) { di->serial = s; for (i = 0; i < 12; i++) di->label[i] = lab[i]; }
+    if (!media(d - 1, &ms, mlab)) { di->serial = ms; for (i = 0; i < 12; i++) di->label[i] = mlab[i]; }
     return 0;
 }
 
 WORD RDK DiskRequest(WORD drive, DWORD serial, LPCSTR label)   /* drive 1 = A: */
 {
-    static DWORD s; static char lab[12];
     WORD i;
     for (;;) {
         /* Seriennummer UND Name vergleichen: zwei im selben Moment formatierte Disketten
            koennen dieselbe Seriennummer haben */
-        if (!media(drive - 1, &s, lab) && s == serial) {
+        if (!media(drive - 1, &ms, mlab) && ms == serial) {
             if (!label || !*label) return 0;
-            for (i = 0; i < 11 && label[i] == lab[i] && lab[i]; i++) ;
-            if (label[i] == lab[i] || (i == 11)) return 0;
+            for (i = 0; i < 11 && label[i] == mlab[i] && mlab[i]; i++) ;
+            if (label[i] == mlab[i] || (i == 11)) return 0;
         }
         if (!ask_insert(drive - 1, label)) return k_lasterr = RD_ERR_NODISK;
     }
@@ -256,6 +256,7 @@ void file_owner_close(WORD task)
 #define PMAX 16384
 static BYTE __far *pb; static WORD pn, pbig;      /* geladene Datei; pbig = groesser als PMAX */
 static BYTE lc(BYTE c) { return (c >= 'A' && c <= 'Z') ? c + 32 : c; }
+static void pfree(void);
 static int pload(LPCSTR file)
 {
     short f; void FAR *m;
@@ -263,8 +264,9 @@ static int pload(LPCSTR file)
     if (!(m = MemFixed(PMAX + 512))) return 0;
     pb = (BYTE __far *)m;
     pbig = 0;
-    if ((f = FileOpen(file, FO_READ)) >= 0) { pn = FileRead(f, pb, PMAX); if (pn == PMAX && FileRead(f, pb + PMAX, 1)) pbig = 1; FileClose(f); }
-    k_lasterr = 0;
+    if ((f = FileOpen(file, FO_READ)) >= 0) { k_lasterr = 0; pn = FileRead(f, pb, PMAX); if (pn == PMAX && FileRead(f, pb + PMAX, 1)) pbig = 1; FileClose(f); }
+    else if (k_lasterr == RD_ERR_NOTFOUND) k_lasterr = 0;   /* nur "gibt es nicht" heisst leer */
+    if (k_lasterr) { pfree(); return 0; }         /* sonst nie mit halbem Inhalt neu schreiben */
     return 1;
 }
 static void pfree(void) { if (pb) MemFixedFree(pb); pb = 0; }
@@ -316,21 +318,22 @@ WORD RDK ProfileGetStr(LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR def, LPSTR bu
 }
 short RDK ProfileGetInt(LPCSTR file, LPCSTR sec, LPCSTR key, short def)
 {
-    static char b[12]; WORD i = 0, neg = 0; short v = 0;
-    if (!ProfileGetStr(file, sec, key, "", b, sizeof b)) return def;
+    char *b = mlab; WORD i = 0, neg = 0; short v = 0;
+    if (!ProfileGetStr(file, sec, key, "", b, sizeof mlab)) return def;
     if (b[0] == '-') { neg = 1; i = 1; }
     if (b[i] < '0' || b[i] > '9') return def;
     for (; b[i] >= '0' && b[i] <= '9'; i++) v = v * 10 + (b[i] - '0');
     return neg ? -v : v;
 }
-/* Bytes in pb ab Stelle at durch s ersetzen (del Bytes entfernen) */
+/* Bytes in pb ab Stelle at durch s ersetzen (del Bytes entfernen); passt es nicht: pvoll = 1 */
+static WORD pvoll;
 static int pput(WORD at, WORD del, LPCSTR s1, LPCSTR s2, LPCSTR s3)
 {
     WORD n = 0, i; LPCSTR p;
     for (p = s1; p && *p; p++) n++;
     for (p = s2; p && *p; p++) n++;
     for (p = s3; p && *p; p++) n++;
-    if (pn - del + n > PMAX + 500) return 0;
+    if (pn - del + n > PMAX + 500) { pvoll = 1; return 0; }
     if (n > del) for (i = pn; i > at + del; i--) pb[i - 1 + n - del] = pb[i - 1];
     else if (n < del) for (i = at + del; i < pn; i++) pb[i - del + n] = pb[i];
     pn = pn - del + n;
@@ -342,8 +345,9 @@ static int pput(WORD at, WORD del, LPCSTR s1, LPCSTR s2, LPCSTR s3)
 WORD RDK ProfileSetStr(LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR val)
 {
     static WORD se, v; WORD line, r;
-    if (!pload(file)) return k_lasterr = RD_ERR_NOMEM;
+    if (!pload(file)) return k_lasterr ? k_lasterr : (k_lasterr = RD_ERR_NOMEM);
     if (pbig) { pfree(); return k_lasterr = RD_ERR_FULL; }   /* nie abgeschnitten zurueckschreiben */
+    pvoll = 0;
     line = pfind(sec, key, &se, &v);
     if (line != 0xFFFF) {
         WORD nl = nextl(line);
@@ -360,7 +364,8 @@ WORD RDK ProfileSetStr(LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR val)
             pput(pn, 0, key, "=", val);
             pput(pn, 0, "\r\n", 0, 0);
         }
-    }
+    } else pvoll = 2;                             /* nichts zu loeschen: Datei nicht anfassen */
+    if (pvoll) { pfree(); return pvoll == 1 ? (k_lasterr = RD_ERR_FULL) : 0; }   /* passt nicht: Datei unveraendert */
     r = FileSaveSafe(file, pb, pn);
     pfree();
     return r;
