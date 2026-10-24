@@ -53,13 +53,8 @@ app shell/SHELL.C SHELL.EXE "Shell"
 # RDFORMAT: RD2-Oberflaeche + FreeDOS FORMAT 0.92a (GPL v2); FreeDOS-Dateien mit disk/fdshim.h (DOS ueber RDDISK.MOD)
 FDF="createfs floppy hdisk main savefs bcread prf userint driveio getopt init recordbc uformat msghlpr"
 for f in $FDF; do wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=disk/fdshim.h -dRD2 -dNOCATS -i=disk/fdformat -fo=obj/fdf_$f.obj disk/fdformat/$f.c || exit 1; done
-# FreeDOS SYS 3.6f (GPL v2): Startsektoren FAT12/FAT16 aus boot.asm (NASM), sys.c mit -dRD2 (disk/rdsysw.h)
-mkdir -p obj/boot; for t in 12 16; do nasm -dISFAT$t -i disk/fdsys/ disk/fdsys/boot.asm -o obj/boot/fat${t}com.bin || exit 1
-  python3 -c "import sys; d=open(sys.argv[1],'rb').read(); print('unsigned char %s[] = {' % sys.argv[2]); print(','.join('0x%02X' % c for c in d)); print('};')" obj/boot/fat${t}com.bin fat${t}com > obj/boot/fat${t}com.h; done
-wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=disk/fdshim.h -dRD2 -dFD_SYS -i=$WATCOM/h -i=disk -i=disk/fdsys/hdr -i=obj/boot -fo=obj/fds_sys.obj disk/fdsys/sys.c || exit 1
-FDF_SYS=",obj/fds_sys.obj"
 wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -i=disk $RDF_DEF -fo=obj/RDFORMAT.EXE.obj disk/RDFORMAT.C || exit 1
-wlink option quiet format dos name $O/RDFORMAT.EXE file obj/rd2start.obj,obj/RDFORMAT.EXE.obj$(for f in $FDF; do printf ",obj/fdf_$f.obj"; done)$FDF_SYS library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/RDFORMAT.EXE.map >/dev/null || { echo "RDFORMAT: Linkfehler"; wlink option quiet format dos name $O/RDFORMAT.EXE file obj/rd2start.obj,obj/RDFORMAT.EXE.obj$(for f in $FDF; do printf ",obj/fdf_$f.obj"; done)$FDF_SYS library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs 2>&1 | head -20; exit 1; }
+wlink option quiet format dos name $O/RDFORMAT.EXE file obj/rd2start.obj,obj/RDFORMAT.EXE.obj$(for f in $FDF; do printf ",obj/fdf_$f.obj"; done) library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/RDFORMAT.EXE.map >/dev/null || { echo "RDFORMAT: Linkfehler"; wlink option quiet format dos name $O/RDFORMAT.EXE file obj/rd2start.obj,obj/RDFORMAT.EXE.obj$(for f in $FDF; do printf ",obj/fdf_$f.obj"; done) library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs 2>&1 | head -20; exit 1; }
 python3 tools/rdrc.py disk/RDFORMAT.RC obj/RDFORMAT.res >/dev/null || exit 1; python3 tools/rd2link.py $O/RDFORMAT.EXE "Formatieren" --res obj/RDFORMAT.res >/dev/null
 # Leistungsvergleich RD1 gegen RD2 (test/bench.sh): BENCH2 ueber die RD2-API, BENCH1 mit dem RD1-Renderer aus main
 app bench/BENCH2.C BENCH2.EXE "Bench2"

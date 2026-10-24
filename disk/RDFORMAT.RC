@@ -1,6 +1,6 @@
-; Ressourcen fuer RDFORMAT.EXE (Formatieren, Bootfaehig machen)
+; Ressourcen fuer RDFORMAT.EXE (Formatieren: Disketten und Festplatte)
 SPRACHE DE
-DIALOG 10 "Formatieren" 0 0 200 118
+DIALOG 10 "Formatieren" 0 0 200 106
   STATIC   "Laufwerk"     19   8   6 184 10
   GROUP    "KapazitÑt"    -1   8  18  84 48
   RADIO    "360 KB"       31  14  28  74 10 AN
@@ -9,42 +9,43 @@ DIALOG 10 "Formatieren" 0 0 200 118
   STATIC   "&Bezeichnung:" -1 100  22  92 10
   EDIT                    20 100  34  92 12
   CHECK    "&Schnell (nur Verwaltung)"     21   8  72 184 10
-  CHECK    "S&ystemdateien (bootfÑhig)"    22   8  84 184 10
-  BUTTON   "Start"         1  44 100  50 14 STANDARD
-  BUTTON   "Abbruch"       2 106 100  50 14
+  BUTTON   "Start"         1  44  88  50 14 STANDARD
+  BUTTON   "Abbruch"       2 106  88  50 14
 ENDE
 DIALOG 11 "Formatieren" 0 0 180 56
   STATIC   "0 Prozent formatiert"       40   8   6 164 10
   PROGRESS                41   8  20 164  8
   BUTTON   "Abbruch"       2  65  36  50 14
 ENDE
-DIALOG 12 "BootfÑhig machen" 0 0 180 30
-  STATIC   "Systemdateien werden Åbertragen ..."   42   8  10 164 10
+DIALOG 12 "Festplatte formatieren" 0 0 200 82
+  STATIC   "Laufwerk"     19   8   6 184 10
+  STATIC   "Grî·e"        23   8  18 184 10
+  STATIC   "&Bezeichnung:" -1   8  34  60 10
+  EDIT                    20  70  32 92 12
+  CHECK    "&Schnell (nur Verwaltung)"     21   8  50 184 10
+  BUTTON   "Start"         1  44  64  50 14 STANDARD
+  BUTTON   "Abbruch"       2 106  64  50 14
 ENDE
 TEXTE
   1 "Formatieren"
-  2 "BootfÑhig machen"
   3 "Laufwerk %s:"
   4 "Bitte die Diskette in Laufwerk %s: einlegen.\nAlle Daten darauf werden gelîscht."
   6 "%s Prozent formatiert"
   7 "Fertig.\n%s KB frei, %s KB defekt."
   8 "Die Diskette ist schreibgeschÅtzt."
   9 "Laufwerk %s: ist nicht bereit."
-  14 "Formatieren geht nur bei Diskettenlaufwerken."
+  14 "Formatieren geht nur bei Disketten und Festplatten."
   15 "RDDISK.MOD fehlt."
   18 "Abgebrochen. Die Diskette ist nur teilweise formatiert."
   22 "Festplatte %s: formatieren?\nAlle Daten gehen verloren."
   23 "FORMAT meldet einen Fehler:\n%s"
-  24 "Laufwerk %s: bootfÑhig machen?\nFreeDOS-Kern und Startsektor werden geschrieben."
-  26 "KERNEL.SYS fehlt auf Laufwerk %s.\nDie Diskette lÑsst sich nicht bootfÑhig machen."
-  27 "In Laufwerk %s: liegt die RD2-Diskette.\nBitte ein anderes Laufwerk wÑhlen."
-  28 "Fertig. Die Diskette in Laufwerk %s: ist bootfÑhig."
-  29 "SYS meldet einen Fehler:\n%s"
-  30 "Fertig, die Diskette ist bootfÑhig.\n%s KB frei, %s KB defekt."
   25 "Fehler beim Diskzugriff (BIOS-Status %s)."
+  31 "Auf Laufwerk %s: liegt RD2 selbst.\nDieses Laufwerk lÑsst sich nicht formatieren."
+  32 "Grî·e: %s"
+  33 "Abgebrochen. Die Festplatte ist nur teilweise formatiert."
 ENDE
 SPRACHE EN
-DIALOG 10 "Format" 0 0 200 118
+DIALOG 10 "Format" 0 0 200 106
   STATIC   "Drive"        19   8   6 184 10
   GROUP    "Capacity"     -1   8  18  84 48
   RADIO    "360 KB"       31  14  28  74 10 AN
@@ -53,37 +54,38 @@ DIALOG 10 "Format" 0 0 200 118
   STATIC   "&Label:"      -1 100  22  92 10
   EDIT                    20 100  34  92 12
   CHECK    "&Quick (system area only)"     21   8  72 184 10
-  CHECK    "S&ystem files (bootable)"      22   8  84 184 10
-  BUTTON   "Start"         1  44 100  50 14 STANDARD
-  BUTTON   "Cancel"        2 106 100  50 14
+  BUTTON   "Start"         1  44  88  50 14 STANDARD
+  BUTTON   "Cancel"        2 106  88  50 14
 ENDE
 DIALOG 11 "Format" 0 0 180 56
   STATIC   "0 percent formatted"      40   8   6 164 10
   PROGRESS                41   8  20 164  8
   BUTTON   "Cancel"        2  65  36  50 14
 ENDE
-DIALOG 12 "Make bootable" 0 0 180 30
-  STATIC   "Transferring system files ..."   42   8  10 164 10
+DIALOG 12 "Format hard disk" 0 0 200 82
+  STATIC   "Drive"        19   8   6 184 10
+  STATIC   "Size"         23   8  18 184 10
+  STATIC   "&Label:"      -1   8  34  60 10
+  EDIT                    20  70  32 92 12
+  CHECK    "&Quick (system area only)"     21   8  50 184 10
+  BUTTON   "Start"         1  44  64  50 14 STANDARD
+  BUTTON   "Cancel"        2 106  64  50 14
 ENDE
 TEXTE
   1 "Format"
-  2 "Make bootable"
   3 "Drive %s:"
   4 "Please insert the disk into drive %s:.\nAll data on it will be erased."
   6 "%s percent formatted"
   7 "Done.\n%s KB free, %s KB bad."
   8 "The disk is write-protected."
   9 "Drive %s: is not ready."
-  14 "Only floppy drives can be formatted."
+  14 "Only floppy and hard disks can be formatted."
   15 "RDDISK.MOD is missing."
   18 "Cancelled. The disk is only partly formatted."
   22 "Format hard disk %s:?\nAll data will be lost."
   23 "FORMAT reports an error:\n%s"
-  24 "Make drive %s: bootable?\nThe FreeDOS kernel and boot sector will be written."
-  26 "KERNEL.SYS is missing on drive %s.\nThe disk cannot be made bootable."
-  27 "Drive %s: holds the RD2 disk.\nPlease choose another drive."
-  28 "Done. The disk in drive %s: is bootable."
-  29 "SYS reports an error:\n%s"
-  30 "Done, the disk is bootable.\n%s KB free, %s KB bad."
   25 "Disk access error (BIOS status %s)."
+  31 "RD2 itself is on drive %s:.\nThis drive cannot be formatted."
+  32 "Size: %s"
+  33 "Cancelled. The hard disk is only partly formatted."
 ENDE

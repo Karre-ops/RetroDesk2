@@ -46,8 +46,7 @@ static WORD erlaubt(WORD nr, WORD ax)
     case 0x0D: case 0x19: case 0x2A: case 0x2C: case 0x30: case 0x32: case 0x36: case 0x44: case 0x59: return 1;
     case 0x33: return al == 0x06;                 /* echte DOS-Version */
     case 0x38: return al == 0x00;                 /* Laenderinfo lesen (Tausenderpunkt) */
-    case 0x57: return al <= 0x01;                 /* SYS: Dateizeit lesen/setzen (Griff vom RD2-Kern) */
-    case 0x60: return 1;                          /* SYS: vollstaendiger Pfad (nur Lesen) */
+    case 0x60: return 1;                          /* vollstaendiger Pfad (FORMAT prueft SUBST/Netz bei Festplatten) */
     case 0x35: case 0x25: return al == 0x1E;      /* nur Diskettentabelle (INT 1Eh) */
     case 0x73: return 1;                          /* FAT32-Funktionen (DOS 7), sonst Fehler von DOS */
     }
@@ -60,7 +59,8 @@ static WORD RDEXPORT d_Int(WORD nr, union REGS FAR *ein, union REGS FAR *aus, st
     unsigned long e;
     r = *ein; sr = *s;
     if (!erlaubt(nr, r.x.ax)) {
-        DbgPrint("RDDISK: Aufruf abgelehnt");
+        { static char m[] = "RDDISK: Aufruf abgelehnt INT xx AX xxxx"; static const char h[] = "0123456789ABCDEF"; WORD v = r.x.ax;
+          m[29] = h[nr >> 4 & 15]; m[30] = h[nr & 15]; m[35] = h[v >> 12]; m[36] = h[v >> 8 & 15]; m[37] = h[v >> 4 & 15]; m[38] = h[v & 15]; DbgPrint(m); }
         r.x.ax = 1; r.x.cflag = 1; *aus = r; return 1;
     }
     if (nr == 0x25 || nr == 0x26) {

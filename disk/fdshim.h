@@ -26,9 +26,5 @@ int  rd_isatty(int fd);
 #define system(c)           rd_system(c)
 #define write(f, b, n)      rd_write(f, b, n)       /* nur Bildschirm (1, 2): ins Protokoll */
 #define isatty(f)           rd_isatty(f)
-#ifdef FD_SYS
-#define main                sys_main           /* FreeDOS SYS */
-#else
-#define main                fd_main            /* FreeDOS FORMAT */
-#endif
+#define main                fd_main
 #endif

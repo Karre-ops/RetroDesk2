@@ -167,17 +167,16 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 - Teil 2: Kopieren (F5), Verschieben (F6, auf demselben Laufwerk per Umbenennen), Umbenennen (F2), Neuer Ordner (F7), Löschen (Entf/F8), jeweils auch ganze Ordner. Markieren mit Einfg oder Strg+Klick, rechte Maustaste öffnet das Menü "Datei". Kopierziel vorgeschlagen: zuletzt aktives anderes Ordnerfenster. Rückfrage beim Ersetzen; Kopie in denselben Ordner oder Ordner in sich selbst wird abgelehnt. Test `test/desk2.sh`.
 - Teil 3: **Ziehen mit der Maus** auf ein Ordnerfenster, einen Ordner darin, `..` oder ein Laufwerk. Gleiches Laufwerk = Verschieben, anderes = Kopieren; Strg erzwingt Kopieren, Umschalt Verschieben. Der Zeiger wird beim Ziehen zur Hand (ab 5 Pixel Weg). Ein Klick ohne Strg auf einen nicht markierten Eintrag hebt die Markierungen auf.
 - **Laufwerksmenü** (Rechtsklick auf ein Laufwerk): Öffnen, Eigenschaften (auch Alt+Eingabe: Name, Gesamt, Frei), Formatieren (grau, bis `RDDISK.MOD` da ist). `MenuPopup` ignoriert das Loslassen der Taste, die das Menü geöffnet hat, solange die Maus nicht bewegt wurde (sonst würde sofort der erste Eintrag gewählt). Test `test/desk3.sh` (PS/2-Maus mit CTMOUSE).
-- Laufwerksmenü: „Formatieren...“ und „Bootfähig machen...“ starten `RDFORMAT.EXE A:` bzw. `RDFORMAT.EXE A: /SYS` (aktiv, wenn RDFORMAT.EXE im RD2-Verzeichnis liegt und das Laufwerk ein Diskettenlaufwerk ist).
+- Laufwerksmenü: „Formatieren...“ startet `RDFORMAT.EXE A:` (aktiv, wenn RDFORMAT.EXE im RD2-Verzeichnis liegt und das Laufwerk eine Diskette oder Festplatte ist). „Bootfähig machen“ entfällt (Karsten, 24.10.2026: keine DOS-Bootdisketten; wenn, dann neue RD2-Disketten als vollständige Kopie).
 - Folgt: Listenansicht, `.APP`-Programmliste, Zustand in `RD2.STA`.
 
-### Formatieren und Bootfähig machen (Beschluss 24.10.2026)
+### Formatieren (Beschluss 24.10.2026)
 
-`RDFORMAT.EXE` (Diskette 2, GPL v2) = FreeDOS FORMAT 0.92a und FreeDOS SYS als Kern, mit RD2-Oberfläche. Quellen unverändert in `disk/fdformat` und `disk/fdsys` (Herkunft in `HERKUNFT.txt`), Anpassungen in eigenen Commits.
+`RDFORMAT.EXE` (Diskette 2, GPL v2) = FreeDOS FORMAT 0.92a als Kern, mit RD2-Oberfläche. Quellen unverändert in `disk/fdformat` (Herkunft in `HERKUNFT.txt`), Anpassungen in eigenen Commits.
 - Übernommen: Formatieren (createfs, floppy, hdisk, uformat, savefs, recordbc, bcread, driveio, init), Disketten und Festplatte (FAT12/FAT16), Prüfen, defekte Cluster, Schnellformat mit Wiederherstellungsdaten, SYS mit FreeDOS-Bootsektor (aus `boot.asm`, mit NASM gebaut).
 - Ersetzt: Textausgabe und Rückfragen (`userint.c`, `main.c`, `prf.c`, kitten) durch RD2-Dialoge: Einstellungen, Rückfrage, Fortschrittsbalken (`Display_Percentage_Formatted`), Fehlermeldung (`Critical_Error_Handler`, `Exit` springt zurück in die Oberfläche).
 - DOS- und BIOS-Zugriffe (INT 13h, INT 21h IOCTL 44xxh, INT 25h/26h) laufen über `RDDISK.MOD` (RD2-Programme rufen DOS nie direkt auf).
-- **Bootfähig machen (FreeDOS SYS 3.6f, 24.10.2026):** `RDFORMAT A: /SYS` fragt nach und überträgt dann, oder im Formatieren-Dialog der Haken „Systemdateien“ (nach dem Formatieren). Quelle ist das Startlaufwerk von RD2 (`SYSINFO.home`): `KERNEL.SYS` aus dem Hauptverzeichnis, `COMMAND.COM` nur wenn vorhanden (sonst wie `SYS /UPDATE`: Kern und Startsektor). Startsektor FAT12/FAT16 aus `boot.asm` (NASM beim Bauen), ohne FAT32 und OEM-Startsektoren. Nicht möglich (Haken grau, Meldung), wenn `KERNEL.SYS` fehlt oder das Ziel das RD2-Laufwerk ist. Dateien über den RD2-Kern (`disk/rdsysw.h`), Laufwerk über `RDDISK.MOD` (dazu INT 21h 57h Dateizeit und 60h Pfad). Test `test/sys.sh`: Ziel-Diskette startet danach allein (FreeDOS-Kern, COMMAND.COM, AUTOEXEC).
-- FORMAT-Spurpuffer unter RD2 18 statt 21 Sektoren (bis 1,44 MB eine Spur in einem Zug), SYS benutzt ihn als Kopierpuffer: so passen FORMAT und SYS in eine DGROUP.
+- **Festplatte (24.10.2026):** `RDFORMAT C:` zeigt Laufwerk und Größe, Bezeichnung und „Schnell“ (Vorgabe an: sicheres Schnellformat mit UNFORMAT-Daten, aus = `/U` mit Prüfung aller Sektoren). FreeDOS fragt vor dem Löschen nach (Text 22). Das Laufwerk, auf dem RD2 liegt (`SYSINFO.home`), lässt sich nicht formatieren. FAT12/FAT16 bis 2 GB, FAT32 nur unter DOS 7. Dazu erlaubt `RDDISK.MOD` INT 21h 60h (vollständiger Pfad, FORMAT prüft SUBST/Netz). Test `test/hdd.sh` (20-MB-Platte, FAT16): schnell, voll mit Bezeichnung, Nein bei der Rückfrage, RD2-Laufwerk.
 - RD2SETUP benutzt denselben Kern für die Festplatte.
 - Der eigene Formatier-Code aus RD1 (RDFMT) entfällt, sobald der FreeDOS-Kern läuft.
 
@@ -320,7 +319,7 @@ Siehe `tools/budget.txt`. Ab Phase 1 prüft der Build jede Datei und rechnet jed
 | Diskette | Name | Inhalt | Grenze |
 |---|---|---|---|
 | 1 | `RD2SYSTEM` | bootfähig: FreeDOS-Kern (8086-Fassung, GPL) oder eigenes DOS per `SYS A:`, CTMOUSE, Kern, RDGDI/X, RDKX, RDUSER, RDCTL/X, RDSND, Grafiktreiber CGA/HGC/VGA, Lautsprecher, Schriften, Sprachen, RD2SETUP, SHELL (Desktop, Dateimanager), Start der Installation, `COPYING`, `LIZENZ.TXT` | höchstens 300 KB, damit ≥ 50 KB für `RD2.INI`, `RD2.STA` und Daten frei bleiben |
-| 2 | `RD2 PROG` | Werkzeuge (RDFDISK, RDFORMAT, RDSYS, RDDISK.MOD), Zubehör (Uhr, Notizblock, Rechner), RDCALC, RDEDIT, weitere Treiber (AdLib, Drucker), `COPYING` | 354 KB |
+| 2 | `RD2 PROG` | Werkzeuge (RDFDISK, RDFORMAT, RDDISK.MOD), Zubehör (Uhr, Notizblock, Rechner), RDCALC, RDEDIT, weitere Treiber (AdLib, Drucker), `COPYING` | 354 KB |
 | 3 | `RD2 NETZ` | RDNET, FTP, IRC, SNTP, weiteres | 354 KB |
 | 4 | `RD2 EXTRA` | SDK (Kopfdateien, RD2.LIB, Werkzeuge), Quelltext der GPL-Teile, weiteres | 354 KB |
 

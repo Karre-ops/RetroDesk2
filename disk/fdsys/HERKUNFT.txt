@@ -1,7 +1,0 @@
-FreeDOS SYS (sys/sys.c, sys/talloc.c), Bootsektor boot/boot.asm und Kopfdateien hdr/ aus dem FreeDOS-Kern,
-Quelle: https://github.com/FDOS/kernel (Stand d6791ad, 01.07.2026). Lizenz: GNU GPL Version 2 (COPYING).
-Stand 24.10.2026 unveraendert uebernommen. Anpassungen fuer RD2 folgen in eigenen Commits.
-Nachtraeglich aus derselben Quelle: hdr/dsk.h (von hdr/device.h eingebunden), unveraendert.
-Anpassungen fuer RD2 (24.10.2026, alle hinter #ifdef RD2): sys.c ohne FDCONFIG, Dateien/Speicher ueber
-disk/rdsysw.h (RD2-Kern), Laufwerk ueber die int86x-Fassungen statt Watcom-Inline-Assembler (RDDISK.MOD),
-Kopierpuffer = huge_sector_buffer_0 von FORMAT. Startsektoren fat12com/fat16com baut build.sh mit NASM aus boot.asm.

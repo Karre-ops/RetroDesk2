@@ -24,13 +24,8 @@ typedef unsigned short __uint16;
 /* Buffers */
 DIOEXTERN unsigned char sector_buffer_0[512];
 DIOEXTERN unsigned char sector_buffer_1[512];
-#ifdef RD2
-#define HUGE_SEKTOREN 18 /* RD2: bis 1,44 MB je Spur in einem Zug (spart 3 KB DGROUP fuer SYS) */
-#else
-#define HUGE_SEKTOREN 21
-#endif
-DIOEXTERN unsigned char huge_sector_buffer_0[(512*HUGE_SEKTOREN)]; /* old: 512*32 */
-DIOEXTERN unsigned char huge_sector_buffer_1[(512*HUGE_SEKTOREN)]; /* old: 512*32 */
+DIOEXTERN unsigned char huge_sector_buffer_0[(512*21)]; /* old: 512*32 */
+DIOEXTERN unsigned char huge_sector_buffer_1[(512*21)]; /* old: 512*32 */
 /* only uformat.c uses huge_sector_buffer at all (for fill with 0xf6), */
 /* so huge_sector_buffer does NOT have to be one track big!            */
 
