@@ -35,6 +35,7 @@ TEXTE
   21 "RDDISK.MOD fehlt."
   22 "Bitte eine Zahl von 1 bis %s eingeben."
   23 "Es l„uft schon ein RDFDISK."
+  24 "Es l„uft gerade eine Formatierung.\nBitte warten, bis sie fertig ist."
 ENDE
 SPRACHE EN
 DIALOG 10 "Set up hard disk" 0 0 236 136
@@ -72,4 +73,5 @@ TEXTE
   21 "RDDISK.MOD is missing."
   22 "Please enter a number from 1 to %s."
   23 "RDFDISK is already running."
+  24 "A format is running.\nPlease wait until it has finished."
 ENDE

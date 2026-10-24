@@ -460,7 +460,7 @@ static void installieren(void)
                : i == -1 ? "CONFIG.SYS ueber 6 KB: nicht geaendert." : !i ? "CONFIG.SYS: FEHLER"
                : i == 1 ? "CONFIG.SYS: RD2 ist die Shell, alte Fassung: CONFIG.RDA." : "CONFIG.SYS angelegt, RD2 ist die Shell.");
     if (i == 1 && k) zeile(y + 3, "Hinweis: SET- und PATH-Zeilen der AUTOEXEC.BAT gelten mit RD2 als Shell nicht.");
-    if (ziel[0] >= 'C' && i != -2) startfaehig(ziel[0], y + 4);
+    if ((ziel[0] & 0xDF) == 'C' && i != -2) startfaehig('C', y + 4);   /* G24: nur C: startet (aktive Partition der 1. Platte) */
     strcpy(ini, nach);
 }
 

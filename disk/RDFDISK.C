@@ -176,18 +176,19 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
     return FALSE;
 }
 
+static BOOL laeuft(const char *n)                 /* laeuft ein anderes Programm mit diesem Namen? */
+{
+    TASKINFO ti; HTASK h, ich = TaskSelf(); WORD k;
+    for (h = TaskFirst(&ti); h; h = TaskNext(h, &ti)) { for (k = 0; n[k] && ti.name[k] == n[k]; k++) ; if (h != ich && !n[k] && !ti.name[k]) return TRUE; }
+    return FALSE;
+}
 short RDAPI RdMain(HINST i, LPCSTR cl, WORD show)
 {
     SYSINFO si; short e; char a[8];
     (void)show; (void)cl;
     inst = i;
-    {   /* nur ein RDFDISK zugleich */
-        TASKINFO ti; HTASK h, ich = TaskSelf(); WORD k; static const char n[] = "Festplatte";
-        for (h = TaskFirst(&ti); h; h = TaskNext(h, &ti)) {
-            for (k = 0; n[k] && ti.name[k] == n[k]; k++) ;
-            if (h != ich && !n[k] && !ti.name[k]) { frage(0, 23, 0, MB_OK | MB_WARN); return 1; }
-        }
-    }
+    if (laeuft("Festplatte")) { frage(0, 23, 0, MB_OK | MB_WARN); return 1; }   /* nur ein RDFDISK zugleich */
+    if (laeuft("Formatieren")) { frage(0, 24, 0, MB_OK | MB_WARN); return 1; }  /* G23: nicht neben RDFORMAT */
     KernInfo(&si);
     heim = (char)(si.home[0] & 0xDF); if (heim < 'C' || heim > 'Z') heim = 0;
     if (!(hm = ModLoad("RDDISK.MOD"))) { frage(0, 21, 0, MB_OK | MB_ERROR); return 1; }

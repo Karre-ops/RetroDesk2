@@ -185,24 +185,25 @@ static BOOL RDCALLBACK hproc(HWND d, WORD msg, WORD p1, DWORD p2)    /* Einstell
     return FALSE;
 }
 
+static BOOL laeuft(const char *n)                 /* laeuft ein anderes Programm mit diesem Namen? */
+{
+    TASKINFO ti; HTASK h, ich = TaskSelf(); WORD k;
+    for (h = TaskFirst(&ti); h; h = TaskNext(h, &ti)) { for (k = 0; n[k] && ti.name[k] == n[k]; k++) ; if (h != ich && !n[k] && !ti.name[k]) return TRUE; }
+    return FALSE;
+}
 short RDAPI RdMain(HINST i, LPCSTR cl, WORD show)
 {
     WORD k, t; short e; DRIVEINFO di; SYSINFO si; char a[12], b[12];
     (void)show;
     inst = i;
-    {   /* nur ein RDFORMAT zugleich (sonst zwei Formatierungen auf demselben Laufwerk) */
-        TASKINFO ti; HTASK h, ich = TaskSelf(); static const char n[] = "Formatieren";
-        for (h = TaskFirst(&ti); h; h = TaskNext(h, &ti)) {
-            for (k = 0; n[k] && ti.name[k] == n[k]; k++) ;
-            if (h != ich && !n[k] && !ti.name[k]) { frage(34, 0, MB_OK | MB_WARN); return 1; }
-        }
-    }
+    if (laeuft("Formatieren")) { frage(34, 0, MB_OK | MB_WARN); return 1; }   /* sonst zwei Formatierungen auf demselben Laufwerk */
     while (*cl == ' ') cl++;
     if (!*cl) { DbgPrint("RDFORMAT: kein Laufwerk"); return 1; }
     lwbuch[0] = (char)(cl[0] >= 'a' ? cl[0] - 32 : cl[0]); lwbuch[1] = 0;
     doslw = (WORD)(lwbuch[0] - 'A' + 1);
     if (DriveInfo(doslw | DI_NURTYP, &di) || (di.typ != DT_FLOPPY && di.typ != DT_HARD)) { frage(14, 0, MB_OK | MB_ERROR); return 1; }
     hdd = di.typ == DT_HARD;
+    if (hdd && laeuft("Festplatte")) { frage(35, 0, MB_OK | MB_WARN); return 1; }   /* G23: Partitionen aendern sich gerade */
     if (!hdd && (di.flags & DI_PHANTOM)) { doslw = 1; lwbuch[0] = 'A'; }
     KernInfo(&si);
     if ((si.home[0] & 0xDF) == lwbuch[0]) { frage(31, lwbuch, MB_OK | MB_ERROR); return 1; }   /* RD2 laeuft von dort */

@@ -44,6 +44,7 @@ TEXTE
   32 "Gr”áe: %s"
   33 "Abgebrochen. Die Festplatte ist nur teilweise formatiert."
   34 "Es l„uft schon eine Formatierung.\nBitte warten, bis sie fertig ist."
+  35 "RDFDISK l„uft gerade.\nErst Partitionen schreiben und neu starten,\ndann formatieren."
 ENDE
 SPRACHE EN
 DIALOG 10 "Format" 0 0 200 106
@@ -90,4 +91,5 @@ TEXTE
   32 "Size: %s"
   33 "Cancelled. The hard disk is only partly formatted."
   34 "A format is already running.\nPlease wait until it has finished."
+  35 "RDFDISK is running.\nWrite the partitions and restart first,\nthen format."
 ENDE
