@@ -16,4 +16,5 @@ TEXTE
   13 "The file already exists. Replace it?"
   14 "File not found."
   15 "File &type:"
+  16 "The path is too long."
 ENDE

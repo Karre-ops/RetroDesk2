@@ -1,4 +1,4 @@
-/* fdshim.h - wird vor jede FreeDOS-Datei (FORMAT, SYS) gesetzt (wcc -fi=disk/fdshim.h).
+/* fdshim.h - wird vor jede FreeDOS-Datei (FORMAT, FDISK) gesetzt (wcc -fi=disk/fdshim.h).
  * Leitet DOS-/BIOS-Aufrufe ueber RDDISK.MOD, Textausgabe ins Protokoll, exit() zurueck in die
  * RD2-Oberflaeche. Der FreeDOS-Quelltext bleibt dadurch fast unveraendert. */
 #ifndef FDSHIM_H
@@ -17,6 +17,7 @@ int  rd_putch(int c);
 int  rd_system(const char *cmd);
 int  rd_write(int fd, const void *b, unsigned n);
 int  rd_isatty(int fd);
+void rd_intr(int nr, union REGPACK *r);          /* FDISK: intr() ueber RDDISK.MOD */
 #define int86(n, i, o)      rd_int86x(n, i, o, (struct SREGS *)0)
 #define int86x(n, i, o, s)  rd_int86x(n, i, o, s)
 #define intdos(i, o)        rd_int86x(0x21, i, o, (struct SREGS *)0)
@@ -26,5 +27,6 @@ int  rd_isatty(int fd);
 #define system(c)           rd_system(c)
 #define write(f, b, n)      rd_write(f, b, n)       /* nur Bildschirm (1, 2): ins Protokoll */
 #define isatty(f)           rd_isatty(f)
+#define intr(n, r)          rd_intr(n, r)
 #define main                fd_main
 #endif

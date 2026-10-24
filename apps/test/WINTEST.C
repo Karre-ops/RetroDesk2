@@ -39,7 +39,8 @@ static DWORD RDCALLBACK proc(HWND w, WORD msg, WORD p1, DWORD p2)
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
     WNDCLASS wc; RECT ra, rb, rc; POINT p; DWORD t0; MSG m; HDC d; short y0;
-    (void)cmd; (void)show;
+    (void)show;
+    if (cmd && cmd[0] == 'L') { GetDC(0); for (;;) TaskYield(); }   /* Kind fuer M12: DC offen lassen, wird beendet */
     wc.name = "TestFenster"; wc.proc = proc; wc.stil = 0; wc.daten = 0; wc.inst = inst; wc.symbol = 0; wc.hinter = RD_DEFAULT;
     ok(RegisterClass(&wc) != 0, "WINTEST: RegisterClass");
     d = GetDC(0); W = GetCaps(d, CAPS_W); H = GetCaps(d, CAPS_H); ReleaseDC(0, d);
@@ -80,6 +81,16 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     PostMessage(b, M_CLOSE, 0, 0); pumpen();
     ok(!IsWindow(b) && GetActive() == a, "WINTEST: M_CLOSE schliesst B, A bleibt aktiv");
     ok(MsgRegister("RD_WIN") >= 0xC000 && MsgRegister("rd_win") == MsgRegister("RD_WIN"), "WINTEST: MsgRegister");
+    {   /* M12: 25 Programme mit offenem DC notbeenden (mehr als die 24 DCs von RDGDI), danach muss GetDC noch gehen */
+        WORD k, y; HTASK t;
+        for (k = 0; k < 25; k++) {
+            if ((t = TaskExec("WINTEST.EXE", "L", SW_SHOW)) != 0) { for (y = 0; y < 30; y++) TaskYield(); TaskKill(t, 1); }
+            for (y = 0; y < 10; y++) TaskYield();
+        }
+        d = GetDC(a);
+        ok(d != 0, "WINTEST: nach 25 beendeten Programmen mit offenem DC geht GetDC noch");
+        if (d) ReleaseDC(a, d);
+    }
     DestroyWindow(a);
     ok(!IsWindow(a) && !IsWindow(kind) && !GetActive(), "WINTEST: DestroyWindow samt Kind");
     DbgHex("WINTEST: Fehler", fehler);

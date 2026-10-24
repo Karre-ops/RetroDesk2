@@ -10,6 +10,7 @@
  * erkannt und als MausHW= gespeichert, fuer den eigenen Treiber MAUS.DRV. */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <dos.h>
 #include <conio.h>
 #include <direct.h>
@@ -247,6 +248,7 @@ static int ini_schreiben(const char *datei)
     char zeile_[80];
     memset(done, 0, sizeof done);
     if ((f = fopen(datei, "rb")) != NULL) { n = fread(buf, 1, sizeof buf - 1, f); fclose(f); }
+    if (n == sizeof buf - 1) return -1;           /* zu gross: nicht kuerzen, nicht schreiben */
     buf[n] = 0;
     #define AUS(s) do { size_t l_ = strlen(s); if (o + l_ < sizeof neu) { memcpy(neu + o, s, l_); o += l_; } } while (0)
     #define REST() do { for (i = 0; i < NP; i++) if (!done[i]) { sprintf(zeile_, "%s=%s\r\n", p[i].key, p[i].wert[p[i].v]); AUS(zeile_); done[i] = 1; } \
@@ -312,30 +314,113 @@ static int eingabe(int x, int y, char *s, int max)
     }
 }
 static char boot(void) { r.x.ax = 0x3305; intdos(&r, &r); return (char)(dosv >= 0x0400 && r.h.dl ? 'A' - 1 + r.h.dl : 'C'); }
-static int autoexec(const char *ziel)            /* AUTOEXEC.BAT des Ziellaufwerks (von dort bootet der Rechner kuenftig) */
+static int gibts(const char *d) { unsigned a; return !_dos_getfileattr(d, &a) && !(a & _A_SUBDIR); }
+static size_t lesen(const char *d)                /* ganze Datei nach buf, sizeof buf - 1 = zu gross */
 {
-    char ae[16], rda[16], z[100]; FILE *f; size_t n = 0;
-    sprintf(ae, "%c:\\AUTOEXEC.BAT", ziel[0]); sprintf(rda, "%c:\\AUTOEXEC.RDA", ziel[0]);
-    sprintf(z, "%sRD.EXE", ziel);
-    if ((f = fopen(ae, "rb")) != NULL) { n = fread(buf, 1, sizeof buf - 1, f); fclose(f); }
-    buf[n] = 0; strupr(buf);
-    if (strstr(buf, z)) return 2;                 /* schon eingetragen */
-    if (n) kopieren(ae, rda);
-    if ((f = fopen(ae, "ab")) == NULL) return 0;
-    if (n && buf[n - 1] != '\n') fputs("\r\n", f);
-    fprintf(f, "REM RetroDesk 2\r\n%s\r\n", z);
-    return fclose(f) == 0;
+    FILE *f; size_t n = 0;
+    if ((f = fopen(d, "rb")) != NULL) { n = fread(buf, 1, sizeof buf - 1, f); fclose(f); }
+    buf[n] = 0; return n;
+}
+static int finden(const char *w, char *aus, char lw)   /* Programm mit vollem Pfad: direkt, im Wurzelverzeichnis, im PATH */
+{
+    static const char *ext[] = { "", ".COM", ".EXE" }; const char *pa = getenv("PATH"); char d[64]; int i, l, pf = strchr(w, '\\') || strchr(w, ':');
+    sprintf(d, "%c:", lw);
+    for (;;) {
+        for (i = 0; i < 3 && !(i && strchr(w, '.')); i++) {
+            if (!pf) sprintf(aus, "%s\\%s%s", d, w, ext[i]);
+            else if (w[1] == ':') sprintf(aus, "%s%s", w, ext[i]); else sprintf(aus, "%c:%s%s", lw, w, ext[i]);
+            if (gibts(aus)) { strupr(aus); return 1; }
+        }
+        if (pf || !pa || !*pa) return 0;
+        l = (int)strcspn(pa, ";"); if (l > 60) l = 60;
+        memcpy(d, pa, l); d[l] = 0; if (l && d[l - 1] == '\\') d[l - 1] = 0;
+        pa += l; if (*pa) pa++;
+    }
+}
+static WORD janein(int y, const char *frage) { WORD t; zeile(y, frage); t = taste() & 0xFF; return t == 'j' || t == 'J' || t == 'y' || t == 'Y'; }
+static const char *nicht[] = { "REM", "ECHO", "SET", "PATH", "PROMPT", "CLS", "GOTO", "IF", "CALL", "PAUSE", "FOR", "SHIFT",
+                               "VER", "CD", "CHDIR", "COMMAND", "WIN", "DOSSHELL", "EXIT", 0 };
+/* G21: RD.EXE als Shell (SHELL= in CONFIG.SYS). Ohne CONFIG.SYS und AUTOEXEC.BAT (neues System) ohne Rueckfrage,
+   sonst Sicherung CONFIG.RDA und Rueckfrage je Programmzeile der AUTOEXEC.BAT (wird als INSTALL= uebernommen).
+   Rueckgabe: 1 geaendert (Sicherung CONFIG.RDA), 3 neu angelegt, 2 schon eingetragen, 0 Fehler, -1 Datei zu gross, -2 abgelehnt */
+static int shell_eintragen(const char *ziel, int y, int *verloren)
+{
+    char cs[16], z[96], w[64], pf[80]; size_t n, o = 0, m; char *a, *e, *q; int alt, i, mausda = 0; FILE *f;
+    sprintf(cs, "%c:\\CONFIG.SYS", ziel[0]); sprintf(z, "%c:\\AUTOEXEC.BAT", ziel[0]);
+    alt = gibts(cs) || gibts(z); *verloren = 0;
+    n = lesen(cs); if (n == sizeof buf - 1) return -1;
+    strcpy(neu, buf); strupr(neu); sprintf(z, "%sRD.EXE", ziel);
+    if (strstr(neu, z)) return 2;
+    if (alt && !janein(y, "RD2 als Shell in CONFIG.SYS eintragen (J/N)?")) return -2;
+    if (n) { sprintf(z, "%c:\\CONFIG.RDA", ziel[0]); if (!kopieren(cs, z)) return 0; lesen(cs); }
+    #define NEU(t) do { m = strlen(t); if (o + m >= sizeof neu) return -1; memcpy(neu + o, t, m); o += m; } while (0)
+    for (a = buf; *a; a = e) {                    /* alte SHELL=-Zeile bleibt als REM stehen */
+        char c;
+        for (e = a; *e && *e != '\n'; e++) ;
+        if (*e) e++;
+        for (q = a; *q == ' ' || *q == '\t'; q++) ;
+        if (!strnicmp(q, "SHELL", 5) && (q[5] == '=' || q[5] == ' ')) NEU("REM ");
+        c = *e; *e = 0; NEU(a); *e = c;
+    }
+    if (o && neu[o - 1] != '\n') NEU("\r\n");
+    sprintf(z, "SHELL=%sRD.EXE /P\r\n", ziel); NEU(z);
+    if (alt) {                                    /* Programme aus AUTOEXEC.BAT uebernehmen? */
+        sprintf(z, "%c:\\AUTOEXEC.BAT", ziel[0]); n = lesen(z);
+        for (a = buf; *a; a = e) {
+            for (e = a; *e && *e != '\n'; e++) ;
+            q = a; if (*e) *e++ = 0;
+            q[strcspn(q, "\r")] = 0;
+            while (*q == ' ' || *q == '\t' || *q == '@') q++;
+            if (!*q || *q == ':' || *q == ';') continue;
+            for (i = 0; i < 2; i++) {               /* LH / LOADHIGH samt /L:-Schaltern ueberspringen */
+                if (!strnicmp(q, "LH ", 3)) q += 3; else if (!strnicmp(q, "LOADHIGH ", 9)) q += 9; else break;
+                while (*q == ' ' || *q == '/') { if (*q == '/') q += strcspn(q, " "); else q++; }
+            }
+            m = strcspn(q, " \t="); if (!m || m >= sizeof w) continue;
+            memcpy(w, q, m); w[m] = 0; strupr(w);
+            for (i = 0; nicht[i] && stricmp(w, nicht[i]); i++) ;
+            if (nicht[i]) { if (i == 3 || i == 2) *verloren = 1; continue; }   /* SET/PATH gelten ohne COMMAND.COM nicht */
+            if (strstr(w, "RD.EXE") || strstr(w, "RD2SETUP")) continue;
+            if (!finden(w, pf, ziel[0])) continue;
+            sprintf(z, "Uebernehmen (J/N)? %.58s", q);
+            if (!janein(y, z)) continue;
+            if (strstr(pf, "MOUSE")) mausda = 1;
+            sprintf(z, "INSTALL=%s%.60s\r\n", pf, q + m); NEU(z);
+        }
+    }
+    if (!mausda) {                                /* Maustreiber: CTMOUSE fuer seriell/PS2, sonst Herstellertreiber */
+        sprintf(pf, "%sCTMOUSE.EXE", ziel);
+        if ((!strncmp(mauswert, "SERIELL", 7) || !strcmp(mauswert, "PS2") || (!alt && !strcmp(mauswert, "DOS"))) && gibts(pf)) {
+            sprintf(z, "INSTALL=%s\r\n", pf); NEU(z);
+        } else if (!alt && (!strncmp(mauswert, "BUS", 3) || !strncmp(mauswert, "INPORT", 6))) {
+            w[0] = 0; zeile(y, "Treiber fuer die Busmaus (z.B. A:\\MOUSE.COM, leer = keiner):");
+            if (eingabe(62, y, w, 17) && gibts(w)) {
+                q = strrchr(w, '\\'); q = q ? q + 1 : (w[1] == ':' ? w + 2 : w);
+                sprintf(pf, "%s%s", ziel, q);
+                if (kopieren(w, pf)) { sprintf(z, "INSTALL=%s\r\n", pf); NEU(z); }
+            }
+        }
+    }
+    if ((f = fopen(cs, "wb")) == NULL) return 0;
+    m = fwrite(neu, 1, o, f);
+    return fclose(f) == 0 && m == o ? (alt ? 1 : 3) : 0;
+}
+static int ordner(const char *ziel)               /* G22: Ebene fuer Ebene anlegen; ziel endet mit '\' */
+{
+    char d[64]; int i; unsigned a;
+    for (i = 3; ziel[i]; i++) if (ziel[i] == '\\') { memcpy(d, ziel, i); d[i] = 0; mkdir(d); }
+    return !_dos_getfileattr(d, &a) && (a & _A_SUBDIR);
 }
 static void installieren(void)
 {
     static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", 0 };   /* BIN: RDSWAP.BIN fuer RunDos */
-    char ziel[64], von[80], nach[80], z[80]; struct find_t ft; int i, k = 0, fehl = 0, y = 17; WORD t;
+    char ziel[64], von[80], nach[80], z[80]; struct find_t ft; int i, k = 0, fehl = 0, y = 17;
     sprintf(ziel, "%c:\\RD2", boot() == 'A' ? 'C' : boot());
     zeile(y, "Installieren nach:"); 
     if (!eingabe(19, y, ziel, 40)) { zeile(y, "Installation abgebrochen."); return; }
     if (ziel[strlen(ziel) - 1] != '\\') strcat(ziel, "\\");
     if (!stricmp(ziel, quelle)) { zeile(y + 1, "Ziel ist das Quellverzeichnis."); return; }
-    { char d[64]; strcpy(d, ziel); d[strlen(d) - 1] = 0; mkdir(d); }
+    if (strlen(ziel) < 4 || !ordner(ziel)) { zeile(y + 1, "Zielordner kann nicht angelegt werden."); return; }
     for (i = 0; muster[i]; i++) {
         sprintf(von, "%s%s", quelle, muster[i]);
         if (_dos_findfirst(von, _A_NORMAL, &ft)) continue;
@@ -346,14 +431,14 @@ static void installieren(void)
         } while (!_dos_findnext(&ft));
     }
     sprintf(nach, "%sRD2.INI", ziel);
-    if (!ini_schreiben(nach)) fehl++;
-    sprintf(z, "%d Dateien kopiert%s. In AUTOEXEC.BAT eintragen (J/N)?", k, fehl ? ", FEHLER" : "");
+    if ((i = ini_schreiben(nach)) != 1) fehl++;
+    sprintf(z, "%d Dateien kopiert%s.", k, i < 0 ? ", RD2.INI ueber 6 KB: nicht geaendert" : fehl ? ", FEHLER" : "");
     zeile(y + 1, z);
-    t = taste() & 0xFF;
-    if (t == 'j' || t == 'J') {
-        i = autoexec(ziel);
-        zeile(y + 2, i == 2 ? "AUTOEXEC.BAT: schon eingetragen." : i ? "AUTOEXEC.BAT ergaenzt, alte Fassung: AUTOEXEC.RDA" : "AUTOEXEC.BAT: FEHLER");
-    } else zeile(y + 2, "AUTOEXEC.BAT bleibt unveraendert.");
+    i = shell_eintragen(ziel, y + 2, &k);
+    zeile(y + 2, i == 2 ? "CONFIG.SYS: RD2 ist schon als Shell eingetragen." : i == -2 ? "CONFIG.SYS bleibt unveraendert."
+               : i == -1 ? "CONFIG.SYS ueber 6 KB: nicht geaendert." : !i ? "CONFIG.SYS: FEHLER"
+               : i == 1 ? "CONFIG.SYS: RD2 ist die Shell, alte Fassung: CONFIG.RDA." : "CONFIG.SYS angelegt, RD2 ist die Shell.");
+    if (i == 1 && k) zeile(y + 3, "Hinweis: SET- und PATH-Zeilen der AUTOEXEC.BAT gelten mit RD2 als Shell nicht.");
     strcpy(ini, nach);
 }
 

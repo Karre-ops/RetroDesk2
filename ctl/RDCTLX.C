@@ -117,6 +117,7 @@ static BOOL RDEXPORT fdproc(HWND d, WORD msg, WORD p1, DWORD p2)
     }
     if ((st->fd->flags & FD_MUSTEXIST) && !gibts(v)) { MsgBox(d, StrGet(0, 14), 0, MB_OK | MB_ERROR); return TRUE; }
     if ((st->fd->flags & FD_ASKOVER) && gibts(v) && MsgBox(d, StrGet(0, 13), 0, MB_YESNO | MB_ASK) != ID_YES) return TRUE;
+    if (slen(v) >= st->fd->len) { MsgBox(d, StrGet(0, 16), 0, MB_OK | MB_ERROR); return TRUE; }   /* nicht still kuerzen */
     scpy(st->fd->datei, v, st->fd->len);
     return FALSE;                                 /* RDCTL beendet den Dialog mit ID_OK */
 }
@@ -148,7 +149,7 @@ static BOOL RDEXPORT x_FileDialog(HWND owner, FILEDLG FAR *fd)
     if (!(hm = MemAlloc(512, MEM_MOVABLE))) return FALSE;
     v = (BYTE FAR *)MemLock(hm);
     *(DWORD FAR *)v = 0; q = (short FAR *)(v + 4); q[0] = q[1] = 0; q[2] = 228; q[3] = 126; q[4] = 9;
-    p = put(v + 14, fd->titel ? fd->titel : StrGet(0, (fd->flags & FD_SAVE) ? 11 : 10));
+    { char tt[61]; scpy(tt, fd->titel ? fd->titel : StrGet(0, (fd->flags & FD_SAVE) ? 11 : 10), sizeof tt); p = put(v + 14, tt); }   /* Vorlage hat 512 Bytes */
     p = elem(p, CL_STATIC, k[0], 0xFFFF, 8, 6, 60, 10, 0);
     p = elem(p, CL_EDIT, "", ID_NAME, 8, 17, 160, 12, 0);
     p = elem(p, CL_STATIC, k[3], 0xFFFF, 8, 33, 46, 10, 0);

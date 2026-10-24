@@ -69,7 +69,8 @@ static WORD idx(HWND h)
     return i;
 }
 static HWND hw(WORD i) { return i ? (HWND)(((WORD)w_[i].gen << 8) | i) : 0; }
-static WORD bad(void) { SetLastError(RD_ERR_HANDLE); return 0; }
+static WORD fehl(WORD e) { SetLastError(e); return 0; }
+static WORD bad(void) { return fehl(RD_ERR_HANDLE); }
 static void isect(RECT *a, const RECT *b)
 {
     if (b->l > a->l) a->l = b->l; if (b->t > a->t) a->t = b->t;
@@ -156,7 +157,7 @@ static HDC ndc(WORD i, int client, const RECT *nur)   /* nur: zusaetzlich begren
 {
     WORD s, k, n; HDC h; DCX FAR *d; short x, y; RECT r;
     for (s = 0; s < NSLOT && sl[s].dc; s++) ;
-    if (s == NSLOT) { SetLastError(RD_ERR_FULL); return 0; }
+    if (s == NSLOT) return fehl(RD_ERR_FULL);
     if (!(h = gdc(0))) return 0;
     n = vis(i, client, sl[s].r);
     if (nur) for (k = 0; k < n; ) {
@@ -302,8 +303,8 @@ WORD RDEXPORT u_RegisterClass(const WNDCLASS FAR *wc)
 {
     WORD k;
     if (!wc || !wc->name || !wc->proc) return bad();
-    if ((k = klasse(wc->name)) != 0) { if (kl[k - 1].task != (BYTE)TaskSelf()) { SetLastError(RD_ERR_BUSY); return 0; } k--; }
-    else { for (k = 0; k < MAXCL && kl[k].name[0]; k++) ; if (k == MAXCL) { SetLastError(RD_ERR_FULL); return 0; } }
+    if ((k = klasse(wc->name)) != 0) { if (kl[k - 1].task != (BYTE)TaskSelf()) return fehl(RD_ERR_BUSY); k--; }
+    else { for (k = 0; k < MAXCL && kl[k].name[0]; k++) ; if (k == MAXCL) return fehl(RD_ERR_FULL); }
     scpy(kl[k].name, wc->name, 16); kl[k].proc = wc->proc; kl[k].stil = wc->stil; kl[k].inst = wc->inst;
     kl[k].hinter = wc->hinter; kl[k].task = (wc->stil & CS_SYSTEM) ? 0xFF : (BYTE)TaskSelf(); kl[k].intern = 0;
     return k + 1;
@@ -323,11 +324,11 @@ HWND RDEXPORT u_CreateWindow(LPCSTR kn, LPCSTR titel_, DWORD stil, short x, shor
 {
     WORD k = klasse(kn), i, p = 0; WND *w;
     if (!k) { CtlInit(kn); k = klasse(kn); }   /* Standardklassen: RDCTL meldet sie an */
-    if (!k) { SetLastError(RD_ERR_NOTFOUND); return 0; }
+    if (!k) return fehl(RD_ERR_NOTFOUND);
     if (!schirm_()) return 0;
     if (eltern && !(p = idx(eltern))) return bad();
     for (i = 1; i <= MAXW && w_[i].used; i++) ;
-    if (i > MAXW) { SetLastError(RD_ERR_FULL); return 0; }
+    if (i > MAXW) return fehl(RD_ERR_FULL);
     w = &w_[i];
     w->gen++; if (!w->gen) w->gen = 1;
     w->used = 1; w->vis = 0; w->cls = (BYTE)k; w->task = (BYTE)TaskSelf(); w->flags = kl[k - 1].intern ? F_INTERN : 0;
@@ -822,7 +823,7 @@ HMENU RDEXPORT u_MenuLoad(HINST inst, WORD id)
 {
     WORD k; HMEM h;
     for (k = 0; k < MAXM && mt[k].h; k++) ;
-    if (k == MAXM) { SetLastError(RD_ERR_FULL); return 0; }
+    if (k == MAXM) return fehl(RD_ERR_FULL);
     if (!(h = ResLoad(inst, RT_MENU, id))) return 0;
     mt[k].h = h; mt[k].task = (BYTE)TaskSelf();
     return k + 1;
@@ -1007,13 +1008,13 @@ static WORD my[16][12];
 WORD RDEXPORT u_MsgRegister(LPCSTR name)          /* ab 0xC000, gleicher Name = gleiche Nummer */
 {
     WORD i, j; char *s;
-    if (!name || !*name) { SetLastError(RD_ERR_FORMAT); return 0; }
+    if (!name || !*name) return fehl(RD_ERR_FORMAT);
     for (i = 0; i < 16 && my[i][0]; i++) {
         s = (char *)my[i];
         for (j = 0; j < 23 && name[j] && (s[j] | 0x20) == (name[j] | 0x20); j++) ;
         if (j == 23 || (!name[j] && !s[j])) return 0xC000 + i;
     }
-    if (i == 16) { SetLastError(RD_ERR_FULL); return 0; }
+    if (i == 16) return fehl(RD_ERR_FULL);
     scpy((char *)my[i], name, 24);
     return 0xC000 + i;
 }
@@ -1090,7 +1091,7 @@ void RDEXPORT u_CursorPos(POINT FAR *p) { if (p) { p->x = mpx; p->y = mpy; } }
    auf Eingabe oder Esc (mitten in einem Kernaufruf, ohne Nachrichtenschleife). */
 static RECT fr;                                   /* Kasten, fr.r = 0: keiner */
 static WORD spr;                                  /* Sprache, beim ersten Fenster gemerkt (RDKX kann gerade fehlen) */
-static char ft[64]; static WORD fn;
+static char ft[52]; static WORD fn;                 /* "Bitte Diskette " + Name (11) + Rest: 52 */
 static void fput(LPCSTR s) { while (s && *s && fn < sizeof ft - 1) ft[fn++] = *s++; ft[fn] = 0; }
 static DWORD frage(WORD lw, WORD an, LPCSTR l)
 {
@@ -1117,11 +1118,11 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
     (void)p1;
     if (art == 0) return (i = idx(h)) != 0 ? w_[i].task : 0;
     if (art == 3) {
-        for (n = 0, i = 1; i <= MAXW; i++)
-            if (w_[i].used && w_[i].task == (BYTE)h && !w_[i].parent) { wrect(i, &r); weg(i, 0); aufdecken(&r); n = 1; }
-        for (i = 1; i <= MAXW; i++) if (w_[i].used && w_[i].task == (BYTE)h) weg(i, 0);   /* Kinder in fremden Fenstern */
+        for (n = 0, i = 1; i <= MAXW; i++)             /* Hauptfenster aufdecken, Kinder (auch in fremden Fenstern) nur weg */
+            if (w_[i].used && w_[i].task == (BYTE)h) { wrect(i, &r); weg(i, 0); if (!w_[i].parent) { aufdecken(&r); n = 1; } }
         for (j = 0; j < MAXCL; j++) if (kl[j].task == (BYTE)h && !kl[j].intern) kl[j].name[0] = 0;
         for (j = 0; j < MAXM; j++) if (mt[j].h && mt[j].task == (BYTE)h) mt[j].h = 0;   /* Speicher gibt der Kern frei */
+        { DCX FAR *x = dcs; for (j = 1; j <= MAXDC; j++, x++) if (x->used && x->owner == (HTASK)h) fdc(j); }   /* liegengebliebene DCs */
         if (n && !w_[act].used) neuaktiv();
         if (h < 16) { tz[h] = 0; if (zeigt == (BYTE)h) zeigt = 0; }
         zjetzt();

@@ -17,6 +17,7 @@ $W -fpi87 -fo=obj/kasm.obj kern/KASM.ASM
 $W -fo=obj/swap.obj kern/SWAP.ASM
 $W -fo=obj/rdswap.obj kern/RDSWAP.ASM
 wlink option quiet format raw bin name $O/RDSWAP.BIN file obj/rdswap.obj option offset=0 2>&1 | grep -v "W1014\|W1023" || true
+cp ../test/qemu/CTMOUSE.EXE $O/CTMOUSE.EXE   # CuteMouse (GPL, unveraendert), siehe docs/LIZENZ.md
 # Kern: Small, SS != DS (API-Aufrufe kommen mit dem Stack des Programms)
 for c in RD MEM TASK FILE MOD RUNDOS; do wcc -0 -ms -zu -os -s -zq -w4 -bt=dos -i=sdk -fo=obj/k_$c.obj kern/$c.C; done
 wlink option quiet system dos name $O/RD.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj/k_TASK.obj,obj/k_FILE.obj,obj/k_MOD.obj,obj/k_RUNDOS.obj,obj/kasm.obj,obj/swap.obj,obj/notsup.obj option map=obj/rd.map >/dev/null
