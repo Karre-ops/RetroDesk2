@@ -118,7 +118,7 @@ int main(int argc, char **argv)
         if (i + 1 < argc && h < 78) cmdline[h++] = ' ';
     }
     cmdline[h] = 0;
-    mem_init(112);                                /* Reserve: DOS und der RunDos-Rest */
+    mem_init(136);                                /* Reserve: DOS und der RunDos-Rest (120 Paragraphen) */
     task_init();
     {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr("RD2.INI", "System", "Maus", "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF; }
     if (!k_maus) {                                /* Maustreiber da? Vektor 33h gesetzt und kein IRET */

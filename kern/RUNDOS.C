@@ -19,7 +19,7 @@ typedef struct {
     char path[80]; char tail[128]; BYTE fcb[32]; char rdp[80]; WORD spx;
 } STUB;
 #pragma pack()
-#define STUBP 96                                  /* Paragraphen, mit Stack: passt in die Reserve von mem_init */
+#define STUBP 120                                 /* Paragraphen, mit Stack: passt in die Reserve von mem_init */
 
 static WORD d21(WORD ax, WORD bx, WORD cx, WORD dx)   /* INT 21h, DS = Kern; CARRY gilt danach */
 {
@@ -60,7 +60,7 @@ WORD RDK RunDos(LPCSTR prog, LPCSTR cmd, WORD flags)
     psp = d21(0x6200, 0, 0, 0), psp = kr.bx;
     top = mem_arena((WORD __far *)a);
     n = (WORD)(((DWORD)(top - psp - 16) + 63) / 64);          /* KB zum Auslagern */
-    if (!(k_xmsent && rd_xms(0x0800, 0, 0) >= n) && (k_home[0] | 0x20) < 'c') {
+    if (!(k_xmsent && rd_xms(0x0800, 0, 0) > n)   /* + 1 KB fuer die Vektorkopie */ && (k_home[0] | 0x20) < 'c') {
         if (flags & RD_DOS_KEEP) { r = RD_ERR_NOTSUP; goto fehl; }  /* zurueck geht nur mit XMS oder Festplatte */
         neu = 1;
         if (k_wseg) { seg = k_wseg; goto rein; }    /* laeuft unter einem Rest: dort eintragen, enden */

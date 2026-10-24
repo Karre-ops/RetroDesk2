@@ -7,7 +7,7 @@
 static WORD muster[512];
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
-    char prog[80], arg[80]; WORD i, j, r, bad = 0; HMEM m; WORD FAR *p; HDC dc; RECT rc = { 10, 10, 50, 30 };
+    char prog[80], arg[80]; WORD i, j, r, bad = 0; HMEM m; WORD FAR *p; HDC dc; DWORD v60; RECT rc = { 10, 10, 50, 30 };
     (void)inst; (void)show;
     for (i = 0; cmd[i] && cmd[i] != ' ' && i < 79; i++) prog[i] = cmd[i];
     prog[i] = 0; while (cmd[i] == ' ') i++;
@@ -46,7 +46,10 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     MemUnlock(m);
     dc = GetDC(0);
     DbgHex("DOSTEST: frei vorher", MemAvail(MEMA_KONV));
+    v60 = *(DWORD __far *)0x00000180UL;
     r = RunDos(prog, arg, RD_DOS_KEEP);
+    DbgHex("DOSTEST: Vektor 60h gleich", *(DWORD __far *)0x00000180UL == v60);
+    DbgHex("DOSTEST: frei danach", MemAvail(MEMA_KONV));
     DbgHex("DOSTEST: Rueckgabe", r);
     if (r == 0xFFFF) DbgHex("DOSTEST: Fehler", LastError());
     for (i = 0; i < 512; i++) if (muster[i] != (WORD)(i * 7 + 3)) bad++;

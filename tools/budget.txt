@@ -5,7 +5,7 @@
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
 RD.EXE          28672   44   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock)
 RD2SETUP.EXE    24576    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier)
-RDSWAP.BIN       1536    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speicher (nicht im Kern)
+RDSWAP.BIN       1664    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speicher (nicht im Kern)
 RDGDI.MOD       16384 18.5   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5); 23.10.: 18,5 KB fuer schnelle Textausgabe (statt Auslagern, Text wird staendig gebraucht)
 RDKX.MOD         6144    6   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.)
 RDGDIX.MOD       4096    4   S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf)
@@ -56,6 +56,7 @@ RDFORMAT.EXE    73728    0   P  Formatieren Disketten und Festplatte: FreeDOS FO
 @DISK          362496        Nutzflaeche einer 360-KB-Diskette (354 Cluster zu 1 KB); Grenze fuer P, N, D
 @RAM_RD2               180   Oberflaeche ohne Programme, mit DOS und Maustreiber (Ziel: >= 450 KB frei)
 DOSTEST.EXE      4096    0   T  Test: RunDos (auslagern, DOS-Programm, zurueck)
+TSRTEST.EXE      4096    0   T  Test: bleibt resident (Audit M10, RunDos entfernt es)
 FREIMEM.EXE     16384    0   T  Test: normales DOS-Programm fuer DOSTEST
 BENCH2.EXE       4096    0   T  Leistungsvergleich RD2-Seite (BENCH1 baut aus RD1, nicht auf der Diskette)
 RESTEST.EXE      8192    0   T  Test Ressourcen, Texte, Uhrzeit

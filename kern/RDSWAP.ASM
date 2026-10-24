@@ -66,6 +66,7 @@ st_code:
         mov  cl, 6
         shr  ax, cl
         mov  dx, ax
+        inc  dx                          ; + 1 KB: Kopie der Interrupt-Vektoren
         mov  ah, 09h
         call dword ptr ds:[S_XENT]
         mov  ds:[S_XH], dx
@@ -80,8 +81,12 @@ st_dat: mov  ah, 3Ch
         jc   st_f1
 st_aus: mov  word ptr ds:[S_DIR], 0
         call st_xfer
+        jc   st_af
+        in   al, 21h                     ; Stand vor dem Programm: Interrupt-Maske und Vektoren
+        mov  st_pic, al
+        call st_ivt
         jnc  st_frei
-        call st_weg
+st_af:  call st_weg
 st_f1:  mov  word ptr ds:[S_ERR], 1
         jmp  st_zur
 st_frei:
@@ -93,6 +98,36 @@ st_frei:
         mov  ah, 4Ah
         int  21h
         call st_prog
+        call st_los                      ; residentes Programm? dann wieder entfernen
+        jc   st_tot
+        or   dl, dl
+        jz   st_rein
+        mov  ah, 48h                     ; Puffer fuer die Vektorkopie (DOS legt freie Bloecke zusammen)
+        mov  bx, 64
+        int  21h
+        jc   st_tot
+        mov  st_buf, ax
+        mov  word ptr ds:[S_DIR], 1      ; Vektoren und Maske auf den Stand vor dem Programm
+        call st_ivt
+        jc   st_tot
+        push ds
+        mov  ax, st_buf
+        mov  ds, ax
+        xor  si, si
+        xor  di, di
+        mov  es, di
+        mov  cx, 512
+        cli
+        rep  movsw
+        pop  ds
+        mov  al, st_pic
+        out  21h, al
+        sti
+        mov  es, st_buf
+        mov  ah, 49h
+        int  21h
+        mov  dx, offset st_rmsg
+        call st_hinweis
 st_rein:
         mov  es, ds:[S_PSP]
         mov  bx, ds:[S_KPAR]
@@ -109,17 +144,105 @@ st_rein:
         call st_xfer
         jc   st_tot
         call st_weg
+
 st_zur: cli
         mov  ss, ds:[S_SS]
         mov  sp, ds:[S_SP]
         sti
         jmp  dword ptr cs:[S_RET]
-st_tot: mov  dx, offset st_tmsg
+; Zurueck geht nicht (Speicher belegt, Lesefehler): Auslagerziel freigeben und RD2 sauber beenden.
+; Kein Neustart des Rechners. Laeuft RD2 als Shell, startet der Rest darueber es neu.
+st_tot: call st_weg
+        mov  dx, offset st_tmsg
+        call st_hinweis
+        mov  ax, 4C00h
+        int  21h
+
+; Meldung DX ausgeben, auf eine Taste warten, hoechstens etwa 10 s
+st_hinweis:
         mov  ah, 9
         int  21h
-        xor  ah, ah
+        push ds
+        mov  ax, 40h
+        mov  ds, ax
+        mov  bx, ds:[6Ch]
+sh_w:   mov  ah, 1
         int  16h
-        int  19h
+        jnz  sh_t
+        mov  ax, ds:[6Ch]
+        sub  ax, bx
+        cmp  ax, 182
+        jb   sh_w
+        jmp  short sh_e
+sh_t:   xor  ah, ah
+        int  16h
+sh_e:   pop  ds
+        ret
+
+; Zurueckgelassene Bloecke zwischen S_SWSEG und dem Rest freigeben (TSR, Umgebung, eigene Bloecke).
+; DL = 1: etwas freigegeben. CF: ein DOS-Block liegt dort, Freigeben geht nicht.
+st_los: xor  dl, dl
+sl_neu: push dx
+        mov  ah, 52h
+        int  21h
+        pop  dx
+        mov  ax, es:[bx-2]               ; erster Speicherblock
+sl_lp:  mov  es, ax
+        mov  bx, cs
+        dec  bx
+        cmp  ax, bx                      ; beim Rest angekommen: fertig
+        jae  sl_ok
+        mov  bx, es:[1]                  ; Besitzer
+        cmp  ax, ds:[S_SWSEG]
+        jb   sl_nx
+        or   bx, bx
+        jz   sl_nx
+        cmp  bx, ds:[S_PSP]
+        je   sl_nx
+        cmp  bx, 8
+        je   sl_err
+        inc  ax
+        mov  es, ax
+        mov  ah, 49h
+        int  21h
+        jc   sl_err
+        mov  dl, 1
+        jmp  sl_neu                      ; DOS kann Bloecke zusammengelegt haben: von vorn
+sl_nx:  cmp  byte ptr es:[0], 'Z'
+        je   sl_ok
+        add  ax, es:[3]
+        inc  ax
+        jmp  sl_lp
+sl_ok:  clc
+        ret
+sl_err: stc
+        ret
+
+; Kopie der Interrupt-Vektoren (1 KB) hinter dem Auslagerbereich, ueber st_xfer. DIR 0: 0000:0000
+; sichern, DIR 1: in den Puffer st_buf holen. CF = Fehler.
+st_ivt: mov  ax, ds:[S_SWPAR]
+        mov  dx, ax
+        mov  cl, 4
+        shl  ax, cl
+        mov  cl, 12
+        shr  dx, cl                      ; DX:AX = Versatz im Ziel
+        mov  ds:[S_XO], ax
+        mov  ds:[S_XO+2], dx
+        mov  word ptr ds:[S_REST], 64
+        xor  bx, bx
+        cmp  word ptr ds:[S_DIR], 0
+        je   iv_1
+        mov  bx, st_buf
+iv_1:   mov  ds:[S_CUR], bx
+        cmp  word ptr ds:[S_XENT+2], 0
+        jne  xf_loop
+        mov  cx, dx
+        mov  dx, ax
+        mov  ax, 4200h
+        mov  bx, ds:[S_FH]
+        int  21h
+        jc   xf_err
+        jmp  xf_loop
 ; Neustart: Kern und Arena sind schon frei (RD hat sich beendet). Schleife: Programm,
 ; dann RD.EXE /W:seg + alte Befehlszeile. Endet dieses RD mit Code 0D5h, hat es hier das
 ; naechste Programm eingetragen.
@@ -374,6 +497,9 @@ st_rdexe db 'RD.EXE', 0
 st_swpn db 'RD2SWAP.$$$', 0
 st_smsg db 13, 10, 'RetroDesk ist beendet. Taste: neu starten$'
 st_msg  db 13, 10, 'Taste druecken...$'
-st_tmsg db 13, 10, 'RD2: Speicher nicht frei (residentes Programm?). Taste: Neustart.$'
+st_tmsg db 13, 10, 'RD2: Speicher belegt, RD2 endet.$'
+st_rmsg db 13, 10, 'RD2: residentes Programm entfernt. TSR vor RD2 laden.$'
+st_pic  db 0
+st_buf  dw 0
 _TEXT ends
 end
