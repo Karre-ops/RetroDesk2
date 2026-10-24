@@ -1,0 +1,57 @@
+; Ressourcen fuer SHELL.EXE (Desktop, Dateimanager)
+SPRACHE DE
+MENU 1
+  POPUP "RD"
+    ITEM "&Info..."            1
+    TRENNER
+    ITEM "&Beenden..."         2
+  ENDE
+ENDE
+MENU 2
+  POPUP "&Datei"
+    ITEM "&ôffnen\tEingabe"   101
+    ITEM "&öbergeordnet\tRÅck" 103
+    ITEM "&Schlie·en\tAlt+F4" 102
+  ENDE
+  POPUP "&Ansicht"
+    ITEM "&Neu einlesen"       201
+  ENDE
+ENDE
+TEXTE
+  1 "RetroDesk 2\nAPI %s\nFrei: %s KB"
+  2 "RetroDesk 2 beenden?"
+  3 "Programm konnte nicht gestartet werden:\n%s"
+  4 "Laufwerk %s ist nicht bereit."
+  5 "Info"
+ENDE
+SPRACHE EN
+MENU 1
+  POPUP "RD"
+    ITEM "&About..."           1
+    TRENNER
+    ITEM "E&xit..."            2
+  ENDE
+ENDE
+MENU 2
+  POPUP "&File"
+    ITEM "&Open\tEnter"        101
+    ITEM "&Parent\tBksp"       103
+    ITEM "&Close\tAlt+F4"      102
+  ENDE
+  POPUP "&View"
+    ITEM "&Refresh"            201
+  ENDE
+ENDE
+TEXTE
+  1 "RetroDesk 2\nAPI %s\nFree: %s KB"
+  2 "Exit RetroDesk 2?"
+  3 "Could not start program:\n%s"
+  4 "Drive %s is not ready."
+  5 "About"
+ENDE
+SPRACHE ALLE
+SYMBOL 1 "FLOPPY.ICO"
+SYMBOL 2 "HDISK.ICO"
+SYMBOL 3 "ORDNER.ICO"
+SYMBOL 4 "PROG.ICO"
+SYMBOL 5 "DOK.ICO"

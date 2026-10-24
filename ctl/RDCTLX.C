@@ -11,7 +11,6 @@
 #define ID_ORD  32
 #define ID_PFAD 33
 #define ID_TYP  34
-#define FA_DIR  0x10
 
 typedef struct {
     FILEDLG FAR *fd;
@@ -39,7 +38,7 @@ static void fuellen(HWND d, FDS FAR *st)
         }
     } while (!FileFindNext(&f));
     for (dr = 1; dr <= 8; dr++) {                 /* Laufwerke; Phantom-B: und fehlende weglassen */
-        if (dr > 1 && (DriveInfo(dr, &di) || di.typ == DT_NONE || (di.flags & DI_PHANTOM))) continue;
+        if (dr > 1 && (DriveInfo(dr | DI_NURTYP, &di) || di.typ == DT_NONE || (di.flags & DI_PHANTOM))) continue;
         b[0] = '['; b[1] = '-'; b[2] = (char)('A' + dr - 1); b[3] = '-'; b[4] = ']'; b[5] = 0;
         SendMessage(lo, L_ADD, 0, (DWORD)(LPCSTR)b);
     }

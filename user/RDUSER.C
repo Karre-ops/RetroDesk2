@@ -39,7 +39,7 @@ typedef struct { char name[16]; WNDPROC proc; WORD stil, inst; COLOR hinter; BYT
 
 static WND w_[MAXW + 1];                          /* 0 = Wurzel (Schreibtisch) */
 static KLASSE kl[MAXCL];
-static BYTE act, foc, cap;                        /* Nummern, 0 = keines */
+static BYTE act, foc, cap, dsk;                   /* Nummern, 0 = keines; dsk = Schreibtisch der Shell */
 static short sw, sh, mh, th;                      /* Schirm, Menueleiste, Titelzeile */
 static DCX FAR *dcs; static GK FAR *gk;
 static HDC (FAR __pascal *gdc)(HWND);
@@ -340,6 +340,7 @@ HWND RDEXPORT u_CreateWindow(LPCSTR kn, LPCSTR titel_, DWORD stil, short x, shor
     w->inv.l = w->inv.r = 0; w->inv.t = w->inv.b = 0;
     scpy(w->text, titel_, sizeof w->text);
     link(i, p);
+    if (stil & WS_DESKTOP) dsk = (BYTE)i;
     if (sendi(i, M_CREATE, 0, 0) == 0xFFFFFFFFUL) { unlink(i); w->used = 0; SetLastError(RD_ERR_ABORT); return 0; }
     if (idx(hw(i))) sendi(i, M_SIZE, SIZE_NORMAL, MAKELONG(b - 2 * rand_(i), h - 2 * rand_(i) - titel(i)));
     if ((stil & WS_VISIBLE) && idx(hw(i))) u_ShowWindow(hw(i), SW_SHOW);
@@ -353,6 +354,7 @@ static void weg(WORD i, int melden)               /* samt Kindern, ohne Neuzeich
     if (!w_[i].used) return;
     if (cap == i) cap = 0;
     if (foc == i) foc = 0;
+    if (dsk == i) dsk = 0;
     unlink(i); w_[i].used = 0; w_[i].child = 0;
     { WORD k; for (k = 0; k < NSB; k++) if (sbt[k].w == (BYTE)i) sbt[k].w = 0; }
 }
@@ -489,7 +491,7 @@ HWND RDEXPORT u_SetActive(HWND h)
 {
     WORD i = top(idx(h)), alt = act;
     if (!i) return bad();
-    if (w_[0].child != i) { unlink(i); link(i, 0); }   /* nach oben */
+    if (w_[0].child != i && i != dsk) { unlink(i); link(i, 0); }   /* nach oben, der Schreibtisch bleibt unten */
     act = (BYTE)i;
     if (alt != i && alt && w_[alt].used) { if (w_[alt].vis) rahmen(alt); sendi(alt, M_ACTIVATE, 0, 0); }
     if (w_[i].vis) neuz(i, 0);
@@ -619,6 +621,7 @@ DWORD RDEXPORT u_DefWindowProc(HWND h, WORD m, WORD p1, DWORD p2)
     case M_KEY:
         if (p1 == 0x100 + 0x3E && (HIWORD(p2) & KS_ALT)) PostMessage(hw(top(i)), M_CLOSE, 0, 0);   /* Alt+F4 */
         else if (p1 == K_F10 && top(i) == act) menulauf(act, 0, 0);
+        else if ((p1 == ' ' || p1 == 0x139) && (HIWORD(p2) & KS_ALT) && dsk) PostMessage(hw(dsk), M_SYSMENU, 0, 0);   /* Alt+Leertaste: Menue "RD" */
         return 0;
     }
     return 0;
@@ -1110,7 +1113,9 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
     i = cap;
     if (!i) {
         if (y < mh) {                             /* Menueleiste: gehoert dem aktiven Fenster */
-            if (msg != M_BUTTONDOWN || !act) return 0;
+            if (msg != M_BUTTONDOWN) return 0;
+            if (x < 40 && dsk) { m->w = hw(dsk); m->msg = M_SYSMENU; m->p1 = 1; return w_[dsk].task; }   /* "RD" gehoert der Shell */
+            if (!act) return 0;
             m->w = hw(act); m->msg = M_NCBUTTONDOWN; m->p1 = 1; return w_[act].task;
         }
         if (!(i = bei(0, x, y))) return 0;        /* Schreibtisch: spaeter die Shell */

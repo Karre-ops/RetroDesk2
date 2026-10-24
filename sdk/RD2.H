@@ -241,6 +241,13 @@ typedef struct {
 #define FS_SET 0
 #define FS_CUR 1
 #define FS_END 2
+/* Dateiattribute (FINDDATA.attr, FileAttr) */
+#define FA_RDONLY 0x01
+#define FA_HIDDEN 0x02
+#define FA_SYSTEM 0x04
+#define FA_LABEL  0x08
+#define FA_DIR    0x10
+#define FA_ARCH   0x20
 #define DT_NONE 0
 #define DT_FLOPPY 1
 #define DT_HARD 2
@@ -250,6 +257,7 @@ typedef struct {
 #define DI_WPROT  0x0001
 #define DI_CHANGE 0x0002                          /* Wechsel erkannt seit letzter Abfrage */
 #define DI_PHANTOM 0x0004                         /* B: auf dem Laufwerk von A: */
+#define DI_NURTYP 0x8000                          /* DriveInfo(laufwerk | DI_NURTYP): nur Typ und Phantom, ohne Zugriff */
 #define RD_DOS_KEEP   0x0001                      /* Zustand sichern und danach weitermachen */
 #define RD_DOS_PAUSE  0x0002                      /* "Taste druecken" nach Programmende */
 #define RD_DOS_GFX    0x0004                      /* Programm stellt Grafik selbst ein */
@@ -291,6 +299,7 @@ typedef struct {
 #define M_DISKCHANGE  0x0320                      /* p1 = Laufwerk 1 = A: */
 #define M_SETTINGS    0x0321                      /* Einstellungen geaendert (Farben, Sprache) */
 #define M_INITDIALOG  0x0330
+#define M_SYSMENU     0x0331                      /* an den Schreibtisch: Menue "RD" angeklickt, p1 = 1 Maus */
 #define M_USER        0x0400                      /* ab hier eigene */
 
 /* Steuerelement-Meldungen (M_COMMAND hi-Wort von p2) */
@@ -332,6 +341,7 @@ typedef struct {
 #define WS_DISABLED 0x00000400UL
 #define WS_DIALOG   0x00000800UL
 #define WS_TOOL     0x00001000UL                  /* Zubehoer: kein eigenes Menue */
+#define WS_DESKTOP  0x00002000UL                  /* Schreibtisch der Shell: bleibt unten, bekommt M_SYSMENU */
 #define WS_NORMAL   (WS_TITLE | WS_CLOSE | WS_SIZE | WS_MIN | WS_BORDER)
 #define ES_DEFAULT  0x00010000UL                  /* BUTTON: Standardknopf (Eingabetaste) */
 #define ES_CHECKED  0x00020000UL                  /* CHECK/RADIO: vorbelegt angehakt */

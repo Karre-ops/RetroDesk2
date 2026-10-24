@@ -23,7 +23,8 @@ Aufbau:
 | `apps/` | `leer/`, `test/` (PING, PONG, RECHNE, MEMTEST für Phase 2) |
 | `tools/` | `apicheck.py`, `mkapi.py` (erzeugt Aufrufstücke und Kerntabelle), `rd2link.py` (RD2-Anhang), `budget.py`/`budget.txt`, `mkdisk.sh` |
 | `test/` | `hdrtest.c`, `floppy.sh` |
-| `gdi/ user/ snd/ drv/ shell/` | folgen ab Phase 2 |
+| `shell/` | `SHELL.C` Desktop und Dateimanager (Teil 1), Symbole `*.TXT` -> `*.ICO` mit `tools/mkrdb.py`, Test `test/desk.sh` |
+| `gdi/ user/ snd/ drv/` | Grafik, Oberfläche, Sound, Treiber |
 
 `RD2.LIB` enthält je Funktion ein eigenes Stück (5 bis 15 Bytes), eingebunden wird nur, was ein Programm benutzt. LEER.EXE ist so 508 Bytes groß.
 

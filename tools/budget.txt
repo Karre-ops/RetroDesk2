@@ -11,7 +11,7 @@ RDKX.MOD         6144    6   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte
 RDGDIX.MOD       4096    4   S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf)
 RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
 RDCTLX.MOD      12288   10   S  Dateidialog, TEXT, COMBO, SCROLL (verwerfbar)
-RDUSER.MOD      26624   26   S  Fenster, Menues, Steuerelemente, Dialoge
+RDUSER.MOD      26624   27   S  Fenster, Menues, Schreibtisch-Anbindung der Shell (24.10.: 26 -> 27 KB fuer WS_DESKTOP, M_SYSMENU)
 RDSND.MOD        4096    4   S  Sound-API, Musik-Player
 CGA.DRV          4096    4   S
 HGC.DRV          4096    4   S

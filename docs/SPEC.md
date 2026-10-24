@@ -159,6 +159,13 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 - Neu zeichnen über `M_PAINT`. Popups mit `CS_SAVEBITS` sichern den Hintergrund, wenn genug Speicher frei ist.
 - Tastatur: Alt bzw. F10 öffnet die Menüleiste, Alt+Buchstabe ein Menü, Tab wechselt das Steuerelement, Alt+Tab das Programm, Alt+F4 schließt, F1 öffnet die Hilfe.
 
+### 5.0 Schreibtisch und Shell (24.10.2026)
+
+- `SHELL.EXE` legt ein Fenster mit `WS_DESKTOP` über den ganzen Schirm unter der Menüleiste. RDUSER hält es immer ganz unten (`SetActive` holt es nicht nach oben), es bekommt aber Klicks und kann aktiv sein.
+- Das Menü **"RD"** gehört dem Schreibtisch: Klick auf "RD" oder **Alt+Leertaste** schickt `M_SYSMENU` an das `WS_DESKTOP`-Fenster, egal welches Programm aktiv ist. Die Shell öffnet es mit `MenuPopup`.
+- Teil 1: Laufwerke als Symbole links (Abfrage mit `DI_NURTYP`, keine Diskette wird angefasst), Ordnerfenster mit Symbolraster (Ordner zuerst, bis 240 Einträge), Rollbalken, Ordner wechseln, `..`, Programme starten (RD2-EXE mit `TaskExec`, sonst `RunDos`), RD: Info, Beenden. Tastatur: Pfeile, Eingabe, Rückschritt, Alt+F4.
+- Folgt: Kopieren/Verschieben/Löschen/Umbenennen, Ziehen mit der Maus, Laufwerksmenü (Formatieren, Bootfähig machen), Listenansicht, `.APP`-Programmliste, Zustand in `RD2.STA`.
+
 ### 5.1 Steuerelemente und Dialoge (RDCTL, 23.10.2026)
 
 `RDCTL.MOD` ist verwerfbar und wird erst geladen, wenn ein Programm einen Dialog oder eine Standardklasse braucht (RDUSER ruft bei unbekannter Klasse `CtlInit`). Fertig: `BUTTON`, `CHECK`, `RADIO`, `STATIC`, `GROUP`, `EDIT` (einzeilig, höchstens 80 Zeichen), `LIST` (mit `WS_VSCROLL`), `PROGRESS`, dazu `DialogRun`, `DialogEnd`, `DlgItem`, `DlgSet/GetText`, `DlgSet/GetInt`, `DlgCheck/Checked`, `MsgBox` `InputBox` und `DialogIndirect` (Vorlage im Speicher). `FileDialog` liegt in `RDCTLX.MOD` (3,3 KB, verwerfbar), das RDCTL nur für die Dauer des Dialogs lädt: Eingabefeld, Dateiliste nach dem ersten Filtermuster, rechte Liste mit `[..]`, Ordnern und Laufwerken (`[-A-]`, Phantom-B: ausgeblendet), Muster wie `*.TXT` im Eingabefeld ändern die Liste, `FD_MUSTEXIST` und `FD_ASKOVER` fragen per `MsgBox`. Ebenfalls in RDCTLX (RDCTL meldet die Klassen erst an, wenn ein Programm eine davon anlegt; RDUSER gibt das Modul am Ende frei): `TEXT` mehrzeilig bis 4 KB mit Rollbalken, `COMBO` Klappliste (F4 oder Alt+Pfeil runter öffnet, wächst nach unten, daher im Dialog als letztes Element ohne etwas darunter), `SCROLL` eigener Rollbalken (`C_SETPOS`, `C_SETRANGE`, `C_GETPOS`, Meldung `N_CHANGE`). Der Dateidialog hat eine Klappliste „Dateityp“ mit allen Paaren aus `filter`; die Wahl ändert das Muster sofort. Offen: `HelpShow`.

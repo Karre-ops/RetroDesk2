@@ -76,7 +76,7 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x0CC | Datei | `WORD DirRemove(LPCSTR name)` |
 | 0x0CD | Datei | `WORD DirChange(LPCSTR name)` |
 | 0x0CE | Datei | `WORD DirGet(WORD drive, LPSTR buf)` |
-| 0x0CF | Datei | `WORD DriveInfo(WORD drive, DRIVEINFO FAR *di)` |
+| 0x0CF | Datei | `WORD DriveInfo(WORD drive, DRIVEINFO FAR *di)` (mit `drive \| DI_NURTYP`: nur Typ und Phantom, ohne Laufwerkszugriff, seit 24.10.2026) |
 | 0x0D0 | Datei | `WORD DiskRequest(WORD drive, DWORD serial, LPCSTR label)` |
 | 0x0D1 | Datei | `WORD FileSaveSafe(LPCSTR name, const void FAR *buf, DWORD n)` |
 | 0x100 | Grafik | `short GetCaps(HDC dc, WORD index)` |
