@@ -18,7 +18,7 @@ starten() {
   QP=$!; export QMON=/tmp/qmon_i.sock
   waitscr "Einrichtung" 120 || { echo "FEHLER keine Einrichtung"; F=1; }
 }
-ende() { waitscr "CONFIG.SYS" 30; sleep 1; $Q text > obj/schirm_install$1.txt 2>/dev/null; $Q "sendkey esc" sleep2 "sendkey n" >/dev/null 2>&1; wait $QP; }
+ende() { waitscr "CONFIG.SYS" 30; waitscr "startfaehig machen" 30 && { $Q "sendkey n" >/dev/null 2>&1; waitscr "nicht startfaehig gemacht" 10 || { echo "FEHLER Frage startfaehig ($1)"; F=1; }; } || { echo "FEHLER keine Frage startfaehig ($1)"; F=1; }; sleep 1; $Q text > obj/schirm_install$1.txt 2>/dev/null; $Q "sendkey esc" sleep2 "sendkey n" >/dev/null 2>&1; wait $QP; }
 dateien() { mdir $C -b ::/$1 > obj/inst_dir.txt 2>&1
   for d in RD.EXE RDGDI.MOD RDSWAP.BIN CTMOUSE.EXE RD2SETUP.EXE RD2.INI; do grep -qi "/$d" obj/inst_dir.txt && echo "ok     $1/$d" || { echo "FEHLER $1/$d fehlt"; F=1; }; done; }
 pruef() { grep -q "$1" obj/inst_cs.txt && echo "ok     CONFIG.SYS: $2" || { echo "FEHLER CONFIG.SYS: $2"; F=1; }; }
@@ -38,7 +38,7 @@ dateien SPIELE/RD2
 mtype $C ::/CONFIG.SYS | tr -d '\r' > obj/inst_cs.txt
 pruef "^FILES=20" "alte Zeile bleibt"
 pruef "^REM SHELL=C:\\\\COMMAND.COM" "alte Shell als REM"
-pruef "^SHELL=C:\\\\SPIELE\\\\RD2\\\\RD.EXE /P$" "SHELL=RD.EXE /P"
+pruef "^SHELL=C:\\\\SPIELE\\\\RD2\\\\RD.EXE /P C:\\\\SPIELE\\\\RD2\\\\SHELL.EXE$" "SHELL=RD.EXE /P"
 pruef "^INSTALL=C:\\\\TREIBER\\\\MOUSE.COM /S50$" "Maustreiber aus AUTOEXEC.BAT (ohne LH)"
 grep -q CTMOUSE obj/inst_cs.txt && { echo "FEHLER CONFIG.SYS: CTMOUSE trotz eigenem Maustreiber"; F=1; } || echo "ok     CONFIG.SYS: kein zweiter Maustreiber"
 mtype $C ::/CONFIG.RDA | tr -d '\r' | grep -q "^SHELL=C:\\\\COMMAND.COM" && echo "ok     Sicherung CONFIG.RDA" || { echo "FEHLER keine CONFIG.RDA"; F=1; }
@@ -55,7 +55,7 @@ grep -q "Uebernehmen\|eintragen (J/N)" obj/schirm_install2.txt && { echo "FEHLER
 grep -q "CONFIG.SYS angelegt" obj/schirm_install2.txt && echo "ok     Meldung CONFIG.SYS angelegt" || { echo "FEHLER Meldung"; F=1; }
 dateien RD2
 mtype $C ::/CONFIG.SYS | tr -d '\r' > obj/inst_cs.txt
-pruef "^SHELL=C:\\\\RD2\\\\RD.EXE /P$" "SHELL=RD.EXE /P"
+pruef "^SHELL=C:\\\\RD2\\\\RD.EXE /P C:\\\\RD2\\\\SHELL.EXE$" "SHELL=RD.EXE /P"
 pruef "^INSTALL=C:\\\\RD2\\\\CTMOUSE.EXE$" "CTMOUSE fuer die PS/2-Maus"
 [ "$(wc -l < obj/inst_cs.txt)" = 2 ] && echo "ok     CONFIG.SYS nur 2 Zeilen" || { echo "FEHLER CONFIG.SYS hat Fremdes"; cat obj/inst_cs.txt; F=1; }
 mtype $C ::/AUTOEXEC.BAT >/dev/null 2>&1 && { echo "FEHLER AUTOEXEC.BAT angelegt"; F=1; } || echo "ok     keine AUTOEXEC.BAT"

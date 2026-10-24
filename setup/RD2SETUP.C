@@ -14,6 +14,9 @@
 #include <dos.h>
 #include <conio.h>
 #include <direct.h>
+#include <process.h>
+#include <io.h>
+#include <fcntl.h>
 
 typedef unsigned char BYTE; typedef unsigned short WORD; typedef unsigned long DWORD;
 extern WORD rd_cpudet(void);
@@ -363,7 +366,7 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
         c = *e; *e = 0; NEU(a); *e = c;
     }
     if (o && neu[o - 1] != '\n') NEU("\r\n");
-    sprintf(z, "SHELL=%sRD.EXE /P\r\n", ziel); NEU(z);
+    sprintf(z, "SHELL=%sRD.EXE /P %sSHELL.EXE\r\n", ziel, ziel); NEU(z);   /* Startprogramm: ohne es meldet RD nur den Aufruf */
     if (alt) {                                    /* Programme aus AUTOEXEC.BAT uebernehmen? */
         sprintf(z, "%c:\\AUTOEXEC.BAT", ziel[0]); n = lesen(z);
         for (a = buf; *a; a = e) {
@@ -411,6 +414,24 @@ static int ordner(const char *ziel)               /* G22: Ebene fuer Ebene anleg
     for (i = 3; ziel[i]; i++) if (ziel[i] == '\\') { memcpy(d, ziel, i); d[i] = 0; mkdir(d); }
     return !_dos_getfileattr(d, &a) && (a & _A_SUBDIR);
 }
+static int startfaehig(char lw, int y)            /* Variante A: leere Platte mit FreeDOS SYS startfaehig machen */
+{
+    char p[80], k[8], d[4]; int h, alt, e;
+    sprintf(p, "%c:\\KERNEL.SYS", lw); if (gibts(p)) return 0;          /* hat schon ein System */
+    sprintf(p, "%c:\\IO.SYS", lw); if (gibts(p)) return 0;
+    sprintf(p, "%c:\\IBMBIO.COM", lw); if (gibts(p)) return 0;
+    sprintf(k, "%c:\\", quelle[0]); sprintf(p, "%sKERNEL.SYS", k);
+    if (!gibts(p)) return 0;                      /* Diskette mit eigenem DOS (SYS A:): kein FreeDOS-Kern da */
+    sprintf(p, "%sRDSYS.EXE", quelle); if (!gibts(p)) return 0;
+    if (!janein(y, "Festplatte startfaehig machen (FreeDOS-Kern) (J/N)?")) { zeile(y, "Festplatte nicht startfaehig gemacht."); return 0; }
+    zeile(y, "Uebertrage FreeDOS-Kern ...");
+    d[0] = lw; d[1] = ':'; d[2] = 0;
+    fflush(stdout); alt = dup(1); h = open("NUL", O_WRONLY); if (h >= 0) { dup2(h, 1); close(h); }   /* SYS-Ausgaben nicht auf den Schirm */
+    e = spawnl(P_WAIT, p, "RDSYS", k, d, "/UPDATE", NULL);
+    if (alt >= 0) { dup2(alt, 1); close(alt); }
+    zeile(y, e == 0 ? "Festplatte ist startfaehig (FreeDOS-Kern)." : "FEHLER: Festplatte nicht startfaehig (SYS).");
+    return e == 0 ? 1 : -1;
+}
 static void installieren(void)
 {
     static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", 0 };   /* BIN: RDSWAP.BIN fuer RunDos */
@@ -439,6 +460,7 @@ static void installieren(void)
                : i == -1 ? "CONFIG.SYS ueber 6 KB: nicht geaendert." : !i ? "CONFIG.SYS: FEHLER"
                : i == 1 ? "CONFIG.SYS: RD2 ist die Shell, alte Fassung: CONFIG.RDA." : "CONFIG.SYS angelegt, RD2 ist die Shell.");
     if (i == 1 && k) zeile(y + 3, "Hinweis: SET- und PATH-Zeilen der AUTOEXEC.BAT gelten mit RD2 als Shell nicht.");
+    if (ziel[0] >= 'C' && i != -2) startfaehig(ziel[0], y + 4);
     strcpy(ini, nach);
 }
 

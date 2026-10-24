@@ -21,7 +21,7 @@ A:\RD2\RD.EXE A:\RD2\HAENGT.EXE
 A:\RD2\RD.EXE A:\RD2\STRESS.EXE
 A:\FDAPM.COM POWEROFF
 AE
-SYS=$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ')
+SYS=$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ')
 NUR="$SYS LEER.EXE PING.EXE PONG.EXE RECHNE.EXE MEMTEST.EXE FILETEST.EXE RESTEST.EXE RESTEST.RDB MODTEST.EXE TESTMOD.MOD TESTMOD2.MOD HAENGT.EXE STRESS.EXE WURM.EXE" \
   bash tools/mkdisk.sh $IMG obj/autoexec.txt
 rm -f obj/andere.img; # andere Diskette absichtlich mit DERSELBEN Seriennummer (passiert real, wenn zwei Disketten

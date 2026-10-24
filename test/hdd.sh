@@ -28,7 +28,7 @@ for FALL in ${FAELLE:-schnell voll nein heim gross}; do
   ZYL=40; TYP=04; [ $FALL = gross ] && { ZYL=203; TYP=06; }
   NSEK=$((ZYL*16*63-63))
   printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\RDFORMAT.EXE %s\nA:\\FDAPM.COM POWEROFF\n' $LW > obj/ae_hdd.txt
-  NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDDISK.MOD" bash tools/mkdisk.sh obj/hdd_a.img obj/ae_hdd.txt >/dev/null 2>&1
+  NUR="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDDISK.MOD" bash tools/mkdisk.sh obj/hdd_a.img obj/ae_hdd.txt >/dev/null 2>&1
   SER=obj/hdd_${FALL}_com1.txt; H=obj/hdd_$FALL.img
   rm -f $SER $SOCK obj/hdd?_$FALL.ppm; neue_platte $H
   timeout 500 qemu-system-i386 -m 1 -display none -no-reboot -drive file=obj/hdd_a.img,format=raw,if=floppy,index=0 \

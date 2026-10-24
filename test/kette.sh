@@ -2,7 +2,8 @@
 # Gesamtkette leere Festplatte -> RD2 installiert, drei Starts von Diskette auf derselben 20-MB-Platte:
 # 1. RDFDISK: Anlegen (ganze Platte), Schreiben  -> C: primaer, aktiv
 # 2. RDFORMAT C: (Schnell)                         -> FAT16, fsck sauber
-# 3. RD2SETUP: Installieren nach C:\RD2            -> Dateien, CONFIG.SYS mit SHELL= und INSTALL=CTMOUSE
+# 3. RD2SETUP: Installieren nach C:\RD2            -> Dateien, CONFIG.SYS mit SHELL= und INSTALL=CTMOUSE, startfaehig (J)
+# 4. Start von der Festplatte ohne Diskette          -> FreeDOS-Kern, RD2 als Shell, Desktop
 # Nur Tastatur. Bilder obj/kette{1..3}.ppm.
 cd "$(dirname "$0")/.."
 H=obj/kette_hd.img; SOCK=/tmp/qmon_kette.sock; export QMON=$SOCK; F=0
@@ -17,7 +18,7 @@ starten() {  # $1 Diskette, $2 serielles Protokoll
 }
 pruef() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; F=1; fi; }
 python3 -c "open('$H','wb').write(bytes(40*16*63*512))"
-NUR0="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') RDDISK.MOD"
+NUR0="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDDISK.MOD"
 
 # ---- 1. Partitionieren ----
 printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\RDFDISK.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_k1.txt
@@ -56,15 +57,28 @@ pruef "2 FAT16 sauber (fsck)" "fsck.fat -n obj/kette_part.img >/dev/null 2>&1"
 printf '@echo off\r\nA:\\RD2\\RD2SETUP.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' | tr -d '\r' > obj/ae_k3.txt
 SETUP=1 bash tools/mkdisk.sh obj/kette_a3.img obj/ae_k3.txt >/dev/null 2>&1
 S=obj/kette3_com1.txt; starten obj/kette_a3.img $S
-waitscr "Einrichtung" 120 && { Q "sendkey i" sleep2 "sendkey ret"; waitscr "CONFIG.SYS" 60; sleep 1; python3 ../test/qemu/qmon.py text > obj/schirm_kette3.txt 2>/dev/null; Q "screendump obj/kette3.ppm" sleep0.3 "sendkey esc" sleep2 "sendkey n"; }
+waitscr "Einrichtung" 120 && { Q "sendkey i" sleep2 "sendkey ret"; waitscr "startfaehig machen" 90 && Q "sendkey j"; waitscr "Festplatte ist startfaehig\|FEHLER: Festplatte" 60; sleep 1; python3 ../test/qemu/qmon.py text > obj/schirm_kette3.txt 2>/dev/null; Q "screendump obj/kette3.ppm" sleep0.3 "sendkey esc" sleep2 "sendkey n"; }
 wait $QP
 C="-i $H@@$OFS"
 mdir $C -b ::/RD2 > obj/kette_dir.txt 2>&1
 for d in RD.EXE RDGDI.MOD RDSWAP.BIN CTMOUSE.EXE RD2SETUP.EXE RD2.INI SHELL.EXE; do pruef "3 C:\\RD2\\$d" "grep -qi '/$d' obj/kette_dir.txt"; done
 mtype $C ::/CONFIG.SYS 2>/dev/null | tr -d '\r' > obj/kette_cs.txt
-pruef "3 CONFIG.SYS SHELL=C:\\RD2\\RD.EXE /P" "grep -q '^SHELL=C:\\\\RD2\\\\RD.EXE /P$' obj/kette_cs.txt"
+pruef "3 CONFIG.SYS SHELL=C:\\RD2\\RD.EXE /P" "grep -q '^SHELL=C:\\\\RD2\\\\RD.EXE /P C:\\\\RD2\\\\SHELL.EXE$' obj/kette_cs.txt"
 pruef "3 CONFIG.SYS INSTALL=CTMOUSE" "grep -q '^INSTALL=C:\\\\RD2\\\\CTMOUSE.EXE$' obj/kette_cs.txt"
 dd if=$H of=obj/kette_part.img bs=512 skip=63 count=$NSEK 2>/dev/null
 pruef "3 FAT16 sauber nach Installation" "fsck.fat -n obj/kette_part.img >/dev/null 2>&1"
+pruef "3 Meldung startfaehig" "grep -q 'Festplatte ist startfaehig' obj/schirm_kette3.txt"
+pruef "3 C:\KERNEL.SYS" "mdir $C -b :: 2>/dev/null | grep -qi '/KERNEL.SYS'"
+pruef "3 Bootsektor FreeDOS (55AA, FAT16)" "python3 -c \"import sys;d=open('$H','rb').read()[63*512:64*512];sys.exit(0 if d[510:]==b'\\x55\\xaa' and d[54:59]==b'FAT16' and d[0]==0xEB else 1)\""
+
+# ---- 4. Start von der Festplatte (ohne Diskette) ----
+S=obj/kette4_com1.txt; rm -f $SOCK $S
+timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$H,format=raw,if=ide,index=0 -boot c \
+  -serial file:$S -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
+QP=$!
+if waitn "SHELL: bereit\|Aufruf: RD" $S 600; then sleep 5; Q "screendump obj/kette4.ppm"; fi
+sleep 1; kill $QP 2>/dev/null; wait $QP 2>/dev/null
+pruef "4 RD2 startet von Festplatte" "grep -aq 'RD: Zeitscheiben an' $S"
+pruef "4 Desktop (SHELL) laeuft" "grep -aq 'SHELL: bereit' $S"
 [ $F = 0 ] && echo "kette.sh: alles ok" || echo "kette.sh: FEHLER"
 exit $F

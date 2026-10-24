@@ -1,0 +1,6 @@
+FreeDOS SYS (sys/sys.c, sys/fdkrncfg.c, sys/talloc.c, kernel/prf.c), Bootsektor boot/boot.asm mit boot/magic.mac
+und Kopfdateien hdr/ aus dem FreeDOS-Kern. Quelle: https://github.com/FDOS/kernel (Stand d6791ad, 01.07.2026).
+Lizenz: GNU GPL Version 2 (COPYING). Stand 24.10.2026 unveraendert uebernommen und unveraendert gebaut
+(Watcom, Modell small, -DFORSYS wie kernel/sys/makefile, ohne FAT32). Ergebnis: RDSYS.EXE, ein eigenes DOS-Programm.
+Startsektoren fat12com/fat16com baut build.sh mit NASM aus boot.asm (wie bin2c).
+RD2SETUP ruft RDSYS.EXE <Quelle>:\ <Ziel>: /UPDATE (Kern + Bootsektor, keine COMMAND.COM; RD.EXE ist die Shell).

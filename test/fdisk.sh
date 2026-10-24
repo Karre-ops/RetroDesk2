@@ -11,7 +11,7 @@ sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_fdisk.py
 Q() { python3 obj/qmon_fdisk.py "$@"; }
 waitn() { for i in $(seq ${3:-600}); do [ "$(grep -c "$1" $2 2>/dev/null || true)" -ge "${4:-1}" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\RDFDISK.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_fdisk.txt
-NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') RDFDISK.EXE RDDISK.MOD" bash tools/mkdisk.sh obj/fdisk_a.img obj/ae_fdisk.txt >/dev/null 2>&1 || { echo "FEHLER: Diskette"; exit 1; }
+NUR="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDFDISK.EXE RDDISK.MOD" bash tools/mkdisk.sh obj/fdisk_a.img obj/ae_fdisk.txt >/dev/null 2>&1 || { echo "FEHLER: Diskette"; exit 1; }
 ok=0; fehler=0
 for FALL in ${FAELLE:-leer zwei weg zurueck}; do
   ZYL=40; [ $FALL = zwei ] && ZYL=203
