@@ -1,16 +1,17 @@
 #!/bin/bash
-# mkdisk.sh IMAGE AUTOEXEC.BAT  - bootfaehige 720-KB-Systemdiskette fuer die automatischen Tests.
+# mkdisk.sh IMAGE AUTOEXEC.BAT  - bootfaehige Systemdiskette fuer die automatischen Tests.
+# FMT=360 (Vorgabe, Verteilformat seit 24.10.2026) oder 720. NUR="A.EXE B.MOD" kopiert nur diese Dateien nach RD2.
 # FreeDOS-Kern und COMMAND.COM aus test/qemu/boot.img (DOS 5 darf nicht weitergegeben werden;
 # am PC10-III wird dieselbe Verzeichnisstruktur auf eine DOS-5-Bootdiskette kopiert).
 set -e
 cd "$(dirname "$0")/.."
 IMG=$1; AE=$2; SRC=../test/qemu/boot.img
 rm -f $IMG
-mformat -C -f 720 -v RD2SYSTEM -i $IMG ::
+mformat -C -f ${FMT:-360} -v RD2SYSTEM -i $IMG ::
 python3 - $SRC $IMG <<'PY'
 import sys
 s = open(sys.argv[1], 'rb').read(512); f = open(sys.argv[2], 'r+b'); d = bytearray(f.read(512))
-d[0:3] = s[0:3]; d[0x3E:0x200] = s[0x3E:0x200]          # FreeDOS-Bootcode, BPB der 720-KB-Diskette behalten
+d[0:3] = s[0:3]; d[0x3E:0x200] = s[0x3E:0x200]          # FreeDOS-Bootcode, BPB der formatierten Diskette behalten
 f.seek(0); f.write(d)
 PY
 T=obj/disk.tmp
@@ -21,6 +22,14 @@ if [ -n "$SHELLZEILE" ]; then printf '%s\r\n' "$SHELLZEILE" > $T/CONFIG.SYS; els
 sed 's/$/\r/' $AE > $T/AUTOEXEC.BAT
 mcopy -i $IMG $T/CONFIG.SYS $T/AUTOEXEC.BAT $T/FDAPM.COM ::/
 mmd -i $IMG ::/RD2
-for f in out/*.EXE out/*.MOD out/*.DRV out/*.FNT out/*.LNG out/*.BIN out/*.RDB; do [ -f "$f" ] || continue; [ "${f##*/}" = RD2SETUP.EXE ] && [ -z "$SETUP" ] && continue; mcopy -i $IMG "$f" ::/RD2/; done   # RD2SETUP nur, wenn SETUP=1 (sonst fragt der erste Start)
+if [ -z "$NUR" ]; then   # Vorgabe: Systemdateien (S) + alle in AUTOEXEC/SHELL genannten Programme (360 KB reichen nicht fuer alles)
+  NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') $(printf '%s\n%s\n' "$(cat $AE)" "$SHELLZEILE" | grep -oiE '[A-Z0-9_]+\.(EXE|MOD|RDB|BIN)' | tr a-z A-Z | tr '\n' ' ')"
+  case " $NUR " in *" RESTEST.EXE "*) NUR="$NUR RESTEST.RDB";; esac
+  case " $NUR " in *" DOSTEST.EXE "*) NUR="$NUR FREIMEM.EXE";; esac
+  case " $NUR " in *" MODTEST.EXE "*) NUR="$NUR TESTMOD.MOD TESTMOD2.MOD";; esac
+  case " $NUR " in *" STRESS.EXE "*) NUR="$NUR WURM.EXE";; esac
+  case " $NUR " in *" PING.EXE "*) NUR="$NUR PONG.EXE RECHNE.EXE MEMTEST.EXE";; esac
+fi
+for f in out/*.EXE out/*.MOD out/*.DRV out/*.FNT out/*.LNG out/*.BIN out/*.RDB; do [ -f "$f" ] || continue; if [ -n "$NUR" ]; then case " $NUR " in *" ${f##*/} "*) ;; *) continue;; esac; fi; [ "${f##*/}" = RD2SETUP.EXE ] && [ -z "$SETUP" ] && continue; mcopy -i $IMG "$f" ::/RD2/; done   # RD2SETUP nur, wenn SETUP=1 (sonst fragt der erste Start)
 python3 -c "import shutil; shutil.rmtree('$T', True)"
 exit 0

@@ -1,10 +1,10 @@
 #!/bin/bash
-# Diskettentest: RD2 von einer 720-KB-Diskette booten (QEMU, nur Laufwerk A:, keine Festplatte).
+# Diskettentest: RD2 von einer 360-KB-Diskette booten (Verteilformat seit 24.10.2026) (QEMU, nur Laufwerk A:, keine Festplatte).
 # Phase 1: LEER.EXE direkt unter DOS und ueber den Kern.
 # Phase 2: PING startet PONG, RECHNE, MEMTEST: Nachrichten, Zeitgeber, Zeitscheiben, Speicher.
 #          Einmal mit Zeitscheiben, einmal mit /KOOP (dann muss RECHNE alles aufhalten).
 cd "$(dirname "$0")/.."
-IMG=obj/sys720.img; SER=obj/com1.txt
+IMG=obj/sys360.img; SER=obj/com1.txt
 cat > obj/autoexec.txt <<'AE'
 @echo off
 A:\RD2\LEER.EXE > A:\DIREKT.TXT
@@ -21,11 +21,13 @@ A:\RD2\RD.EXE A:\RD2\HAENGT.EXE
 A:\RD2\RD.EXE A:\RD2\STRESS.EXE
 A:\FDAPM.COM POWEROFF
 AE
-bash tools/mkdisk.sh $IMG obj/autoexec.txt
+SYS=$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ')
+NUR="$SYS LEER.EXE PING.EXE PONG.EXE RECHNE.EXE MEMTEST.EXE FILETEST.EXE RESTEST.EXE RESTEST.RDB MODTEST.EXE TESTMOD.MOD TESTMOD2.MOD HAENGT.EXE STRESS.EXE WURM.EXE" \
+  bash tools/mkdisk.sh $IMG obj/autoexec.txt
 rm -f obj/andere.img; # andere Diskette absichtlich mit DERSELBEN Seriennummer (passiert real, wenn zwei Disketten
 # in derselben Sekunde formatiert werden): der Kern muss sie am Namen unterscheiden
 SN=$(python3 -c "import sys;d=open('$IMG','rb').read(48);print(d[0x27:0x2b][::-1].hex().upper())")
-mformat -C -f 720 -v ANDERE -N $SN -i obj/andere.img ::
+mformat -C -f 360 -v ANDERE -N $SN -i obj/andere.img ::
 rm -f $SER /tmp/qmon.sock
 timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:/tmp/qmon.sock,server,nowait >/dev/null 2>&1 &

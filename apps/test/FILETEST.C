@@ -25,7 +25,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     if (!FileFindFirst("A:\\RD2\\*.EXE", 0, &fd)) do n++; while (!FileFindNext(&fd));
     DbgHex("FILETEST: EXE-Dateien in A:\\RD2", n);
     ok(n >= 8, "FILETEST: FileFindFirst/Next");
-    ok(DriveInfo(1, &di) == 0 && di.typ == DT_FLOPPY && di.format_kb == 720, "FILETEST: DriveInfo A: = 720-KB-Diskette");
+    ok(DriveInfo(1, &di) == 0 && di.typ == DT_FLOPPY && di.format_kb == 360, "FILETEST: DriveInfo A: = 360-KB-Diskette");
     DbgHex("FILETEST: A: frei", di.frei);
     DbgHex("FILETEST: A: Seriennummer", di.serial);
     /* Profile */

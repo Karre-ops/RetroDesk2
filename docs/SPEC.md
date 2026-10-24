@@ -291,7 +291,18 @@ Für DOS-Programme kommen dazu: `Parameter=`, `Ordner=`, `Grafik=1` (Programm sc
 
 ## 12. Größengrenzen
 
-Siehe `tools/budget.txt`. Ab Phase 1 prüft der Build jede Datei. Der Inhalt der Systemdiskette darf höchstens **600 KB** belegen, damit auf der 720-KB-Diskette mindestens etwa 110 KB für Daten und `RD2.STA` frei bleiben.
+Siehe `tools/budget.txt`. Ab Phase 1 prüft der Build jede Datei und rechnet jede Diskette mit 1-KB-Clustern aus.
+
+**Verteilformat seit 24.10.2026: 360-KB-Disketten** (5,25" DD, 354 KB nutzbar; vorher 720 KB). Ein 720-KB- oder 1,44-MB-Laufwerk liest dieselben Dateien, wenn man sie auf eine größere Diskette kopiert.
+
+| Diskette | Name | Inhalt | Grenze |
+|---|---|---|---|
+| 1 | `RD2SYSTEM` | bootfähig: DOS 5 (IO.SYS, MSDOS.SYS), CTMOUSE, Kern, RDGDI/X, RDKX, RDUSER, RDCTL/X, RDSND, Treiber CGA/HGC/VGA/Lautsprecher/AdLib, Schriften, Sprachen, RD2SETUP, später SHELL (Desktop, Dateimanager) | höchstens 300 KB, damit ≥ 50 KB für `RD2.INI`, `RD2.STA` und Daten frei bleiben |
+| 2 | `RD2 PROG` | Zubehör (Uhr, Notizblock, Rechner), RDCALC, RDEDIT, Druckertreiber, COMMAND.COM für die DOS-Shell | 354 KB |
+| 3 | `RD2 NETZ` | RDNET, FTP, IRC, SNTP | 354 KB |
+| (4) | `RD2 SDK` | Kopfdateien, RD2.LIB, Werkzeuge; nur für Entwickler | 354 KB |
+
+Für den Alltag reichen Diskette 1 und 2. Der Kern fragt beim Nachladen per Dialog nach der richtigen Diskette (Abschnitt 9). Die Tests booten von einem 360-KB-Abbild mit FreeDOS.
 
 ## 13. Freigegeben (19.10.2026)
 

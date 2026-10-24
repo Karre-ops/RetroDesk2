@@ -1,6 +1,6 @@
 # RD2 Groessengrenzen (Phase 0). Der Build prueft ab Phase 1 jede Zeile.
 # Spalten: Datei  max_Bytes_auf_Diskette  max_KB_im_Speicher  Diskette  Beschreibung
-# Diskette: S = Systemdiskette (bootfaehig), P = Programmdiskette, D = SDK
+# Diskette (360 KB seit 24.10.2026): S = Systemdiskette (bootfaehig), P = Programme, N = Netz, D = SDK, T = nur Tests
 # Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
 RD.EXE          28672   44   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock)
@@ -24,37 +24,39 @@ SYS16.FNT        4608    0   S
 DE.LNG           4096    2   S
 EN.LNG           4096    0   S
 SHELL.EXE       40960   30   S  Desktop, Dateimanager (Teile verwerfbar)
-UHR.EXE          6144    6   S  Zubehoer
-NOTIZ.EXE       10240   10   S  Zubehoer
-RECHNER.EXE      8192    8   S  Zubehoer, kleiner Rechner
-LEER.EXE         2048    0   S  Testprogramm Phase 1 (faellt spaeter weg)
-PING.EXE         2048    0   S  Testprogramme Phase 2 (fallen spaeter weg)
-PONG.EXE         2048    0   S
-RECHNE.EXE       2048    0   S
-MEMTEST.EXE      2048    0   S
-MODTEST.EXE      2048    0   S
-FILETEST.EXE     4096    0   S
-HAENGT.EXE       2048    0   S
-STRESS.EXE       2048    0   S
-WURM.EXE         2048    0   S
-GDITEST.EXE      8192    0   S  Testbild Phase 3
-GFXWAHL.EXE      4096    0   S  Test Grafikwahl
-TEXTTEST.EXE     8192    0   S  Testbild Schriften
-INPTEST.EXE      4096    0   S  Testprogramm Tastatur und Maus
-TESTMOD.MOD      2048    0   S
-TESTMOD2.MOD     2048    0   S
-RDNET.MOD       20480   18   P  TCP/IP, DHCP, DNS
+UHR.EXE          6144    6   P  Zubehoer
+NOTIZ.EXE       10240   10   P  Zubehoer
+RECHNER.EXE      8192    8   P  Zubehoer, kleiner Rechner
+LEER.EXE         2048    0   T  Testprogramm Phase 1 (faellt spaeter weg)
+PING.EXE         2048    0   T  Testprogramme Phase 2 (fallen spaeter weg)
+PONG.EXE         2048    0   T
+RECHNE.EXE       2048    0   T
+MEMTEST.EXE      2048    0   T
+MODTEST.EXE      2048    0   T
+FILETEST.EXE     4096    0   T
+HAENGT.EXE       2048    0   T
+STRESS.EXE       2048    0   T
+WURM.EXE         2048    0   T
+GDITEST.EXE      8192    0   T  Testbild Phase 3
+GFXWAHL.EXE      4096    0   T  Test Grafikwahl
+TEXTTEST.EXE     8192    0   T  Testbild Schriften
+INPTEST.EXE      4096    0   T  Testprogramm Tastatur und Maus
+TESTMOD.MOD      2048    0   T
+TESTMOD2.MOD     2048    0   T
+RDNET.MOD       20480   18   N  TCP/IP, DHCP, DNS
 RDCALC.EXE      90112   80   P
 RDEDIT.EXE      65536   60   P
 EPSON9.DRV       3072    3   P
 # Summen
-@SYSTEM_DISK   614400        Systemdiskette inkl. DOS 5 (ca. 118 KB) und Maustreiber
+@SYSTEM_DISK   307200        360-KB-Systemdiskette: S-Dateien + DOS 5 (@DOS) hoechstens 300 KB, Rest (>= 50 KB) fuer RD2.INI, RD2.STA, Daten
+@DOS            79872        DOS 5: IO.SYS + MSDOS.SYS (kein COMMAND.COM, SHELL=RD.EXE) + CTMOUSE, je auf 1-KB-Cluster gerundet
+@DISK          362496        Nutzflaeche einer 360-KB-Diskette (354 Cluster zu 1 KB); Grenze fuer P, N, D
 @RAM_RD2               180   Oberflaeche ohne Programme, mit DOS und Maustreiber (Ziel: >= 450 KB frei)
 DOSTEST.EXE      4096    0   T  Test: RunDos (auslagern, DOS-Programm, zurueck)
 FREIMEM.EXE     16384    0   T  Test: normales DOS-Programm fuer DOSTEST
 BENCH2.EXE       4096    0   T  Leistungsvergleich RD2-Seite (BENCH1 baut aus RD1, nicht auf der Diskette)
-RESTEST.EXE      8192    0   S  Test Ressourcen, Texte, Uhrzeit
-WINTEST.EXE      8192    0   P  Test: Fenster
-MENUTEST.EXE     8192    0   P  Test: Menues, Rollbalken
-ZEIGTEST.EXE     8192    0   P  Test: Mauszeiger-Formen
-DLGTEST.EXE      8192    0   P  Test: Steuerelemente und Dialoge
+RESTEST.EXE      8192    0   T  Test Ressourcen, Texte, Uhrzeit
+WINTEST.EXE      8192    0   T  Test: Fenster
+MENUTEST.EXE     8192    0   T  Test: Menues, Rollbalken
+ZEIGTEST.EXE     8192    0   T  Test: Mauszeiger-Formen
+DLGTEST.EXE      8192    0   T  Test: Steuerelemente und Dialoge

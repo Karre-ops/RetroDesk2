@@ -33,11 +33,24 @@ drv = max([belegt.get(d, 0) for d in ("CGA.DRV", "HGC.DRV", "VGAM.DRV")] or [0])
 summe = sum(belegt.get(f, 0) for f in fest) + drv
 ok = summe <= lim.get("@RESIDENT_SCHNELL", 1 << 30); err += not ok
 print(f"{'ok    ' if ok else 'FEHLER'} resident im Profil Schnell (vorhandene Teile) {summe} / {lim.get('@RESIDENT_SCHNELL', 0)} Bytes = {summe / 1024:.1f} KB")
-if img:
+disk = {}                                         # Datei -> Diskette (Spalte 4)
+for line in open(os.path.join(D, "budget.txt"), encoding="latin-1"):
+    t = line.split("#")[0].split()
+    if len(t) >= 4 and not t[0].startswith("@"): disk[t[0]] = t[3]
+def clu(n): return (n + 1023) // 1024 * 1024   # 360 KB: Cluster 1 KB
+for dk, name in (("S", "Systemdiskette"), ("P", "Programmdiskette"), ("N", "Netzdiskette"), ("D", "SDK-Diskette")):
+    fs = [f for f, d in disk.items() if d == dk and os.path.exists(os.path.join(out, f))]
+    if not fs: continue
+    summe = sum(clu(os.path.getsize(os.path.join(out, f))) for f in fs) + (lim.get("@DOS", 0) if dk == "S" else 0)
+    mx = lim["@SYSTEM_DISK"] if dk == "S" else lim["@DISK"]
+    ok = summe <= mx; err += not ok
+    print(f"{'ok    ' if ok else 'FEHLER'} {name} (360 KB) {summe} / {mx} Bytes" + (" inkl. DOS 5" if dk == "S" else "") + f", {len(fs)} Dateien, frei {lim['@DISK'] - summe}")
+if img:                                           # Testdiskette: tatsaechlich belegt
+    b = open(img, "rb").read(32)
+    bps, spc, res, nf, rde, tot, _, spf = struct.unpack("<HBHBHHBH", b[11:24])
+    nutz = (tot - res - nf * spf - rde * 32 // bps) * bps
     free = [l for l in subprocess.run(["mdir", "-i", img, "::"], capture_output=True, text=True).stdout.split("\n") if "bytes free" in l][0]
     freeb = int("".join(c for c in free.split("bytes")[0] if c.isdigit()))
-    used = 713728 - freeb   # 720-KB-Diskette: 1426 Cluster x 512 Bytes nutzbar
-    ok = used <= lim["@SYSTEM_DISK"]; err += not ok
-    print(f"{'ok    ' if ok else 'FEHLER'} Systemdiskette belegt {used} / {lim['@SYSTEM_DISK']} Bytes, frei {freeb}")
+    print(f"ok     Testdiskette ({tot * bps // 1024} KB, FreeDOS + Tests) belegt {nutz - freeb} / {nutz} Bytes, frei {freeb}")
 print("Budget:", "ok" if not err else f"{err} Fehler")
 sys.exit(1 if err else 0)
