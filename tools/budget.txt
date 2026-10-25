@@ -15,9 +15,9 @@ RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Beda
 RDCTLX.MOD      12288   10   S  Dateidialog, TEXT, COMBO, SCROLL (verwerfbar)
 RDUSER.MOD      26624   27   S  Fenster, Menues, Schreibtisch-Anbindung der Shell (24.10.: 26 -> 27 KB fuer WS_DESKTOP, M_SYSMENU)
 RDSND.MOD        4096    4   S  Sound-API, Musik-Player
-CGA.DRV          4096    4   S
-HGC.DRV          4096    4   S
-VGAM.DRV         4096    4   S
+CGA.DRV          5120    5   S
+HGC.DRV          5120    5   S
+VGAM.DRV         5120    5   S
 SPEAKER.DRV      2048    2   S
 ADLIB.DRV        2048    2   P
 SYS8.FNT         2560    0   S  wird bei Bedarf geladen, nur die aktive Schrift belegt Speicher

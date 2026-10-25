@@ -19,7 +19,7 @@ static void miss(LPCSTR name, void (*fn)(void))
     DbgHex("BENCH2: us", (36UL * 54925UL) / n);
 }
 /* "Text 20 Zeichen" wie RD1: durchsichtig (nur die Schrift). "deckend": mit Hintergrund */
-static void a_text13(void) { SetBkMode(dc, BK_TRANSPARENT); TextOut(dc, 13, 40, "RDEDIT.EXE     51110", -1); SetBkMode(dc, BK_OPAQUE); }
+static void a_text13(void) { TextOut(dc, 13, 40, "RDEDIT.EXE     51110", -1); }   /* Modus durchsichtig vorher gesetzt (wie RD1: kein Umschalten je Aufruf), 25.10. */
 /* x=16: RD1 gfx_text schreibt auf Bytegrenze die ganze Zelle (mit Hintergrund), also deckend vergleichen */
 static void a_text16(void) { TextOut(dc, 16, 40, "RDEDIT.EXE     51110", -1); }
 static void a_dtext13(void) { TextOut(dc, 13, 40, "RDEDIT.EXE     51110", -1); }
@@ -57,7 +57,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     SetPen(dc, C_BLACK); SetTextColor(dc, C_BLACK); SetBkColor(dc, C_WHITE);
     bm = BmpCreate(208, 150, 1); bdc = bm ? BmpDC(bm) : 0;
     if (!bdc) { DbgHex("BENCH2: keine Bitmap", LastError()); return 2; }
-    miss("BENCH2: Text 20 Zeichen, x=13", a_text13);
+    SetBkMode(dc, BK_TRANSPARENT); miss("BENCH2: Text 20 Zeichen, x=13", a_text13); SetBkMode(dc, BK_OPAQUE);
     miss("BENCH2: Text 20 Zeichen, x=16", a_text16);
     miss("BENCH2: Text deckend, x=13", a_dtext13);
     miss("BENCH2: Text deckend, x=16", a_dtext16);
