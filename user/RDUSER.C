@@ -18,12 +18,15 @@
 #define F_PAINTQ 0x01                             /* M_PAINT eingestellt */
 #define F_ERASE  0x02
 #define F_INTERN 0x04                             /* Fensterfunktion in RDUSER */
+#define F_MIN    0x08                             /* minimiert (versteckt, Alt+Tab holt es) */
 #define M_NCBUTTONDOWN 0x00A1                     /* p1 = HT_*, p2 = Bildschirm */
 #define HT_TITLE 2
 #define HT_CLOSE 3
 #define HT_MENU  1
 #define HT_VSCROLL 4
 #define HT_HSCROLL 5
+#define HT_SIZE  6                                /* Ecke rechts unten (WS_SIZE) */
+#define HT_MIN   7                                /* Feld rechts im Titel (WS_MIN) */
 
 typedef struct {
     BYTE  gen, used, vis, cls, task, flags, parent, child, next, dis;
@@ -252,6 +255,11 @@ static void rahmen(WORD i)
             c.l = b + 3; c.t = b + 2; c.r = c.l + t - 5; c.b = b + t - 3;
             SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &c); SetPen(d, C_BLACK); Frame(d, &c);
         }
+        if ((w_[i].stil & WS_MIN) && !w_[i].parent) {   /* Minimierfeld rechts: Kasten mit Strich unten */
+            c.r = wd - b - 3; c.l = c.r - t + 5; c.t = b + 2; c.b = b + t - 3;
+            SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &c); SetPen(d, C_BLACK); Frame(d, &c);
+            Line(d, c.l + 2, c.b - 3, c.r - 3, c.b - 3);
+        }
     }
     if (w_[i].stil & WS_VSCROLL) sbmal(i, SB_VERT, d);
     if (w_[i].stil & WS_HSCROLL) sbmal(i, SB_HORZ, d);
@@ -390,6 +398,12 @@ void RDEXPORT u_ShowWindow(HWND h, WORD art)
         if (act == i) neuaktiv();
         return;
     }
+    if (art == SW_MIN) {                          /* nur Hauptfenster; Alt+Tab holt es zurueck */
+        if (w_[i].parent) return;
+        u_ShowWindow(h, SW_HIDE); w_[i].flags |= F_MIN; sendi(i, M_SIZE, SIZE_MIN, 0);
+        return;
+    }
+    w_[i].flags &= ~F_MIN;
     if (art == SW_MAX && !w_[i].parent) { w_[i].r.l = 0; w_[i].r.t = mh; w_[i].r.r = sw; w_[i].r.b = sh; }
     if (!w_[i].vis) { w_[i].vis = 1; sendi(i, M_SHOW, 1, 0); }
     if (!w_[i].parent) u_SetActive(h); else neuz(i, 0);
@@ -586,9 +600,9 @@ DWORD RDEXPORT u_DispatchMessage(const MSG FAR *m)
     if (m->msg == M_PAINT && leer(&w_[i].inv)) { w_[i].flags &= ~F_PAINTQ; return 0; }   /* schon gezeichnet */
     return sendi(i, m->msg, m->p1, m->p2);
 }
-static void ziehen(WORD i, short mx, short my)    /* Titel gezogen: Umriss folgen lassen */
+static void ziehen(WORD i, short mx, short my, int gr)   /* Titel (gr = 0) oder Ecke (gr = 1) gezogen: Umriss folgt */
 {
-    MSG m; RECT r, a; HDC d = gdc(0); short dx = 0, dy = 0;
+    MSG m; RECT r, a; HDC d = gdc(0); short dx, dy;
     if (!d) return;
     wrect(i, &r); a = r;
     SetRop(d, ROP_XOR); SetPen(d, C_WHITE); SetBrush(d, C_WHITE, PAT_NONE);
@@ -598,17 +612,17 @@ static void ziehen(WORD i, short mx, short my)    /* Titel gezogen: Umriss folge
         if (!GetMessage(&m)) { PostQuit(0); break; }
         if (m.msg == M_MOUSEMOVE || m.msg == M_BUTTONUP) {
             Frame(d, &a);
-            dx = m.pt.x - mx; dy = m.pt.y - my;
-            if (r.t + dy < mh) dy = mh - r.t;
-            a = r; off(&a, dx, dy);
+            dx = m.pt.x - mx; dy = m.pt.y - my; a = r;
+            if (gr) { a.r += dx; a.b += dy; if (a.r < a.l + 64) a.r = a.l + 64; if (a.b < a.t + 40) a.b = a.t + 40; }
+            else { if (r.t + dy < mh) dy = mh - r.t; off(&a, dx, dy); }
             if (m.msg == M_BUTTONUP) break;
             Frame(d, &a);
-        } else if (m.msg == M_KEY && m.p1 == K_ESC) { Frame(d, &a); dx = dy = 0; break; }
+        } else if (m.msg == M_KEY && m.p1 == K_ESC) { Frame(d, &a); a = r; break; }
         else if (m.msg != M_BUTTONDOWN) u_DispatchMessage(&m);
     }
     cap = 0;
     DCFree(d);
-    if (dx || dy) u_MoveWindow(hw(i), r.l + dx, r.t + dy, r.r - r.l, r.b - r.t, TRUE);
+    if (a.l != r.l || a.t != r.t || a.r != r.r || a.b != r.b) u_MoveWindow(hw(i), a.l, a.t, a.r - a.l, a.b - a.t, TRUE);
 }
 DWORD RDEXPORT u_DefWindowProc(HWND h, WORD m, WORD p1, DWORD p2)
 {
@@ -619,13 +633,20 @@ DWORD RDEXPORT u_DefWindowProc(HWND h, WORD m, WORD p1, DWORD p2)
         if (p1 == HT_MENU) { short x = (short)LOWORD(p2); WORD k; for (k = 0; k < bn && !(x >= bx[k] && x < bx[k + 1]); k++) ; if (k < bn) menulauf(top(i), k, 1); }
         else if (p1 == HT_VSCROLL || p1 == HT_HSCROLL) sbklick(i, p1 == HT_VSCROLL ? SB_VERT : SB_HORZ, (short)LOWORD(p2), (short)HIWORD(p2));
         else if (p1 == HT_CLOSE) PostMessage(h, M_CLOSE, 0, 0);
-        else if (p1 == HT_TITLE) ziehen(i, (short)LOWORD(p2), (short)HIWORD(p2));
+        else if (p1 == HT_TITLE || p1 == HT_SIZE) ziehen(i, (short)LOWORD(p2), (short)HIWORD(p2), p1 == HT_SIZE);
+        else if (p1 == HT_MIN) u_ShowWindow(h, SW_MIN);
         return 0;
     case M_CLOSE: u_DestroyWindow(h); return 0;
     case M_PAINT: u_BeginPaint(h, &ps); u_EndPaint(h, &ps); return 0;
     case M_KEY:
         if (p1 == 0x100 + 0x3E && (HIWORD(p2) & KS_ALT)) PostMessage(hw(top(i)), M_CLOSE, 0, 0);   /* Alt+F4 */
         else if (p1 == K_F10 && top(i) == act) menulauf(act, 0, 0);
+        else if ((p1 == 0x1A5 || p1 == 0x16D) && (HIWORD(p2) & KS_ALT)) {   /* Alt+Tab (101er-BIOS), Alt+F6 (jedes BIOS) */
+            WORD j, k = 0;                        /* unterstes Hauptfenster nach oben, minimierte zurueck */
+            for (j = w_[0].child; j; j = w_[j].next)
+                if (j != dsk && !w_[j].dis && !(w_[j].stil & WS_POPUP) && (w_[j].vis || (w_[j].flags & F_MIN))) k = j;
+            if (k && k != act) u_ShowWindow(hw(k), SW_RESTORE);
+        }
         else if ((p1 == ' ' || p1 == 0x139) && (HIWORD(p2) & KS_ALT) && dsk) PostMessage(hw(dsk), M_SYSMENU, 0, 0);   /* Alt+Leertaste: Menue "RD" */
         return 0;
     }
@@ -1153,6 +1174,10 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
         }
         if (!(i = bei(0, x, y))) return 0;        /* Schreibtisch: spaeter die Shell */
         for (j = i; j; j = w_[j].parent) if (w_[j].dis) return 0;   /* gesperrt (auch Eltern, z. B. unter einem Dialog) */
+        wrect(i, &r);
+        if (msg == M_BUTTONDOWN && (w_[i].stil & WS_SIZE) && !w_[i].parent && x >= r.r - 8 && y >= r.b - 8) {
+            m->msg = M_NCBUTTONDOWN; m->p1 = HT_SIZE; m->w = hw(i); return w_[i].task;   /* Ecke: Groesse */
+        }
         crect(i, &r);
         if (x < r.l || x >= r.r || y < r.t || y >= r.b) {
             if (msg != M_BUTTONDOWN) return 0;
@@ -1166,7 +1191,7 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
                     if (x >= q.l && x < q.r && y >= q.t && y < q.b) m->p1 = bar == SB_VERT ? HT_VSCROLL : HT_HSCROLL;
                 }
             }
-            if (t && y < r.t + b + t) m->p1 = (w_[i].stil & WS_CLOSE) && x < r.l + b + t ? HT_CLOSE : HT_TITLE;
+            if (t && y < r.t + b + t) m->p1 = (w_[i].stil & WS_CLOSE) && x < r.l + b + t ? HT_CLOSE : (w_[i].stil & WS_MIN) && !w_[i].parent && x >= r.r - b - t ? HT_MIN : HT_TITLE;
             m->w = hw(i); return w_[i].task;
         }
     }

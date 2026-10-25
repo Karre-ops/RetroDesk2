@@ -84,8 +84,8 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Bei 640 KB oder weniger stärker verwerfen | da | Reihenfolge verdichten, verwerfen, auslagern (SPEC 2.4) |
 | Auslagern bei Speichermangel (XMS, sonst RD2.SWP auf der Platte) | da | RDAUSL.MOD, test/auslagern.sh (25.10.) |
 | Klare Meldungen bei Speichermangel | da | Shell: „Zu wenig Speicher für … Frei: … KB“ (25.10.) |
-| Fenster: Größe ändern, Minimieren | fehlt | `WS_SIZE`, `WS_MIN` nur definiert |
-| Alt+Tab zwischen Programmen | fehlt | |
+| Fenster: Größe ändern, Minimieren | erledigt 25.10. | Ecke rechts unten ziehen, Feld rechts im Titel; `test/fenster.sh` |
+| Alt+Tab zwischen Programmen | erledigt 25.10. | auch Alt+F6 (XT-BIOS kennt kein Alt+Tab), holt minimierte Fenster zurück |
 | Steuerelemente: Knopf, Häkchen, Option, Text, Gruppe, Eingabe, Liste, Fortschritt, Rollbalken | da | |
 | Klappliste (COMBO), mehrzeiliges Textfeld (TEXT), eigener Rollbalken (SCROLL) | da | RDCTLX.MOD; Korrektur 25.10.: stand zuerst als fehlend |
 | Standarddialoge: Meldung, Eingabe, Datei öffnen/speichern | da | |
@@ -108,7 +108,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 ## C. Vorschlag Reihenfolge
 
 1. Speichermangel: Meldungen, Auslagern (XMS, RD2.SWP), Regeln für 640 KB. Das legt fest, wie alle Programme mit Speicher umgehen.
-2. Fenster fertig: Größe ändern, Minimieren, Alt+Tab.
+2. Fenster fertig: Größe ändern, Minimieren, Alt+Tab. (erledigt 25.10.)
 3. Shell fertig: Listenansicht, Uhr in der Leiste, Info wie RD1, `.APP`/Programme-Menü, `RD2.STA`, Diskettenwechsel, fehlende Tasten.
 4. Zubehör: Uhr, Notizblock, einfacher Rechner, Optionen.
 5. Sound: RDSND mit Speaker und AdLib, Systemklänge, IMF/DRO.

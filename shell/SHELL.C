@@ -383,7 +383,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
     ORDNER *o = ord(w); PAINT ps; HDC d; RECT r; EINTRAG FAR *e; short i, x, y;
     if (!o) return DefWindowProc(w, msg, p1, p2);
     switch (msg) {
-    case M_SIZE: masse(o, (short)LOWORD(p2), (short)HIWORD(p2)); return 0;
+    case M_SIZE: DbgHex("SHELL: Groesse", p2); if (p1 != SIZE_MIN) masse(o, (short)LOWORD(p2), (short)HIWORD(p2)); return 0;
     case M_PAINT:
         d = BeginPaint(w, &ps); GetClientRect(w, &r);
         SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &r);
@@ -464,6 +464,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else PostMessage(desk, M_COMMAND, p1, 0);   /* RD-Befehle */
         return 0;
     case M_ACTIVATE:
+        if (p1) { DbgPrint("SHELL: aktiv"); DbgPrint(o->pfad); }
         if (!p1) letzt = w;                       /* fuer das Kopierziel */
         return DefWindowProc(w, msg, p1, p2);
     case M_DESTROY:

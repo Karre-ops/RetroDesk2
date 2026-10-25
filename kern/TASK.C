@@ -89,7 +89,7 @@ static DWORD lastdown; static short ldx, ldy; static WORD ldb;
 static MSG im;                                    /* Eingabe auf dem Weg zum Fenster */
 DWORD (__far __pascal *k_wnd)(WORD art, HWND w, WORD msg, WORD p1, DWORD p2);
 static void post_in(WORD msg, WORD p1, DWORD p2, short x, short y)
-{
+{                                                 /* G30: RDUSER darf im umschreiben (M_NCBUTTONDOWN usw.) */
     TASK *t; MSG __far *m; WORD n = k_focus;
     im.w = 0; im.msg = msg; im.p1 = p1; im.p2 = p2; im.pt.x = x; im.pt.y = y;
     if (k_wnd) {                                  /* RDUSER: Fenster und Task, 0xFFFF = noch keine Fenster */
@@ -97,14 +97,9 @@ static void post_in(WORD msg, WORD p1, DWORD p2, short x, short y)
         if (n == 0xFFFF) n = k_focus;
     }
     t = &k_task[n];
-    if (t->qn && msg == M_MOUSEMOVE) {            /* letzte Bewegung ersetzen statt anhaengen */
-        m = (MSG __far *)MK_FP(t->q, 0) + (t->qh + t->qn - 1) % QLEN;
-        if (m->msg == M_MOUSEMOVE) { m->w = im.w; m->p1 = p1; m->p2 = im.p2; m->pt.x = x; m->pt.y = y; m->time = ms_now(); return; }
-    }
-    if (enqueue(n, im.w, msg, im.p1, im.p2) > 0) {
-        m = (MSG __far *)MK_FP(t->q, 0) + (t->qh + t->qn - 1) % QLEN;
-        m->pt.x = x; m->pt.y = y;
-    }
+#define LETZT ((MSG __far *)MK_FP(t->q, 0) + (t->qh + t->qn - 1) % QLEN)
+    if (!(t->qn && im.msg == M_MOUSEMOVE && LETZT->msg == M_MOUSEMOVE) && enqueue(n, im.w, im.msg, im.p1, im.p2) <= 0) return;
+    m = LETZT; im.time = ms_now(); *m = im;       /* letzte Bewegung ersetzen statt anhaengen */
 }
 void input_poll(void)
 {
