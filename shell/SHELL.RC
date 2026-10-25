@@ -47,6 +47,11 @@ TEXTE
   12 "%s gibt es schon. Ersetzen?"
   13 "Laufwerk %s\nGesamt: %s\nFrei: "
   14 "Eigenschaften"
+  15 "Achtung: %s geh”rt zum System.\nOhne sie startet der Rechner oder RD2\nvielleicht nicht mehr.\n"
+  16 "Trotzdem l”schen?"
+  17 "Trotzdem ersetzen?"
+  18 "Trotzdem verschieben?"
+  19 "Trotzdem umbenennen?"
 ENDE
 SPRACHE EN
 MENU 1
@@ -96,6 +101,11 @@ TEXTE
   12 "%s already exists. Replace?"
   13 "Drive %s\nTotal: %s\nFree: "
   14 "Properties"
+  15 "Warning: %s belongs to the system.\nWithout it the computer or RD2\nmay no longer start.\n"
+  16 "Delete anyway?"
+  17 "Replace anyway?"
+  18 "Move anyway?"
+  19 "Rename anyway?"
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"

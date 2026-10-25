@@ -44,7 +44,7 @@ PY
       Q "sendkey esc"; waitn "RDFDISK: Meldung 15" $SER 100 && sleep 2 && Q "sendkey ret"
     else
       Q "sendkey alt-s"; waitn "RDFDISK: Meldung 13" $SER 100 && sleep 2 && Q "sendkey ret"
-      waitn "RDFDISK: Meldung 14" $SER 300 && sleep 2 && Q "screendump obj/fdisk3_$FALL.ppm" sleep0.3 "sendkey ret"
+      waitn "RDFDISK: Meldung 14" $SER 300 && sleep 2 && Q "screendump obj/fdisk3_$FALL.ppm" sleep0.3 "sendkey tab" sleep0.4 "sendkey ret"   # Nein: kein Neustart (Ja prueft kette.sh)
     fi
   else echo "FEHLER: RDFDISK kommt nicht ($FALL)"; fi
   wait $QP

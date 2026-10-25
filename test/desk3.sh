@@ -24,6 +24,7 @@ if waitn "SHELL: Ordner angelegt" 1; then
   sleep 2; null
   Q "mouse_move 67 96" sleep0.6 "mouse_button 1" sleep0.4 "mouse_move 0 -6" sleep0.3 "mouse_move 0 -12" sleep0.3 "mouse_move 0 -18" sleep0.5 "screendump obj/desk3_zug.ppm" sleep0.3 "mouse_button 0"
 fi
+waitn "SHELL: Systemwarnung" 1 && sleep 1.5 && Q "screendump obj/desk3_warn.ppm" sleep0.3 "sendkey tab" sleep0.4 "sendkey ret"   # CONFIG.SYS: Ja
 if waitn "SHELL: verschoben" 1; then
   sleep 2; null
   Q "mouse_move 12 31" sleep0.6 "mouse_button 2" sleep0.2 "mouse_button 0" sleep1.0 "screendump obj/desk3_pop.ppm" sleep0.3 "sendkey e"

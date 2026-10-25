@@ -6,6 +6,7 @@
  * in einer erweiterten Partition. Erst "Schreiben" aendert die Platte; danach Neustart, dann RDFORMAT.
  * Das Laufwerk, auf dem RD2 liegt, laesst sich nicht loeschen. */
 #include <dos.h>
+#include <conio.h>
 #include "RD2.H"
 #include "RDDISK.H"
 #include "fdglue.h"
@@ -138,6 +139,16 @@ static void loeschen(HWND d, const FG_TEIL *t)
     else if (frage(d, 11, t->lw ? a : "", MB_YESNO | MB_WARN) != ID_YES) return;
     if (fg_loeschen(t)) fehler(d, 19);
 }
+static void neustart(void)                        /* DOS-Puffer schreiben, dann Warmstart; kehrt nicht zurueck */
+{
+    static union REGS r; static struct SREGS s; void (__far *reset)(void) = (void (__far *)(void))MK_FP(0xFFFF, 0);
+    segread(&s); r.h.ah = 0x0D; dInt(0x21, (union REGS FAR *)&r, (union REGS FAR *)&r, (struct SREGS FAR *)&s);
+    DbgPrint("RDFDISK: Neustart");
+    *(WORD __far *)MK_FP(0x40, 0x72) = 0x1234;    /* Warmstart: kein Speichertest */
+    _disable(); outp(0x64, 0xFE);                 /* AT: Reset ueber den Tastaturcontroller; XT: Port frei */
+    { WORD i; for (i = 0; i < 0xFFFF; i++) ; }
+    reset();                                      /* XT oder wenn der Controller nicht reagiert */
+}
 static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
 {
     WORD s = (WORD)SendMessage(DlgItem(d, ID_LISTE), L_GETSEL, 0, 0);
@@ -164,7 +175,7 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
         DbgPrint("RDFDISK: schreiben");
         if (fg_schreiben()) { fehler(d, 18); DialogEnd(d, ID_NO); return TRUE; }
         DbgPrint("RDFDISK: geschrieben");
-        frage(d, 14, 0, MB_OK | MB_INFO);
+        if (frage(d, 14, 0, MB_YESNO | MB_ASK) == ID_YES) neustart();   /* M14: DOS kennt die Partitionen erst danach */
         DialogEnd(d, ID_OK);
         return TRUE;
     }

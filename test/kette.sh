@@ -32,6 +32,7 @@ if waitn "RDFDISK: Liste bereit" $S; then
 fi
 wait $QP
 pruef "1 RDFDISK geschrieben" "grep -aq 'RDFDISK: geschrieben' $S"
+pruef "1 RDFDISK startet neu (M14)" "grep -aq 'RDFDISK: Neustart' $S"
 python3 - $H <<'PY' && echo "ok     1 MBR: eine Partition, aktiv, FAT16" || { echo "FEHLER 1 MBR"; F=1; }
 import sys, struct
 d = open(sys.argv[1], 'rb').read(512); e = d[446:462]

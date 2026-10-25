@@ -42,6 +42,7 @@ static char lw[26], lt[26]; static short nlw, lsel;   /* Laufwerke: Buchstabe, T
 static ORDNER od[MAXO];
 static char buf[160], qv[80], qn[80];            /* Text; Quelle und Ziel beim Kopieren */
 static HWND letzt; static HMENU mlw;
+static char heim[66];                             /* RD2-Verzeichnis ohne \ am Ende, "" = Wurzel */
 static HWND zw; static short zx, zy; static BYTE zieht;   /* Ziehen: Quelle, Startpunkt, 1 = gedrueckt, 2 = zieht */
                                 /* zuletzt aktives Ordnerfenster vor dem jetzigen */
 
@@ -166,6 +167,29 @@ static void fehler(LPCSTR was, WORD e)
     char t[8]; zahl(t, e); fmt(buf, StrGet(inst, 6), was, t); MsgBox(GetActive(), buf, "RD", MB_OK | MB_ERROR);
 }
 static int praefix(LPCSTR a, LPCSTR b) { while (*a && (*a | 0x20) == (*b | 0x20)) a++, b++; return !*a && (*b == '\\' || !*b); }
+/* Systemdateien: Startdateien in der Wurzel, alles mit Attribut System, das RD2-Verzeichnis samt Inhalt
+ * und die Ordner darueber. Loeschen, Ersetzen, Verschieben und Umbenennen fragen dann noch einmal (Nein vorgewaehlt). */
+static const char sysn[] = "CONFIG.SYS\0AUTOEXEC.BAT\0KERNEL.SYS\0IO.SYS\0MSDOS.SYS\0IBMBIO.COM\0IBMDOS.COM\0COMMAND.COM\0RD.EXE\0RD2.INI\0";
+static int gleichi(LPCSTR a, LPCSTR b) { while (*a && (*a | 0x20) == (*b | 0x20)) a++, b++; return !*a && !*b; }
+static int wichtig(LPCSTR p, WORD attr)
+{
+    LPCSTR n, s;
+    if (attr & FA_SYSTEM) return 1;
+    if (heim[0] && (praefix(heim, p) || praefix(p, heim))) return 1;
+    for (n = p, s = p; *s; s++) if (*s == '\\') n = s + 1;
+    if (n != p + 3) return 0;                     /* nicht in der Wurzel */
+    for (s = sysn; *s; s += slen(s) + 1) if (gleichi(n, s)) return 1;
+    return 0;
+}
+static int sicher(LPCSTR p, WORD attr, WORD frage)   /* 1 = weitermachen */
+{
+    LPCSTR n, s;
+    if (!wichtig(p, attr)) return 1;
+    for (n = p, s = p; *s; s++) if (*s == '\\') n = s + 1;
+    DbgPrint("SHELL: Systemwarnung");
+    fmt(buf, StrGet(inst, 15), n, 0); scat(buf, StrGet(inst, frage), sizeof buf);
+    return MsgBox(GetActive(), buf, "RD", MB_YESNO | MB_WARN | MB_DEFNO) == ID_YES;
+}
 /* qv nach qn kopieren (Datei oder ganzer Ordner), bei weg danach Quelle loeschen. 0 = ok, 1 = Abbruch */
 static WORD kop(BYTE attr, int weg)
 {
@@ -186,11 +210,11 @@ static WORD kop(BYTE attr, int weg)
         if (!e && weg) e = DirRemove(qv);
         return e;
     }
-    if (FileAttr(qn, 0, 0) != 0xFFFF) {           /* Ziel gibt es schon */
+    if ((n = FileAttr(qn, 0, 0)) != 0xFFFF) {     /* Ziel gibt es schon */
         fmt(buf, StrGet(inst, 12), qn, 0);
         a = MsgBox(GetActive(), buf, "RD", MB_YESNOCANCEL | MB_ASK);
         if (a == ID_CANCEL) return 1;
-        if (a != ID_YES) return 0;
+        if (a != ID_YES || !sicher(qn, n, 17)) return 0;
         FileAttr(qn, 0, 1);
     }
     if (!(hb = MemAlloc(4096, MEM_MOVABLE))) return RD_ERR_NOMEM;
@@ -229,6 +253,10 @@ static void kopieren(ORDNER *o, int weg, LPCSTR wohin)   /* wohin 0: fragen */
     }
     m = (short)slen(ziel); if (m && ziel[m - 1] != '\\') scat(ziel, "\\", sizeof ziel);
     if (praefix(o->pfad, ziel) && slen(o->pfad) == slen(ziel)) { MemUnlock(o->h); return; }   /* derselbe Ordner */
+    if (weg) for (i = 0; i < o->n; i++) if (betrifft(o, e, i, mk)) {
+        scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
+        if (!sicher(qv, e[i].attr, 18)) { MemUnlock(o->h); return; }
+    }
     CursorBusy(TRUE);
     for (i = 0; i < o->n && !r; i++) if (betrifft(o, e, i, mk)) {
         scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
@@ -267,6 +295,10 @@ static void loeschen(ORDNER *o)
     if ((n = anzahl(o, e)) == 0) { MemUnlock(o->h); return; }
     zahl(t, n); fmt(buf, StrGet(inst, 7), t, 0);
     if (MsgBox(GetActive(), buf, "RD", MB_YESNO | MB_WARN) != ID_YES) { MemUnlock(o->h); return; }
+    for (i = 0; i < o->n; i++) if (betrifft(o, e, i, mk)) {
+        scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
+        if (!sicher(qv, e[i].attr, 16)) { MemUnlock(o->h); return; }
+    }
     CursorBusy(TRUE);
     for (i = 0; i < o->n && !r; i++) if (betrifft(o, e, i, mk)) {
         scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
@@ -279,11 +311,12 @@ static void loeschen(ORDNER *o)
 }
 static void umbenennen(ORDNER *o)
 {
-    EINTRAG FAR *e; char n[13]; WORD r;
+    EINTRAG FAR *e; char n[13]; WORD r, at;
     if (o->sel < 0 || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
-    scpy(n, e[o->sel].name, sizeof n); MemUnlock(o->h);
+    scpy(n, e[o->sel].name, sizeof n); at = e[o->sel].attr; MemUnlock(o->h);
     if (n[0] == '.') return;
     scpy(qv, o->pfad, sizeof qv); scat(qv, n, sizeof qv);
+    if (!sicher(qv, at, 19)) return;
     if (!InputBox(GetActive(), StrGet(inst, 8), "RD", n, sizeof n) || !n[0]) return;
     scpy(qn, o->pfad, sizeof qn); scat(qn, n, sizeof qn);
     if ((r = FileRename(qv, qn)) != 0) fehler(n, r);
@@ -565,6 +598,7 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     WNDCLASS wc; MSG m; HDC d; DRIVEINFO di; WORD k;
     (void)cmd; (void)show;
     inst = i;
+    { SYSINFO si; KernInfo(&si); scpy(heim, si.home, sizeof heim); k = slen(heim); if (k && heim[k - 1] == '\\') heim[--k] = 0; if (k <= 2) heim[0] = 0; }
     d = GetDC(0); W = GetCaps(d, CAPS_W); H = GetCaps(d, CAPS_H); th = GetCaps(d, CAPS_TEXTH); ReleaseDC(0, d);
     mh = th + 4; ih = H <= 200 ? 16 : 32; zh = ih + th + 6;
     for (k = 1; k <= 26; k++)                     /* nur Typ, keine Diskette anfassen */

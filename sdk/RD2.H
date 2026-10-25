@@ -402,6 +402,7 @@ typedef struct {
 #define MB_WARN     0x0030
 #define MB_ERROR    0x0010
 #define MB_ASK      0x0020
+#define MB_DEFNO    0x0100                          /* Nein ist vorgewaehlt (Eingabe = Nein), fuer Rueckfragen mit Folgen */
 #define ID_OK     1
 #define ID_CANCEL 2
 #define ID_YES    6

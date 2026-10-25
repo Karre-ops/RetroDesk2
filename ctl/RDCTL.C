@@ -684,7 +684,7 @@ short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
     HMEM hm; BYTE FAR *v, FAR *p; short FAR *q; HDC d; short cw, tw, zw, zeilen, w, h, bx, n, i; LPCSTR s;
     static const WORD knr[4][3] = { { 2, 0, 0 }, { 2, 3, 0 }, { 4, 5, 3 }, { 4, 5, 0 } };   /* Texte in DE.LNG */
     static const WORD kid[4][3] = { { ID_OK, 0, 0 }, { ID_OK, ID_CANCEL, 0 }, { ID_YES, ID_NO, ID_CANCEL }, { ID_YES, ID_NO, 0 } };
-    WORD art = (fl & 7) == MB_YESNO ? 3 : (fl & 7) == MB_YESNOCANCEL ? 2 : (fl & 7) == MB_OKCANCEL ? 1 : 0;
+    WORD j, art = (fl & 7) == MB_YESNO ? 3 : (fl & 7) == MB_YESNOCANCEL ? 2 : (fl & 7) == MB_OKCANCEL ? 1 : 0;
     char kt[3][16]; short erg;
     if (!text) text = "";
     if (!(d = GetDC(0))) return -1;
@@ -703,11 +703,13 @@ short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
     p = put(v + 14, titel ? titel : StrGet(0, (fl & 0xF0) == MB_ERROR ? 6 : 1));
     p = elem(p, CL_STATIC, text, 0xFFFF, 8, 6, (short)(w - 16), (short)(zeilen * 8), 0);
     bx = (short)((w - (n * 48 - 8)) / 2);
-    for (i = 0; i < n; i++) {
-        LPCSTR t = StrGet(0, knr[art][i]); WORD j;
-        for (j = 0; j < 15 && t && t[j]; j++) kt[i][j] = t[j];
-        kt[i][j] = 0;
-        p = elem(p, CL_BUTTON, kt[i], kid[art][i], (short)(bx + i * 48), (short)(h - 18), 40, 14, i == 0 ? ES_DEFAULT : 0);
+    for (j = 0; j < (WORD)n; j++) {                /* MB_DEFNO: Nein zuerst anlegen (Fokus, Vorgabe), Platz bleibt */
+        LPCSTR t; WORD c;
+        i = (short)((fl & MB_DEFNO) && j < 2 && n > 1 ? 1 - j : j);
+        t = StrGet(0, knr[art][i]);
+        for (c = 0; c < 15 && t && t[c]; c++) kt[i][c] = t[c];
+        kt[i][c] = 0;
+        p = elem(p, CL_BUTTON, kt[i], kid[art][i], (short)(bx + i * 48), (short)(h - 18), 40, 14, j == 0 ? ES_DEFAULT : 0);
     }
     erg = lauf(0, v, owner, 0, 0);
     MemUnlock(hm); MemFree(hm);
