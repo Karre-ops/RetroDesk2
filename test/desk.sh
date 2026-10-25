@@ -8,6 +8,7 @@ IMG=obj/desk.img; SER=obj/desk_com1.txt; SOCK=/tmp/qmon_desk.sock
 cat > obj/ae_desk.txt <<'AE'
 @echo off
 A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\SHELL.EXE
+if exist A:\RD2\RD2.STA del A:\RD2\RD2.STA
 A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\SHELL.EXE
 A:\FDAPM.COM POWEROFF
 AE

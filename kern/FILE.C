@@ -202,7 +202,12 @@ WORD RDK DriveInfo(WORD drive, DRIVEINFO FAR *di)       /* drive 1 = A: */
     if (!CARRY && (kr.dx & 0x1000)) di->typ = DT_NET;
     kr.ax = 0x440E; kr.bx = d; rd_int(0x21, &kr);
     if (!CARRY && (kr.ax & 0xFF) && (kr.ax & 0xFF) != d) di->flags |= DI_PHANTOM;
-    if ((drive & DI_NURTYP) || (di->typ == DT_FLOPPY && (di->flags & DI_PHANTOM))) return 0;   /* nicht nachfragen */
+    if (di->typ == DT_FLOPPY) {
+        if (di->flags & DI_PHANTOM) return 0;     /* nicht nachfragen */
+        kr.ax = 0x1600; kr.dx = d - 1; rd_int(0x13, &kr);   /* Wechselleitung (AT), ohne Zugriff */
+        if ((kr.ax >> 8) == 6) { di->flags |= DI_CHANGE; kr.ax = 0x0D00; rd_int(0x21, &kr); }   /* DOS-Puffer verwerfen */
+    }
+    if (drive & DI_NURTYP) return 0;
     kr.ax = 0x3600; kr.dx = d;
     if (!dos21() || kr.ax == 0xFFFF) return k_lasterr ? k_lasterr : RD_ERR_NOTFOUND;
     di->frei = (DWORD)kr.ax * kr.cx * kr.bx;

@@ -354,6 +354,7 @@ typedef struct {
 #define MF_END   0x0004
 #define MF_GRAY  0x0008
 #define MF_CHECK 0x0010
+#define MF_HIDE  0x0020                           /* ausgeblendet: MenuText(m, id, 0) */
 #define CS_DBLCLKS  0x0001
 #define CS_SAVEBITS 0x0002                        /* Hintergrund sichern (kleine Popups) */
 #define CS_SYSTEM   0x8000                        /* Systemklasse: bleibt nach dem Programmende (RDCTL) */

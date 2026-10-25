@@ -878,12 +878,13 @@ static WORD mflag(HMENU m, WORD id, WORD bit, BOOL an)
 }
 void RDEXPORT u_MenuCheck(HMENU m, WORD id, BOOL an) { mflag(m, id, MF_CHECK, an); }
 void RDEXPORT u_MenuEnable(HMENU m, WORD id, BOOL an) { mflag(m, id, MF_GRAY, !an); }
-WORD RDEXPORT u_MenuText(HMENU m, WORD id, LPCSTR s)   /* nur gleich lang oder kuerzer (Kopie hat feste Laenge) */
+WORD RDEXPORT u_MenuText(HMENU m, WORD id, LPCSTR s)   /* nur gleich lang oder kuerzer (Kopie hat feste Laenge); s = 0 blendet aus */
 {
     BYTE FAR *p = mlock(m), FAR *e; WORD FAR *x; LPSTR t; WORD n = 0, k;
     if (!p) return bad();
     if ((x = mfind(p, id, &e)) != 0) {
         t = (LPSTR)(x + 2);
+        if (s) *x &= ~MF_HIDE; else *x |= MF_HIDE;
         for (k = 0; t[k]; k++) ;
         while (s && s[n] && n < k) { t[n] = s[n]; n++; }
         while (n < k) t[n++] = ' ';               /* Rest mit Leerzeichen: Laenge bleibt */
@@ -912,6 +913,7 @@ static WORD klapp(WORD i, BYTE FAR *q, short x, short y, int bar, int *weiter, i
     *weiter = -1;
     if (!d) return 0;
     for (p = q; p && n < MAXI; p = mnext(p)) {
+        if (*(WORD FAR *)p & MF_HIDE) continue;   /* ausgeblendet (MenuText mit 0) */
         it[n] = p; iy[n] = n ? iy[n - 1] + ((*(WORD FAR *)it[n - 1] & MF_SEP) ? th / 2 : th) : 1;
         if ((ww = mtxt(d, 0, 0, MTEXT(p), 0, &a, 0)) > wd) wd = ww;
         if (a > aw) aw = a;

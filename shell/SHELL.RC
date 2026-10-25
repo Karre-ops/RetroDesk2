@@ -15,12 +15,32 @@ MENU 2
     ITEM "&Umbenennen...\tF2"   106
     ITEM "&Neuer Ordner...\tF7" 107
     ITEM "&Lîschen\tEntf"       108
+    ITEM "An&heften/Lîsen"      109
+    ITEM "Auf den Schreib&tisch" 112
     TRENNER
     ITEM "öber&geordnet\tRÅck" 103
     ITEM "&Schlie·en\tAlt+F4" 102
   ENDE
   POPUP "&Ansicht"
+    ITEM "&Symbole"            202 HAKEN
+    ITEM "&Liste"              203
+    TRENNER
     ITEM "&Neu einlesen"       201
+  ENDE
+  POPUP "&Programme"
+    ITEM "--------------------" 401
+    ITEM "--------------------" 402
+    ITEM "--------------------" 403
+    ITEM "--------------------" 404
+    ITEM "--------------------" 405
+    ITEM "--------------------" 406
+    ITEM "--------------------" 407
+    ITEM "--------------------" 408
+    ITEM "--------------------" 409
+    ITEM "--------------------" 410
+    ITEM "--------------------" 411
+    ITEM "--------------------" 412
+    ITEM "(leer)--------------" 413 GRAU
   ENDE
 ENDE
 MENU 3
@@ -32,8 +52,14 @@ MENU 3
     ITEM "Festplatte ein&richten..." 303 GRAU
   ENDE
 ENDE
+MENU 4
+  POPUP "Programm"
+    ITEM "&Starten\tEingabe"   110
+    ITEM "Vom Schreibtisch &entfernen" 111
+  ENDE
+ENDE
 TEXTE
-  1 "RetroDesk 2\nAPI %s\nFrei: %s KB"
+  1 "RetroDesk 2, API %s"
   2 "RetroDesk 2 beenden?"
   3 "Programm konnte nicht gestartet werden:\n%s"
   4 "Laufwerk %s ist nicht bereit."
@@ -53,6 +79,16 @@ TEXTE
   18 "Trotzdem verschieben?"
   19 "Trotzdem umbenennen?"
   20 "Zu wenig Speicher fÅr %s.\nFrei: %s KB. Bitte andere Programme beenden."
+  21 "\nProzessor: "
+  22 "\nKoprozessor: "
+  23 "\nSpeicher: "
+  24 " KB, frei: "
+  25 "\nGrafik: "
+  26 "keiner"
+  27 "\nSound: "
+  28 "(leer)"
+  29 "Es kînnen hîchstens 12 Programme\nangeheftet sein."
+  30 "im Prozessor"
 ENDE
 SPRACHE EN
 MENU 1
@@ -70,12 +106,32 @@ MENU 2
     ITEM "&Rename...\tF2"       106
     ITEM "&New folder...\tF7"   107
     ITEM "&Delete\tDel"         108
+    ITEM "&Pin/unpin"           109
+    ITEM "On the des&ktop"      112
     TRENNER
     ITEM "&Parent\tBksp"       103
     ITEM "C&lose\tAlt+F4"      102
   ENDE
   POPUP "&View"
+    ITEM "&Icons"              202 HAKEN
+    ITEM "&List"               203
+    TRENNER
     ITEM "&Refresh"            201
+  ENDE
+  POPUP "&Programs"
+    ITEM "--------------------" 401
+    ITEM "--------------------" 402
+    ITEM "--------------------" 403
+    ITEM "--------------------" 404
+    ITEM "--------------------" 405
+    ITEM "--------------------" 406
+    ITEM "--------------------" 407
+    ITEM "--------------------" 408
+    ITEM "--------------------" 409
+    ITEM "--------------------" 410
+    ITEM "--------------------" 411
+    ITEM "--------------------" 412
+    ITEM "(empty)-------------" 413 GRAU
   ENDE
 ENDE
 MENU 3
@@ -87,8 +143,14 @@ MENU 3
     ITEM "Set up &hard disk..." 303 GRAU
   ENDE
 ENDE
+MENU 4
+  POPUP "Program"
+    ITEM "&Start\tEnter"        110
+    ITEM "&Remove from desktop" 111
+  ENDE
+ENDE
 TEXTE
-  1 "RetroDesk 2\nAPI %s\nFree: %s KB"
+  1 "RetroDesk 2, API %s"
   2 "Exit RetroDesk 2?"
   3 "Could not start program:\n%s"
   4 "Drive %s is not ready."
@@ -108,6 +170,16 @@ TEXTE
   18 "Move anyway?"
   19 "Rename anyway?"
   20 "Not enough memory for %s.\nFree: %s KB. Please close other programs."
+  21 "\nProcessor: "
+  22 "\nCoprocessor: "
+  23 "\nMemory: "
+  24 " KB, free: "
+  25 "\nGraphics: "
+  26 "none"
+  27 "\nSound: "
+  28 "(empty)"
+  29 "At most 12 programs\ncan be pinned."
+  30 "built into CPU"
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"

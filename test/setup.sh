@@ -9,7 +9,7 @@ A:\RD2\RD2SETUP.EXE /AUTO > A:\S.TXT
 A:\FDAPM.COM POWEROFF
 AE
 for lauf in seriell ps2; do
-  SETUP=1 bash tools/mkdisk.sh $IMG obj/ae_setup.txt
+  FMT=720 SETUP=1 bash tools/mkdisk.sh $IMG obj/ae_setup.txt   # 360 KB: Test-Diskette mit COMMAND.COM (85 KB) zu voll, echte Systemdiskette ohne
   printf '[Programme]\r\nUhr=UHR.EXE\r\n' > obj/rd2ini.tmp; mcopy -o -i $IMG obj/rd2ini.tmp ::/RD2/RD2.INI
   X=""; [ $lauf = seriell ] && X="-serial null -serial msmouse"
   timeout 200 qemu-system-i386 -m 2 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a $X >/dev/null 2>&1

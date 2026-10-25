@@ -207,6 +207,7 @@ DWORD RDEXPORT c_Radio(HWND h, WORD msg, WORD p1, DWORD p2)
     return gemeinsam(h, T_RADIO, msg, p1, p2);
 }
 /* ---- STATIC / GROUP ---------------------------------------------------------------- */
+static LPCSTR mbtxt;                              /* MsgBox-Text: laenger als die 32 Zeichen des Fenstertexts */
 DWORD RDEXPORT c_Static(HWND h, WORD msg, WORD p1, DWORD p2)
 {
     PAINT ps; RECT r; HDC d; char t[33];
@@ -214,7 +215,8 @@ DWORD RDEXPORT c_Static(HWND h, WORD msg, WORD p1, DWORD p2)
     d = BeginPaint(h, &ps); GetClientRect(h, &r); weiss(d, &r);
     GetWindowText(h, t, sizeof t);
     SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
-    if (mkey(t)) ctext(d, 0, 0, t, 1); else TextBox(d, &r, t, TB_WRAP);
+    if ((WORD)GetWindowData(h, WD_ID) == 0xFFFE && mbtxt) TextBox(d, &r, mbtxt, TB_WRAP);   /* G31 */
+    else if (mkey(t)) ctext(d, 0, 0, t, 1); else TextBox(d, &r, t, TB_WRAP);
     if (gesperrt(h)) grau(d, &r);
     EndPaint(h, &ps);
     return 0;
@@ -688,12 +690,16 @@ short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
     char kt[3][16]; short erg;
     if (!text) text = "";
     if (!(d = GetDC(0))) return -1;
-    cw = TextWidth(d, "0", 1); tw = TextWidth(d, text, -1);
-    ReleaseDC(0, d);
+    cw = TextWidth(d, "0", 1);
     zw = (short)(48 * 4);                          /* hoechstens 48 Zeichen je Zeile (Dialogeinheiten) */
-    zeilen = (short)((long)tw * 4 / cw / zw + 1);
-    for (s = text; *s; s++) if (*s == '\n') zeilen++;
-    w = (short)((long)tw * 4 / cw); if (w > zw) w = zw;
+    for (s = text, w = zeilen = 0; ; s++) {        /* je Zeile messen: breiteste bestimmt w, lange umbrechen */
+        LPCSTR a = s; while (*s && *s != '\n') s++;
+        tw = (short)((long)TextWidth(d, a, (short)(s - a)) * 4 / cw);
+        zeilen += tw / zw + 1; if (tw > w) w = tw;
+        if (!*s) break;
+    }
+    ReleaseDC(0, d);
+    if (w > zw) w = zw;
     n = kid[art][2] ? 3 : kid[art][1] ? 2 : 1;
     if (w < n * 48 - 8) w = (short)(n * 48 - 8);
     w += 16; h = (short)(zeilen * 8 + 34);
@@ -701,7 +707,7 @@ short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
     v = (BYTE FAR *)MemLock(hm);
     *(DWORD FAR *)v = 0; q = (short FAR *)(v + 4); q[0] = q[1] = 0; q[2] = w; q[3] = h; q[4] = (short)(n + 1);
     p = put(v + 14, titel ? titel : StrGet(0, (fl & 0xF0) == MB_ERROR ? 6 : 1));
-    p = elem(p, CL_STATIC, text, 0xFFFF, 8, 6, (short)(w - 16), (short)(zeilen * 8), 0);
+    p = elem(p, CL_STATIC, "", 0xFFFE, 8, 6, (short)(w - 16), (short)(zeilen * 8), 0);   /* Text ueber mbtxt */
     bx = (short)((w - (n * 48 - 8)) / 2);
     for (j = 0; j < (WORD)n; j++) {                /* MB_DEFNO: Nein zuerst anlegen (Fokus, Vorgabe), Platz bleibt */
         LPCSTR t; WORD c;
@@ -711,7 +717,9 @@ short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
         kt[i][c] = 0;
         p = elem(p, CL_BUTTON, kt[i], kid[art][i], (short)(bx + i * 48), (short)(h - 18), 40, 14, j == 0 ? ES_DEFAULT : 0);
     }
+    s = mbtxt; mbtxt = text;                       /* verschachtelt: alten Text danach zurueck */
     erg = lauf(0, v, owner, 0, 0);
+    mbtxt = s;
     MemUnlock(hm); MemFree(hm);
     return erg;
 }

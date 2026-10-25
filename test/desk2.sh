@@ -2,6 +2,7 @@
 # Shell Teil 2: Dateioperationen auf der Testdiskette (VGA, nur Tastatur):
 # F7 Ordner TEST, F5 FDAPM.COM nach A:\TEST, in TEST: F2 -> FDAPM.BAK, F5 Ordner TEST nach A:\RD2 (rekursiv),
 # Entf Ordner TEST samt Inhalt. Danach prueft mtools das Abbild. Bild obj/desk2_ops.ppm (Ordner TEST).
+# Liste sortiert (Ordner vorn, dann Namen): "F" springt zu FDAPM.COM.
 # Graue Tasten (Pos1, Pfeile, Entf) kommen unter QEMU/SeaBIOS doppelt an, daher Ziffernblock (NumLock aus).
 cd "$(dirname "$0")/.."
 IMG=obj/desk2.img; SER=obj/desk2_com1.txt; SOCK=/tmp/qmon_desk2.sock
@@ -18,7 +19,7 @@ tippe() { local a=(); for c in $(echo "$1" | sed 's/./& /g'); do a+=("sendkey $c
 ok=1
 waitn "SHELL: bereit" 1 && sleep 3 && Q "sendkey ret"
 waitn 'SHELL: Ordner A:\\ ' 1 && sleep 2 && Q "sendkey f7" sleep1.5 && tippe test && Q "sendkey ret"
-waitn "SHELL: Ordner angelegt" 1 && sleep 2 && Q "sendkey kp_1" sleep0.3 "sendkey f5" sleep1.5 && tippe test && Q "sendkey ret"
+waitn "SHELL: Ordner angelegt" 1 && sleep 2 && Q "sendkey f" sleep0.3 "sendkey f5" sleep1.5 && tippe test && Q "sendkey ret"
 waitn "SHELL: kopiert" 1 && sleep 2 && Q "sendkey kp_7" sleep0.3 "sendkey kp_6" sleep0.3 "sendkey ret"
 waitn 'SHELL: Ordner A:\\TEST\\ 2' 1 && sleep 2 && Q "sendkey kp_6" sleep0.3 "sendkey f2" sleep1.5 "sendkey backspace" sleep0.15 "sendkey backspace" sleep0.15 "sendkey backspace" sleep0.15 && tippe bak && Q "sendkey ret"
 waitn "SHELL: umbenannt" 1 && sleep 2.5 && Q "screendump obj/desk2_ops.ppm" sleep0.3 "sendkey backspace"
