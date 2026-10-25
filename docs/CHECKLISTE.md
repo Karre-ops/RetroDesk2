@@ -14,8 +14,8 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Funktion | RD2 | Bemerkung |
 |---|---|---|
 | Menüleiste global oben | da | |
-| Uhr in der Menüleiste | fehlt | |
-| Menü Desk/RD: Info | teils | RD2 zeigt API und freien Speicher; RD1 zeigt CPU mit Takt, Speicher, DOS, Grafik, Sound, 8087, IP. CPU-Erkennung steckt schon im Kern (`KernInfo`) |
+| Uhr in der Menüleiste | erledigt 25.10. | HH:MM rechts, Bildvergleich blendet sie aus |
+| Menü Desk/RD: Info | erledigt 25.10. | API, CPU mit Takt, Koprozessor, Speicher, DOS, Grafik, Sound (IP folgt mit dem Netz). Früher: RD2 zeigt API und freien Speicher; RD1 zeigt CPU mit Takt, Speicher, DOS, Grafik, Sound, 8087, IP. CPU-Erkennung steckt schon im Kern (`KernInfo`) |
 | Menü Desk/RD: Uhr, Notizblock, Rechner, Optionen, Netzwerk | fehlt | |
 | Beenden | da | |
 | Tastatur: F10, Alt+Buchstabe, Pfeile, Eingabe, Esc, Tab in Dialogen | da | test/menu.sh, dlg.sh |
@@ -30,10 +30,10 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Funktion | RD2 | Bemerkung |
 |---|---|---|
 | Mehrere Fenster, Laufwerksknöpfe | da | |
-| Liste sortiert mit Größen | teils | RD2 zeigt Symbole, Listenansicht fehlt (SPEC 5: „folgt“) |
+| Liste sortiert mit Größen | erledigt 25.10. | Listenansicht über das Menü, Ordner zuerst, nach Namen |
 | Kopieren, Verschieben, Umbenennen, Neuer Ordner, Löschen, Ordner samt Inhalt | da | |
 | Halb kopierte Dateien werden entfernt | da | Audit K1 |
-| Mehrfachauswahl | teils | Strg+Klick da; RD1 hat zusätzlich Leertaste, Einfg, Umschalt+Klick |
+| Mehrfachauswahl | erledigt 25.10. | Strg+Klick, Umschalt+Klick, Umschalt+Pfeil, Leertaste, Einfg |
 | Ziehen und Ablegen (gleiches Laufwerk verschiebt, anderes kopiert, Strg/Umschalt) | da | prüfen: Umschalt erzwingt Verschieben |
 | Rechtsklickmenü (Umschalt+F10) | teils | Rechtsklick da, Umschalt+F10 prüfen |
 | Esc bricht Kopieren ab | prüfen | |
@@ -45,11 +45,11 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 
 | Funktion | RD2 | Bemerkung |
 |---|---|---|
-| Menü Programme, Programm anheften (bis 12) | fehlt | in RD2 über `.APP` und `PROGRAMM.LST` geplant |
+| Menü Programme, Programm anheften (bis 12) | erledigt 25.10. | `.APP` und `PROGRAMM.LST`, Schreibtisch-Symbole (Variante 2) |
 | Netzprogramme (Paketreiber vorher laden) | fehlt | |
 | DOS-Programm mit vollem Speicher, danach zurück mit allen Fenstern | da | RunDos, XMS oder Auslagerdatei, test/rundos.sh |
 | Programm auf anderer Diskette im selben Laufwerk (RDGO) | da | test/rundos_disk.sh |
-| Zustand wiederherstellen (Ordner, Fenster, Auswahl) | fehlt | `RD2.STA` beschlossen, nicht gebaut |
+| Zustand wiederherstellen (Ordner, Fenster, Auswahl) | erledigt 25.10. | `RD2.STA` |
 
 ### Zubehör und Optionen
 
@@ -90,8 +90,8 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Klappliste (COMBO), mehrzeiliges Textfeld (TEXT), eigener Rollbalken (SCROLL) | da | RDCTLX.MOD; Korrektur 25.10.: stand zuerst als fehlend |
 | Standarddialoge: Meldung, Eingabe, Datei öffnen/speichern | da | |
 | Zwischenablage | da | |
-| Programmanmeldung `.APP`, Dateitypen öffnen das passende Programm | fehlt | |
-| Diskettenwechsel erkennen, Liste aktualisieren | fehlt | |
+| Programmanmeldung `.APP`, Dateitypen öffnen das passende Programm | erledigt 25.10. | |
+| Diskettenwechsel erkennen, Liste aktualisieren | erledigt 25.10. | |
 | Hilfesystem (F1) | fehlt | `HelpShow` nur festgelegt |
 | RDSND: Speaker- und AdLib-Treiber, IMF/DRO, WAV über Lautsprecher | fehlt | |
 | Joystick | fehlt | `JoyRead` nur festgelegt |
@@ -109,7 +109,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 
 1. Speichermangel: Meldungen, Auslagern (XMS, RD2.SWP), Regeln für 640 KB. Das legt fest, wie alle Programme mit Speicher umgehen.
 2. Fenster fertig: Größe ändern, Minimieren, Alt+Tab. (erledigt 25.10.)
-3. Shell fertig: Listenansicht, Uhr in der Leiste, Info wie RD1, `.APP`/Programme-Menü, `RD2.STA`, Diskettenwechsel, fehlende Tasten.
+3. Shell fertig: Listenansicht, Uhr in der Leiste, Info wie RD1, `.APP`/Programme-Menü, `RD2.STA`, Diskettenwechsel, fehlende Tasten. (erledigt 25.10., acb820d; dabei G31: MsgBox-Text war auf 31 Zeichen gekürzt)
 4. Zubehör: Uhr, Notizblock, einfacher Rechner, Optionen.
 5. Sound: RDSND mit Speaker und AdLib, Systemklänge, IMF/DRO.
 6. RDEDIT.
