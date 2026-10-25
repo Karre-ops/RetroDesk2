@@ -16,7 +16,9 @@
 #define MAXB 160
 #define MAXH 200
 typedef struct { WORD seg, paras, flags, h, owner; } BLK;
-typedef struct { WORD seg, flags, owner; BYTE lock, used; DWORD size; DWORD stamp; } HND;
+typedef struct { WORD seg, flags; BYTE owner, lock; DWORD size; DWORD stamp; } HND;   /* 14 Bytes; belegt = HU in flags */
+#define HU 0x8000
+#define HA 0x1000                                 /* ausgelagert: seg = 0, stamp = Platz im Auslagermodul */
 static BLK blk[MAXB];
 static WORD nblk;
 static HND hnd[MAXH + 1];                         /* Handle 1..MAXH */
@@ -183,14 +185,19 @@ static int discard_one(void)
    erreichbar (frei oder verwerfbar). Nur Modulbilder selbst duerfen sie nutzen (MOD.C setzt
    mem_resv waehrend des Ladens auf 0). Sonst koennte ein Programm alles belegen und der
    naechste Aufruf eines verworfenen Moduls scheitern. */
+extern DWORD (__far __pascal *mem_sw)(WORD art, WORD seg, WORD n);
 WORD mem_resv;
 static WORD erreichbar(void)
 {
     WORD i, n = 0;
-    for (i = 0; i < nblk; i++) if ((blk[i].flags & B_FREE) || vstamp(i) != 0xFFFFFFFFUL) n += blk[i].paras;
+    for (i = 0; i < nblk; i++)                    /* frei, verwerfbar oder (mit RDAUSL) auslagerbar */
+        if ((blk[i].flags & B_FREE) || vstamp(i) != 0xFFFFFFFFUL || (mem_sw && (blk[i].flags & (MEM_MOVABLE | B_INTERN | B_MOD | MEM_NOEMS)) == MEM_MOVABLE && !hnd[blk[i].h].lock))
+            n += blk[i].paras;
     return n;
 }
 
+static int aus(void);
+static void put_index(WORD i);
 static WORD get(WORD paras, WORD flags, WORD h, WORD owner)
 {
     WORD seg;
@@ -203,12 +210,23 @@ static WORD get(WORD paras, WORD flags, WORD h, WORD owner)
     if ((seg = take(paras, flags, h, owner)) != 0) return seg;
     compact();
     if ((seg = take(paras, flags, h, owner)) != 0) return seg;
-    while (discard_one()) {
+    while (discard_one() || aus()) {
         compact();
         if ((seg = take(paras, flags, h, owner)) != 0) return seg;
     }
     return 0;
 }
+
+/* Auslagern (RDAUSL.MOD, Entscheidung 23.10.2026). Das Modul waehlt den aeltesten verschiebbaren, ungesperrten
+   Datenblock (nicht verwerfbar, kein Modul, nicht Kern, nicht MEM_NOEMS), schreibt ihn nach XMS oder RD2.SWP,
+   setzt im Handle seg = 0, HA und stamp = Platz und gibt den Block frei (B_FREE). Art 0 aus, 1 ein (n = Platz),
+   2 Platz frei, 3 Anmeldung (seg:n = mem_swi). */
+DWORD (__far __pascal *mem_sw)(WORD art, WORD seg, WORD n);
+static BYTE swbusy;
+static DWORD sw(WORD art, WORD seg, WORD n) { DWORD r; swbusy = 1; r = mem_sw(art, seg, n); swbusy = 0; return r; }
+static int aus(void) { if (!mem_sw || swbusy || !sw(0, 0, 0)) return 0; merge(); return 1; }
+static void swfrei(HND *x) { if (x->flags & HA) sw(2, 0, (WORD)x->stamp); }
+struct mem_swi_t mem_swi = { blk, &nblk, hnd, k_home, &k_stamp };
 
 WORD mem_get(WORD paras, WORD flags, WORD owner) { return get(paras, (flags & ~MEM_MOVABLE) | B_INTERN, 0, owner); }
 
@@ -223,9 +241,9 @@ void mem_owner_free(WORD owner)
 {
     WORD i, h;
     for (h = 1; h <= MAXH; h++)
-        if (hnd[h].used && hnd[h].owner == owner && !(hnd[h].flags & MEM_SHARE)) {
+        if ((hnd[h].flags & HU) && hnd[h].owner == owner && !(hnd[h].flags & MEM_SHARE)) {
             if (hnd[h].seg) { i = find_seg(hnd[h].seg); if (i != 0xFFFF) put_index(i); }
-            hnd[h].used = 0;
+            swfrei(&hnd[h]); hnd[h].flags = 0;
         }
     for (i = 0; i < nblk; i++)
         if (!(blk[i].flags & (B_FREE | B_MOD | MEM_SHARE)) && blk[i].owner == owner) { put_index(i); i = (WORD)-1; }
@@ -249,32 +267,42 @@ HMEM RDK MemAlloc(DWORD size, WORD flags)
 {
     WORD h, p = paras_of(size), seg, f;
     if (!p && size) return FAIL(RD_ERR_NOMEM);
-    for (h = 1; h <= MAXH && hnd[h].used; h++) ;
+    for (h = 1; h <= MAXH && (hnd[h].flags & HU); h++) ;
     if (h > MAXH) return FAIL(RD_ERR_NOMEM);
     f = flags & (MEM_MOVABLE | MEM_DISCARDABLE | MEM_SHARE | MEM_NOEMS);
     if (f & MEM_DISCARDABLE) f |= MEM_MOVABLE;
     seg = get(p, f, h, k_cur);
     if (!seg) return FAIL(RD_ERR_NOMEM);
-    hnd[h].used = 1; hnd[h].seg = seg; hnd[h].flags = f; hnd[h].owner = k_cur;
+    hnd[h].seg = seg; hnd[h].flags = f | HU; hnd[h].owner = (BYTE)k_cur;
     hnd[h].lock = (f & MEM_MOVABLE) ? 0 : 1; hnd[h].size = size; hnd[h].stamp = ++k_stamp;
     if (flags & MEM_ZEROINIT) rd_pfill(seg, p ? p : 1, 0);
     return h;
 }
-static HND *hp(HMEM h) { return (h && h <= MAXH && hnd[h].used) ? &hnd[h] : 0; }
+static HND *hp(HMEM h) { return (h && h <= MAXH && (hnd[h].flags & HU)) ? &hnd[h] : 0; }
+static WORD paras_of(DWORD size);
+static int ein(WORD h)                            /* ausgelagerten Block zurueckholen, 1 = ok */
+{
+    HND *x = &hnd[h]; WORD p = paras_of(x->size), seg;
+    if (!(x->flags & HA)) return 0;
+    if (!(seg = get(p ? p : 1, x->flags & ~(HU | HA), h, x->owner))) return 0;
+    if (!sw(1, seg, (WORD)x->stamp)) { mem_put(seg); return 0; }
+    x->seg = seg; x->flags &= ~HA;
+    return 1;
+}
 
 HMEM RDK MemFree(HMEM h)
 {
     HND *x = hp(h); WORD i;
     if (!x) return (HMEM)FAIL(RD_ERR_HANDLE) | h;
     if (x->seg && (i = find_seg(x->seg)) != 0xFFFF) put_index(i);
-    x->used = 0;
+    swfrei(x); x->flags = 0;
     return 0;
 }
 void FAR * RDK MemLock(HMEM h)
 {
     HND *x = hp(h);
     if (!x) { k_lasterr = RD_ERR_HANDLE; return 0; }
-    if (!x->seg) { k_lasterr = RD_ERR_NOTFOUND; return 0; }  /* verworfen */
+    if (!x->seg && !ein(h)) { k_lasterr = (x->flags & HA) ? RD_ERR_NOMEM : RD_ERR_NOTFOUND; return 0; }  /* verworfen oder ausgelagert */
     if (x->lock < 255) x->lock++;
     x->stamp = ++k_stamp;
     return MK_FP(x->seg, 0);
@@ -292,9 +320,10 @@ HMEM RDK MemRealloc(HMEM h, DWORD size, WORD flags)
     (void)flags;
     if (!x) return FAIL(RD_ERR_HANDLE);
     if (!p) return FAIL(RD_ERR_NOMEM);
+    if (!x->seg && (x->flags & HA) && !ein(h)) return FAIL(RD_ERR_NOMEM);
     old = x->seg;
     if (!old) {                                   /* verworfen: neu anlegen */
-        if (!(seg = get(p, x->flags, h, x->owner))) return FAIL(RD_ERR_NOMEM);
+        if (!(seg = get(p, x->flags & ~HU, h, x->owner))) return FAIL(RD_ERR_NOMEM);
         x->seg = seg; x->size = size; return h;
     }
     i = find_seg(old); oldp = blk[i].paras;
@@ -309,7 +338,7 @@ HMEM RDK MemRealloc(HMEM h, DWORD size, WORD flags)
     }
     if (x->lock && !(x->flags & MEM_MOVABLE) ) return FAIL(RD_ERR_NOMEM);
     lk = x->lock; x->lock = 1;                    /* waehrend des Umzugs nicht verschieben */
-    seg = get(p, x->flags, h, x->owner);
+    seg = get(p, x->flags & ~HU, h, x->owner);
     x->lock = lk;
     if (!seg) return FAIL(RD_ERR_NOMEM);
     old = x->seg;                                 /* kann durch Verdichten gewandert sein (nicht bei lock) */
@@ -319,7 +348,7 @@ HMEM RDK MemRealloc(HMEM h, DWORD size, WORD flags)
     return h;
 }
 DWORD RDK MemSize(HMEM h)  { HND *x = hp(h); return x ? x->size : 0; }
-WORD  RDK MemFlags(HMEM h) { HND *x = hp(h); return x ? (x->flags | (x->seg ? 0 : 0x4000u) | x->lock) : 0; }
+WORD  RDK MemFlags(HMEM h) { HND *x = hp(h); return x ? ((x->flags & ~(HU | HA)) | (x->seg || (x->flags & HA) ? 0 : 0x4000u) | x->lock) : 0; }
 DWORD RDK MemAvail(WORD art)
 {
     if (art == MEMA_KONV) return mem_free_bytes(0);
@@ -342,7 +371,7 @@ void FAR * RDK MemFixed(WORD size)
 void mem_share(HMEM h)
 {
     WORD i;
-    if (!h || h > MAXH || !hnd[h].used) return;
+    if (!h || h > MAXH || !(hnd[h].flags & HU)) return;
     hnd[h].owner = 0; hnd[h].flags |= MEM_SHARE;
     if (hnd[h].seg && (i = find_seg(hnd[h].seg)) != 0xFFFF) { blk[i].owner = 0; blk[i].flags |= MEM_SHARE; }
 }

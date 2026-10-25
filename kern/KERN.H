@@ -77,6 +77,8 @@ void  mem_api(void);
 void  mem_share(HMEM h);                          /* gehoert danach keinem Task */
 void  mem_mod(WORD seg, WORD mod);
 void  mem_chown(WORD seg, WORD owner);                /* Block gehoert Modul mod (verwerfbar, wenn frei) */
+extern DWORD (__far __pascal *mem_sw)(WORD art, WORD seg, WORD n);   /* MEM.C: Auslagermodul RDAUSL */
+extern struct mem_swi_t { void *b; WORD *n; void *h; char *home; DWORD *stamp; } mem_swi;
 extern int (*mem_mod_discard)(WORD mod);          /* MOD.C: 1 = Modul darf/wurde verworfen */
 extern DWORD (*mem_mod_stamp)(WORD mod);
 

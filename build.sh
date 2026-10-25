@@ -41,6 +41,7 @@ modul apps/test/TESTMOD.C TESTMOD.MOD "Testmodul" 0x0080
 modul apps/test/TESTMOD.C TESTMOD2.MOD "Testmodul2" 0x0080
 modul gdi/RDGDI.C RDGDI.MOD "RDGDI" 0 M -i=gdi
 modul kern/RDKX.C RDKX.MOD "Kern Zusatz" 0x0080 M
+modul kern/RDAUSL.C RDAUSL.MOD "Auslagern" 0 M
 modul user/RDUSER.C RDUSER.MOD "RDUSER" 0 M "-i=gdi -ml -r"
 modul gdi/RDGDIX.C RDGDIX.MOD "RDGDI Zusatz" 0x0080 M -i=gdi
 modul ctl/RDCTL.C RDCTL.MOD "Steuerelemente" 0x0080 M "-ml -r"
@@ -74,6 +75,7 @@ app bench/BENCH2.C BENCH2.EXE "Bench2"
 APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 app apps/test/DOSTEST.C DOSTEST.EXE "DOSTEST"
+app apps/test/AUSLTEST.C AUSLTEST.EXE "AUSLTEST"
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/FREIMEM.EXE -fo=obj/freimem.obj apps/test/FREIMEM.C >/dev/null
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/TSRTEST.EXE -fo=obj/tsrtest.obj apps/test/TSRTEST.C >/dev/null
 python3 tools/mkfont.py $O >/dev/null

@@ -10,6 +10,7 @@ RDSWAP.BIN       1664    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speic
 CTMOUSE.EXE      6144    0   S  CuteMouse 2.1 (FreeDOS, GPL, unveraendert): Maustreiber seriell/PS2, Setup traegt ihn als INSTALL= ein (24.10.)
 RDGDI.MOD       16384 18.5   S  Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5); 23.10.: 18,5 KB fuer schnelle Textausgabe (statt Auslagern, Text wird staendig gebraucht)
 RDKX.MOD         6144    6   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.)
+RDAUSL.MOD       3072    3   S  Auslagern bei Speichermangel nach XMS oder RD2.SWP (nur Festplatte), bleibt geladen, nur wenn es ein Ziel gibt (25.10.)
 RDGDIX.MOD       4096    4   S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf)
 RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
 RDCTLX.MOD      12288   10   S  Dateidialog, TEXT, COMBO, SCROLL (verwerfbar)
@@ -59,6 +60,7 @@ RDFORMAT.EXE    73728    0   P  Formatieren Disketten und Festplatte: FreeDOS FO
 @DISK          362496        Nutzflaeche einer 360-KB-Diskette (354 Cluster zu 1 KB); Grenze fuer P, N, D
 @RAM_RD2               180   Oberflaeche ohne Programme, mit DOS und Maustreiber (Ziel: >= 450 KB frei)
 DOSTEST.EXE      4096    0   T  Test: RunDos (auslagern, DOS-Programm, zurueck)
+AUSLTEST.EXE     4096    0   T  Test: Auslagern bei Speichermangel (XMS, RD2.SWP, Diskette)
 TSRTEST.EXE      4096    0   T  Test: bleibt resident (Audit M10, RunDos entfernt es)
 FREIMEM.EXE     16384    0   T  Test: normales DOS-Programm fuer DOSTEST
 BENCH2.EXE       4096    0   T  Leistungsvergleich RD2-Seite (BENCH1 baut aus RD1, nicht auf der Diskette)

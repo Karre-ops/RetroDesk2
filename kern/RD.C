@@ -64,7 +64,7 @@ WORD RDK KernInfo(SYSINFO FAR *si)
 
 int main(int argc, char **argv)
 {
-    WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0, ctl = 0;
+    WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0, ctl = 0, ausm = 0;
     static const WORD kx[] = { 2, RDO_TimeGet, 3, RDO_TimeSet, 4, RDO_LangGet, 5, RDO_ResLoad, 6, RDO_ResFree,
                                7, RDO_StrLoad, 8, RDO_StrGet, 9, RDO_DbgBreak,
                                10, RDO_BmpLoad, 11, RDO_BmpLoadFile, 12, RDO_IconDraw, 0 };
@@ -128,10 +128,14 @@ int main(int argc, char **argv)
     if (k_maus == 0xFFFF) k_maus = 0;
     if (k_umb_paras) k_hex("RD: UMB", (DWORD)k_umb_paras << 4, 1);
     mod_xinit();
+    if ((ausm = ModLoad("RDAUSL.MOD")) != 0) {   /* Auslagern (XMS, RD2.SWP); RD2.INI Auslagern=0 prueft das Modul */
+        mem_sw = (DWORD (__far __pascal *)(WORD, WORD, WORD))k_modraw(ausm, 2);
+        if (!mem_sw || !mem_sw(3, FP_SEG((void __far *)&mem_swi), (WORD)&mem_swi)) { mem_sw = 0; ModFree(ausm); ausm = 0; }
+    }
     vor = mem_free_bytes(0);
     kxm = k_sysmod("RDKX.MOD", 0, 0, kx);                 /* Zeit, Sprache, Ressourcen, Texte (verwerfbar) */
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
-    if (!gdi) k_hex("RD: RDGDI.MOD fehlt, Fehler", k_lasterr, 1);
+    if (!gdi) k_hex("RD: ohne RDGDI", k_lasterr, 1);
     if (gdi) k_mausget = (WORD (__far __pascal *)(WORD __far *))k_modraw(gdi, 0x3C + 5);
     if (gdi) k_gdipause = (void (__far __pascal *)(WORD))k_modraw(gdi, 0x3C + 6);
     if (gdi && (user = k_sysmod("RDUSER.MOD", 0x200, 0x42, ux)) != 0) {   /* Oberflaeche: Fenster, Eingabe */
@@ -158,6 +162,7 @@ int main(int argc, char **argv)
     nach = mem_free_bytes(0);
     k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);
     k_out(vor == nach ? "RD: Speicher vollstaendig zurueck" : "RD: SPEICHERLECK", 1);
+    mem_sw = 0; k_sysend(ausm);
     if (dbuf) {
         WORD i; con('-'); con('\r'); con('\n'); for (i = 0; i < dn; i++) con(dbuf[i]);
         kr.ax = 0x4900; kr.es = FP_SEG(dbuf); rd_int(0x21, &kr);

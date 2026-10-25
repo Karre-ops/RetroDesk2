@@ -128,8 +128,13 @@ static void starten(LPCSTR p)
 {
     DbgPrint("SHELL: Start"); DbgPrint(p);
     if (endung(p, "EXE") && TaskExec(p, "", SW_SHOW)) return;
-    if (endung(p, "EXE") && LastError() != RD_ERR_FORMAT) { fmt(buf, StrGet(inst, 3), p, 0); MsgBox(0, buf, "RD", MB_OK | MB_ERROR); return; }
-    if (RunDos(p, "", RD_DOS_KEEP | RD_DOS_PAUSE)) { fmt(buf, StrGet(inst, 3), p, 0); MsgBox(0, buf, "RD", MB_OK | MB_ERROR); }
+    if ((endung(p, "EXE") && LastError() != RD_ERR_FORMAT) || RunDos(p, "", RD_DOS_KEEP | RD_DOS_PAUSE)) {
+        char t[8];                                /* Speichermangel mit freiem Speicher melden (Checkliste 1) */
+        zahl(t, MemAvail(MEMA_KONV) >> 10);
+        fmt(buf, StrGet(inst, LastError() == RD_ERR_NOMEM ? 20 : 3), p, t);
+        if (LastError() == RD_ERR_NOMEM) DbgPrint("SHELL: zu wenig Speicher");
+        MsgBox(0, buf, "RD", MB_OK | MB_ERROR);
+    }
 }
 static void oeffnen(ORDNER *o)
 {
@@ -164,7 +169,7 @@ static void neusel(ORDNER *o, short s)
 /* ---- Dateioperationen ------------------------------------------------------------------ */
 static void fehler(LPCSTR was, WORD e)
 {
-    char t[8]; zahl(t, e); fmt(buf, StrGet(inst, 6), was, t); MsgBox(GetActive(), buf, "RD", MB_OK | MB_ERROR);
+    char t[8]; zahl(t, e == RD_ERR_NOMEM ? MemAvail(MEMA_KONV) >> 10 : e); fmt(buf, StrGet(inst, e == RD_ERR_NOMEM ? 20 : 6), was, t); MsgBox(GetActive(), buf, "RD", MB_OK | MB_ERROR);
 }
 static int praefix(LPCSTR a, LPCSTR b) { while (*a && (*a | 0x20) == (*b | 0x20)) a++, b++; return !*a && (*b == '\\' || !*b); }
 /* Systemdateien: Startdateien in der Wurzel, alles mit Attribut System, das RD2-Verzeichnis samt Inhalt

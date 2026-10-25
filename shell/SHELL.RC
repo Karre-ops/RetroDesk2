@@ -52,6 +52,7 @@ TEXTE
   17 "Trotzdem ersetzen?"
   18 "Trotzdem verschieben?"
   19 "Trotzdem umbenennen?"
+  20 "Zu wenig Speicher fÅr %s.\nFrei: %s KB. Bitte andere Programme beenden."
 ENDE
 SPRACHE EN
 MENU 1
@@ -106,6 +107,7 @@ TEXTE
   17 "Replace anyway?"
   18 "Move anyway?"
   19 "Rename anyway?"
+  20 "Not enough memory for %s.\nFree: %s KB. Please close other programs."
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"
