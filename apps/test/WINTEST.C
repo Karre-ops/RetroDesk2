@@ -15,6 +15,12 @@ static void pumpen(void)
 }
 static COLOR px(short x, short y) { HDC d = GetDC(0); COLOR c = GetPixel(d, x, y); ReleaseDC(0, d); return c; }
 
+static HWND abkind;                               /* G26: Kind aus M_CREATE eines abgebrochenen Fensters */
+static DWORD RDCALLBACK abproc(HWND w, WORD msg, WORD p1, DWORD p2)
+{
+    if (msg == M_CREATE) { abkind = CreateWindow("TestFenster", "", WS_BORDER | WS_VISIBLE, 2, 2, 20, 20, w, 9, 0); return 0xFFFFFFFFUL; }
+    return DefWindowProc(w, msg, p1, p2);
+}
 static DWORD RDCALLBACK proc(HWND w, WORD msg, WORD p1, DWORD p2)
 {
     PAINT ps; RECT r; HDC d; char t[24];
@@ -41,6 +47,10 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     WNDCLASS wc; RECT ra, rb, rc; POINT p; DWORD t0; MSG m; HDC d; short y0;
     (void)show;
     if (cmd && cmd[0] == 'L') { GetDC(0); for (;;) TaskYield(); }   /* Kind fuer M12: DC offen lassen, wird beendet */
+    if (cmd && cmd[0] == 'K') {                   /* Kind fuer G27: Klasse des anderen Programms nicht nutzbar */
+        ok(!CreateWindow("TestFenster", "x", WS_VISIBLE, 0, 20, 40, 40, 0, 1, inst) && LastError() == RD_ERR_BUSY, "WINTEST: G27 fremde Klasse abgelehnt");
+        return 0;
+    }
     wc.name = "TestFenster"; wc.proc = proc; wc.stil = 0; wc.daten = 0; wc.inst = inst; wc.symbol = 0; wc.hinter = RD_DEFAULT;
     ok(RegisterClass(&wc) != 0, "WINTEST: RegisterClass");
     d = GetDC(0); W = GetCaps(d, CAPS_W); H = GetCaps(d, CAPS_H); ReleaseDC(0, d);
@@ -91,6 +101,17 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         ok(d != 0, "WINTEST: nach 25 beendeten Programmen mit offenem DC geht GetDC noch");
         if (d) ReleaseDC(a, d);
         ok(!TaskExec("UEBER.EXE", "", SW_SHOW) && LastError() == RD_ERR_FORMAT, "WINTEST: G12 Programmgroesse ueber 64K Paragraphen abgelehnt");
+    }
+    {   /* Audit 3b: G26 M_CREATE abgebrochen samt Kind, G27 fremde Klasse, G28 Fokus auf verstecktem Fenster */
+        WNDCLASS c2 = wc; HWND f; WORD y;
+        c2.name = "AbbrFenster"; c2.proc = abproc;
+        ok(RegisterClass(&c2) != 0 && !CreateWindow("AbbrFenster", "", WS_VISIBLE, 0, 20, 60, 60, 0, 1, inst) && LastError() == RD_ERR_ABORT
+           && abkind && !IsWindow(abkind), "WINTEST: G26 abgebrochenes Fenster nimmt sein Kind mit");
+        if (TaskExec("WINTEST.EXE", "K", SW_SHOW)) for (y = 0; y < 40; y++) TaskYield();
+        f = CreateWindow("TestFenster", "", WS_BORDER | WS_VISIBLE, 4, 4, 30, 20, a, 7, inst);
+        SetFocus(f); ShowWindow(f, SW_HIDE);
+        ok(f && GetFocus() != f, "WINTEST: G28 verstecktes Fenster verliert den Fokus");
+        DestroyWindow(f);
     }
     DestroyWindow(a);
     ok(!IsWindow(a) && !IsWindow(kind) && !GetActive(), "WINTEST: DestroyWindow samt Kind");

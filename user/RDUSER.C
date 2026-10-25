@@ -60,6 +60,7 @@ static void menulauf(WORD i, int bar, int maus);
 static void sbklick(WORD i, WORD bar, short x, short y);
 static void aufdecken(const RECT *scr);
 static void inval(WORD i, const RECT *r, BYTE erase);
+static void weg(WORD i, int melden);
 
 /* ---- Hilfen ------------------------------------------------------------------- */
 static WORD idx(HWND h)
@@ -77,6 +78,7 @@ static void isect(RECT *a, const RECT *b)
     if (b->r < a->r) a->r = b->r; if (b->b < a->b) a->b = b->b;
 }
 static int leer(const RECT *a) { return a->l >= a->r || a->t >= a->b; }
+static void rnull(RECT *a) { a->l = a->r = a->t = a->b = 0; }
 static void off(RECT *a, short x, short y) { a->l += x; a->r += x; a->t += y; a->b += y; }
 static void scpy(char *d, LPCSTR s, WORD n) { while (--n && s && *s) *d++ = *s++; *d = 0; }
 
@@ -164,7 +166,7 @@ static HDC ndc(WORD i, int client, const RECT *nur)   /* nur: zusaetzlich begren
         r = sl[s].r[k]; isect(&r, nur);
         if (leer(&r)) sl[s].r[k] = sl[s].r[--n]; else sl[s].r[k++] = r;
     }
-    if (!n) { sl[s].r[0].l = sl[s].r[0].r = 0; sl[s].r[0].t = sl[s].r[0].b = 0; n = 1; }   /* nichts zeichnen */
+    if (!n) { rnull(&sl[s].r[0]); n = 1; }   /* nichts zeichnen */
     sl[s].dc = h; sl[s].n = n;
     d = &dcs[h - 1];
     if (client && i) org(i, &x, &y);
@@ -325,6 +327,7 @@ HWND RDEXPORT u_CreateWindow(LPCSTR kn, LPCSTR titel_, DWORD stil, short x, shor
     WORD k = klasse(kn), i, p = 0; WND *w;
     if (!k) { CtlInit(kn); k = klasse(kn); }   /* Standardklassen: RDCTL meldet sie an */
     if (!k) return fehl(RD_ERR_NOTFOUND);
+    if (kl[k - 1].task != 0xFF && kl[k - 1].task != (BYTE)TaskSelf()) return fehl(RD_ERR_BUSY);   /* G27: fremde Klasse = fremder Code */
     if (!schirm_()) return 0;
     if (eltern && !(p = idx(eltern))) return bad();
     for (i = 1; i <= MAXW && w_[i].used; i++) ;
@@ -338,11 +341,11 @@ HWND RDEXPORT u_CreateWindow(LPCSTR kn, LPCSTR titel_, DWORD stil, short x, shor
     if (x == CW_DEFAULT) { x = (short)(16 + (i & 7) * 16); y = (short)(mh + 8 + (i & 7) * 12); }
     if (b == CW_DEFAULT) { b = sw / 2; h = (sh - mh) / 2; }
     w->r.l = x; w->r.t = y; w->r.r = x + b; w->r.b = y + h;
-    w->inv.l = w->inv.r = 0; w->inv.t = w->inv.b = 0;
+    rnull(&w->inv);
     scpy(w->text, titel_, sizeof w->text);
     link(i, p);
     if (stil & WS_DESKTOP) dsk = (BYTE)i;
-    if (sendi(i, M_CREATE, 0, 0) == 0xFFFFFFFFUL) { unlink(i); w->used = 0; SetLastError(RD_ERR_ABORT); return 0; }
+    if (sendi(i, M_CREATE, 0, 0) == 0xFFFFFFFFUL) { weg(i, 0); SetLastError(RD_ERR_ABORT); return 0; }   /* G26: samt Kindern aus M_CREATE */
     if (idx(hw(i))) sendi(i, M_SIZE, SIZE_NORMAL, MAKELONG(b - 2 * rand_(i), h - 2 * rand_(i) - titel(i)));
     if ((stil & WS_VISIBLE) && idx(hw(i))) u_ShowWindow(hw(i), SW_SHOW);
     return hw(i);
@@ -383,6 +386,7 @@ void RDEXPORT u_ShowWindow(HWND h, WORD art)
     if (art == SW_HIDE) {
         if (!w_[i].vis) return;
         wrect(i, &r); w_[i].vis = 0; aufdecken(&r);
+        if (foc && !sichtbar(foc)) foc = 0;       /* G28: keine Tasten an Verstecktes */
         if (act == i) neuaktiv();
         return;
     }
@@ -443,7 +447,7 @@ void RDEXPORT u_ValidateRect(HWND h, const RECT FAR *r)
     WORD i = idx(h);
     (void)r;                                      /* Teilbereiche: alles gilt als gezeichnet */
     if (!i) { bad(); return; }
-    w_[i].inv.l = w_[i].inv.r = 0; w_[i].inv.t = w_[i].inv.b = 0; w_[i].flags &= ~F_ERASE;
+    rnull(&w_[i].inv); w_[i].flags &= ~F_ERASE;
 }
 void RDEXPORT u_UpdateWindow(HWND h)
 {
@@ -466,7 +470,7 @@ HDC RDEXPORT u_BeginPaint(HWND h, PAINT FAR *ps)
     ps->dc = d;
     if (ueber) { WORD j; for (j = w_[i].child; j; j = w_[j].next) if (w_[j].vis) inval(j, 0, 1); }   /* uebermalt: neu zeichnen */
     if (d && (w_[i].flags & F_ERASE)) { a = w_[i].inv; hinter(i, d, &a); }
-    w_[i].inv.l = w_[i].inv.r = 0; w_[i].inv.t = w_[i].inv.b = 0; w_[i].flags &= ~F_ERASE;
+    rnull(&w_[i].inv); w_[i].flags &= ~F_ERASE;
     return d;
 }
 void RDEXPORT u_EndPaint(HWND h, PAINT FAR *ps) { (void)h; if (ps->dc) fdc(ps->dc); ps->dc = 0; }
