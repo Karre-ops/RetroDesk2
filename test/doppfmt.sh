@@ -35,7 +35,7 @@ PY
 for FALL in F G; do
   [ $FALL = F ] && M="RDFORMAT: Meldung 35" || M="RDFDISK: Meldung 24"
   printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\DOPPFMT.EXE %s\nA:\\FDAPM.COM POWEROFF\n' $FALL > obj/ae_dfmt.txt
-  NUR="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDFDISK.EXE RDDISK.MOD DOPPFMT.EXE" bash tools/mkdisk.sh $IMG obj/ae_dfmt.txt >/dev/null 2>&1
+  NUR="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDFDISK.EXE RDDISK.MOD DOPPFMT.EXE" FMT=720 bash tools/mkdisk.sh $IMG obj/ae_dfmt.txt >/dev/null || { echo "FEHLER Diskette"; F=1; }
   rm -f $SER $SOCK
   timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 \
     -drive file=obj/dfmt_b.img,format=raw,if=floppy,index=1 -drive file=obj/dfmt_hd.img,format=raw,if=ide,index=0 -boot a \
@@ -45,7 +45,7 @@ for FALL in F G; do
   sleep 3; kill $QP 2>/dev/null; wait $QP 2>/dev/null       # erstes Programm laeuft weiter, Ende pruefen M4/rundos
   S=$(tr -d '\r' < $SER)
   [ "$(echo "$S" | grep -c "$M")" = 1 ] && echo "ok     $FALL: $M" || { echo "FEHLER $FALL: $M"; F=1; }
-  [[ "$S" == *"RD: Task beendet"* ]] && echo "ok     $FALL: zweites Programm beendet" || { echo "FEHLER $FALL: zweites laeuft"; F=1; }
+  [ "$(echo "$S" | grep -c "RD: Task beendet")" -ge 2 ] && echo "ok     $FALL: zweites Programm beendet" || { echo "FEHLER $FALL: zweites laeuft"; F=1; }
 done
 mdir -i obj/dfmt_hd.img@@32256 :: >/dev/null 2>&1 && echo "ok     Festplatte unveraendert lesbar" || { echo "FEHLER Festplatte"; F=1; }
 [ $F = 0 ] && echo "G23: alles ok" || echo "G23: Fehler"

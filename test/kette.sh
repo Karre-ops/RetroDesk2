@@ -45,8 +45,9 @@ printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\RDFORMAT.EXE C:\nA:\\FD
 NUR="$NUR0 RDFORMAT.EXE" bash tools/mkdisk.sh obj/kette_a2.img obj/ae_k2.txt >/dev/null 2>&1
 S=obj/kette2_com1.txt; starten obj/kette_a2.img $S
 if waitn "RDFORMAT: bereit" $S; then
-  sleep 3; Q "screendump obj/kette2.ppm" sleep0.3 "sendkey ret"
-  waitn "RDFORMAT: Meldung 22" $S 300 && sleep 2 && Q "sendkey ret"
+  sleep 3; Q "screendump obj/kette2.ppm" sleep0.3
+  for v in 1 2 3; do Q "sendkey ret"; waitn "RDFORMAT: Meldung 22" $S 100 && break; done   # Dialog unter Last spaeter da (25.10.)
+  sleep 2 && Q "sendkey ret"
   waitn "RDFORMAT: \(fertig\|Fehler\|Meldung 33\)" $S 2000 && sleep 3 && Q "sendkey ret"
 fi
 wait $QP
