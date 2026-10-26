@@ -12,7 +12,7 @@ cat > obj/ae_fmt.txt <<'AE'
 A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\RDFORMAT.EXE B:
 A:\FDAPM.COM POWEROFF
 AE
-NUR="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDDISK.MOD" bash tools/mkdisk.sh obj/fmt.img obj/ae_fmt.txt >/dev/null
+NUR="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDDISK.MOD" FMT=720 bash tools/mkdisk.sh obj/fmt.img obj/ae_fmt.txt >/dev/null
 sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_fmt.py
 Q() { python3 obj/qmon_fmt.py "$@"; }
 ok=0; fehler=0

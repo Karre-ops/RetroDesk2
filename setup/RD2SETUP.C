@@ -53,7 +53,8 @@ static void ticks(WORD n) { DWORD t = *tick; while (*tick - t < n) ; }   /* 1 Ti
 
 /* ---- Erkennung ----------------------------------------------------------------- */
 static WORD cpu, fpu, dosv, konvkb, xmskb, umbkb, quelle_vga16;
-static BYTE hw_vga, hw_ega, hw_hgc, hw_cga, hw_adlib, hw_ps2;
+static BYTE hw_vga, hw_ega, hw_hgc, hw_cga, hw_adlib, hw_ps2, hw_sb;
+static char sbwert[24] = "A220 I5 D1", sbanz[40];
 static WORD pkt_int;                              /* Paketreiber-Interrupt, 0 = keiner */
 static char mausinfo[40], mauswert[16];
 static const char *cpuname[] = { "8088", "8086", "V20/V30", "80186", "80286", "80386", "80486", "Pentium" };
@@ -98,6 +99,32 @@ static int adlib_reg(BYTE reg, BYTE val)
     outp(0x389, val); for (i = 0; i < 35; i++) inp(0x388);
     return 0;
 }
+static int dsp_da(WORD b)                         /* DSP-Reset: 1 an b+6, kurz warten, 0, dann AAh an b+0Ah */
+{
+    WORD i, j;
+    outp(b + 6, 1); for (i = 0; i < 16; i++) inp(b + 6);
+    outp(b + 6, 0);
+    for (j = 0; j < 4; j++) for (i = 0; i < 0x4000; i++) if (inp(b + 0x0E) & 0x80) { if (inp(b + 0x0A) == 0xAA) return 1; break; }
+    return 0;
+}
+static void sb_erkennen(void)                     /* BLASTER=A220 I5 D1 ... oder Ports 220h..280h abfragen */
+{
+    const char *e = getenv("BLASTER"); WORD a = 0, irq = 5, dma = 1, b;
+    while (e && *e) {
+        char c = (char)(*e & 0xDF); e++;
+        if (c == 'A') a = (WORD)strtoul(e, (char **)&e, 16);
+        else if (c == 'I') irq = (WORD)strtoul(e, (char **)&e, 10);
+        else if (c == 'D') dma = (WORD)strtoul(e, (char **)&e, 10);
+        else while (*e && *e != ' ') e++;
+        while (*e == ' ') e++;
+    }
+    if (a && !dsp_da(a)) a = 0;
+    for (b = 0x220; !a && b <= 0x280; b += 0x20) if (dsp_da(b)) a = b;
+    hw_sb = (BYTE)(a != 0);
+    if (!a) a = 0x220;
+    sprintf(sbwert, "A%X I%u D%u", a, irq, dma);
+    sprintf(sbanz, "%Xh, IRQ %u, DMA %u%s", a, irq, dma, hw_sb ? "" : " (nicht erkannt)");
+}
 static void klang_erkennen(void)                  /* AdLib: Zeitgeber 1 starten, Statusbits pruefen */
 {
     BYTE s1, s2; int i;
@@ -108,6 +135,7 @@ static void klang_erkennen(void)                  /* AdLib: Zeitgeber 1 starten,
     s2 = (BYTE)inp(0x388);
     adlib_reg(4, 0x60); adlib_reg(4, 0x80);
     hw_adlib = (BYTE)((s1 & 0xE0) == 0 && (s2 & 0xE0) == 0xC0);
+    sb_erkennen();
 }
 static int inport_da(WORD b)                      /* ID-Register: abwechselnd DEh und Version */
 {
@@ -201,12 +229,13 @@ static PUNKT p[] = {
     { "Grafik",     "Grafik", { 0 }, { 0 }, 0, 0, 0 },
     { "Profil",     "Profil", { "SCHNELL", "KOMFORT" }, { "Schnell (1 Bit)", "Komfort (Farbe, ab 386)" }, 2, 0, 0 },
     { "Maus",       "Maus",   { "DOS", "KEINE" }, { "DOS-Treiber (INT 33h)", "keine" }, 2, 0, 0 },
-    { "Klang",      "Sound",  { "SPEAKER", "ADLIB", "AUS" }, { "PC-Lautsprecher", "AdLib (388h)", "aus" }, 3, 0, 0 },
+    { "Klang",      "Sound",  { "SPEAKER", "ADLIB", "SB", "AUS" }, { "PC-Lautsprecher", "AdLib (388h)", "Sound Blaster", "aus" }, 4, 0, 0 },
+    { "Sound Blaster", "SB",  { 0 }, { 0 }, 0, 0, 0 },
     { "XMS-Ablage", "XMS",    { "0", "64", "128", "256", "512" }, { "aus", "64 KB", "128 KB", "256 KB", "512 KB" }, 5, 0, 0 },
     { "Netz",       "Netz",   { "KEIN", "PAKET" }, { "keins", "Paketreiber" }, 2, 0, 0 },
 };
 #define NP (sizeof p / sizeof p[0])
-enum { P_GRAFIK, P_PROFIL, P_MAUS, P_KLANG, P_XMS, P_NETZ };
+enum { P_GRAFIK, P_PROFIL, P_MAUS, P_KLANG, P_SB, P_XMS, P_NETZ };
 static char ini[80], quelle[80];
 
 static void setze(PUNKT *q, const char *w) { BYTE i; for (i = 0; i < q->n; i++) if (!stricmp(q->wert[i], w)) { q->v = i; return; } }
@@ -219,6 +248,13 @@ static void grafikliste(void)                    /* nur was die Hardware kann (u
     if (hw_cga) { g->wert[g->n] = "CGA";   g->anzeige[g->n++] = "CGA 640x200"; }
     if (!g->n)  { g->wert[g->n] = "CGA";   g->anzeige[g->n++] = "CGA 640x200 (nichts erkannt)"; }
 }
+static void sbliste(void)                         /* erkannter Wert zuerst, dann uebliche Einstellungen */
+{
+    static const char *const w[] = { "A220 I5 D1", "A220 I7 D1", "A240 I5 D1", "A240 I7 D1", "A220 I10 D1" };
+    PUNKT *q = &p[P_SB]; BYTE i;
+    q->n = 0; q->wert[q->n] = sbwert; q->anzeige[q->n++] = sbanz;
+    for (i = 0; i < 5; i++) if (stricmp(w[i], sbwert)) { q->wert[q->n] = w[i]; q->anzeige[q->n++] = w[i]; }
+}
 static void vorschlag(int i)                     /* Wert aus der Erkennung */
 {
     PUNKT *q = &p[i];
@@ -226,7 +262,8 @@ static void vorschlag(int i)                     /* Wert aus der Erkennung */
     case P_GRAFIK: grafikliste(); q->v = (BYTE)((cpu >= 5 && hw_vga && quelle_vga16) ? 0 : (hw_vga && quelle_vga16) ? 1 : 0); break;
     case P_PROFIL: q->v = (BYTE)(cpu >= 5); break;
     case P_MAUS:   q->v = (BYTE)(strcmp(mauswert, "DOS") != 0); break;
-    case P_KLANG:  q->v = (BYTE)(hw_adlib ? 1 : 0); break;
+    case P_KLANG:  q->v = (BYTE)(hw_sb ? 2 : hw_adlib ? 1 : 0); break;
+    case P_SB:     sbliste(); q->v = 0; break;
     case P_XMS:    q->v = (BYTE)(xmskb >= 256 ? 3 : xmskb >= 128 ? 2 : xmskb >= 64 ? 1 : 0); break;
     case P_NETZ:   q->v = (BYTE)(pkt_int != 0); break;
     }
@@ -236,7 +273,7 @@ static void erkennen(int i)                      /* -1 = alles */
 {
     if (i < 0 || i == P_GRAFIK || i == P_PROFIL) { cpu = rd_cpudet(); fpu = rd_fpudet(); grafik_erkennen(); }
     if (i < 0 || i == P_MAUS) maus_erkennen();
-    if (i < 0 || i == P_KLANG) klang_erkennen();
+    if (i < 0 || i == P_KLANG || i == P_SB) klang_erkennen();
     if (i < 0 || i == P_XMS) speicher_erkennen();
     if (i < 0 || i == P_NETZ) netz_erkennen();
     if (i < 0) { for (i = 0; i < (int)NP; i++) vorschlag(i); }
@@ -498,8 +535,8 @@ int main(int argc, char **argv)
     ini_lesen(ini);
     if (aut) {
         i = ini_schreiben(ini);
-        printf("RD2SETUP: %s, Grafik=%s Profil=%s Maus=%s (%s) Sound=%s XMS=%s Netz=%s -> %s %s\n", cpuname[cpu & 7],
-               p[0].wert[p[0].v], p[1].wert[p[1].v], p[2].wert[p[2].v], mauswert, p[3].wert[p[3].v], p[4].wert[p[4].v], p[5].wert[p[5].v],
+        printf("RD2SETUP: %s, Grafik=%s Profil=%s Maus=%s (%s) Sound=%s SB=%s XMS=%s Netz=%s -> %s %s\n", cpuname[cpu & 7],
+               p[0].wert[p[0].v], p[1].wert[p[1].v], p[2].wert[p[2].v], mauswert, p[P_KLANG].wert[p[P_KLANG].v], p[P_SB].wert[p[P_SB].v], p[P_XMS].wert[p[P_XMS].v], p[P_NETZ].wert[p[P_NETZ].v],
                ini, i ? "gespeichert" : "FEHLER");
         return i ? 0 : 1;
     }

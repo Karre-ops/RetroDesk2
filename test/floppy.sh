@@ -21,9 +21,9 @@ A:\RD2\RD.EXE A:\RD2\HAENGT.EXE
 A:\RD2\RD.EXE A:\RD2\STRESS.EXE
 A:\FDAPM.COM POWEROFF
 AE
-SYS=$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ')
+SYS=$(awk '$4=="S" && $1!="RDSYS.EXE" && $1!="SHELL.EXE"{print $1}' tools/budget.txt | tr '\n' ' ')   # ohne SHELL (hier nicht gebraucht), damit es mit FreeDOS auf 360 KB passt
 NUR="$SYS LEER.EXE PING.EXE PONG.EXE RECHNE.EXE MEMTEST.EXE FILETEST.EXE RESTEST.EXE RESTEST.RDB MODTEST.EXE TESTMOD.MOD TESTMOD2.MOD HAENGT.EXE STRESS.EXE WURM.EXE" \
-  bash tools/mkdisk.sh $IMG obj/autoexec.txt
+  FMT=360 bash tools/mkdisk.sh $IMG obj/autoexec.txt   # prueft das Verteilformat (DriveInfo 360 KB)
 rm -f obj/andere.img; # andere Diskette absichtlich mit DERSELBEN Seriennummer (passiert real, wenn zwei Disketten
 # in derselben Sekunde formatiert werden): der Kern muss sie am Namen unterscheiden
 SN=$(python3 -c "import sys;d=open('$IMG','rb').read(48);print(d[0x27:0x2b][::-1].hex().upper())")
@@ -55,7 +55,7 @@ chk "LEER.EXE unter DOS meldet 'benoetigt RetroDesk 2'" '[[ "$D" == *"tigt Retro
 chk "LEER.EXE unter DOS endet mit Fehlercode 1"       '[[ "$D" == *FEHLERCODE1* ]]'
 chk "LEER sieht API 1.0"                 '[[ "$S" == *"LEER: Kern-API 0x00000100"* ]]'
 chk "Befehlszeile kommt an"              '[[ "$S" == *"hallo welt"* ]]'
-chk "fehlende Funktion: 0 und RD_ERR_NOTSUP" '[[ "$S" == *"SndCaps fehlt noch (erwartet)"* ]]'
+chk "fehlende Funktion: 0 und RD_ERR_NOTSUP" '[[ "$S" == *"NetCaps fehlt noch (erwartet)"* ]]'
 chk "LEER endet mit 42"                  '[[ "$S" == *"Task beendet: 0x0001002A"* ]]'
 echo "--- Phase 2 mit Zeitscheiben"
 chk "PING bekommt 5 Antworten"           '[[ "$P2" == *"PING: Antwort 0x00000005"* ]]'

@@ -50,6 +50,11 @@ modul disk/RDDISK.C RDDISK.MOD "Laufwerke" 0x0080 M -i=disk
 modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D -dVGAM
+modul snd/RDSND.C RDSND.MOD "Klang" 0 M
+modul snd/RDMUS.C RDMUS.MOD "Musik" 0 M
+modul drv/SND.C SPEAKER.DRV "PC-Lautsprecher" 0 D -dSPK
+modul drv/SND.C ADLIB.DRV "AdLib" 0 D -dADL
+modul drv/SND.C SB.DRV "Sound Blaster" 0 D -dSB
 for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT; do app apps/test/$t.C $t.EXE "$t"; done
 app shell/SHELL.C SHELL.EXE "Shell"
 app apps/uhr/UHR.C UHR.EXE "Uhr"   # voller Stapel: GetDC laedt Treiber und Module auf dem Stapel des Programms
@@ -80,6 +85,7 @@ APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 app apps/test/DOSTEST.C DOSTEST.EXE "DOSTEST"
 app apps/test/AUSLTEST.C AUSLTEST.EXE "AUSLTEST"
+app apps/test/SNDTEST.C SNDTEST.EXE "SNDTEST"
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/FREIMEM.EXE -fo=obj/freimem.obj apps/test/FREIMEM.C >/dev/null
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/TSRTEST.EXE -fo=obj/tsrtest.obj apps/test/TSRTEST.C >/dev/null
 python3 tools/mkfont.py $O >/dev/null

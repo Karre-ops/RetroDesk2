@@ -9,7 +9,7 @@ A:\RD2\RD.EXE A:\RD2\LEER.EXE eins > A:\E1.TXT
 A:\RD2\RD.EXE A:\RD2\LEER.EXE zwei > A:\E2.TXT
 A:\FDAPM.COM POWEROFF
 AE
-SETUP=1 bash tools/mkdisk.sh $IMG obj/ae_erst.txt
+FMT=720 SETUP=1 bash tools/mkdisk.sh $IMG obj/ae_erst.txt   # 720 KB: FreeDOS-Testdiskette + volle Systemdateien passen nicht mehr auf 360 KB (26.10.)
 rm -f $SER /tmp/qmon_e.sock
 timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:/tmp/qmon_e.sock,server,nowait >/dev/null 2>&1 &

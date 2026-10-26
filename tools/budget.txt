@@ -3,8 +3,8 @@
 # Diskette (360 KB seit 24.10.2026): S = Systemdiskette (bootfaehig), P = Programme, N = Netz, D = SDK, T = nur Tests
 # Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
-RD.EXE          28672   44   S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock)
-RD2SETUP.EXE    30720    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier)
+RD.EXE          28672 44.25 S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock); 26.10.: 44,25 KB fuer den Klang-Takt im INT 8 und RunDos-Pause (RDSND)
+RD2SETUP.EXE    31744    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier; +1 KB Sound Blaster 26.10.)
 RDSYS.EXE       24576    0   S  FreeDOS SYS 3.6 (GPL v2), unveraendert; RD2SETUP: Festplatte startfaehig (24.10.)
 RDSWAP.BIN       1664    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speicher (nicht im Kern)
 CTMOUSE.EXE      6144    0   S  CuteMouse 2.1 (FreeDOS, GPL, unveraendert): Maustreiber seriell/PS2, Setup traegt ihn als INSTALL= ein (24.10.)
@@ -15,12 +15,14 @@ RDGDIX.MOD       4096    4   S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygon
 RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
 RDCTLX.MOD      12288   10   S  Dateidialog, TEXT, COMBO, SCROLL (verwerfbar)
 RDUSER.MOD      27648   28   S  Fenster, Menues, Schreibtisch-Anbindung der Shell (24.10.: 26 -> 27 KB fuer WS_DESKTOP, M_SYSMENU; 25.10.: 28 KB fuer Groesse, Minimieren, Alt+Tab, Variante B)
-RDSND.MOD        4096    4   S  Sound-API, Musik-Player
+RDSND.MOD        4096    4   S  Sound-API, Treiber, Systemklaenge (Musik in RDMUS.MOD)
+RDMUS.MOD        3072    3   P  Musik-Spieler IMF/DRO, nur waehrend des Abspielens geladen (26.10.)
 CGA.DRV          5120    5   S
 HGC.DRV          5120    5   S
 VGAM.DRV         5120    5   S
 SPEAKER.DRV      2048    2   S
 ADLIB.DRV        2048    2   P
+SB.DRV           3072    3   P  Sound Blaster 1.x bis AWE und Kompatible: FM (OPL2/OPL3) und 8-Bit-PCM per DMA (26.10.)
 SYS8.FNT         2560    0   S  wird bei Bedarf geladen, nur die aktive Schrift belegt Speicher
 SYS14.FNT        4096    0   S
 SYS16.FNT        4608    0   S
@@ -70,5 +72,6 @@ WINTEST.EXE      8192    0   T  Test: Fenster
 MENUTEST.EXE     8192    0   T  Test: Menues, Rollbalken
 ZEIGTEST.EXE     8192    0   T  Test: Mauszeiger-Formen
 DLGTEST.EXE      8192    0   T  Test: Steuerelemente und Dialoge
+SNDTEST.EXE      6144    0   T  Test: Klang (RDSND, SPEAKER.DRV, ADLIB.DRV)
 DISKFRAG.EXE     4096    0   T  Test: Diskettenabfrage im Grafikbetrieb (Audit K2)
 DOPPFMT.EXE      4096    0   T  Test: RDFORMAT doppelt starten (Audit M4)

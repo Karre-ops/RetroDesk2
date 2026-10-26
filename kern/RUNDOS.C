@@ -9,6 +9,7 @@
 #include "KERN.H"
 
 void (__far __pascal *k_gdipause)(WORD an);
+void (__far __pascal *k_sndpause)(WORD an);
 
 #pragma pack(1)
 typedef struct {
@@ -75,11 +76,13 @@ rein:
     s->flags = flags;
     cpy(s->path, prog, 80); cpy(s->tail + 2, cmd, 124);
     if (neu) { k_rseg = seg; return neustart(); }
+    if (k_sndpause) k_sndpause(0);
     if (k_gdipause) k_gdipause(0);
     rd_timer_off();
     rd_swaprun(seg);
     rd_timer_on(16384);
     if (k_gdipause) k_gdipause(1);
+    if (k_sndpause) k_sndpause(1);
     r = s->err == 1 ? RD_ERR_NOMEM : s->err == 0x102 || s->err == 0x103 ? RD_ERR_NOTFOUND : s->err ? RD_ERR_NOTSUP : 0;
     n = s->exitc & 0xFF;
     kr.ax = 0x4900; kr.es = seg; rd_int(0x21, &kr);

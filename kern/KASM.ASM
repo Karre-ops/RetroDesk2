@@ -5,6 +5,8 @@ DGROUP group _DATA, _BSS
 _TEXT segment word public 'CODE'
 _TEXT ends
 _DATA segment word public 'DATA'
+public _k_sndtick
+_k_sndtick  dd 0                     ; RDSND: Klang-Takt (72,8 Hz, im Interrupt), 0 = keiner
 public _rd_ticks, _rd_preempt, _rd_killreq, _k_crit, _k_critdrv, _rd_gateptr, _k_xmsent, _k_xdx
 _k_xmsent   dd 0                     ; Einsprung des XMS-Treibers (HIMEM), 0 = keiner
 _k_xdx      dw 0                     ; DX nach dem letzten XMS-Aufruf
@@ -482,6 +484,23 @@ i8_eoi:
     mov  al, 20h
     out  20h, al
 i8_chk:
+    cmp  word ptr _k_sndtick+2, 0    ; Klang: Toene beenden, Folgen weiterschalten (kurz, kein DOS)
+    je   i8_pre
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+    push es
+    cld
+    call dword ptr _k_sndtick
+    pop  es
+    pop  di
+    pop  si
+    pop  dx
+    pop  cx
+    pop  bx
+i8_pre:
     cmp  _rd_preempt, 0
     je   i8_done
     push bp

@@ -50,6 +50,8 @@ extern void  __cdecl rd_frstor(WORD seg, WORD off);
 extern WORD  k_fpuseg;
 extern volatile DWORD rd_ticks;                   /* 72,8 Hz */
 extern volatile WORD  rd_preempt;                 /* 1 = Zeitscheiben an */
+extern void (__far __pascal * volatile k_sndtick)(void);   /* KASM: RDSND-Takt im INT 8 */
+extern void (__far __pascal *k_sndpause)(WORD an);  /* RDSND: 0 still und Treiber aus, 1 wieder an (RunDos), 2 Abfrage (input_poll) */
 #define CARRY (kr.flags & 1)
 
 /* ---- RD.C ------------------------------------------------------------------- */

@@ -9,7 +9,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     DbgHex("LEER: HINST", inst);
     DbgPrint("LEER: Befehlszeile:");
     DbgPrint(cmd);
-    if (SndCaps() == 0 && LastError() == RD_ERR_NOTSUP)   /* Sound kommt erst in Phase 6 */
-        DbgPrint("LEER: SndCaps fehlt noch (erwartet)");
+    if (NetCaps(0) == 0 && LastError() == RD_ERR_NOTSUP)  /* Netz kommt erst mit Punkt 8 (Klang ist seit 26.10. da) */
+        DbgPrint("LEER: NetCaps fehlt noch (erwartet)");
     return v == RD2_API_VERSION ? 42 : 1;
 }

@@ -64,7 +64,7 @@ WORD RDK KernInfo(SYSINFO FAR *si)
 
 int main(int argc, char **argv)
 {
-    WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0, ctl = 0, ausm = 0;
+    WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0, ctl = 0, ausm = 0, snd;
     static const WORD kx[] = { 2, RDO_TimeGet, 3, RDO_TimeSet, 4, RDO_LangGet, 5, RDO_ResLoad, 6, RDO_ResFree,
                                7, RDO_StrLoad, 8, RDO_StrGet, 9, RDO_DbgBreak,
                                10, RDO_BmpLoad, 11, RDO_BmpLoadFile, 12, RDO_IconDraw, 0 };
@@ -143,18 +143,25 @@ int main(int argc, char **argv)
         k_wnd = (DWORD (__far __pascal *)(WORD, HWND, WORD, WORD, DWORD))k_modraw(user, 0x44);
         ctl = k_sysmod("RDCTL.MOD", 0x2C0, 0x20, 0);      /* Steuerelemente, Dialoge (verwerfbar) */
     }
+    if ((snd = k_sysmod("RDSND.MOD", 0x300, 0x0C, 0)) != 0) {   /* Klang (fehlt es: Snd* liefern RD_ERR_NOTSUP) */
+        k_sndpause = (void (__far __pascal *)(WORD))k_modraw(snd, 0x0F);
+        k_sndtick = (void (__far __pascal *)(void))k_modraw(snd, 0x0E);
+    }
     k_hex("RD: Speicher frei", vor, 1);
     k_hex("RD: CPU", k_cpu, 1);
     k_hex("RD: 8087", k_fpu, 1);
     k_out(koop ? "RD: nur kooperativ" : "RD: Zeitscheiben an", 1);
     rd_preempt = koop ? 0 : 1;
     rd_timer_on(16384);
+    if (k_sndpause) k_sndpause(2);                /* Klangtreiber jetzt laden, nicht erst im ersten Programm */
     h = task_load(argv[a], cmdline, SW_SHOW);
     if (!h) { rd_timer_off(); k_hex("RD: Fehler beim Laden", k_lasterr, 1); mem_done(); return 2; }
     task_run_all();
     clip_done();                                  /* Zwischenablage gehoert dem Kern */
     rd_timer_off();
     k_mausget = 0; k_gdipause = 0; k_wnd = 0;
+    k_sndtick = 0; k_sndpause = 0;
+    k_sysend(snd);                                /* still, Treiber aus */
     k_sysend(ctl);
     k_sysend(user);
     k_sysend(gdi);                                /* zurueck in den Textmodus, Maus aus */

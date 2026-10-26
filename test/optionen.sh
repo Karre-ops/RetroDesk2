@@ -46,6 +46,6 @@ pr "T1 aus: RD-Zeile und DOSKEY REM RD2, alte Shell aktiv" "$(tr -d '\r' < $SER 
 pr "T1 nach Aus und An wie vorher" "$(md5sum < obj/opt/t1_neu.sys)" "$(md5sum < obj/opt/T1/CONFIG.SYS)"
 pr "T2 abgelehnt, unveraendert" "$(md5sum < obj/opt/t2_neu.sys)" "$(md5sum < obj/opt/T2/CONFIG.SYS)"
 pr "Rueckgaben: Aus 0, An 0, ohne Shell 2" "$(tr -d '\r' < $SER | grep 'OPTIONEN: CONFIG.SYS' | cut -c22- | tr '\n' ' ')" "0x00000000 0x00000000 0x00000002 "
-pr "RD2.INI Systemklaenge aus" "$(mtype -i $IMG ::/RD2/RD2.INI 2>/dev/null | tr -d '\r' | grep -i '^System=')" "System=0"
+pr "RD2.INI Systemklaenge aus" "$(mtype -i $IMG ::/RD2/RD2.INI 2>/dev/null | tr -d '\r' | grep -i '^Systemklang=')" "Systemklang=0"
 [ -f test/ref/optionen1_vga.png ] && python3 test/bildvergleich.py obj/optionen1_vga.ppm test/ref/optionen1_vga.png obj/optionen2_cga.ppm test/ref/optionen2_cga.png
 exit 0

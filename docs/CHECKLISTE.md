@@ -21,6 +21,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Tastatur: F10, Alt+Buchstabe, Pfeile, Eingabe, Esc, Tab in Dialogen | da | test/menu.sh, dlg.sh |
 | Bedienung nur mit Maus oder nur mit Tastatur | da | |
 | Grafik CGA 640x200, VGA 640x480, Hercules 720x348 | da | Treiber in Assembler, Bildvergleiche |
+| Farbe (Profil Komfort, 386+): VGA16 640x480 16 Farben, EGA 640x350 16 Farben, VESA 256 Farben | fehlt | Schnittstelle (bpp, Farben, Palette) und Setup-Eintrag VGA16 vorbereitet; Treiber fehlen. VESA: Bankumschaltung, 640x480x256 braucht 512 KB Bildspeicher; ohne VESA-BIOS Chipsatztreiber oder UniVBE. Plan Punkt 9 |
 | Schriften 8x8, 8x14, 8x16 mit Umlauten | da | SYS8/14/16.FNT |
 | Startparameter /CGA /VGA /HGC /SPK /NOSND | prüfen | Grafikwahl nach Hardware ist da |
 | Deutsch und Englisch | da | DE.LNG, EN.LNG, Ressourcen je Sprache |
@@ -58,7 +59,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Uhr groß mit Datum, Stellen, Netzzeit, BIOS-Uhr schreiben | teilweise | UHR.EXE (RD-Menü): 7-Segment, Datum, Stellen, BIOS; Netzzeit folgt mit RDTCP (Punkt 8). test/uhr.sh |
 | Notizblock (80 x 60, Strg+S) | erledigt | NOTIZ.EXE (RD-Menü, Doppelklick auf TXT/INI/DOC/NFO/DIZ/LOG): 80 Zeilen x 60 Zeichen wie RD1, Strg+S, Strg+O, Rückfrage, zu lange Dateien nur lesend. test/notiz.sh |
 | Einfacher Rechner (8087 wenn da) | erledigt | RECHNER.EXE (RD-Menü): Tasten und Anzeige wie RD1, Rechenkern mit Dezimalziffern (genau, ohne 8087 und ohne Emulator); "8087" im Titel wie RD1. test/rechner.sh, test/rechner_kern.sh (20000 Folgen gleich RD1) |
-| Optionen: Systemklänge, Start nach dem Booten, Netzzeit beim Booten | teilweise | OPTIONEN.EXE (RD-Menü): Systemklänge in RD2.INI [Klang] (wirkt mit RDSND, Punkt 5); Start nach dem Booten schaltet SHELL= in CONFIG.SYS um ("REM RD2", alte Shell wieder, doppelte INSTALL= aus AUTOEXEC weg, Aus nur mit vorhandener Shell). Netzzeit grau bis Punkt 8. test/optionen.sh |
+| Optionen: Systemklänge, Start nach dem Booten, Netzzeit beim Booten | teilweise | OPTIONEN.EXE (RD-Menü): Systemklänge in RD2.INI [System] Systemklang (RDSND hält sich daran); Start nach dem Booten schaltet SHELL= in CONFIG.SYS um ("REM RD2", alte Shell wieder, doppelte INSTALL= aus AUTOEXEC weg, Aus nur mit vorhandener Shell). Netzzeit grau bis Punkt 8. test/optionen.sh |
 | Systemklänge über AdLib oder PC-Lautsprecher, AdLib-Erkennung | fehlt | nur `SndBeep` |
 
 ### Programme
@@ -115,4 +116,5 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 6. RDEDIT.
 7. Drucken, danach RDCALC mit Kurven und Druck.
 8. Netz: RDTCP, RDNET, Netzzeit, FTP, IRC, DOS-Shell-Fenster.
-9. Hilfe, Joystick, serielle Schnittstelle, SDK-Rest, Diskettensatz, Test am PC10-III, Release 2.0.
+9. Farbe (Profil Komfort): VGA16.DRV (Modus 12h, Assembler), EGA 640x350 (16 Farben), danach VESA 256 Farben mit Bankumschaltung; Farben in RDGDI/RDUSER (Palette, Systemfarben). (aufgenommen 26.10.)
+10. Hilfe, Joystick, serielle Schnittstelle, SDK-Rest, Diskettensatz, Test am PC10-III, Release 2.0.

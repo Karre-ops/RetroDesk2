@@ -136,6 +136,7 @@ void input_poll(void)
             }
         } else post_in(M_BUTTONUP, e[1] | (ks << 8), xy, x, y);
     }
+    if (k_sndpause) k_sndpause(2);                /* RDSND: Ende der Musik melden (nicht aus dem Interrupt) */
     inpoll = 0;
 }
 
