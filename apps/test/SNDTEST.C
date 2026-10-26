@@ -1,6 +1,7 @@
 /* SNDTEST.C - Test fuer RDSND und die Klangtreiber (test/klang.sh). Befehlszeile: S = Lautsprecher erwartet,
- * A = AdLib erwartet, B = Sound Blaster (PCM, FM), L = Lautsprecher und Systemklang aus. Prueft am Port 61h, ob der Lautsprecher an ist
- * und ob Toene ueber den Kern-Takt von selbst enden. */
+ * A = AdLib erwartet, B = Sound Blaster (PCM, FM), L = Lautsprecher und Systemklang aus, C = Covox an LPT1. Prueft am Port 61h, ob
+ * der Lautsprecher an ist und ob Toene ueber den Kern-Takt von selbst enden; Samples ueber den Zeitgeber (Lautsprecher, Covox) mit
+ * Endzeit, Kern-Takt gegen die BIOS-Uhr und WAV-Kopf (T8.WAV, T16.WAV). */
 #include <conio.h>
 #include "RD2.H"
 
@@ -20,6 +21,40 @@ static void musik(LPCSTR d, WORD fl, LPCSTR was, WORD soll)
     DbgPrint(was); pruef("SNDTEST: SndMusicPlay ok", r == 0);
     t = ende(2000); DbgHex("SNDTEST: Musik endet nach ms", t);
     pruef("SNDTEST: Endmeldung zur rechten Zeit (+-60 ms)", t != 0xFFFFFFFFUL && t + 60 >= soll && t <= soll + 60);
+}
+static DWORD bios(void) { return *(volatile DWORD FAR *)0x0040006CUL; }
+static HMEM rechteck(void)                        /* 4000 Bytes = 500 ms bei 8 kHz */
+{
+    HMEM h = MemAlloc(4000, MEM_MOVABLE); BYTE FAR *p = (BYTE FAR *)MemLock(h); WORD i;
+    for (i = 0; i < 4000; i++) p[i] = (BYTE)(i & 16 ? 0xA0 : 0x60);
+    MemUnlock(h); return h;
+}
+static void zeitpcm(LPCSTR was)                   /* Samples ueber den Zeitgeber: Ende, Kern-Takt, WAV */
+{
+    HMEM h = rechteck(), w; DWORD t, b0, t0; WORD r;
+    DbgPrint(was);
+    pruef("SNDTEST: SndSamplePlay 4000 Bytes, 8 kHz", SndSamplePlay(0, h, 8000, 0) == 0);
+    t0 = TickCount(); b0 = bios();
+    t = ende(2000); DbgHex("SNDTEST: Sample endet nach ms", t);
+    pruef("SNDTEST: Sample-Ende zur rechten Zeit (500 +-80 ms)", t != 0xFFFFFFFFUL && t + 80 >= 500 && t <= 580);
+    warte(600); t = TickCount() - t0; b0 = bios() - b0;   /* 1,1 s: Kern-Takt und BIOS-Uhr laufen gleich weiter */
+    DbgHex("SNDTEST: Kern ms", t); DbgHex("SNDTEST: BIOS-Takte", b0);
+    pruef("SNDTEST: Kern-Takt stimmt waehrend des Samples (BIOS-Uhr +-2 Takte)", b0 * 55 + 110 >= t && b0 * 55 <= t + 110);
+    pruef("SNDTEST: Rate 2000 Hz ungueltig", SndSamplePlay(0, h, 2000, 0) != 0);
+    pruef("SNDTEST: Schleife", SndSamplePlay(0, h, 8000, SM_LOOP) == 0);
+    pruef("SNDTEST: Schleife: nach 1,3 s keine Endmeldung", ende(1300) == 0xFFFFFFFFUL);
+    SndSampleStop(); pruef("SNDTEST: nach SndSampleStop keine Meldung", ende(300) == 0xFFFFFFFFUL);
+    MemFree(h);
+    w = SndWavLoad("A:\\RD2\\T8.WAV", &r);
+    pruef("SNDTEST: SndWavLoad T8.WAV: 4000 Samples, 8000 Hz", w && MemSize(w) == 4000 && r == 8000);
+    pruef("SNDTEST: WAV spielt", SndSamplePlay(0, w, r, 0) == 0);
+    t = ende(2000); DbgHex("SNDTEST: WAV endet nach ms", t);
+    pruef("SNDTEST: WAV-Ende zur rechten Zeit (500 +-80 ms)", t != 0xFFFFFFFFUL && t + 80 >= 500 && t <= 580);
+    MemFree(w);
+    SetLastError(0); w = SndWavLoad("A:\\RD2\\T16.WAV", &r);
+    pruef("SNDTEST: WAV mit 16 Bit -> FORMAT", !w && LastError() == RD_ERR_FORMAT);
+    SetLastError(0); w = SndWavLoad("A:\\RD2\\FEHLT.WAV", &r);
+    pruef("SNDTEST: fehlende WAV -> NOTFOUND", !w && LastError() == RD_ERR_NOTFOUND);
 }
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
@@ -42,6 +77,17 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         musik("A:\\RD2\\T1.IMF", 0, "IMF ueber Sound Blaster", 500);
         SndSamplePlay(0, h, 8000, SM_LOOP);       /* laeuft noch beim Ende: Treiber gibt IRQ und DMA frei */
         warte(100); SndSampleStop(); MemFree(h);
+    } else if (m == 'C') {
+        HMEM h; WORD a = 0, b = 0;
+        pruef("SNDTEST: Covox: PCM, Pieptoene ueber den Lautsprecher", c == (SC_SPEAKER | SC_PCM));
+        pruef("SNDTEST: Covox in Ruhe 80h", inp(0x378) == 0x80);
+        h = rechteck(); SndSamplePlay(0, h, 8000, 0);
+        t = TickCount(); while (TickCount() - t < 50) { WORD v = inp(0x378); if (v == 0xA0) a++; if (v == 0x60) b++; }   /* 50 ms: Wechsel alle 2 ms */
+        pruef("SNDTEST: Covox: Samples am Druckerport", a && b);
+        SndBeep(880, 50); pruef("SNDTEST: Covox: Piep geht nebenher ueber den Lautsprecher", spk());
+        ende(2000); SndSampleStop(); MemFree(h);
+        pruef("SNDTEST: Covox nach dem Ende 80h", inp(0x378) == 0x80);
+        zeitpcm("Samples ueber Covox");
     } else if (m == 'A') {
         pruef("SNDTEST: AdLib erkannt (SC_OPL2)", c == SC_OPL2);
         SndBeep(880, 100); pruef("SNDTEST: Piep ueber AdLib, Lautsprecher bleibt aus", !spk());
@@ -60,7 +106,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         SndNoteOff(0);
         SndMusicPlay(0, "A:\\RD2\\T1.IMF", SM_LOOP);   /* laeuft noch, wenn RD endet: Ende muss alles freigeben */
     } else {
-        pruef("SNDTEST: Lautsprecher (SC_SPEAKER)", c == SC_SPEAKER);
+        pruef("SNDTEST: Lautsprecher (SC_SPEAKER, SC_PCM)", c == (SC_SPEAKER | SC_PCM));
         SndBeep(880, 100);
         if (m == 'L') pruef("SNDTEST: Systemklang aus: Piep bleibt still", !spk());
         else {
@@ -79,6 +125,15 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         SndNoteOff(1); pruef("SNDTEST: NoteOff aus", !spk());
         pruef("SNDTEST: Note 128 ungueltig", SndNote(0, 128, 100) != 0);
         pruef("SNDTEST: Musik ueber Lautsprecher -> NOTSUP", SndMusicPlay(0, "A:\\RD2\\T1.IMF", 0) == RD_ERR_NOTSUP);
+        if (m == 'S') {
+            HMEM h = rechteck();
+            SndSamplePlay(0, h, 8000, 0); pruef("SNDTEST: Lautsprecher-Sample: Lautsprecher an", spk());
+            SndBeep(880, 50); SndNote(0, 69, 100); SndNoteOff(0);
+            pruef("SNDTEST: Piep und Noten stoeren das Sample nicht", spk());
+            ende(2000); MemFree(h); pruef("SNDTEST: nach dem Sample Lautsprecher aus", !spk());
+            zeitpcm("Samples ueber den Lautsprecher");
+            pruef("SNDTEST: Piep nach dem Sample wieder", (SndBeep(880, 50), spk()));
+        }
         SndBeep(440, 2000); warte(50);
     }
     DbgHex("SNDTEST: Fehler", fehler);

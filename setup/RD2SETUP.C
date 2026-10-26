@@ -229,7 +229,7 @@ static PUNKT p[] = {
     { "Grafik",     "Grafik", { 0 }, { 0 }, 0, 0, 0 },
     { "Profil",     "Profil", { "SCHNELL", "KOMFORT" }, { "Schnell (1 Bit)", "Komfort (Farbe, ab 386)" }, 2, 0, 0 },
     { "Maus",       "Maus",   { "DOS", "KEINE" }, { "DOS-Treiber (INT 33h)", "keine" }, 2, 0, 0 },
-    { "Klang",      "Sound",  { "SPEAKER", "ADLIB", "SB", "AUS" }, { "PC-Lautsprecher", "AdLib (388h)", "Sound Blaster", "aus" }, 4, 0, 0 },
+    { "Klang",      "Sound",  { "SPEAKER", "ADLIB", "SB", "COVOX", "AUS" }, { "PC-Lautsprecher", "AdLib (388h)", "Sound Blaster", "Covox (LPT1)", "aus" }, 5, 0, 0 },
     { "Sound Blaster", "SB",  { 0 }, { 0 }, 0, 0, 0 },
     { "XMS-Ablage", "XMS",    { "0", "64", "128", "256", "512" }, { "aus", "64 KB", "128 KB", "256 KB", "512 KB" }, 5, 0, 0 },
     { "Netz",       "Netz",   { "KEIN", "PAKET" }, { "keins", "Paketreiber" }, 2, 0, 0 },

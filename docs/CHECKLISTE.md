@@ -60,7 +60,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Notizblock (80 x 60, Strg+S) | erledigt | NOTIZ.EXE (RD-Menü, Doppelklick auf TXT/INI/DOC/NFO/DIZ/LOG): 80 Zeilen x 60 Zeichen wie RD1, Strg+S, Strg+O, Rückfrage, zu lange Dateien nur lesend. test/notiz.sh |
 | Einfacher Rechner (8087 wenn da) | erledigt | RECHNER.EXE (RD-Menü): Tasten und Anzeige wie RD1, Rechenkern mit Dezimalziffern (genau, ohne 8087 und ohne Emulator); "8087" im Titel wie RD1. test/rechner.sh, test/rechner_kern.sh (20000 Folgen gleich RD1) |
 | Optionen: Systemklänge, Start nach dem Booten, Netzzeit beim Booten | teilweise | OPTIONEN.EXE (RD-Menü): Systemklänge in RD2.INI [System] Systemklang (RDSND hält sich daran); Start nach dem Booten schaltet SHELL= in CONFIG.SYS um ("REM RD2", alte Shell wieder, doppelte INSTALL= aus AUTOEXEC weg, Aus nur mit vorhandener Shell). Netzzeit grau bis Punkt 8. test/optionen.sh |
-| Systemklänge über AdLib oder PC-Lautsprecher, AdLib-Erkennung | fehlt | nur `SndBeep` |
+| Systemklänge über AdLib oder PC-Lautsprecher, AdLib-Erkennung | erledigt 26.10. | RDSND.MOD lädt den Treiber aus RD2.INI [Hardware] Sound; RD2SETUP erkennt AdLib, Sound Blaster, Covox. test/klang.sh |
 
 ### Programme
 
@@ -94,7 +94,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Programmanmeldung `.APP`, Dateitypen öffnen das passende Programm | erledigt 25.10. | |
 | Diskettenwechsel erkennen, Liste aktualisieren | erledigt 25.10. | |
 | Hilfesystem (F1) | fehlt | `HelpShow` nur festgelegt |
-| RDSND: Speaker- und AdLib-Treiber, IMF/DRO, WAV über Lautsprecher | fehlt | |
+| RDSND: Speaker- und AdLib-Treiber, IMF/DRO, WAV über Lautsprecher | erledigt 26.10. | Treiber SPEAKER.DRV (Töne und Samples, Uhr läuft weiter), ADLIB.DRV, SB.DRV, COVOX.DRV (LPT1). Musik IMF/DRO in RDMUS.MOD, WAV (8 Bit mono) per `SndWavLoad` aus RD2.LIB. MPU-401 später. test/klang.sh |
 | Joystick | fehlt | `JoyRead` nur festgelegt |
 | Drucken: 9-Nadel-Treiber (ESC/P), Druckdialog | fehlt | |
 | Serielle Schnittstelle (Nullmodem, Modem) | fehlt | |
@@ -112,7 +112,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 2. Fenster fertig: Größe ändern, Minimieren, Alt+Tab. (erledigt 25.10.)
 3. Shell fertig: Listenansicht, Uhr in der Leiste, Info wie RD1, `.APP`/Programme-Menü, `RD2.STA`, Diskettenwechsel, fehlende Tasten. (erledigt 25.10., acb820d; dabei G31: MsgBox-Text war auf 31 Zeichen gekürzt)
 4. Zubehör: Uhr, Notizblock, einfacher Rechner, Optionen.
-5. Sound: RDSND mit Speaker und AdLib, Systemklänge, IMF/DRO.
+5. Sound: RDSND mit Speaker und AdLib, Systemklänge, IMF/DRO. (erledigt 26.10.; dazu Sound Blaster, Covox, WAV)
 6. RDEDIT.
 7. Drucken, danach RDCALC mit Kurven und Druck.
 8. Netz: RDTCP, RDNET, Netzzeit, FTP, IRC, DOS-Shell-Fenster.

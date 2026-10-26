@@ -536,6 +536,9 @@ typedef struct {
 #ifndef RD2_KERNEL                                /* der Kern deklariert selbst (mit __loadds) */
 #define RDF(n, ret, name, args) ret RDAPI name args;
 #include "RD2API.H"
+
+/* Hilfen aus RD2.LIB (laufen im Programm, kein API-Aufruf) */
+HMEM RDAPI SndWavLoad(LPCSTR name, WORD FAR *rate);   /* WAV (PCM 8 Bit mono) -> Block nur mit den Samples fuer SndSamplePlay */
 #undef RDF
 #endif
 

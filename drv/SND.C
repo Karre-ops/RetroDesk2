@@ -1,9 +1,12 @@
-/* SND.C - Klangtreiber PC-Lautsprecher (-DSPK), AdLib/OPL2 an 388h (-DADL) und Sound Blaster (-DSB).
+/* SND.C - Klangtreiber PC-Lautsprecher (-DSPK), AdLib/OPL2 an 388h (-DADL), Sound Blaster (-DSB) und Covox (-DCOVOX).
  * Noten als MIDI-Nummer (69 = A4 = 440 Hz). Lautsprecher: einstimmig, letzte Note gewinnt.
  * AdLib: 9 Kanaele, Pieptoene auf Kanal 8 mit eigenem Glockenklang (wie RD1). Der Aufrufer sperrt Interrupts.
  * Sound Blaster 1.x bis AWE und Kompatible: FM wie AdLib an 388h (alle SB spiegeln dorthin, OPL3: zweite Bank
  * an 38Ah), PCM 8 Bit mono per DMA (Einzelblock, Befehl 14h; RDSND teilt an 64-KB-Grenzen). Ohne FM-Chip
- * gehen Pieptoene und Noten ueber den Lautsprecher. init(param): Bits 0-3 Port (2..8 = 220h..280h),
+ * gehen Pieptoene und Noten ueber den Lautsprecher. Lautsprecher und Covox spielen Samples ueber den Zeitgeber: PIT-Kanal 0 laeuft
+ * mit der Abtastrate, der Interrupt gibt ein Byte aus (Lautsprecher: Pulsbreite ueber Kanal 2 im Modus 0, Covox: Byte an den
+ * Druckerport) und ruft den Kern-Takt (72,8 Hz) im alten Rhythmus weiter. Covox: init(param) Bits 0-1 LPT-Nummer - 1;
+ * Pieptoene und Noten ueber den Lautsprecher. SB init(param): Bits 0-3 Port (2..8 = 220h..280h),
  * 4-7 IRQ, 8-10 DMA+1; 0 = Vorgabe A220 I5 D1. Bit 15 (alle Treiber): nur FM-Chip neu setzen (nach Musik). */
 #include <conio.h>
 #include <i86.h>
@@ -13,28 +16,104 @@ static const WORD okt[12] = { 33488, 35479, 37589, 39824, 42192, 44701, 47359, 5
 /* okt: Hz x 4 fuer MIDI 120..131; Oktave o (MIDI 12*o..) = okt >> (12 - o) */
 static WORD hz(WORD n) { return okt[n % 12] >> (12 - n / 12); }   /* n <= 127: Oktave <= 10 */
 
-#if defined(SPK) || defined(SB)
+#pragma intrinsic(inp, outp)
+#if defined(SPK) || defined(SB) || defined(COVOX)
+static WORD teil(WORD f);                         /* 1193182 / f (f >= 19): DIV statt Bibliotheksroutine */
+#pragma aux teil = "mov dx, 12h" "mov ax, 34DEh" "div bx" parm [bx] value [ax] modify [dx]
 static void spk(WORD f)
 {
     WORD d;
     if (f < 20) { outp(0x61, inp(0x61) & 0xFC); return; }
-    d = (WORD)(1193182UL / f);
+    d = teil(f);
     outp(0x43, 0xB6); outp(0x42, d & 0xFF); outp(0x42, d >> 8);
     outp(0x61, inp(0x61) | 3);
 }
 #endif
+#if defined(SPK) || defined(COVOX)
+/* Samples ueber den Zeitgeber (Kanal 0 mit der Abtastrate, Kern-Takt weiter im alten Rhythmus) */
+static void (__interrupt __far *alt8)(void);
+static void (RDAPI *weiter)(void);
+static const BYTE FAR * volatile tp; static volatile WORD tn; static WORD tdiv, tacc; static volatile BYTE takt;
+#ifdef SPK
+static BYTE skal[256];                            /* Sample -> Zaehlwert fuer Kanal 2 (Pulsbreite) */
+#define AUSGABE(v) outp(0x42, skal[v])
+#else
+static WORD lpt;
+#define AUSGABE(v) outp(lpt, v)
+#endif
+static void pit(WORD d) { outp(0x43, 0x36); outp(0x40, d & 0xFF); outp(0x40, d >> 8); }
+static void tstop(void)                           /* gesperrt: Kern-Takt wieder allein */
+{
+    if (!takt) return;
+    takt = 0; tn = 0; weiter = 0;
+    pit(0x4000);                                  /* Teiler 16384 = 72,8 Hz wie der Kern (KASM rd_timer_on) */
+    *(void (__interrupt __far * __far *)(void))MK_FP(0, 8 * 4) = alt8;
+#ifdef SPK
+    outp(0x61, inp(0x61) & 0xFC);
+#else
+    outp(lpt, 0x80);
+#endif
+}
+static void __interrupt __far tirq(void)
+{
+    if (tn) {
+        AUSGABE(*tp); tp++;
+        if (!--tn) { if (weiter) weiter(); if (!tn) tstop(); }   /* RDSND: naechster Block oder Ende */
+    }
+    tacc += tdiv;
+    if (tacc < tdiv) alt8();                      /* 65536 = ein Kern-Takt vergangen: Kern (sendet EOI) */
+    else outp(0x20, 0x20);
+}
+static WORD RDEXPORT d_pcm(const BYTE FAR *b, WORD n, WORD rate, void (RDAPI *f)(void))
+{
+    WORD d;
+    if (!n || rate < 4000 || rate > 22050) return RD_ERR_HANDLE;
+    weiter = f;
+    if (takt) { tp = b; tn = n; return 0; }       /* Folgeblock (aus dem Interrupt): Rate bleibt */
+    d = teil(rate); tdiv = d << 2; tacc = 0;
+#ifdef SPK
+    { WORD i, m = d - 2 < 254 ? d - 2 : 254;
+      for (i = 0; i < 256; i++) skal[i] = (BYTE)(1 + ((i * m) >> 8)); }   /* 255 * 254 passt in WORD */
+    outp(0x43, 0x90); outp(0x42, 1); outp(0x61, inp(0x61) | 3);   /* Kanal 2: Modus 0, nur Low-Byte */
+#endif
+    tp = b; tn = n;
+    alt8 = *(void (__interrupt __far * __far *)(void))MK_FP(0, 8 * 4);
+    *(void (__interrupt __far * __far *)(void))MK_FP(0, 8 * 4) = tirq;
+    takt = 1; pit(d);
+    return 0;
+}
+static void RDEXPORT d_pcmstop(void) { tstop(); }
+#define D_PCM d_pcm, d_pcmstop
+#endif
+
+#if defined(SPK) || defined(COVOX)
 #ifdef SPK
 #define NAME "PC-Lautsprecher"
+#define BELEGT takt                               /* Sample laeuft: Kanal 2 gehoert ihm */
+#else
+#define NAME "Covox"
+#define BELEGT 0
+#endif
 static WORD kn = 0xFFFF;
+#ifdef SPK
 static WORD RDEXPORT d_init(WORD p) { (void)p; spk(0); return 0; }
-static void RDEXPORT d_done(void) { spk(0); }
-static WORD RDEXPORT d_caps(void) { return SC_SPEAKER; }
-static void RDEXPORT d_beep(WORD f, WORD ms) { kn = 0xFFFF; spk(ms ? f : 0); }
-static WORD RDEXPORT d_note(WORD k, WORD n, WORD v) { if (!v) { if (k == kn) spk(0); return 0; } kn = k; spk(hz(n)); return 0; }
-static void RDEXPORT d_noteoff(WORD k) { if (k == kn) { spk(0); kn = 0xFFFF; } }
+static WORD RDEXPORT d_caps(void) { return SC_SPEAKER | SC_PCM; }
+#else
+static WORD RDEXPORT d_init(WORD p)
+{
+    if (p & 0x8000) return 0;
+    lpt = *(WORD FAR *)MK_FP(0x40, 8 + 2 * (p & 3));   /* BIOS-Datenbereich: Druckerports */
+    if (!lpt) return RD_ERR_NOTFOUND;
+    outp(lpt, 0x80); spk(0); return 0;
+}
+static WORD RDEXPORT d_caps(void) { return SC_SPEAKER | SC_PCM; }
+#endif
+static void RDEXPORT d_done(void) { tstop(); spk(0); }
+static void RDEXPORT d_beep(WORD f, WORD ms) { if (BELEGT) return; kn = 0xFFFF; spk(ms ? f : 0); }
+static WORD RDEXPORT d_note(WORD k, WORD n, WORD v) { if (BELEGT) return 0; if (!v) { if (k == kn) spk(0); return 0; } kn = k; spk(hz(n)); return 0; }
+static void RDEXPORT d_noteoff(WORD k) { if (BELEGT) return; if (k == kn) { spk(0); kn = 0xFFFF; } }
 static WORD RDEXPORT d_instr(WORD k, const INSTR FAR *i) { (void)k; (void)i; return 0; }
 #define D_REG 0
-#define D_PCM 0, 0
 #endif
 
 #if defined(ADL) || defined(SB)

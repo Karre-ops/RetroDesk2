@@ -11,6 +11,7 @@ $W -fo=obj/rd2start.obj sdk/RD2START.ASM
 $W -fo=obj/rd2mod.obj   sdk/RD2MOD.ASM
 rm -f obj/lib_*.obj $O/RD2.LIB
 for a in sdk/lib/F*.ASM; do b=$(basename $a .ASM); $W -fo=obj/lib_$b.obj $a; done
+wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_WAV.obj sdk/WAV.C   # Hilfen in C (laufen im Programm)
 wlib -q -n $O/RD2.LIB obj/lib_*.obj
 $W -fo=obj/notsup.obj   kern/NOTSUP.ASM
 $W -fpi87 -fo=obj/kasm.obj kern/KASM.ASM
@@ -49,12 +50,13 @@ modul ctl/RDCTLX.C RDCTLX.MOD "Dateidialog" 0x0080 M "-ml -r"
 modul disk/RDDISK.C RDDISK.MOD "Laufwerke" 0x0080 M -i=disk
 modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
-modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D -dVGAM
+modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D "-dVGAM -oa"   # -oa: 11 Bytes, haelt VGAM.DRV bei 4 KB (ein Cluster auf der Systemdiskette)
 modul snd/RDSND.C RDSND.MOD "Klang" 0 M
 modul snd/RDMUS.C RDMUS.MOD "Musik" 0 M
 modul drv/SND.C SPEAKER.DRV "PC-Lautsprecher" 0 D -dSPK
 modul drv/SND.C ADLIB.DRV "AdLib" 0 D -dADL
 modul drv/SND.C SB.DRV "Sound Blaster" 0 D -dSB
+modul drv/SND.C COVOX.DRV "Covox" 0 D -dCOVOX
 for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT; do app apps/test/$t.C $t.EXE "$t"; done
 app shell/SHELL.C SHELL.EXE "Shell"
 app apps/uhr/UHR.C UHR.EXE "Uhr"   # voller Stapel: GetDC laedt Treiber und Module auf dem Stapel des Programms

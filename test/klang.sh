@@ -2,13 +2,14 @@
 # Punkt 5a/5b: RDSND mit SPEAKER.DRV, ADLIB.DRV und RDMUS.MOD (SNDTEST.EXE, Musik aus test/klang). Vier Starts:
 # 1 ohne RD2.INI: Lautsprecher, Piep und START enden ueber den Kern-Takt.  2 Sound=ADLIB mit QEMU-AdLib: OPL2, IMF/DRO mit Endmeldung.
 # 3 Sound=SB mit QEMU-SB16 und AdLib: PCM per DMA mit Endmeldung, Schleife, IMF.
-# 4 Sound=ADLIB ohne AdLib, Systemklang=0: Rueckfall auf den Lautsprecher, Piep still, Noten gehen.
+# 4 Sound=COVOX an LPT1 (QEMU-Druckerport): Samples ueber den Zeitgeber, Piep ueber den Lautsprecher. Lautsprecher (1) spielt Samples auch.
+# 5 Sound=ADLIB ohne AdLib, Systemklang=0: Rueckfall auf den Lautsprecher, Piep still, Noten gehen.
 cd "$(dirname "$0")/.."
 SER=obj/klang_com1.txt; SOCK=/tmp/qmon_klang.sock; : > obj/klang_alle.txt
 lauf() {  # $1 Name  $2 Befehl  $3 RD2.INI-Inhalt (leer = keine)  $4 QEMU-Zusatz
   local IMG=obj/klang_$1.img
   printf '@echo off\r\nA:\\RD2\\RD.EXE /NOMAUS /CGA A:\\RD2\\SNDTEST.EXE %s\r\nA:\\RD2\\RD.EXE /NOMAUS /CGA A:\\RD2\\SNDTEST.EXE %s\r\nA:\\FDAPM.COM POWEROFF\r\n' $2 $2 > obj/ae_klang.txt
-  bash tools/mkdisk.sh $IMG obj/ae_klang.txt
+  FMT=720 bash tools/mkdisk.sh $IMG obj/ae_klang.txt   # 720 KB: Testmusik und WAV passen nicht auf 360 KB
   mcopy -i $IMG test/klang/* ::/RD2/
   if [ -n "$3" ]; then printf "$3" > obj/klang_ini.txt; mcopy -o -i $IMG obj/klang_ini.txt ::/RD2/RD2.INI; fi
   rm -f $SER
@@ -22,6 +23,7 @@ lauf() {  # $1 Name  $2 Befehl  $3 RD2.INI-Inhalt (leer = keine)  $4 QEMU-Zusatz
 lauf lautsprecher S ""
 lauf adlib A '[System]\r\nSound=ADLIB\r\n' "-device adlib,audiodev=a0"
 lauf sb B '[System]\r\nSound=SB\r\nSB=A220 I5 D1\r\n' "-device sb16,audiodev=a0 -device adlib,audiodev=a0"
+lauf covox C '[System]\r\nSound=COVOX\r\n' "-parallel file:/dev/null"
 lauf leise L '[System]\r\nSound=ADLIB\r\nSystemklang=0\r\n'
-grep -E "Piep endet nach|START dauert|Musik endet|Sample endet|SndCaps" obj/klang_alle.txt | sort | uniq -c
+grep -E "Piep endet nach|START dauert|Musik endet|Sample endet|WAV endet|BIOS-Takte|Kern ms|SndCaps" obj/klang_alle.txt | sort | uniq -c
 exit 0

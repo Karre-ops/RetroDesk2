@@ -29,7 +29,7 @@ if [ -z "$NUR" ]; then   # Vorgabe: Systemdateien (S) + alle in AUTOEXEC/SHELL g
   case " $NUR " in *" MODTEST.EXE "*) NUR="$NUR TESTMOD.MOD TESTMOD2.MOD";; esac
   case " $NUR " in *" WINTEST.EXE "*) NUR="$NUR UEBER.EXE";; esac
   case " $NUR " in *" STRESS.EXE "*) NUR="$NUR WURM.EXE";; esac
-  case " $NUR " in *" SNDTEST.EXE "*) NUR="$NUR ADLIB.DRV SB.DRV RDMUS.MOD";; esac
+  case " $NUR " in *" SNDTEST.EXE "*) NUR="$NUR ADLIB.DRV SB.DRV COVOX.DRV RDMUS.MOD";; esac
   case " $NUR " in *" PING.EXE "*) NUR="$NUR PONG.EXE RECHNE.EXE MEMTEST.EXE";; esac
 fi
 for f in out/*.EXE out/*.MOD out/*.DRV out/*.FNT out/*.LNG out/*.BIN out/*.RDB; do [ -f "$f" ] || continue; if [ -n "$NUR" ]; then case " $NUR " in *" ${f##*/} "*) ;; *) continue;; esac; fi; [ "${f##*/}" = RD2SETUP.EXE ] && [ -z "$SETUP" ] && continue; mcopy -i $IMG "$f" ::/RD2/ 2>/dev/null || { [ -z "$FMT" ] || echo "mkdisk: FEHLER ${f##*/} passt nicht auf $IMG" | tee -a obj/mkdisk_fehler.txt >&2; VOLL=1; }; done   # RD2SETUP nur, wenn SETUP=1 (sonst fragt der erste Start)

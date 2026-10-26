@@ -1,9 +1,10 @@
 /* RDSND.C - Klang-Modul (API 300h-30Bh): Treiber laden, Pieptoene, Systemklaenge, Noten.
- * Treiber nach RD2.INI [System] Sound= (SPEAKER, ADLIB, SB mit SB=A220 I5 D1, AUS; COVOX folgt), sonst Lautsprecher.
+ * Treiber nach RD2.INI [System] Sound= (SPEAKER, ADLIB, SB mit SB=A220 I5 D1, COVOX mit Covox=1 fuer LPT1, AUS), sonst Lautsprecher.
  * [System] Systemklang=0 schaltet SndBeep und SndSystem stumm (Optionen), Noten bleiben.
  * Toene enden ueber den Kern-Takt (INT 8, 72,8 Hz, Export 14): nichts wartet, Programme laufen weiter.
  * Musik: IMF und DRO ueber OPL-Register (AdLib, spaeter SB) mit RDMUS.MOD, das nur zum Abspielen geladen wird. Das Ende meldet
- * input_poll des Kerns (Export 15 mit 2) als M_SOUNDDONE an das Fenster oder den Task. Samples (8 Bit mono) ueber pcm_start des Treibers (SB), Ende als M_SOUNDDONE mit p1 = 2. */
+ * input_poll des Kerns (Export 15 mit 2) als M_SOUNDDONE an das Fenster oder den Task. Samples (8 Bit mono) ueber pcm_start des Treibers (SB per DMA, Lautsprecher und Covox ueber den Zeitgeber), Ende als
+ * M_SOUNDDONE mit p1 = 2. WAV-Dateien laedt SndWavLoad aus RD2.LIB (im Programm). */
 #include <i86.h>
 #include "RD2DRV.H"
 
@@ -65,6 +66,7 @@ static void init(void)                            /* beim ersten Aufruf (laedt a
         dpar = 0;
     }
     if (gleich(w, "ADLIB") && laden("ADLIB.DRV")) return;
+    if (gleich(w, "COVOX")) { dpar = (ProfileGetInt(ini, "System", "Covox", 1) - 1) & 3; if (laden("COVOX.DRV")) return; dpar = 0; }
     laden("SPEAKER.DRV");
 }
 static BYTE da(void) { if (!bereit) init(); if (!dv || ruhe) { SetLastError(RD_ERR_NOTSUP); return 0; } return 1; }
