@@ -16,7 +16,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Menüleiste global oben | da | |
 | Uhr in der Menüleiste | erledigt 25.10. | HH:MM rechts, Bildvergleich blendet sie aus |
 | Menü Desk/RD: Info | erledigt 25.10. | API, CPU mit Takt, Koprozessor, Speicher, DOS, Grafik, Sound (IP folgt mit dem Netz). Früher: RD2 zeigt API und freien Speicher; RD1 zeigt CPU mit Takt, Speicher, DOS, Grafik, Sound, 8087, IP. CPU-Erkennung steckt schon im Kern (`KernInfo`) |
-| Menü Desk/RD: Uhr, Notizblock, Rechner, Optionen, Netzwerk | teilweise | Uhr, Notizblock, Rechner, Optionen da; Netzwerk folgt mit Punkt 8 |
+| Menü Desk/RD: Uhr, Notizblock, Rechner, Optionen, Netzwerk | da | Uhr, Notizblock, Rechner, Optionen, Netzwerk, FTP |
 | Beenden | da | |
 | Tastatur: F10, Alt+Buchstabe, Pfeile, Eingabe, Esc, Tab in Dialogen | da | test/menu.sh, dlg.sh |
 | Bedienung nur mit Maus oder nur mit Tastatur | da | |
@@ -69,10 +69,10 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | RDEDIT (8000 Zeilen, Auswahl, Zwischenablage, Suchen/Ersetzen, Gehe zu, sicheres Speichern, .BAK für Startdateien) | fehlt | Zwischenablage und `FileSaveSafe` sind im Kern da |
 | RDCALC wissenschaftlich mit Kurven, Verlauf, Druck (ESC/P), Zustand | fehlt | |
 | DOS-Shell-Fenster (RDSHELL) | fehlt | heute nur RunDos im Vollbild |
-| RDNET: Netzkarte, DHCP oder feste IP, FTP/IRC-Einstellungen, Test | fehlt | Netz-API ist festgelegt |
-| Eigener TCP/IP-Stapel (ARP, IP, ICMP, TCP, UDP, DHCP, DNS) | fehlt | zentral als RDTCP, ohne mTCP |
-| Netzzeit (SNTP, Zeitzonen, Sommerzeit) | fehlt | |
-| FTP als zweites Dateifenster | fehlt | |
+| RDNET: Netzkarte, DHCP oder feste IP, FTP/IRC-Einstellungen, Test | erledigt 26.10. | RDNET.EXE (RD-Menü Netzwerk), Seiten Karte/Adresse/Zeit/Dienste, Netztest, RD2.INI. test/rdnet.sh |
+| Eigener TCP/IP-Stapel (ARP, IP, ICMP, TCP, UDP, DHCP, DNS) | erledigt 26.10. | RDTCP.MOD, ohne mTCP, wird beim ersten NetStart geladen. test/netz.sh (QEMU NE2000) |
+| Netzzeit (SNTP, Zeitzonen, Sommerzeit) | erledigt 26.10. | UHR Netz-Knopf, beim Booten einmal am Tag (Optionen). test/netzzeit.sh |
+| FTP als zweites Dateifenster | erledigt 26.10. | RDFTP.EXE (RD-Menü FTP): links Platte, rechts Server, Tab wechselt, Alt+K kopiert in beide Richtungen, Alt+L löscht, Alt+N neuer Ordner, Ordner per Eingabe/Doppelklick. Passiv, Unix- und DOS-Listen, lange Namen als 8.3. test/rdftp.sh (Host-FTP-Server test/ftpserver.py). Befund: QEMU verdoppelt graue E0-Tasten (Kern-INT-9 liest Port 60h, in QEMU zerstörend), Test nimmt Ziffernblock |
 | IRC (Befehle, UTF-8 nach CP437) | fehlt | |
 
 ## B. Neu in RD2 (beschlossen)

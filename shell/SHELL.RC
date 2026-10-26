@@ -9,6 +9,7 @@ MENU 1
     ITEM "Re&chner"            5
     ITEM "&Optionen..."        6
     ITEM "Netz&werk..."        7
+    ITEM "&FTP"                8
     TRENNER
     ITEM "&Beenden..."         2
   ENDE
@@ -106,6 +107,7 @@ MENU 1
     ITEM "Calc&ulator"         5
     ITEM "&Options..."         6
     ITEM "Net&work..."         7
+    ITEM "&FTP"                8
     TRENNER
     ITEM "E&xit..."            2
   ENDE

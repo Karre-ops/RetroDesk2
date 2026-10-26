@@ -68,6 +68,7 @@ app shell/SHELL.C SHELL.EXE "Shell"
 app apps/uhr/UHR.C UHR.EXE "Uhr"   # voller Stapel: GetDC laedt Treiber und Module auf dem Stapel des Programms
 app apps/notiz/NOTIZ.C NOTIZ.EXE "Notizblock"
 app apps/net/RDNET.C RDNET.EXE "Netzwerk"
+app apps/net/RDFTP.C RDFTP.EXE "FTP"
 app apps/rechner/RECHNER.C RECHNER.EXE "Rechner"
 app apps/optionen/OPTIONEN.C OPTIONEN.EXE "Optionen"
 app apps/edit/RDEDIT.C RDEDIT.EXE "Editor"

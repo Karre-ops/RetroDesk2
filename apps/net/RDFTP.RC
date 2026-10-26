@@ -1,0 +1,79 @@
+; Ressourcen fuer RDFTP.EXE
+SPRACHE DE
+TEXTE
+  1 "FTP"
+  2 "Alt+V verbindet mit dem Server, Tab wechselt die Seite."
+  3 "(nicht verbunden)"
+  4 "&Verbinden"
+  5 "&Trennen"
+  6 "Eintr„ge: "
+  7 "Geladen, Bytes: "
+  8 "Gesendet, Bytes: "
+  9 "Server: "
+  10 "Keine Verbindung zum Server."
+  11 "Dateifehler: "
+  12 "Lade ... "
+  13 "Sende ... "
+  14 "Kein FTP-Server eingetragen (RD > Netzwerk, Seite 4 Dienste)."
+  15 "Verbinde mit "
+  16 "Kein Netz (RD > Netzwerk)."
+  17 "Erst verbinden oder warten."
+  18 "Bitte eine Datei w„hlen."
+  19 "šberschreiben? "
+  20 "L”schen? "
+  21 "Name des neuen Ordners:"
+  22 "Server nicht gefunden: "
+  23 "Der Server hat die Verbindung beendet."
+  24 "Getrennt."
+ENDE
+DIALOG 10 "FTP" 0 0 316 158
+  STATIC   ""            30   4   2 150 10
+  STATIC   ""            31 162   2 150 10
+  LIST                   40   4  13 150 110 WS_VSCROLL
+  LIST                   41 162  13 150 110 WS_VSCROLL
+  STATIC   ""            32   4 127 308 10
+  BUTTON   "&Verbinden"   50   4 140  60 14
+  BUTTON   "&Kopieren"   51  66 140  60 14
+  BUTTON   "&L”schen"   52 128 140  60 14
+  BUTTON   "&Neuer Ordner"   53 190 140  60 14
+  BUTTON   "&Schlieáen"    2 252 140  60 14
+ENDE
+SPRACHE EN
+TEXTE
+  1 "FTP"
+  2 "Alt+C connects to the server, Tab switches sides."
+  3 "(not connected)"
+  4 "&Connect"
+  5 "&Disconnect"
+  6 "Entries: "
+  7 "Received, bytes: "
+  8 "Sent, bytes: "
+  9 "Server: "
+  10 "No connection to the server."
+  11 "File error: "
+  12 "Receiving ... "
+  13 "Sending ... "
+  14 "No FTP server set (RD > Network, page 4 Services)."
+  15 "Connecting to "
+  16 "No network (RD > Network)."
+  17 "Connect first or wait."
+  18 "Please select a file."
+  19 "Overwrite? "
+  20 "Delete? "
+  21 "Name of the new folder:"
+  22 "Server not found: "
+  23 "The server closed the connection."
+  24 "Disconnected."
+ENDE
+DIALOG 10 "FTP" 0 0 316 158
+  STATIC   ""            30   4   2 150 10
+  STATIC   ""            31 162   2 150 10
+  LIST                   40   4  13 150 110 WS_VSCROLL
+  LIST                   41 162  13 150 110 WS_VSCROLL
+  STATIC   ""            32   4 127 308 10
+  BUTTON   "&Connect"   50   4 140  60 14
+  BUTTON   "Cop&y"   51  66 140  60 14
+  BUTTON   "&Delete"   52 128 140  60 14
+  BUTTON   "&New folder"   53 190 140  60 14
+  BUTTON   "Cl&ose"    2 252 140  60 14
+ENDE
