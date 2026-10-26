@@ -172,10 +172,11 @@ static BOOL RDEXPORT x_FileDialog(HWND owner, FILEDLG FAR *fd)
 #define T_SCROLL 12
 static WORD istdlg(HWND p) { return p && GetWindowData(p, 3) == (MAGIC | T_DLG); }
 static void melde(HWND h, WORD n) { HWND p = GetParent(h); if (p) SendMessage(p, M_COMMAND, (WORD)GetWindowData(h, WD_ID), MAKELONG(h, n)); }
-static int weiter(HWND h, WORD k, DWORD p2)       /* Tab, Esc, Alt+.. an den Dialog */
+static int weiter(HWND h, WORD k, DWORD p2)       /* Tab, Esc, Alt+.. an den Dialog; Strg+Buchstabe und Esc an jede Eltern */
 {
     HWND p = GetParent(h);
     if ((k == K_TAB || k == K_ESC || (HIWORD(p2) & KS_ALT)) && istdlg(p)) { SendMessage(p, M_KEY, k, p2); return 1; }
+    if ((((HIWORD(p2) & KS_CTRL) && k < 0x20) || k == K_ESC) && p) { SendMessage(p, M_KEY, k, p2); return 1; }
     return 0;
 }
 static void neu(HWND h) { InvalidateRect(h, 0, FALSE); }
@@ -191,8 +192,11 @@ static void punkte(HDC d, short l, short t, short r, short b)
 }
 static short zh(HWND h) { HDC d = GetDC(h); short z = 8; if (d) { z = GetCaps(d, CAPS_TEXTH); ReleaseDC(h, d); } return z; }
 
-/* ---- TEXT: mehrzeilig. data 0 = Speicher, 1 = Schreibmarke | oberste Zeile << 16, 2 = Grenze */
+/* ---- TEXT: mehrzeilig. data 0 = Speicher, 1 = Schreibmarke | oberste Zeile << 16,
+   2 = Zeichengrenze | Spalten << 16 | Zeilen << 24 (0 = frei). C_SETLIMIT p1 Zeichen (bis TMAX, Puffer waechst),
+   p2 = MAKELONG(Spalten, Zeilen). Strg+Taste geht an die Eltern (z. B. Strg+S im Notizblock). */
 #define TLIM 4096
+#define TMAX 8192
 static LPSTR tb(HWND h) { return (LPSTR)MemLock((HMEM)GetWindowData(h, 0)); }
 static void tu(HWND h) { MemUnlock((HMEM)GetWindowData(h, 0)); }
 static WORD zeile(LPCSTR b, WORD pos) { WORD z = 0, i; for (i = 0; i < pos && b[i]; i++) if (b[i] == '\n') z++; return z; }
@@ -235,12 +239,13 @@ static void tpaint(HWND h)
 static void ttaste(HWND h, WORD k, WORD ch)
 {
     LPSTR b = tb(h); WORD cur = LOWORD(GetWindowData(h, 1)), top = HIWORD(GetWindowData(h, 1)), n, i, a, sp, z, lim = (WORD)GetWindowData(h, 2);
+    BYTE sm = (BYTE)(GetWindowData(h, 2) >> 16), zm = (BYTE)(GetWindowData(h, 2) >> 24);
     int ro = (GetWindowData(h, WD_STIL) & ES_READONLY) != 0, ge = 0; short v;
     if (!b) return;
     n = slen(b); if (cur > n) cur = n;
     z = zeile(b, cur); a = zanf(b, z); sp = cur - a;
     if (ch) {
-        if (!ro && n < lim) { for (i = n + 1; i > cur; i--) b[i] = b[i - 1]; b[cur++] = (char)ch; ge = 1; }
+        if (!ro && n < lim && (ch == '\n' ? !zm || zeile(b, 0xFFFF) + 1 < zm : !sm || zlen(b, a) < sm)) { for (i = n + 1; i > cur; i--) b[i] = b[i - 1]; b[cur++] = (char)ch; ge = 1; }
         else SndBeep(880, 30);
     } else switch (k) {
         case K_LEFT: if (cur) cur--; break;
@@ -271,7 +276,13 @@ static DWORD RDEXPORT x_Text(HWND h, WORD msg, WORD p1, DWORD p2)
     case M_PAINT: tpaint(h); return 0;
     case M_SIZE: case M_SETFOCUS: case M_KILLFOCUS: case M_ENABLE: neu(h); return 0;
     case C_MNEMO: return 0;
-    case C_SETLIMIT: SetWindowData(h, 2, p1 && p1 <= TLIM ? p1 : TLIM); return 0;
+    case C_SETLIMIT:
+        if (!p1 || p1 > TMAX) p1 = TMAX;
+        if ((m = (HMEM)GetWindowData(h, 0)) != 0 && MemSize(m) < (DWORD)p1 + 1) {
+            if (!(m = MemRealloc(m, (DWORD)p1 + 1, MEM_MOVABLE | MEM_ZEROINIT))) return 1;   /* bleibt beim alten Puffer */
+            SetWindowData(h, 0, m);
+        }
+        SetWindowData(h, 2, p1 | (p2 << 16 & 0x00FF0000UL) | (p2 << 8 & 0xFF000000UL)); return 0;
     case C_SETTEXT:                               /* \r\n und \n; \r faellt weg */
         if (!(b = tb(h))) return 0;
         n = (WORD)GetWindowData(h, 2);

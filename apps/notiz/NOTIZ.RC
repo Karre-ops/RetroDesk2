@@ -1,0 +1,39 @@
+; Ressourcen fuer NOTIZ.EXE
+SPRACHE DE
+TEXTE
+  1 "Notizblock"
+  2 "(nur lesen)"
+  3 "Speichern fehlgeschlagen."
+  4 "Žnderungen speichern?"
+  5 "™ffnen"
+  6 "Speichern unter"
+  7 "Texte|*.TXT|Alle|*.*|"
+ENDE
+MENU 1
+  POPUP "&Datei"
+    ITEM "™&ffnen...\tStrg+O"   102
+    ITEM "&Speichern\tStrg+S"   101
+    ITEM "Speichern &unter..."  103
+    TRENNER
+    ITEM "&Beenden"            109
+  ENDE
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Notepad"
+  2 "(read only)"
+  3 "Saving failed."
+  4 "Save changes?"
+  5 "Open"
+  6 "Save as"
+  7 "Text|*.TXT|All|*.*|"
+ENDE
+MENU 1
+  POPUP "&File"
+    ITEM "&Open...\tCtrl+O"     102
+    ITEM "&Save\tCtrl+S"        101
+    ITEM "Save &as..."         103
+    TRENNER
+    ITEM "E&xit"               109
+  ENDE
+ENDE

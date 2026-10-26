@@ -167,10 +167,14 @@ static void sichtbar(ORDNER *o)
 }
 static void sta_schreiben(void);
 static void wechsel(char l);
+static WORD werkzeug(char *p, LPCSTR n);
 static void starten(LPCSTR p)
 {
     BYTE dos;
     DbgPrint("SHELL: Start"); DbgPrint(p);
+    {   static const char tx[] = "TXT\0INI\0DOC\0NFO\0DIZ\0LOG\0";   /* Textdateien: Notizblock */
+        char n[80]; WORD i;
+        for (i = 0; i < sizeof tx - 1; i += 4) if (endung(p, tx + i) && werkzeug(n, "NOTIZ.EXE") && TaskExec(n, p, SW_SHOW)) return; }
     if (endung(p, "EXE") && TaskExec(p, "", SW_SHOW)) return;
     dos = !endung(p, "EXE") || LastError() == RD_ERR_FORMAT;   /* merken: sta_schreiben aendert LastError */
     if (dos) sta_schreiben();                     /* vor RunDos (Diskettenbetrieb: Neustart) */

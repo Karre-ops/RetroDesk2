@@ -5,6 +5,7 @@ MENU 1
     ITEM "&Info..."            1
     TRENNER
     ITEM "&Uhr"                3
+    ITEM "&Notizblock"         4
     TRENNER
     ITEM "&Beenden..."         2
   ENDE
@@ -98,6 +99,7 @@ MENU 1
     ITEM "&About..."           1
     TRENNER
     ITEM "&Clock"              3
+    ITEM "&Notepad"            4
     TRENNER
     ITEM "E&xit..."            2
   ENDE

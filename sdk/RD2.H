@@ -313,7 +313,7 @@ typedef struct {
 #define C_GETTEXT  0x0341                         /* p1 = Puffergroesse, p2 = Puffer; liefert Laenge */
 #define C_SETCHECK 0x0342                         /* p1 = 0/1 */
 #define C_GETCHECK 0x0343
-#define C_SETLIMIT 0x0344                         /* EDIT: hoechstens p1 Zeichen (1..80) */
+#define C_SETLIMIT 0x0344                         /* EDIT: hoechstens p1 Zeichen (1..80); TEXT: p1 bis 8192, p2 = MAKELONG(Spalten, Zeilen) */
 #define C_CLICK    0x0345                         /* wie ein Mausklick */
 #define C_MNEMO    0x0346                         /* liefert den Buchstaben hinter & (gross) */
 #define C_SETPOS   0x0347                         /* PROGRESS: p2 = Stand */
