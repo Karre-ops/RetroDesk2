@@ -17,7 +17,7 @@
 #define IC_DOK    5
 #define CM_INFO   1
 #define CM_ENDE   2
-#define CM_ZUB    3                             /* 3..9: Zubehoer Uhr, Notizblock, Rechner, Optionen, Netzwerk, FTP, IRC */
+#define CM_ZUB    3                             /* 3..10: Zubehoer Uhr, Notizblock, Rechner, Optionen, Netzwerk, FTP, IRC, DOS-Fenster */
 #define CM_OEFFNEN 101
 #define CM_ZU     102
 #define CM_HOCH   103
@@ -847,7 +847,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_PSTART && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
         else if (p1 == CM_PWEG && lsel >= nlw) pdesk(prgn[psy[lsel - nlw]], 0);
         else if (p1 == CM_FDISK) einrichten();
-        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 7) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE" }; char p[80];
+        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 8) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE" }; char p[80];
             if (werkzeug(p, zn[p1 - CM_ZUB])) starten(p); }
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
         else if (p1 >= CM_PRG && p1 < CM_PRG + nprg) starten(prg[p1 - CM_PRG]);

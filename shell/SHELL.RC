@@ -11,6 +11,7 @@ MENU 1
     ITEM "Netz&werk..."        7
     ITEM "&FTP"                8
     ITEM "I&RC"                9
+    ITEM "&DOS-Fenster"       10
     TRENNER
     ITEM "&Beenden..."         2
   ENDE
@@ -110,6 +111,7 @@ MENU 1
     ITEM "Net&work..."         7
     ITEM "&FTP"                8
     ITEM "I&RC"                9
+    ITEM "&DOS window"        10
     TRENNER
     ITEM "E&xit..."            2
   ENDE

@@ -68,7 +68,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 |---|---|---|
 | RDEDIT (8000 Zeilen, Auswahl, Zwischenablage, Suchen/Ersetzen, Gehe zu, sicheres Speichern, .BAK für Startdateien) | fehlt | Zwischenablage und `FileSaveSafe` sind im Kern da |
 | RDCALC wissenschaftlich mit Kurven, Verlauf, Druck (ESC/P), Zustand | fehlt | |
-| DOS-Shell-Fenster (RDSHELL) | fehlt | heute nur RunDos im Vollbild |
+| DOS-Shell-Fenster (RDSHELL) | erledigt 26.10. | RD > DOS-Fenster: DIR [/W], CD, X:, MD, RD, DEL, REN, COPY, TYPE, VOL, MEM, VER, DATE, TIME, ECHO, CLS eingebaut (ohne COMMAND.COM); andere Programme über RunDos, Suche in RD2.INI [DOS] Pfad=, .BAT über COMMAND.COM ([DOS] Comspec=); Diskettenbetrieb ohne XMS: Hinweis, Start über den Schreibtisch; `test/rdshell.sh` |
 | RDNET: Netzkarte, DHCP oder feste IP, FTP/IRC-Einstellungen, Test | erledigt 26.10. | RDNET.EXE (RD-Menü Netzwerk), Seiten Karte/Adresse/Zeit/Dienste, Netztest, RD2.INI. test/rdnet.sh |
 | Eigener TCP/IP-Stapel (ARP, IP, ICMP, TCP, UDP, DHCP, DNS) | erledigt 26.10. | RDTCP.MOD, ohne mTCP, wird beim ersten NetStart geladen. test/netz.sh (QEMU NE2000) |
 | Netzzeit (SNTP, Zeitzonen, Sommerzeit) | erledigt 26.10. | UHR Netz-Knopf, beim Booten einmal am Tag (Optionen). test/netzzeit.sh |
@@ -116,6 +116,6 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 5. Sound: RDSND mit Speaker und AdLib, Systemklänge, IMF/DRO. (erledigt 26.10.; dazu Sound Blaster, Covox, WAV)
 6. RDEDIT.
 7. Drucken, danach RDCALC mit Kurven und Druck.
-8. Netz: RDTCP, RDNET, Netzzeit, FTP, IRC, DOS-Shell-Fenster.
+8. Netz: RDTCP, RDNET, Netzzeit, FTP, IRC, DOS-Shell-Fenster. (erledigt 26.10.)
 9. Farbe (Profil Komfort): VGA16.DRV (Modus 12h, Assembler), EGA 640x350 (16 Farben), danach VESA 256 Farben mit Bankumschaltung; Farben in RDGDI/RDUSER (Palette, Systemfarben). (aufgenommen 26.10.)
 10. Hilfe, Joystick, serielle Schnittstelle, SDK-Rest, Diskettensatz, Test am PC10-III, Release 2.0.

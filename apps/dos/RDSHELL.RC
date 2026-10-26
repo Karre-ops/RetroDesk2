@@ -1,0 +1,103 @@
+; Ressourcen fuer RDSHELL.EXE (DOS-Fenster)
+SPRACHE DE
+TEXTE
+  1 "DOS-Fenster"
+  2 "RetroDesk 2 DOS-Fenster. HILFE zeigt die Befehle."
+  3 "Befehl oder Dateiname nicht gefunden."
+  4 "Datei nicht gefunden."
+  5 "Laufwerk nicht bereit."
+  6 "SchreibgeschÅtzt."
+  7 "DatentrÑger voll."
+  8 "Lese- oder Schreibfehler."
+  9 "UngÅltiges Verzeichnis."
+  10 "Zugriff verweigert."
+  11 "Fehlender Parameter."
+  12 " Verzeichnis von "
+  13 " Datei(en) "
+  14 " Bytes"
+  15 " Bytes frei"
+  16 " Datei(en) kopiert"
+  17 "Alle Dateien lîschen?"
+  18 "DatentrÑger in Laufwerk "
+  19 " hat keinen Namen"
+  20 " ist "
+  21 "Seriennummer "
+  22 "Speicher gesamt "
+  23 "Frei fÅr RD2-Programme "
+  24 "Grî·ter freier Block "
+  25 "EMS "
+  26 "XMS "
+  27 " KB"
+  28 "Datum: "
+  29 "Zeit: "
+  30 "(Stellen: RD > Uhr)"
+  31 "Programm beendet, RÅckgabewert "
+  32 "DOS-Programme brauchen XMS oder eine Festplatte, um zurÅckzukommen. Bitte vom Schreibtisch starten."
+  33 "Zu wenig Speicher fÅr das Programm."
+  34 "Verzeichnis nicht leer oder nicht vorhanden."
+  35 "Befehle: DIR [/W] CD MD RD DEL REN COPY TYPE VOL MEM VER DATE TIME ECHO CLS EXIT, Laufwerk mit A: B: C:"
+  36 "Andere Namen startet es als DOS-Programm (.COM .EXE, .BAT Åber COMMAND.COM), auch in RD2.INI [DOS] Pfad=."
+  37 "Pfeil hoch/runter: frÅhere Befehle, Bild auf/ab blÑttert, Esc leert die Zeile."
+  38 "Kein COMMAND.COM (RD2.INI [DOS] Comspec=)."
+  39 "<DIR>"
+  40 " (Abbruch)"
+ENDE
+MENU 1
+  POPUP "&DOS"
+    ITEM "&COMMAND.COM"   101
+    ITEM "&Leeren"   102
+    TRENNER
+    ITEM "&Beenden"   109
+  ENDE
+ENDE
+SPRACHE EN
+TEXTE
+  1 "DOS Window"
+  2 "RetroDesk 2 DOS window. HELP lists the commands."
+  3 "Bad command or file name."
+  4 "File not found."
+  5 "Drive not ready."
+  6 "Write protected."
+  7 "Disk full."
+  8 "Read or write error."
+  9 "Invalid directory."
+  10 "Access denied."
+  11 "Required parameter missing."
+  12 " Directory of "
+  13 " file(s) "
+  14 " bytes"
+  15 " bytes free"
+  16 " file(s) copied"
+  17 "Delete all files?"
+  18 "Volume in drive "
+  19 " has no label"
+  20 " is "
+  21 "Serial number "
+  22 "Total memory "
+  23 "Free for RD2 programs "
+  24 "Largest free block "
+  25 "EMS "
+  26 "XMS "
+  27 " KB"
+  28 "Date: "
+  29 "Time: "
+  30 "(set it in RD > Clock)"
+  31 "Program ended, exit code "
+  32 "DOS programs need XMS or a hard disk to return. Please start them from the desktop."
+  33 "Not enough memory for the program."
+  34 "Directory not empty or not found."
+  35 "Commands: DIR [/W] CD MD RD DEL REN COPY TYPE VOL MEM VER DATE TIME ECHO CLS EXIT, drives with A: B: C:"
+  36 "Other names run as DOS programs (.COM .EXE, .BAT via COMMAND.COM), also from RD2.INI [DOS] Pfad=."
+  37 "Arrow up/down: earlier commands, Page up/down scrolls, Esc clears the line."
+  38 "No COMMAND.COM (RD2.INI [DOS] Comspec=)."
+  39 "<DIR>"
+  40 " (aborted)"
+ENDE
+MENU 1
+  POPUP "&DOS"
+    ITEM "&COMMAND.COM"   101
+    ITEM "&Clear"   102
+    TRENNER
+    ITEM "E&xit"   109
+  ENDE
+ENDE
