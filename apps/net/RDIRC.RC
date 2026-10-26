@@ -1,0 +1,63 @@
+; Ressourcen fuer RDIRC.EXE
+SPRACHE DE
+TEXTE
+  1 "IRC"
+  2 "(nicht verbunden)"
+  3 "(aus)"
+  4 "Kein IRC-Server eingetragen (RD > Netzwerk, Seite 4 Dienste)."
+  5 "Verbinde mit "
+  6 "Kein Netz (RD > Netzwerk)."
+  7 "Nicht verbunden oder kein Kanal (/join #kanal)."
+  8 "Getrennt."
+  9 "Befehle: /join #kanal, /part, /nick Name, /me Text, /msg Name Text, /raw Zeile, /quit"
+  10 "Server nicht gefunden: "
+  11 "Keine Verbindung zum Server."
+  12 "Der Server hat die Verbindung beendet."
+  20 " betritt "
+  21 " verl„sst "
+  22 " geht ("
+  23 " heiát jetzt "
+  24 " wirft "
+  25 " raus ("
+  26 "Thema: "
+  27 "Namen: "
+ENDE
+MENU 1
+  POPUP "&IRC"
+    ITEM "&Verbinden"   101
+    ITEM "&Trennen"   102
+    TRENNER
+    ITEM "&Beenden"   109
+  ENDE
+ENDE
+SPRACHE EN
+TEXTE
+  1 "IRC"
+  2 "(not connected)"
+  3 "(off)"
+  4 "No IRC server set (RD > Network, page 4 Services)."
+  5 "Connecting to "
+  6 "No network (RD > Network)."
+  7 "Not connected or no channel (/join #channel)."
+  8 "Disconnected."
+  9 "Commands: /join #channel, /part, /nick name, /me text, /msg name text, /raw line, /quit"
+  10 "Server not found: "
+  11 "No connection to the server."
+  12 "The server closed the connection."
+  20 " joins "
+  21 " leaves "
+  22 " quits ("
+  23 " is now known as "
+  24 " kicks "
+  25 " out ("
+  26 "Topic: "
+  27 "Names: "
+ENDE
+MENU 1
+  POPUP "&IRC"
+    ITEM "&Connect"   101
+    ITEM "&Disconnect"   102
+    TRENNER
+    ITEM "E&xit"   109
+  ENDE
+ENDE
