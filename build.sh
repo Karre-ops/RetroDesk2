@@ -43,10 +43,10 @@ modul apps/test/TESTMOD.C TESTMOD2.MOD "Testmodul2" 0x0080
 modul gdi/RDGDI.C RDGDI.MOD "RDGDI" 0 M -i=gdi
 modul kern/RDKX.C RDKX.MOD "Kern Zusatz" 0x0080 M
 modul kern/RDAUSL.C RDAUSL.MOD "Auslagern" 0 M
-modul user/RDUSER.C RDUSER.MOD "RDUSER" 0 M "-i=gdi -ml -r"
+modul user/RDUSER.C RDUSER.MOD "RDUSER" 0 M "-i=gdi -ml -r -oa -ol"
 modul gdi/RDGDIX.C RDGDIX.MOD "RDGDI Zusatz" 0x0080 M -i=gdi
 modul ctl/RDCTL.C RDCTL.MOD "Steuerelemente" 0x0080 M "-ml -r"
-modul ctl/RDCTLX.C RDCTLX.MOD "Dateidialog" 0x0080 M "-ml -r"
+modul ctl/RDCTLX.C RDCTLX.MOD "Dateidialog" 0x0080 M "-ml -r -oa -ol"
 modul disk/RDDISK.C RDDISK.MOD "Laufwerke" 0x0080 M -i=disk
 modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC

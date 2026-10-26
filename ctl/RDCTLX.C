@@ -69,8 +69,9 @@ static WORD fteil(LPCSTR f, WORD k, LPSTR o, WORD max)   /* Teil k von "Name|Mus
     for (i = 0; i + 1 < max && f[i] && f[i] != '|'; i++) o[i] = f[i];
     o[i] = 0; return 1;
 }
-static int istordner(LPCSTR p) { WORD a = FileAttr(p, 0, 0); return a != 0xFFFF && (a & FA_DIR); }
-static int gibts(LPCSTR p) { WORD a = FileAttr(p, 0, 0); return a != 0xFFFF && !(a & FA_DIR); }
+static WORD art(LPCSTR p) { WORD a = FileAttr(p, 0, 0); return a == 0xFFFF ? 0 : (a & FA_DIR) ? 2 : 1; }   /* 0 fehlt, 1 Datei, 2 Ordner */
+#define istordner(p) (art(p) == 2)
+#define gibts(p) (art(p) == 1)
 
 static BOOL RDEXPORT fdproc(HWND d, WORD msg, WORD p1, DWORD p2)
 {
@@ -131,6 +132,13 @@ static BYTE FAR *elem(BYTE FAR *p, LPCSTR kl, LPCSTR tx, WORD id, short x, short
     q[0] = (short)id; q[1] = x; q[2] = y; q[3] = w; q[4] = h; *(DWORD FAR *)(q + 5) = st;
     return (BYTE FAR *)(q + 7);
 }
+static const char *const kn[] = { CL_STATIC, CL_EDIT, CL_LIST, CL_BUTTON, CL_COMBO };
+typedef struct { BYTE kl, tx; WORD id; BYTE x, y, w, h, st; } VL;   /* kl: kn[], tx: Text k[tx] (9 = leer), st: 1 Rollbalken, 2 Standardknopf */
+static const VL vl[9] = {
+    { 0, 0, 0xFFFF, 8, 6, 60, 10, 0 }, { 1, 9, ID_NAME, 8, 17, 160, 12, 0 }, { 0, 3, 0xFFFF, 8, 33, 46, 10, 0 },
+    { 0, 9, ID_PFAD, 8, 48, 212, 10, 0 }, { 2, 9, ID_DAT, 8, 60, 96, 60, 1 }, { 2, 9, ID_ORD, 110, 60, 64, 60, 1 },
+    { 3, 1, ID_OK, 180, 16, 40, 14, 2 }, { 3, 2, ID_CANCEL, 180, 34, 40, 14, 0 },
+    { 4, 9, ID_TYP, 56, 31, 112, 56, 0 } };   /* COMBO zuletzt: liegt aufgeklappt oben */
 static BOOL RDEXPORT x_FileDialog(HWND owner, FILEDLG FAR *fd)
 {
     HMEM hm; BYTE FAR *v, FAR *p; short FAR *q; FDS st; short e; WORD i, n; char k[4][20];
@@ -150,15 +158,7 @@ static BOOL RDEXPORT x_FileDialog(HWND owner, FILEDLG FAR *fd)
     v = (BYTE FAR *)MemLock(hm);
     *(DWORD FAR *)v = 0; q = (short FAR *)(v + 4); q[0] = q[1] = 0; q[2] = 228; q[3] = 126; q[4] = 9;
     { char tt[61]; scpy(tt, fd->titel ? fd->titel : StrGet(0, (fd->flags & FD_SAVE) ? 11 : 10), sizeof tt); p = put(v + 14, tt); }   /* Vorlage hat 512 Bytes */
-    p = elem(p, CL_STATIC, k[0], 0xFFFF, 8, 6, 60, 10, 0);
-    p = elem(p, CL_EDIT, "", ID_NAME, 8, 17, 160, 12, 0);
-    p = elem(p, CL_STATIC, k[3], 0xFFFF, 8, 33, 46, 10, 0);
-    p = elem(p, CL_STATIC, "", ID_PFAD, 8, 48, 212, 10, 0);
-    p = elem(p, CL_LIST, "", ID_DAT, 8, 60, 96, 60, WS_VSCROLL);
-    p = elem(p, CL_LIST, "", ID_ORD, 110, 60, 64, 60, WS_VSCROLL);
-    p = elem(p, CL_BUTTON, k[1], ID_OK, 180, 16, 40, 14, ES_DEFAULT);
-    p = elem(p, CL_BUTTON, k[2], ID_CANCEL, 180, 34, 40, 14, 0);
-    p = elem(p, CL_COMBO, "", ID_TYP, 56, 31, 112, 56, 0);        /* zuletzt: liegt aufgeklappt oben */
+    for (i = 0; i < 9; i++) { const VL *x = &vl[i]; p = elem(p, kn[x->kl], x->tx < 4 ? k[x->tx] : "", x->id, x->x, x->y, x->w, x->h, x->st == 1 ? WS_VSCROLL : x->st ? ES_DEFAULT : 0); }
     e = DialogIndirect(0, v, owner, (DLGPROC)fdproc, (DWORD)(FDS FAR *)&st);
     MemUnlock(hm); MemFree(hm);
     return e == ID_OK;
@@ -202,7 +202,7 @@ static void tu(HWND h) { MemUnlock((HMEM)GetWindowData(h, 0)); }
 static WORD zeile(LPCSTR b, WORD pos) { WORD z = 0, i; for (i = 0; i < pos && b[i]; i++) if (b[i] == '\n') z++; return z; }
 static WORD zanf(LPCSTR b, WORD z) { WORD i = 0; while (z && b[i]) { if (b[i++] == '\n') z--; } return i; }
 static WORD zlen(LPCSTR b, WORD a) { WORD n = 0; while (b[a + n] && b[a + n] != '\n') n++; return n; }
-static short tsicht(HWND h) { RECT r; GetClientRect(h, &r); return (short)((r.b - 4) / zh(h)) > 0 ? (short)((r.b - 4) / zh(h)) : 1; }
+static short tsicht(HWND h) { RECT r; short z; GetClientRect(h, &r); z = (short)((r.b - 4) / zh(h)); return z > 0 ? z : 1; }
 static void tset(HWND h, WORD cur, WORD top)      /* Schreibmarke sichtbar halten, Balken setzen */
 {
     LPSTR b = tb(h); WORD z, n; short v = tsicht(h);

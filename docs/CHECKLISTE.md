@@ -87,6 +87,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Klare Meldungen bei Speichermangel | da | Shell: „Zu wenig Speicher für … Frei: … KB“ (25.10.) |
 | Fenster: Größe ändern, Minimieren | erledigt 25.10. | Ecke rechts unten ziehen, Feld rechts im Titel; `test/fenster.sh` |
 | Alt+Tab zwischen Programmen | erledigt 25.10. | auch Alt+F6 (XT-BIOS kennt kein Alt+Tab), holt minimierte Fenster zurück |
+| Maximieren, Parkreihe, drei Titelfelder | erledigt 26.10. | rechts im Titel _ □ X; Viereck, Doppelklick auf den Titel oder Alt+F10 maximiert und stellt zurück; Minimierte unten links geparkt (6 je Reihe), Klick holt zurück; RDUSER 29 KB (Variante B) |
 | Steuerelemente: Knopf, Häkchen, Option, Text, Gruppe, Eingabe, Liste, Fortschritt, Rollbalken | da | |
 | Klappliste (COMBO), mehrzeiliges Textfeld (TEXT), eigener Rollbalken (SCROLL) | da | RDCTLX.MOD; Korrektur 25.10.: stand zuerst als fehlend |
 | Standarddialoge: Meldung, Eingabe, Datei öffnen/speichern | da | |
