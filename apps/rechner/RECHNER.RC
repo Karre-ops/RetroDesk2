@@ -1,0 +1,11 @@
+; Ressourcen fuer RECHNER.EXE
+SPRACHE DE
+TEXTE
+  1 "Rechner"
+  2 "Rechner (8087)"
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Calculator"
+  2 "Calculator (8087)"
+ENDE

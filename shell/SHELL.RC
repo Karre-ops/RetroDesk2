@@ -6,6 +6,7 @@ MENU 1
     TRENNER
     ITEM "&Uhr"                3
     ITEM "&Notizblock"         4
+    ITEM "Re&chner"            5
     TRENNER
     ITEM "&Beenden..."         2
   ENDE
@@ -100,6 +101,7 @@ MENU 1
     TRENNER
     ITEM "&Clock"              3
     ITEM "&Notepad"            4
+    ITEM "Calc&ulator"         5
     TRENNER
     ITEM "E&xit..."            2
   ENDE

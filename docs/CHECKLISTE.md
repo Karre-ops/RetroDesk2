@@ -57,7 +57,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 |---|---|---|
 | Uhr groß mit Datum, Stellen, Netzzeit, BIOS-Uhr schreiben | teilweise | UHR.EXE (RD-Menü): 7-Segment, Datum, Stellen, BIOS; Netzzeit folgt mit RDTCP (Punkt 8). test/uhr.sh |
 | Notizblock (80 x 60, Strg+S) | erledigt | NOTIZ.EXE (RD-Menü, Doppelklick auf TXT/INI/DOC/NFO/DIZ/LOG): 80 Zeilen x 60 Zeichen wie RD1, Strg+S, Strg+O, Rückfrage, zu lange Dateien nur lesend. test/notiz.sh |
-| Einfacher Rechner (8087 wenn da) | fehlt | RECHNE.EXE ist nur ein Testprogramm |
+| Einfacher Rechner (8087 wenn da) | erledigt | RECHNER.EXE (RD-Menü): Tasten und Anzeige wie RD1, Rechenkern mit Dezimalziffern (genau, ohne 8087 und ohne Emulator); "8087" im Titel wie RD1. test/rechner.sh, test/rechner_kern.sh (20000 Folgen gleich RD1) |
 | Optionen: Systemklänge, Start nach dem Booten, Netzzeit beim Booten | fehlt | Start nach dem Booten macht heute RD2SETUP (SHELL=) |
 | Systemklänge über AdLib oder PC-Lautsprecher, AdLib-Erkennung | fehlt | nur `SndBeep` |
 
