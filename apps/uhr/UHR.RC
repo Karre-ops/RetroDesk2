@@ -1,0 +1,37 @@
+; Ressourcen fuer UHR.EXE
+SPRACHE DE
+TEXTE
+  1 "Uhr"
+  2 "Uhrzeit (HH:MM:SS):"
+  3 "Datum (TT.MM.JJJJ):"
+  4 "UngÅltige Uhrzeit oder ungÅltiges Datum."
+  5 "Die Zeit steht jetzt auch in der BIOS-Uhr."
+  6 "&Stellen"
+  7 "&Netz"
+  8 "&BIOS"
+  10 "Sonntag"
+  11 "Montag"
+  12 "Dienstag"
+  13 "Mittwoch"
+  14 "Donnerstag"
+  15 "Freitag"
+  16 "Samstag"
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Clock"
+  2 "Time (HH:MM:SS):"
+  3 "Date (DD.MM.YYYY):"
+  4 "Invalid time or date."
+  5 "The time has been written to the BIOS clock."
+  6 "&Set"
+  7 "&Net"
+  8 "&BIOS"
+  10 "Sunday"
+  11 "Monday"
+  12 "Tuesday"
+  13 "Wednesday"
+  14 "Thursday"
+  15 "Friday"
+  16 "Saturday"
+ENDE

@@ -27,7 +27,7 @@ SYS16.FNT        4608    0   S
 DE.LNG           4096    2   S
 EN.LNG           4096    0   S
 SHELL.EXE       40960   30   S  Desktop, Dateimanager (Teile verwerfbar)
-UHR.EXE          6144    6   P  Zubehoer
+UHR.EXE          6144    8   P  Zubehoer (4 KB Stapel: Nachladen laeuft darauf)
 NOTIZ.EXE       10240   10   P  Zubehoer
 RECHNER.EXE      8192    8   P  Zubehoer, kleiner Rechner
 LEER.EXE         2048    0   T  Testprogramm Phase 1 (faellt spaeter weg)

@@ -4,6 +4,8 @@ MENU 1
   POPUP "RD"
     ITEM "&Info..."            1
     TRENNER
+    ITEM "&Uhr"                3
+    TRENNER
     ITEM "&Beenden..."         2
   ENDE
 ENDE
@@ -94,6 +96,8 @@ SPRACHE EN
 MENU 1
   POPUP "RD"
     ITEM "&About..."           1
+    TRENNER
+    ITEM "&Clock"              3
     TRENNER
     ITEM "E&xit..."            2
   ENDE
