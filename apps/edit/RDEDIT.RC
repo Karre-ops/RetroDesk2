@@ -1,0 +1,127 @@
+; Ressourcen fuer RDEDIT.EXE
+SPRACHE DE
+TEXTE
+  1 "Editor"
+  2 "(nur lesen)"
+  3 "Speichern fehlgeschlagen."
+  4 "énderungen speichern?"
+  5 "ôffnen"
+  6 "Speichern unter"
+  7 "Texte|*.TXT|Stapel|*.BAT|Alle|*.*|"
+  8 "Unbenannt"
+  9 "Zeile"
+ 10 "Spalte"
+ 11 "Einf"
+ 12 "öbers"
+ 13 "Datei zu gro· oder Zeile zu lang: nur lesen."
+ 14 "Nicht gefunden."
+ 15 "Suchen nach:"
+ 16 "Suchen"
+ 17 "Gehe zu Zeile:"
+ 18 "Gehe zu"
+ 19 "ersetzt"
+ 20 "Hier ersetzen?"
+ 21 "Ersetzen"
+ 22 "Auswahl zu gro· fÅr die Ablage."
+ 23 "Zeile zu lang."
+ 24 "Zu viele Zeilen oder kein Speicher."
+ 25 "Sicherung .BAK angelegt."
+ 26 "von"
+ENDE
+MENU 1
+  POPUP "&Datei"
+    ITEM "&Neu\tStrg+N"              101
+    ITEM "ô&ffnen...\tStrg+O"        102
+    ITEM "&Speichern\tStrg+S"        103
+    ITEM "Speichern &unter..."       104
+    TRENNER
+    ITEM "&Beenden"                  109
+  ENDE
+  POPUP "&Bearbeiten"
+    ITEM "&Ausschneiden\tStrg+X"     201
+    ITEM "&Kopieren\tStrg+C"         202
+    ITEM "&EinfÅgen\tStrg+V"         203
+    ITEM "&Lîschen\tEntf"            204
+    TRENNER
+    ITEM "Alles &markieren\tStrg+A"  205
+    ITEM "ö&berschreiben\tEinfg"     206
+  ENDE
+  POPUP "&Suchen"
+    ITEM "&Suchen...\tStrg+F"        301
+    ITEM "&Weitersuchen\tF3"         302
+    ITEM "&Ersetzen...\tStrg+H"      303
+    ITEM "&Gehe zu...\tStrg+G"       304
+  ENDE
+ENDE
+DIALOG 10 "Ersetzen" 0 0 250 70
+  STATIC   "&Suchen nach:"     -1   8   8  84 10
+  EDIT                         20  96   6 146 12
+  STATIC   "&Ersetzen durch:"  -1   8  26  84 10
+  EDIT                         21  96  24 146 12
+  BUTTON   "&Einzeln"           1   8  48  72 14 STANDARD
+  BUTTON   "&Alle"              6  88  48  72 14
+  BUTTON   "Abbruch"            2 168  48  74 14
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Editor"
+  2 "(read only)"
+  3 "Saving failed."
+  4 "Save changes?"
+  5 "Open"
+  6 "Save as"
+  7 "Text|*.TXT|Batch|*.BAT|All|*.*|"
+  8 "Untitled"
+  9 "Line"
+ 10 "Col"
+ 11 "Ins"
+ 12 "Ovr"
+ 13 "File too large or line too long: read only."
+ 14 "Not found."
+ 15 "Find what:"
+ 16 "Find"
+ 17 "Go to line:"
+ 18 "Go to"
+ 19 "replaced"
+ 20 "Replace here?"
+ 21 "Replace"
+ 22 "Selection too large for the clipboard."
+ 23 "Line too long."
+ 24 "Too many lines or out of memory."
+ 25 "Backup .BAK created."
+ 26 "of"
+ENDE
+MENU 1
+  POPUP "&File"
+    ITEM "&New\tCtrl+N"              101
+    ITEM "&Open...\tCtrl+O"          102
+    ITEM "&Save\tCtrl+S"             103
+    ITEM "Save &as..."               104
+    TRENNER
+    ITEM "E&xit"                     109
+  ENDE
+  POPUP "&Edit"
+    ITEM "Cu&t\tCtrl+X"              201
+    ITEM "&Copy\tCtrl+C"             202
+    ITEM "&Paste\tCtrl+V"            203
+    ITEM "&Delete\tDel"              204
+    TRENNER
+    ITEM "Select &all\tCtrl+A"       205
+    ITEM "&Overwrite\tIns"           206
+  ENDE
+  POPUP "&Search"
+    ITEM "&Find...\tCtrl+F"          301
+    ITEM "Find &next\tF3"            302
+    ITEM "&Replace...\tCtrl+H"       303
+    ITEM "&Go to...\tCtrl+G"         304
+  ENDE
+ENDE
+DIALOG 10 "Replace" 0 0 250 70
+  STATIC   "&Find what:"       -1   8   8  84 10
+  EDIT                         20  96   6 146 12
+  STATIC   "&Replace with:"    -1   8  26  84 10
+  EDIT                         21  96  24 146 12
+  BUTTON   "&One by one"        1   8  48  72 14 STANDARD
+  BUTTON   "&All"               6  88  48  72 14
+  BUTTON   "Cancel"             2 168  48  74 14
+ENDE

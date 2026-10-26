@@ -63,6 +63,7 @@ app apps/uhr/UHR.C UHR.EXE "Uhr"   # voller Stapel: GetDC laedt Treiber und Modu
 app apps/notiz/NOTIZ.C NOTIZ.EXE "Notizblock"
 app apps/rechner/RECHNER.C RECHNER.EXE "Rechner"
 app apps/optionen/OPTIONEN.C OPTIONEN.EXE "Optionen"
+app apps/edit/RDEDIT.C RDEDIT.EXE "Editor"
 # RDFORMAT: RD2-Oberflaeche + FreeDOS FORMAT 0.92a (GPL v2); FreeDOS-Dateien mit disk/fdshim.h (DOS ueber RDDISK.MOD)
 FDF="createfs floppy hdisk main savefs bcread prf userint driveio getopt init recordbc uformat msghlpr"
 for f in $FDF; do wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=disk/fdshim.h -dRD2 -dNOCATS -i=disk/fdformat -fo=obj/fdf_$f.obj disk/fdformat/$f.c || exit 1; done
