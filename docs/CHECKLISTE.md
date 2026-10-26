@@ -16,7 +16,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Menüleiste global oben | da | |
 | Uhr in der Menüleiste | erledigt 25.10. | HH:MM rechts, Bildvergleich blendet sie aus |
 | Menü Desk/RD: Info | erledigt 25.10. | API, CPU mit Takt, Koprozessor, Speicher, DOS, Grafik, Sound (IP folgt mit dem Netz). Früher: RD2 zeigt API und freien Speicher; RD1 zeigt CPU mit Takt, Speicher, DOS, Grafik, Sound, 8087, IP. CPU-Erkennung steckt schon im Kern (`KernInfo`) |
-| Menü Desk/RD: Uhr, Notizblock, Rechner, Optionen, Netzwerk | fehlt | |
+| Menü Desk/RD: Uhr, Notizblock, Rechner, Optionen, Netzwerk | teilweise | Uhr, Notizblock, Rechner, Optionen da; Netzwerk folgt mit Punkt 8 |
 | Beenden | da | |
 | Tastatur: F10, Alt+Buchstabe, Pfeile, Eingabe, Esc, Tab in Dialogen | da | test/menu.sh, dlg.sh |
 | Bedienung nur mit Maus oder nur mit Tastatur | da | |
@@ -58,7 +58,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Uhr groß mit Datum, Stellen, Netzzeit, BIOS-Uhr schreiben | teilweise | UHR.EXE (RD-Menü): 7-Segment, Datum, Stellen, BIOS; Netzzeit folgt mit RDTCP (Punkt 8). test/uhr.sh |
 | Notizblock (80 x 60, Strg+S) | erledigt | NOTIZ.EXE (RD-Menü, Doppelklick auf TXT/INI/DOC/NFO/DIZ/LOG): 80 Zeilen x 60 Zeichen wie RD1, Strg+S, Strg+O, Rückfrage, zu lange Dateien nur lesend. test/notiz.sh |
 | Einfacher Rechner (8087 wenn da) | erledigt | RECHNER.EXE (RD-Menü): Tasten und Anzeige wie RD1, Rechenkern mit Dezimalziffern (genau, ohne 8087 und ohne Emulator); "8087" im Titel wie RD1. test/rechner.sh, test/rechner_kern.sh (20000 Folgen gleich RD1) |
-| Optionen: Systemklänge, Start nach dem Booten, Netzzeit beim Booten | fehlt | Start nach dem Booten macht heute RD2SETUP (SHELL=) |
+| Optionen: Systemklänge, Start nach dem Booten, Netzzeit beim Booten | teilweise | OPTIONEN.EXE (RD-Menü): Systemklänge in RD2.INI [Klang] (wirkt mit RDSND, Punkt 5); Start nach dem Booten schaltet SHELL= in CONFIG.SYS um ("REM RD2", alte Shell wieder, doppelte INSTALL= aus AUTOEXEC weg, Aus nur mit vorhandener Shell). Netzzeit grau bis Punkt 8. test/optionen.sh |
 | Systemklänge über AdLib oder PC-Lautsprecher, AdLib-Erkennung | fehlt | nur `SndBeep` |
 
 ### Programme

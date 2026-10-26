@@ -1,0 +1,31 @@
+; Ressourcen fuer OPTIONEN.EXE
+SPRACHE DE
+TEXTE
+  1 "Optionen"
+  2 "CONFIG.SYS konnte nicht geschrieben werden."
+  3 "Ohne RD2 fehlt eine Shell (COMMAND.COM). Der Rechner wÅrde nicht starten, RD2 bleibt eingetragen."
+ENDE
+DIALOG 10 "Optionen" 0 0 210 100
+  CHECK    "System&klÑnge"                    21   8   8 190 10
+  CHECK    "&Start nach dem Booten"           22   8  22 190 10
+  CHECK    "&Netzzeit beim Booten"            23   8  36 190 10 GRAU
+  STATIC   "Start gilt ab nÑchstem Booten." -1 8 50 194 10
+  STATIC   "Netzzeit folgt mit dem Netz." -1 8 61 194 10
+  BUTTON   "OK"          1  46  78  50 14 STANDARD
+  BUTTON   "Abbruch"     2 114  78  50 14
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Options"
+  2 "CONFIG.SYS could not be written."
+  3 "Without RD2 there is no shell (COMMAND.COM). The PC would not start, RD2 stays."
+ENDE
+DIALOG 10 "Options" 0 0 210 100
+  CHECK    "System &sounds"                   21   8   8 190 10
+  CHECK    "Start after &boot"                22   8  22 190 10
+  CHECK    "&Network time at boot"            23   8  36 190 10 GRAU
+  STATIC   "Start applies from next boot." -1 8 50 194 10
+  STATIC   "Network time comes later." -1 8 61 194 10
+  BUTTON   "OK"          1  46  78  50 14 STANDARD
+  BUTTON   "Cancel"      2 114  78  50 14
+ENDE
