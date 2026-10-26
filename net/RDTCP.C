@@ -53,7 +53,7 @@ static WORD nrx, pvec, h_ip = 0xFFFF, h_arp = 0xFFFF, rx_tail, nport, mss = 1024
 static DWORD dh_xid;
 static HWND warte[4];
 static BYTE tx[SLOT], dhb[16];
-static char ini[80], hname[16], sb[96];
+static char ini[80], hname[16], sb[96], fp[96];   /* fp: Einstellungen beim Start (RDNET aendert sie) */
 static BYTE ipb[4], dmac[6];
 static const BYTE bcast[6] = { 255, 255, 255, 255, 255, 255 };
 static const BYTE ip_bc[4] = { 255, 255, 255, 255 };
@@ -320,7 +320,7 @@ static void fertig(WORD e)                        /* Start beendet: alle Wartend
 {
     WORD i;
     startet = 0; fehler = e; up = e == 0;
-    if (!up) pk_aus();
+    if (!up) { pk_aus(); fp[0] = 0; }
     for (i = 0; i < 4; i++) if (warte[i]) { post(warte[i], M_NETSTATE, up ? NS_OPEN : NS_ERROR, e); warte[i] = 0; }
     if (up) { nport = 1024 + (ticks() & 0x3FFF); DbgPrint("RDTCP: Netz bereit"); ipstr(sb, my_ip); DbgPrint(sb); }
     else { DbgHex("RDTCP: Netz Fehler", e); DbgHex("RDTCP: Pakete", nrx); DbgHex("RDTCP: verworfen", rx_drop); DbgHex("RDTCP: Treiber", pvec); }
@@ -633,24 +633,39 @@ static WORD RDEXPORT n_NetCaps(NETINFO FAR *ni)
     if (startet) return RD_ERR_BUSY;
     return up ? 0 : fehler;
 }
-static WORD RDEXPORT n_NetStart(HWND w)
+static WORD konfig(void)                          /* RD2.INI [Netz] lesen; 0 = gleich wie beim letzten Start */
 {
-    WORD i; SYSINFO FAR *si;
-    static SYSINFO s;
-    if (up) { post(w, M_NETSTATE, NS_OPEN, 0); return 0; }
-    if (startet) { for (i = 0; i < 4; i++) if (!warte[i] || warte[i] == w) { warte[i] = w; break; } return 0; }
-    si = &s; KernInfo(si);
-    _fstrcpy(ini, si->home); if (ini[0] && ini[strlen(ini) - 1] != '\\') strcat(ini, "\\"); strcat(ini, "RD2.INI");
+    static SYSINFO s; char *p; WORD i, gl;
+    KernInfo(&s);
+    _fstrcpy(ini, s.home); if (ini[0] && ini[strlen(ini) - 1] != '\\') strcat(ini, "\\"); strcat(ini, "RD2.INI");
+    p = sb;
+    for (i = 0; i < 7; i++) {
+        static const char *k[7] = { "DHCP", "IP", "Maske", "Gateway", "DNS", "Paket", "MSS" };
+        ProfileGetStr(ini, "Netz", k[i], "", p, 14); p += strlen(p); *p++ = '|';
+    }
+    *p = 0; gl = strcmp(sb, fp) == 0; strcpy(fp, sb);
     use_dhcp = ProfileGetInt(ini, "Netz", "DHCP", 1) != 0;
     mss = (WORD)ProfileGetInt(ini, "Netz", "MSS", 1024); if (mss < 256) mss = 256; if (mss > 1460) mss = 1460;
     ProfileGetStr(ini, "Netz", "Name", "RD2", hname, sizeof hname);
     ProfileGetStr(ini, "Netz", "Paket", "0", sb, sizeof sb); pvec = hexzahl(sb);
+    return !gl;
+}
+static WORD RDEXPORT n_NetStart(HWND w)
+{
+    WORD i;
+    if (startet) { for (i = 0; i < 4; i++) if (!warte[i] || warte[i] == w) { warte[i] = w; break; } return 0; }
+    if (up) {                                     /* Einstellungen geaendert (RDNET) und nichts offen: neu starten */
+        for (i = 0; i < NS && !so[i].st; i++) ;
+        if (!konfig() || i < NS) { post(w, M_NETSTATE, NS_OPEN, 0); return 0; }
+        DbgPrint("RDTCP: neue Einstellungen, Neustart");
+        pk_aus(); up = 0;
+    } else konfig();
     if (!use_dhcp) {
         ini_ip("IP", my_ip); ini_ip("Maske", mask); ini_ip("Gateway", gw); ini_ip("DNS", dns);
-        if (null4(my_ip) || null4(mask)) { fehler = RD_ERR_FORMAT; SetLastError(fehler); return fehler; }
+        if (null4(my_ip) || null4(mask)) { fehler = RD_ERR_FORMAT; SetLastError(fehler); fp[0] = 0; return fehler; }
     }
-    if (!(pvec = find_pkt(pvec))) { fehler = RD_ERR_NOTFOUND; SetLastError(fehler); DbgPrint("RDTCP: kein Paketreiber"); return fehler; }
-    if (!pk_an()) { fehler = RD_ERR_BUSY; SetLastError(fehler); return fehler; }
+    if (!(pvec = find_pkt(pvec))) { fehler = RD_ERR_NOTFOUND; SetLastError(fehler); fp[0] = 0; DbgPrint("RDTCP: kein Paketreiber"); return fehler; }
+    if (!pk_an()) { fehler = RD_ERR_BUSY; SetLastError(fehler); fp[0] = 0; return fehler; }
     memset(warte, 0, sizeof warte); warte[0] = w; startet = 1; arpn = 0;
     if (!use_dhcp) { fertig(0); return 0; }
     lease_lesen(); memset(dh_ntp, 0, 4);

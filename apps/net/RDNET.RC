@@ -1,0 +1,301 @@
+; Ressourcen fuer RDNET.EXE (CP437)
+SPRACHE DE
+TEXTE
+  1 "Netzwerk"
+  2 "Paketreiber geladen, INT "
+  3 "Kein Paketreiber geladen."
+  4 "Aktuell: "
+  5 " (DHCP)"
+  6 " (fest)"
+  7 "Netz nicht gestartet."
+  8 "CONFIG.SYS konnte nicht geschrieben werden."
+  9 "Bitte eine gÅltige IP-Adresse und Maske eintragen (Gateway und DNS leer oder gÅltig)."
+  10 "Kein Paketreiber geladen, er wird beim nÑchsten Booten geladen."
+  11 "Die Abweichung zu UTC bitte als +hh:mm eintragen."
+  12 "Paketreiber suchen"
+  20 "Paketreiber: INT "
+  21 "Kein Paketreiber. Unter 1 Karte eintragen, neu booten."
+  22 "Netz starten ..."
+  23 "Adresse: "
+  24 "Gateway: "
+  26 "Netz startet nicht: "
+  27 "keine Antwort (DHCP)"
+  28 "Adresse fehlt"
+  29 "FTP-Server"
+  30 "IRC-Server"
+  31 "Zeitserver"
+  32 " nicht gefunden"
+  33 " antwortet nicht"
+  34 " erreichbar"
+  35 "Zeit: "
+  36 "Fertig."
+  37 "Paketreiber belegt"
+  39 "FTP: kein Server eingetragen"
+  40 "IRC: kein Server eingetragen"
+  42 "Eigene Abweichung"
+  43 "keine"
+  44 "EU"
+  45 "USA"
+  46 "Australien"
+  47 "Neuseeland"
+  48 "Eigener Treiber"
+  49 "Kein Netz"
+ENDE
+DIALOG 11 "Netzwerk" 0 0 280 150
+  BUTTON   "&1 Karte"    91   8   4  62 14
+  BUTTON   "&2 Adresse"    92  74   4  62 14
+  BUTTON   "&3 Zeit"    93 140   4  62 14
+  BUTTON   "&4 Dienste"    94 206   4  66 14
+  STATIC   "&Netzkarte:"  -1  12  32  62 10
+  COMBO                  20  76  30 140 90
+  STATIC   "T&reiber:" -1  12  48  62 10
+  EDIT                   21  76  46 140 12
+  BUTTON   "&Suchen..." 22 220  45  50 14
+  STATIC   "Paket-&INT:"   -1  12  64  62 10
+  EDIT                   23  76  62  36 12
+  STATIC   "IR&Q:"       -1 120  64  26 10
+  EDIT                   24 148  62  20 12
+  STATIC   "&E/A:"    -1 176  64  26 10
+  EDIT                   25 204  62  36 12
+  STATIC   "Spei&cher:"   -1  12  80  62 10
+  EDIT                   26  76  78  36 12
+  STATIC   "nur WD8003 und NI5210"  -1 120  80 150 10
+  CHECK    "Beim &Booten laden (INSTALL= in CONFIG.SYS)"  27  12  96 258 10
+  STATIC   ""            28  12 110 258 10
+  BUTTON   "&Testen"   3   8 130  60 14
+  BUTTON   "OK"           1 148 130  60 14 STANDARD
+  BUTTON   "Abbruch"    2 212 130  60 14
+ENDE
+DIALOG 12 "Netzwerk" 0 0 280 150
+  BUTTON   "&1 Karte"    91   8   4  62 14
+  BUTTON   "&2 Adresse"    92  74   4  62 14
+  BUTTON   "&3 Zeit"    93 140   4  62 14
+  BUTTON   "&4 Dienste"    94 206   4  66 14
+  RADIO    "&Automatisch (DHCP)"  30  12  32 180 10
+  RADIO    "&Feste Adresse:"  31  12  44 180 10
+  STATIC   "&IP-Adresse:"    -1  24  58  72 10
+  EDIT                   32 100  56  90 12
+  STATIC   "&Maske:" -1  24  72  72 10
+  EDIT                   33 100  70  90 12
+  STATIC   "&Gateway:"   -1  24  86  72 10
+  EDIT                   34 100  84  90 12
+  STATIC   "&DNS-Server:"   -1  24 100  72 10
+  EDIT                   35 100  98  90 12
+  STATIC   "&Rechnername:"  -1 198  32  74 10
+  EDIT                   36 198  44  70 12
+  STATIC   ""            38  12 112 258 10
+  BUTTON   "&Testen"   3   8 130  60 14
+  BUTTON   "OK"           1 148 130  60 14 STANDARD
+  BUTTON   "Abbruch"    2 212 130  60 14
+ENDE
+DIALOG 13 "Netzwerk" 0 0 280 150
+  BUTTON   "&1 Karte"    91   8   4  62 14
+  BUTTON   "&2 Adresse"    92  74   4  62 14
+  BUTTON   "&3 Zeit"    93 140   4  62 14
+  BUTTON   "&4 Dienste"    94 206   4  66 14
+  STATIC   "&Server:"   -1  12  32  62 10
+  EDIT                   40  76  30 150 12
+  STATIC   "leer: vom DHCP-Server, sonst pool.ntp.org"  -1  76  44 196 10
+  STATIC   "&Zeitzone:"  -1  12  60  62 10
+  COMBO                  41  76  58 150 90
+  STATIC   "So&mmerzeit:"   -1  12  76  62 10
+  COMBO                  42  76  74 100 60
+  STATIC   "Ab&weichung:"   -1  12  92  62 10
+  EDIT                   43  76  90  50 12
+  STATIC   "zu UTC, z. B. +01:00"  -1 132  92 140 10
+  CHECK    "&Uhr beim Start von RD2 stellen"   44  12 108 258 10
+  BUTTON   "&Testen"   3   8 130  60 14
+  BUTTON   "OK"           1 148 130  60 14 STANDARD
+  BUTTON   "Abbruch"    2 212 130  60 14
+ENDE
+DIALOG 14 "Netzwerk" 0 0 280 150
+  BUTTON   "&1 Karte"    91   8   4  62 14
+  BUTTON   "&2 Adresse"    92  74   4  62 14
+  BUTTON   "&3 Zeit"    93 140   4  62 14
+  BUTTON   "&4 Dienste"    94 206   4  66 14
+  GROUP    "FTP"         -1   6  24 132 102
+  STATIC   "&Server:"   -1  12  38  46 10
+  EDIT                   50  60  36  74 12
+  STATIC   "&Port:"  -1  12  54  46 10
+  EDIT                   51  60  52  30 12
+  STATIC   "&Benutzer:"  -1  12  70  46 10
+  EDIT                   52  60  68  74 12
+  STATIC   "&Kennwort:"    -1  12  86  46 10
+  EDIT                   53  60  84  74 12 ES_PASSWORD
+  GROUP    "IRC"         -1 142  24 132 102
+  STATIC   "Ser&ver:"  -1 148  38  44 10
+  EDIT                   54 194  36  74 12
+  STATIC   "P&ort:" -1 148  54  44 10
+  EDIT                   55 194  52  30 12
+  STATIC   "&Name:"  -1 148  70  44 10
+  EDIT                   56 194  68  74 12
+  STATIC   "K&anal:" -1 148  86  44 10
+  EDIT                   57 194  84  74 12
+  STATIC   "Kenn&wort:"   -1 148 102  44 10
+  EDIT                   58 194 100  74 12 ES_PASSWORD
+  BUTTON   "&Testen"   3   8 130  60 14
+  BUTTON   "OK"           1 148 130  60 14 STANDARD
+  BUTTON   "Abbruch"    2 212 130  60 14
+ENDE
+DIALOG 15 "Netztest" 0 0 260 124
+  STATIC   ""            61   8   4 244 10
+  STATIC   ""            62   8  15 244 10
+  STATIC   ""            63   8  26 244 10
+  STATIC   ""            64   8  37 244 10
+  STATIC   ""            65   8  48 244 10
+  STATIC   ""            66   8  59 244 10
+  STATIC   ""            67   8  70 244 10
+  STATIC   ""            68   8  81 244 10
+  STATIC   ""            69   8  92 244 10
+  BUTTON   "Abbruch"    1 105 106  50 14 STANDARD
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Network"
+  2 "Packet driver loaded, INT "
+  3 "No packet driver loaded."
+  4 "Current: "
+  5 " (DHCP)"
+  6 " (fixed)"
+  7 "Network not started."
+  8 "CONFIG.SYS could not be written."
+  9 "Please enter a valid IP address and mask (gateway and DNS empty or valid)."
+  10 "No packet driver loaded, it will be loaded at the next boot."
+  11 "Please enter the offset to UTC as +hh:mm."
+  12 "Find packet driver"
+  20 "Packet driver: INT "
+  21 "No packet driver. Set it under 1 Card, reboot."
+  22 "Starting network ..."
+  23 "Address: "
+  24 "Gateway: "
+  26 "Network does not start: "
+  27 "no answer (DHCP)"
+  28 "address missing"
+  29 "FTP server"
+  30 "IRC server"
+  31 "Time server"
+  32 " not found"
+  33 " does not answer"
+  34 " reachable"
+  35 "Time: "
+  36 "Done."
+  37 "packet driver busy"
+  39 "FTP: no server set"
+  40 "IRC: no server set"
+  42 "Own offset"
+  43 "none"
+  44 "EU"
+  45 "USA"
+  46 "Australia"
+  47 "New Zealand"
+  48 "Own driver"
+  49 "No network"
+ENDE
+DIALOG 11 "Network" 0 0 280 150
+  BUTTON   "&1 Card"    91   8   4  62 14
+  BUTTON   "&2 Address"    92  74   4  62 14
+  BUTTON   "&3 Time"    93 140   4  62 14
+  BUTTON   "&4 Services"    94 206   4  66 14
+  STATIC   "&Network card:"  -1  12  32  62 10
+  COMBO                  20  76  30 140 90
+  STATIC   "D&river:" -1  12  48  62 10
+  EDIT                   21  76  46 140 12
+  BUTTON   "&Browse..." 22 220  45  50 14
+  STATIC   "Packet &INT:"   -1  12  64  62 10
+  EDIT                   23  76  62  36 12
+  STATIC   "IR&Q:"       -1 120  64  26 10
+  EDIT                   24 148  62  20 12
+  STATIC   "I/&O:"    -1 176  64  26 10
+  EDIT                   25 204  62  36 12
+  STATIC   "&Memory:"   -1  12  80  62 10
+  EDIT                   26  76  78  36 12
+  STATIC   "WD8003 and NI5210 only"  -1 120  80 150 10
+  CHECK    "Load at &boot (INSTALL= in CONFIG.SYS)"  27  12  96 258 10
+  STATIC   ""            28  12 110 258 10
+  BUTTON   "&Test"   3   8 130  60 14
+  BUTTON   "OK"           1 148 130  60 14 STANDARD
+  BUTTON   "Cancel"    2 212 130  60 14
+ENDE
+DIALOG 12 "Network" 0 0 280 150
+  BUTTON   "&1 Card"    91   8   4  62 14
+  BUTTON   "&2 Address"    92  74   4  62 14
+  BUTTON   "&3 Time"    93 140   4  62 14
+  BUTTON   "&4 Services"    94 206   4  66 14
+  RADIO    "&Automatic (DHCP)"  30  12  32 180 10
+  RADIO    "&Fixed address:"  31  12  44 180 10
+  STATIC   "&IP address:"    -1  24  58  72 10
+  EDIT                   32 100  56  90 12
+  STATIC   "Mas&k:" -1  24  72  72 10
+  EDIT                   33 100  70  90 12
+  STATIC   "&Gateway:"   -1  24  86  72 10
+  EDIT                   34 100  84  90 12
+  STATIC   "&DNS server:"   -1  24 100  72 10
+  EDIT                   35 100  98  90 12
+  STATIC   "&Host name:"  -1 198  32  74 10
+  EDIT                   36 198  44  70 12
+  STATIC   ""            38  12 112 258 10
+  BUTTON   "&Test"   3   8 130  60 14
+  BUTTON   "OK"           1 148 130  60 14 STANDARD
+  BUTTON   "Cancel"    2 212 130  60 14
+ENDE
+DIALOG 13 "Network" 0 0 280 150
+  BUTTON   "&1 Card"    91   8   4  62 14
+  BUTTON   "&2 Address"    92  74   4  62 14
+  BUTTON   "&3 Time"    93 140   4  62 14
+  BUTTON   "&4 Services"    94 206   4  66 14
+  STATIC   "&Server:"   -1  12  32  62 10
+  EDIT                   40  76  30 150 12
+  STATIC   "empty: from DHCP server, else pool.ntp.org"  -1  76  44 196 10
+  STATIC   "&Time zone:"  -1  12  60  62 10
+  COMBO                  41  76  58 150 90
+  STATIC   "Summer ti&me:"   -1  12  76  62 10
+  COMBO                  42  76  74 100 60
+  STATIC   "O&ffset:"   -1  12  92  62 10
+  EDIT                   43  76  90  50 12
+  STATIC   "to UTC, e.g. +01:00"  -1 132  92 140 10
+  CHECK    "Set &clock when RD2 starts"   44  12 108 258 10
+  BUTTON   "&Test"   3   8 130  60 14
+  BUTTON   "OK"           1 148 130  60 14 STANDARD
+  BUTTON   "Cancel"    2 212 130  60 14
+ENDE
+DIALOG 14 "Network" 0 0 280 150
+  BUTTON   "&1 Card"    91   8   4  62 14
+  BUTTON   "&2 Address"    92  74   4  62 14
+  BUTTON   "&3 Time"    93 140   4  62 14
+  BUTTON   "&4 Services"    94 206   4  66 14
+  GROUP    "FTP"         -1   6  24 132 102
+  STATIC   "&Server:"   -1  12  38  46 10
+  EDIT                   50  60  36  74 12
+  STATIC   "&Port:"  -1  12  54  46 10
+  EDIT                   51  60  52  30 12
+  STATIC   "&User:"  -1  12  70  46 10
+  EDIT                   52  60  68  74 12
+  STATIC   "Pass&word:"    -1  12  86  46 10
+  EDIT                   53  60  84  74 12 ES_PASSWORD
+  GROUP    "IRC"         -1 142  24 132 102
+  STATIC   "Ser&ver:"  -1 148  38  44 10
+  EDIT                   54 194  36  74 12
+  STATIC   "P&ort:" -1 148  54  44 10
+  EDIT                   55 194  52  30 12
+  STATIC   "&Nick:"  -1 148  70  44 10
+  EDIT                   56 194  68  74 12
+  STATIC   "C&hannel:" -1 148  86  44 10
+  EDIT                   57 194  84  74 12
+  STATIC   "Pa&ssword:"   -1 148 102  44 10
+  EDIT                   58 194 100  74 12 ES_PASSWORD
+  BUTTON   "&Test"   3   8 130  60 14
+  BUTTON   "OK"           1 148 130  60 14 STANDARD
+  BUTTON   "Cancel"    2 212 130  60 14
+ENDE
+DIALOG 15 "Network test" 0 0 260 124
+  STATIC   ""            61   8   4 244 10
+  STATIC   ""            62   8  15 244 10
+  STATIC   ""            63   8  26 244 10
+  STATIC   ""            64   8  37 244 10
+  STATIC   ""            65   8  48 244 10
+  STATIC   ""            66   8  59 244 10
+  STATIC   ""            67   8  70 244 10
+  STATIC   ""            68   8  81 244 10
+  STATIC   ""            69   8  92 244 10
+  BUTTON   "Cancel"    1 105 106  50 14 STANDARD
+ENDE

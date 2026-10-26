@@ -62,6 +62,7 @@ static void sbmal(WORD i, WORD bar, HDC d);
 static void menulauf(WORD i, int bar, int maus);
 static void sbklick(WORD i, WORD bar, short x, short y);
 static void aufdecken(const RECT *scr);
+static BYTE pnach;
 static void inval(WORD i, const RECT *r, BYTE erase);
 static void weg(WORD i, int melden);
 
@@ -277,7 +278,18 @@ static void inval(WORD i, const RECT *r, BYTE erase)   /* r: Client-Koordinaten,
         if (a.r > x->inv.r) x->inv.r = a.r; if (a.b > x->inv.b) x->inv.b = a.b;
     }
     if (erase) x->flags |= F_ERASE;
-    if (!(x->flags & F_PAINTQ)) { x->flags |= F_PAINTQ; PostMessage(hw(i), M_PAINT, 0, 0); }
+    if (!(x->flags & F_PAINTQ)) { x->flags |= F_PAINTQ; if (!PostMessage(hw(i), M_PAINT, 0, 0)) { x->flags &= ~F_PAINTQ; pnach = 1; } }
+}
+/* Warteschlange war voll (pnach): Zeichenwuensche nachreichen */
+static void nachposten(void)
+{
+    WORD k;
+    pnach = 0;
+    for (k = 1; k <= MAXW; k++)
+        if (w_[k].used && !leer(&w_[k].inv) && !(w_[k].flags & F_PAINTQ)) {
+            w_[k].flags |= F_PAINTQ;
+            if (!PostMessage(hw(k), M_PAINT, 0, 0)) { w_[k].flags &= ~F_PAINTQ; pnach = 1; break; }
+        }
 }
 static void neuz(WORD i, const RECT *scr)         /* Fenster samt Kindern im Bereich scr neu */
 {
@@ -595,6 +607,7 @@ DWORD RDEXPORT u_SendMessage(HWND h, WORD m, WORD p1, DWORD p2)
 DWORD RDEXPORT u_DispatchMessage(const MSG FAR *m)
 {
     WORD i = idx(m->w), t;
+    if (pnach) nachposten();                      /* ein Platz ist gerade frei geworden */
     if (!i) return 0;
     if ((m->msg == M_BUTTONDOWN || m->msg == M_NCBUTTONDOWN) && (t = top(i)) != act) u_SetActive(hw(t));
     if (m->msg == M_PAINT && leer(&w_[i].inv)) { w_[i].flags &= ~F_PAINTQ; return 0; }   /* schon gezeichnet */
@@ -987,8 +1000,7 @@ static WORD klapp(WORD i, BYTE FAR *q, short x, short y, int bar, int *weiter, i
     if (bd) { BitBlt(d, r.l, r.t, r.r - r.l, r.b - r.t, bd, 0, 0, ROP_COPY); DCFree(bd); }
     if (bm) BmpFree(bm); else { DCFree(d); d = 0; aufdecken(&r); }
     if (d) DCFree(d);
-    for (k = 1; k <= MAXW; k++)                   /* zurueckgestellte Zeichenwuensche */
-        if (w_[k].used && !leer(&w_[k].inv) && !(w_[k].flags & F_PAINTQ)) { w_[k].flags |= F_PAINTQ; PostMessage(hw(k), M_PAINT, 0, 0); }
+    nachposten();                                 /* zurueckgestellte Zeichenwuensche */
     return id;
 }
 static BYTE FAR *ntes(BYTE FAR *p, int k) { while (p && k--) p = mnext(p); return p; }

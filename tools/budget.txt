@@ -52,6 +52,7 @@ INPTEST.EXE      4096    0   T  Testprogramm Tastatur und Maus
 TESTMOD.MOD      2048    0   T
 TESTMOD2.MOD     2048    0   T
 RDTCP.MOD       20480   22   N  TCP/IP, DHCP, DNS (Punkt 8; RDKX laedt es beim ersten NetStart; 18 -> 22 KB: Empfangsring 4 x 1518 Bytes fuer den Paketreiber)
+RDNET.EXE       24576   20   N  Netzwerk-Einstellungen: Karte, Adresse, Zeit, Dienste, Netztest (Punkt 8)
 RDCALC.EXE      90112   80   P
 RDEDIT.EXE      65536   60   P
 EPSON9.DRV       3072    3   P

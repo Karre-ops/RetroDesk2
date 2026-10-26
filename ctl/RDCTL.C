@@ -540,6 +540,7 @@ DWORD RDEXPORT c_Dialog(HWND h, WORD msg, WORD p1, DWORD p2)
             return 0;
         }
         if ((HIWORD(p2) & KS_ALT) && p1 >= 0x110 && p1 < 0x110 + sizeof sc1 && sc1[p1 - 0x110]) { mnemo(h, sc1[p1 - 0x110]); return 0; }
+        if ((HIWORD(p2) & KS_ALT) && ((p1 >= 0x178 && p1 <= 0x180) || (p1 >= 0x102 && p1 <= 0x10A))) { mnemo(h, (char)('1' + (p1 & 0xFF) - (p1 >= 0x178 ? 0x78 : 0x02))); return 0; }   /* Alt+Ziffer */
         if (p1 > ' ' && p1 < 0x80 && (!f || TYP(f) != T_EDIT)) { mnemo(h, (char)p1); return 0; }
         return 0;
     case M_COMMAND:

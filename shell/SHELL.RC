@@ -8,6 +8,7 @@ MENU 1
     ITEM "&Notizblock"         4
     ITEM "Re&chner"            5
     ITEM "&Optionen..."        6
+    ITEM "Netz&werk..."        7
     TRENNER
     ITEM "&Beenden..."         2
   ENDE
@@ -104,6 +105,7 @@ MENU 1
     ITEM "&Notepad"            4
     ITEM "Calc&ulator"         5
     ITEM "&Options..."         6
+    ITEM "Net&work..."         7
     TRENNER
     ITEM "E&xit..."            2
   ENDE
