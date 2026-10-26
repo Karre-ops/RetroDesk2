@@ -51,7 +51,7 @@ TEXTTEST.EXE     8192    0   T  Testbild Schriften
 INPTEST.EXE      4096    0   T  Testprogramm Tastatur und Maus
 TESTMOD.MOD      2048    0   T
 TESTMOD2.MOD     2048    0   T
-RDNET.MOD       20480   18   N  TCP/IP, DHCP, DNS
+RDTCP.MOD       20480   22   N  TCP/IP, DHCP, DNS (Punkt 8; RDKX laedt es beim ersten NetStart; 18 -> 22 KB: Empfangsring 4 x 1518 Bytes fuer den Paketreiber)
 RDCALC.EXE      90112   80   P
 RDEDIT.EXE      65536   60   P
 EPSON9.DRV       3072    3   P
@@ -74,5 +74,6 @@ MENUTEST.EXE     8192    0   T  Test: Menues, Rollbalken
 ZEIGTEST.EXE     8192    0   T  Test: Mauszeiger-Formen
 DLGTEST.EXE      8192    0   T  Test: Steuerelemente und Dialoge
 SNDTEST.EXE      8192    0   T  Test: Klang (RDSND, SPEAKER.DRV, ADLIB.DRV, SB.DRV, COVOX.DRV)
+NETTEST.EXE      8192    0   T  Test: Netz (RDTCP: DHCP, TCP-Echo, UDP, Lauschen, DNS)
 DISKFRAG.EXE     4096    0   T  Test: Diskettenabfrage im Grafikbetrieb (Audit K2)
 DOPPFMT.EXE      4096    0   T  Test: RDFORMAT doppelt starten (Audit M4)

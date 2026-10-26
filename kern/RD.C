@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0, ctl = 0, ausm = 0, snd;
     static const WORD kx[] = { 2, RDO_TimeGet, 3, RDO_TimeSet, 4, RDO_LangGet, 5, RDO_ResLoad, 6, RDO_ResFree,
                                7, RDO_StrLoad, 8, RDO_StrGet, 9, RDO_DbgBreak,
-                               10, RDO_BmpLoad, 11, RDO_BmpLoadFile, 12, RDO_IconDraw, 0 };
+                               10, RDO_BmpLoad, 11, RDO_BmpLoadFile, 12, RDO_IconDraw, 13, RDO_NetStart, 0 };
     static const WORD ux[] = { 0x46, RDO_SendMessage, 0x47, RDO_DispatchMessage, 0x48, RDO_MsgRegister, 0 };
     static const WORD gdix[] = { 0x3C + 1, RDO_GetDC, 0x3C + 2, RDO_ReleaseDC, 0x3C + 3, RDO_GfxList, 0x3C + 4, RDO_GfxSelect, 0 };
     char *s;
@@ -153,6 +153,7 @@ int main(int argc, char **argv)
     k_out(koop ? "RD: nur kooperativ" : "RD: Zeitscheiben an", 1);
     rd_preempt = koop ? 0 : 1;
     rd_timer_on(16384);
+    rd_api[RDO_NETHAKEN] = (FARPROC)(void __far *)&k_netpause;
     if (k_sndpause) k_sndpause(2);                /* Klangtreiber jetzt laden, nicht erst im ersten Programm */
     h = task_load(argv[a], cmdline, SW_SHOW);
     if (!h) { rd_timer_off(); k_hex("RD: Fehler beim Laden", k_lasterr, 1); mem_done(); return 2; }
@@ -160,12 +161,14 @@ int main(int argc, char **argv)
     clip_done();                                  /* Zwischenablage gehoert dem Kern */
     rd_timer_off();
     k_mausget = 0; k_gdipause = 0; k_wnd = 0;
-    k_sndtick = 0; k_sndpause = 0;
+    k_pausen(0);                                  /* Netz: Paketreiber frei */
+    k_sndtick = 0; k_sndpause = 0; k_netpause = 0;
     k_sysend(snd);                                /* still, Treiber aus */
     k_sysend(ctl);
     k_sysend(user);
     k_sysend(gdi);                                /* zurueck in den Textmodus, Maus aus */
     k_sysend(kxm);
+    k_modrest();
     nach = mem_free_bytes(0);
     k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);
     k_out(vor == nach ? "RD: Speicher vollstaendig zurueck" : "RD: SPEICHERLECK", 1);

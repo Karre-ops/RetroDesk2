@@ -51,7 +51,10 @@ extern WORD  k_fpuseg;
 extern volatile DWORD rd_ticks;                   /* 72,8 Hz */
 extern volatile WORD  rd_preempt;                 /* 1 = Zeitscheiben an */
 extern void (__far __pascal * volatile k_sndtick)(void);   /* KASM: RDSND-Takt im INT 8 */
-extern void (__far __pascal *k_sndpause)(WORD an);  /* RDSND: 0 still und Treiber aus, 1 wieder an (RunDos), 2 Abfrage (input_poll) */
+extern void (__far __pascal *k_sndpause)(WORD an);
+extern void (__far __pascal *k_netpause)(WORD an);
+void k_pausen(WORD an);
+#define RDO_NETHAKEN 0x3BF                        /* kein Aufruf: Zeiger auf k_netpause fuer RDTCP.MOD */  /* RDSND: 0 still und Treiber aus, 1 wieder an (RunDos), 2 Abfrage (input_poll) */
 #define CARRY (kr.flags & 1)
 
 /* ---- RD.C ------------------------------------------------------------------- */
@@ -92,7 +95,8 @@ int   k_askdisk(WORD drive, LPCSTR label);         /* 0 = Abbruch */
 int   k_dos(void);
 HMOD  k_sysmod(const char *name, WORD base, WORD n, const WORD *extra);
 void  k_sysend(HMOD m);
-void __far *k_modraw(HMOD m, WORD nr);          /* Exportadresse direkt (Systemmodule, ohne Sprungstueck) */
+void __far *k_modraw(HMOD m, WORD nr);
+void k_modrest(void);          /* Exportadresse direkt (Systemmodule, ohne Sprungstueck) */
 extern WORD (__far __pascal *k_mausget)(WORD __far *e);
 extern void (__far __pascal *k_gdipause)(WORD an);  /* RDGDI: 0 Textmodus/Maus aus, 1 wieder an (RunDos) */
 WORD mem_arena(WORD __far *a);

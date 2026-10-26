@@ -20,7 +20,7 @@ $W -fo=obj/rdswap.obj kern/RDSWAP.ASM
 wlink option quiet format raw bin name $O/RDSWAP.BIN file obj/rdswap.obj option offset=0 2>&1 | grep -v "W1014\|W1023" || true
 cp ../test/qemu/CTMOUSE.EXE $O/CTMOUSE.EXE   # CuteMouse (GPL, unveraendert), siehe docs/LIZENZ.md
 # Kern: Small, SS != DS (API-Aufrufe kommen mit dem Stack des Programms)
-for c in RD MEM TASK FILE MOD RUNDOS; do wcc -0 -ms -zu -os -s -zq -w4 -bt=dos -i=sdk -fo=obj/k_$c.obj kern/$c.C; done
+for c in RD MEM TASK FILE MOD RUNDOS; do wcc -0 -ms -zu -os -ol -s -zq -w4 -bt=dos -i=sdk -fo=obj/k_$c.obj kern/$c.C; done
 wlink option quiet system dos name $O/RD.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj/k_TASK.obj,obj/k_FILE.obj,obj/k_MOD.obj,obj/k_RUNDOS.obj,obj/kasm.obj,obj/swap.obj,obj/notsup.obj option map=obj/rd.map >/dev/null
 # Programme: Medium, ohne Watcom-Startcode
 app() {   # $1 Quelle  $2 EXE  $3 Anzeigename
@@ -57,6 +57,12 @@ modul drv/SND.C SPEAKER.DRV "PC-Lautsprecher" 0 D -dSPK
 modul drv/SND.C ADLIB.DRV "AdLib" 0 D -dADL
 modul drv/SND.C SB.DRV "Sound Blaster" 0 D -dSB
 modul drv/SND.C COVOX.DRV "Covox" 0 D -dCOVOX
+# Netz: RDTCP.MOD (TCP/IP) mit Empfangsroutine net/PKT.ASM
+$W -fo=obj/pkt.obj net/PKT.ASM
+wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/RDTCP.MOD.obj net/RDTCP.C
+wlink option quiet format dos name $O/RDTCP.MOD file obj/rd2mod.obj,obj/RDTCP.MOD.obj,obj/pkt.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,stack=16,map=obj/RDTCP.MOD.map disable 1172 >/dev/null
+mv $O/RDTCP.MOD.exe $O/RDTCP.MOD 2>/dev/null || true
+python3 tools/rd2link.py $O/RDTCP.MOD "TCP/IP" --type M --flags 0 >/dev/null
 for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT; do app apps/test/$t.C $t.EXE "$t"; done
 app shell/SHELL.C SHELL.EXE "Shell"
 app apps/uhr/UHR.C UHR.EXE "Uhr"   # voller Stapel: GetDC laedt Treiber und Module auf dem Stapel des Programms
@@ -89,6 +95,7 @@ for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 app apps/test/DOSTEST.C DOSTEST.EXE "DOSTEST"
 app apps/test/AUSLTEST.C AUSLTEST.EXE "AUSLTEST"
 app apps/test/SNDTEST.C SNDTEST.EXE "SNDTEST"
+app apps/test/NETTEST.C NETTEST.EXE "NETTEST"
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/FREIMEM.EXE -fo=obj/freimem.obj apps/test/FREIMEM.C >/dev/null
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/TSRTEST.EXE -fo=obj/tsrtest.obj apps/test/TSRTEST.C >/dev/null
 python3 tools/mkfont.py $O >/dev/null

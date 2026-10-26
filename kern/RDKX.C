@@ -293,8 +293,16 @@ static void RDEXPORT x_IconDraw(HDC dc, short x, short y, HINST i, WORD id)
 }
 
 static void RDEXPORT k_ende(void) { }
-static struct { WORD n; FARPROC f[12]; } ext = { 12, {
+/* ---- Netz: erst beim ersten NetStart RDTCP.MOD laden; es traegt sich selbst in die API-Tabelle ein ---- */
+extern FARPROC FAR *_rd2api;
+static WORD RDEXPORT k_NetStart(HWND w)
+{
+    FARPROC f = _rd2api[0x381];
+    if (!ModLoad("RDTCP.MOD") || _rd2api[0x381] == f) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
+    return ((WORD (RDAPI *)(HWND))_rd2api[0x381])(w);
+}
+static struct { WORD n; FARPROC f[13]; } ext = { 13, {
     (FARPROC)k_ende, (FARPROC)k_TimeGet, (FARPROC)k_TimeSet, (FARPROC)k_LangGet, (FARPROC)k_ResLoad,
     (FARPROC)k_ResFree, (FARPROC)k_StrLoad, (FARPROC)k_StrGet, (FARPROC)k_DbgBreak,
-    (FARPROC)x_BmpLoad, (FARPROC)x_BmpLoadFile, (FARPROC)x_IconDraw } };
+    (FARPROC)x_BmpLoad, (FARPROC)x_BmpLoadFile, (FARPROC)x_IconDraw, (FARPROC)k_NetStart } };
 void FAR * RDAPI RdModInit(void) { return &ext; }
