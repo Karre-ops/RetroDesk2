@@ -1,6 +1,7 @@
 /* NETZEIT.H - Zeitzonen, Sommerzeit und NTP-Zeit (wie RD1 net.c). Fuer RDNET.EXE und UHR.EXE.
  * Einstellungen in RD2.INI [Netz]: NTP= (leer: NTPDHCP=, sonst pool.ntp.org), ZoneName=, Zone= (Minuten zu UTC),
  * Sommer= (0 keine, 1 EU, 2 USA, 3 Australien, 4 Neuseeland), Zeit=1 (Uhr beim Start von RD2 stellen). */
+#ifndef NZ_OHNE_ZONEN                            /* UHR braucht nur die Rechnung */
 typedef struct { const char *name; short min; BYTE regel; } ZONE;
 static const ZONE zonen[] = {
     { "UTC", 0, 0 }, { "London, Lissabon", 0, 1 }, { "Berlin, Paris, Rom", 60, 1 },
@@ -13,6 +14,7 @@ static const ZONE zonen[] = {
     { "*", 0, 0 } };                              /* "*" = eigene Abweichung */
 #define NZONEN (sizeof zonen / sizeof zonen[0])
 #define ZONE_EIGEN (NZONEN - 1)
+#endif
 #define NTP_1970 2208988800UL
 
 static long nz_tage(WORD y, BYTE m, BYTE d)       /* Tage seit 1.1.1970 */

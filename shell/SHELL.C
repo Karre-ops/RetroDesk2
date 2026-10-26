@@ -880,6 +880,7 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     if (!desk) return 1;
     MenuSet(desk, mbar);
     TimerSet(desk, 1, 1000); uhr(); prgladen(); sta_lesen();
+    { char p[80], u[80]; if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "Netz", "Zeit", 0) && werkzeug(u, "UHR.EXE")) TaskExec(u, "N", SW_HIDE); }   /* Netzzeit beim Start */
     DbgPrint("SHELL: bereit");
     while (GetMessage(&m)) DispatchMessage(&m);
     DbgPrint("SHELL: Ende");

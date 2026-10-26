@@ -1,5 +1,5 @@
 /* OPTIONEN.C - Zubehoer Optionen (RD1 1.2: Systemklaenge, Start nach dem Booten, Netzzeit beim Booten).
- * Systemklaenge: <RD2>\RD2.INI [System] Systemklang=1/0 (RDSND). Netzzeit: RD2.INI [Netz] Zeit, schaltbar erst mit dem Netz.
+ * Systemklaenge: <RD2>\RD2.INI [System] Systemklang=1/0 (RDSND). Netzzeit: RD2.INI [Netz] Zeit=1 (Shell startet UHR.EXE N).
  * Start nach dem Booten: RD2 startet als SHELL= in CONFIG.SYS (RD2SETUP). Aus: die RD-Zeile und INSTALL=-Zeilen, deren
  * Programm auch in AUTOEXEC.BAT steht, werden "REM RD2 ", die alte "REM SHELL="-Zeile gilt wieder. An: umgekehrt.
  * Aus geht nur, wenn danach eine Shell da ist (alte SHELL=-Datei oder COMMAND.COM), sonst startet der Rechner nicht.
@@ -96,6 +96,7 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
     }
     if (msg == M_COMMAND && p1 == ID_OK) {
         ProfileSetStr(ini, "System", "Systemklang", DlgChecked(d, ID_KLANG) ? "1" : "0");
+        ProfileSetStr(ini, "Netz", "Zeit", DlgChecked(d, ID_NETZ) ? "1" : "0");
         s = (BYTE)DlgChecked(d, ID_START);
         if (s != an()) {
             e = schalten(s);

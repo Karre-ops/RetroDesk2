@@ -16,6 +16,8 @@ TEXTE
   14 "Donnerstag"
   15 "Freitag"
   16 "Samstag"
+  17 "Kein Netz. Netzkarte und Treiber unter RD > Netzwerk einstellen."
+  18 "Der Zeitserver antwortet nicht."
 ENDE
 SPRACHE EN
 TEXTE
@@ -34,4 +36,6 @@ TEXTE
   14 "Thursday"
   15 "Friday"
   16 "Saturday"
+  17 "No network. Set up card and driver in RD > Network."
+  18 "The time server does not answer."
 ENDE
