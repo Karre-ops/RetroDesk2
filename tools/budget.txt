@@ -21,6 +21,7 @@ CGA.DRV          5120    5   S
 HGC.DRV          5120    5   S
 VGA16.DRV        6144    6   P  VGA 640x480 16 Farben, Modus 12h (Punkt 9, 27.10.)
 EGA.DRV          6144    6   P  EGA 640x350 16 Farben, Modus 10h (Punkt 9, 27.10.)
+VESA.DRV         6144    6   P  VESA 640x480 256 Farben, Modus 101h, Bankumschaltung (Punkt 9, 27.10.)
 VGAM.DRV         5120    5   S
 SPEAKER.DRV      2048    2   S
 ADLIB.DRV        2048    2   P

@@ -52,7 +52,7 @@ static volatile DWORD __far *tick = (DWORD __far *)MK_FP(0x40, 0x6C);
 static void ticks(WORD n) { DWORD t = *tick; while (*tick - t < n) ; }   /* 1 Tick = 55 ms */
 
 /* ---- Erkennung ----------------------------------------------------------------- */
-static WORD cpu, fpu, dosv, konvkb, xmskb, umbkb, quelle_vga16;
+static WORD cpu, fpu, dosv, konvkb, xmskb, umbkb, quelle_vga16, quelle_vesa, hw_vesa;
 static BYTE hw_vga, hw_ega, hw_hgc, hw_cga, hw_adlib, hw_ps2, hw_sb;
 static char sbwert[24] = "A220 I5 D1", sbanz[40];
 static WORD pkt_int;                              /* Paketreiber-Interrupt, 0 = keiner */
@@ -86,6 +86,11 @@ static void grafik_erkennen(void)
     hw_vga = hw_ega = hw_hgc = hw_cga = 0;
     r.x.ax = 0x1A00; int86(0x10, &r, &r);
     if (r.h.al == 0x1A && (r.h.bl == 7 || r.h.bl == 8)) hw_vga = 1;
+    if (hw_vga) {                                 /* VBE da? (INT 10h 4F00h, Block mit "VESA") */
+        static char vb[512]; struct SREGS sr; segread(&sr);
+        sr.es = FP_SEG((char far *)vb); r.x.di = FP_OFF((char far *)vb); r.x.ax = 0x4F00; int86x(0x10, &r, &r, &sr);
+        hw_vesa = (WORD)(r.x.ax == 0x004F && !memcmp(vb, "VESA", 4));
+    }
     if (!hw_vga) { r.h.ah = 0x12; r.h.bl = 0x10; int86(0x10, &r, &r); if (r.h.bl != 0x10) hw_ega = 1; }
     int86(0x11, &r, &r); equip = r.x.ax;
     if ((equip & 0x30) == 0x30) hw_hgc = (BYTE)hgc_da();
@@ -243,6 +248,7 @@ static void grafikliste(void)                    /* nur was die Hardware kann (u
 {
     PUNKT *g = &p[P_GRAFIK]; g->n = 0;
     if (hw_vga && quelle_vga16) { g->wert[g->n] = "VGA16"; g->anzeige[g->n++] = "VGA 16 Farben 640x480"; }
+    if (hw_vesa && quelle_vesa) { g->wert[g->n] = "VESA"; g->anzeige[g->n++] = "VESA 256 Farben 640x480"; }
     if (hw_vga) { g->wert[g->n] = "VGA";   g->anzeige[g->n++] = "VGA mono 640x480"; }
     if (hw_hgc) { g->wert[g->n] = "HGC";   g->anzeige[g->n++] = "Hercules 720x348"; }
     if (hw_cga) { g->wert[g->n] = "CGA";   g->anzeige[g->n++] = "CGA 640x200"; }
@@ -531,6 +537,7 @@ int main(int argc, char **argv)
     strcpy(quelle, argv[0]); s = strrchr(quelle, '\\'); if (s) s[1] = 0; else quelle[0] = 0;
     sprintf(ini, "%sRD2.INI", quelle);
     { char v[80]; sprintf(v, "%sVGA16.DRV", quelle); quelle_vga16 = (WORD)(_dos_findfirst(v, _A_NORMAL, (struct find_t *)buf) == 0); }
+    { char v[80]; sprintf(v, "%sVESA.DRV", quelle); quelle_vesa = (WORD)(_dos_findfirst(v, _A_NORMAL, (struct find_t *)buf) == 0); }
     erkennen(-1);
     ini_lesen(ini);
     if (aut) {

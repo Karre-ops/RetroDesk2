@@ -52,6 +52,7 @@ modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/VGA16.C VGA16.DRV "VGA 16 Farben" 0 D -dVGA16
 modul drv/VGA16.C EGA.DRV "EGA 16 Farben" 0 D -dEGA
+modul drv/VESA.C VESA.DRV "VESA 256 Farben" 0 D -3
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D "-dVGAM -oa"   # -oa: 11 Bytes, haelt VGAM.DRV bei 4 KB (ein Cluster auf der Systemdiskette)
 modul snd/RDSND.C RDSND.MOD "Klang" 0 M
 modul snd/RDMUS.C RDMUS.MOD "Musik" 0 M

@@ -558,9 +558,9 @@ void RDEXPORT g_FloodFill(HDC h, short x, short y)                    { GX_FILL 
 HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
 {
     WORD bpr; HMEM m; BMPH FAR *bh;
-    if (!bpp) bpp = gm.bpp > 1 ? 4 : 1;           /* 0 = Geraeteformat des Schirms (Hintergrund retten) */
-    if (bpp != 4) bpp = 1;                        /* 4 Bit: nur BitBlt mit dem Schirm, kein Zeichnen hinein */
-    bpr = bpp == 4 ? (w + 1) >> 1 : (w + 7) >> 3;
+    if (!bpp) bpp = gm.bpp;                       /* 0 = Geraeteformat des Schirms (Hintergrund retten) */
+    if (bpp != 4 && bpp != 8) bpp = 1;            /* 4/8 Bit: nur BitBlt mit dem Schirm, kein Zeichnen hinein */
+    bpr = (w * bpp + 7) >> 3;                     /* w <= MAXBW, kein Ueberlauf */
     if (!w || !h || w > MAXBW || (DWORD)bpr * h > 65000UL) { SetLastError(RD_ERR_FULL); return 0; }
     m = MemAlloc((DWORD)bpr * h + sizeof(BMPH), MEM_MOVABLE | MEM_ZEROINIT);
     if (!m) return 0;
@@ -607,7 +607,7 @@ static int b4blt(DCX *dd, short x, short y, short w, short h, DCX *sd, short sx,
     static RECT q; static BMPH FAR *bh; static BYTE FAR *z; static DCX *b; WORD i, o, bpr;
     b = sd->typ ? sd : dd;
     if (!b->typ || !(bh = (BMPH FAR *)MemLock(b->bmp))) return 0;
-    if (bh->bpp != 4) { MemUnlock(b->bmp); return 0; }
+    if (bh->bpp == 1) { MemUnlock(b->bmp); return 0; }
     z = (BYTE FAR *)(bh + 1); bpr = bh->bpr;
     if (!dd->typ) {                               /* Bitmap -> Schirm: je Clip-Rechteck ein put */
         if (sel(dd)) {
@@ -615,7 +615,7 @@ static int b4blt(DCX *dd, short x, short y, short w, short h, DCX *sd, short sx,
                 q.l = x; q.t = y; q.r = (short)(x + w); q.b = (short)(y + h); isect(&q, &ec[i]);
                 if (q.l >= q.r || q.t >= q.b) continue;
                 o = (WORD)(q.l - x + sx); ex(q.l, q.t, q.r, q.b);
-                drv->put(q.l, q.t, (short)(q.r - q.l), (short)(q.b - q.t), z + (WORD)(q.t - y + sy) * bpr + (o >> 1), bpr, 4 | ((o & 1) << 8), ROP_COPY, 0, 0);
+                drv->put(q.l, q.t, (short)(q.r - q.l), (short)(q.b - q.t), z + (WORD)(q.t - y + sy) * bpr + (o >> (bh->bpp == 4)), bpr, bh->bpp | ((o & 1) << 8), ROP_COPY, 0, 0);
             }
             unsel();
         }
@@ -709,13 +709,14 @@ WORD  RDEXPORT g_PaletteSet(HDC h, WORD f, WORD n, const COLOR FAR *c) { (void)h
  * schneller, oder Profil=KOMFORT in RD2.INI) nimmt Farbe zuerst, "Schnell" (8088/286)
  * nur 1-Bit-Treiber. Von Hand (Menue Grafik, RD2.INI Grafik=, RD /CGA ...) geht jede
  * Art, deren Treiber die Hardware erkennt; sonst gilt die automatische Wahl. */
-typedef struct { const char *drv, *ini, *name; WORD typ; BYTE bunt; } KAND;
+typedef struct { const char *drv, *ini, *name; WORD typ; } KAND;   /* bunt: typ ab GFX_EGA */
 static const KAND kand[] = {
-    { "VGA16.DRV", "VGA16", "VGA 16 Farben", GFX_VGA16,   1 },
-    { "EGA.DRV",   "EGA",   "EGA 16 Farben", GFX_EGA,     1 },
-    { "HGC.DRV",   "HGC",   "Hercules",      GFX_HGC,     0 },
-    { "VGAM.DRV",  "VGA",   "VGA mono",      GFX_VGAMONO, 0 },
-    { "CGA.DRV",   "CGA",   "CGA",           GFX_CGA,     0 },
+    { "VGA16.DRV", "VGA16", "VGA 16 Farben", GFX_VGA16 },
+    { "EGA.DRV",   "EGA",   "EGA 16 Farben", GFX_EGA },
+    { "VESA.DRV",  "VESA",  "VESA 256 Farben", GFX_VESA },
+    { "HGC.DRV",   "HGC",   "Hercules",      GFX_HGC },
+    { "VGAM.DRV",  "VGA",   "VGA mono",      GFX_VGAMONO },
+    { "CGA.DRV",   "CGA",   "CGA",           GFX_CGA },
 };
 #define NK (sizeof kand / sizeof kand[0])
 static GFXMODE pm;
@@ -766,9 +767,8 @@ static int bildschirm(void)
     lesen();
     f = fest();
     if (f >= 0 && !probe((WORD)f, &gm, 1)) { mausan(); return 1; }
-    if (f >= 0) DbgPrint("RDGDI: Grafik geht hier nicht, automatisch");
     for (i = 0; i < NK; i++)
-        if ((!kand[i].bunt || komfort()) && !probe(i, &gm, 1)) { mausan(); return 1; }
+        if ((kand[i].typ < GFX_EGA || komfort()) && !probe(i, &gm, 1)) { mausan(); return 1; }
     return 0;
 }
 WORD RDEXPORT g_GfxList(GFXINFO FAR *l, WORD max)
@@ -782,7 +782,7 @@ WORD RDEXPORT g_GfxList(GFXINFO FAR *l, WORD max)
         e->typ = kand[i].typ; e->w = pm.w; e->h = pm.h; e->farben = pm.farben; e->flags = 0;
         if (drv && kand[i].typ == gfxtyp) e->flags |= GI_AKTIV;
         if (f == (int)i) e->flags |= GI_GEWAEHLT;
-        if (!std && (!kand[i].bunt || komfort())) { e->flags |= GI_STANDARD; std = 1; }
+        if (!std && (kand[i].typ < GFX_EGA || komfort())) { e->flags |= GI_STANDARD; std = 1; }
         while (*q && k < sizeof e->name - 1) e->name[k++] = *q++;
         e->name[k] = 0;
         n++;

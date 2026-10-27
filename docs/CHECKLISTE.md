@@ -21,7 +21,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Tastatur: F10, Alt+Buchstabe, Pfeile, Eingabe, Esc, Tab in Dialogen | da | test/menu.sh, dlg.sh |
 | Bedienung nur mit Maus oder nur mit Tastatur | da | |
 | Grafik CGA 640x200, VGA 640x480, Hercules 720x348 | da | Treiber in Assembler, Bildvergleiche |
-| Farbe (Profil Komfort, 386+): VGA16 640x480 16 Farben, EGA 640x350 16 Farben, VESA 256 Farben | teilweise | 27.10.: VGA16.DRV (Modus 12h) und EGA.DRV (Modus 10h), Ebenen über Schreibmodus 3; RDGDI rechnet Farben über den Treiber um (GFXDRVF farbe/rgb), Muster zweifarbig, Hintergrund retten im Geräteformat (4 Bit); Kern liest RD2.INI immer im RD2-Ordner. test/farbe.sh. Farbschema: Titel des aktiven Fensters dunkelblau, Schreibtisch türkis (RDUSER, SHELL), einfarbig unverändert. Offen: Schema in RD2.INI wählbar, VESA. VESA: Bankumschaltung, 640x480x256 braucht 512 KB Bildspeicher; ohne VESA-BIOS Chipsatztreiber oder UniVBE. Plan Punkt 9 |
+| Farbe (Profil Komfort, 386+): VGA16 640x480 16 Farben, EGA 640x350 16 Farben, VESA 256 Farben | teilweise | teilweise | 27.10. Teil 3: VESA.DRV (Modus 101h, 640x480, 256 Farben, Bankumschaltung INT 10h 4F05h, Palette 16 Standardfarben + Würfel 6x6x6 + 24 Grau), Geräteformat 8 Bit in RDGDI (Hintergrund retten), nur von Hand wählbar (Menü Grafik, RD2SETUP), Diskette 2. Offen: farbige Symbole (Kern macht noch alles S/W). 
 | Schriften 8x8, 8x14, 8x16 mit Umlauten | da | SYS8/14/16.FNT |
 | Startparameter /CGA /VGA /HGC /SPK /NOSND | prüfen | Grafikwahl nach Hardware ist da |
 | Deutsch und Englisch | da | DE.LNG, EN.LNG, Ressourcen je Sprache |
