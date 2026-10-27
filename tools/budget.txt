@@ -80,6 +80,7 @@ AUSLTEST.EXE     4096    0   T  Test: Auslagern bei Speichermangel (XMS, RD2.SWP
 TSRTEST.EXE      4096    0   T  Test: bleibt resident (Audit M10, RunDos entfernt es)
 FREIMEM.EXE     16384    0   T  Test: normales DOS-Programm fuer DOSTEST
 BENCH2.EXE       4096    0   T  Leistungsvergleich RD2-Seite (BENCH1 baut aus RD1, nicht auf der Diskette)
+JOYTEST.EXE      8192    0   T  Test Joystick (RD2.LIB)
 RESTEST.EXE      8192    0   T  Test Ressourcen, Texte, Uhrzeit
 WINTEST.EXE      8192    0   T  Test: Fenster
 MENUTEST.EXE     8192    0   T  Test: Menues, Rollbalken

@@ -234,8 +234,8 @@ RDF(0x30A, WORD,    SndVolume,      (WORD art, WORD wert))
 RDF(0x30B, BOOL,    SndFocus,       (HWND w))                     /* Musik/Samples fuer dieses Programm */
 
 /* ---- Eingabe ------------------------------------------------------------- */
-RDF(0x340, WORD,    JoyRead,        (WORD nr, JOYSTATE FAR *js))
-RDF(0x341, WORD,    JoyCalibrate,   (WORD nr))
+RDF(0x340, WORD,    JoyRead,        (WORD nr, JOYSTATE FAR *js))   /* RD2.LIB (JOY.C): x/y -100..100, Tasten Bit 0/1 */
+RDF(0x341, WORD,    JoyCalibrate,   (WORD nr))                     /* RD2.LIB: jetzige Lage = Mitte */
 
 /* ---- Netz (RDNET) ---------------------------------------------------- */
 RDF(0x380, WORD,    NetCaps,        (NETINFO FAR *ni))            /* 0 = Netz bereit */

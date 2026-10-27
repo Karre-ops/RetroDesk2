@@ -10,8 +10,9 @@ W="wasm -q -0"
 $W -fo=obj/rd2start.obj sdk/RD2START.ASM
 $W -fo=obj/rd2mod.obj   sdk/RD2MOD.ASM
 rm -f obj/lib_*.obj $O/RD2.LIB
-for a in sdk/lib/F*.ASM; do b=$(basename $a .ASM); $W -fo=obj/lib_$b.obj $a; done
+for a in sdk/lib/F*.ASM; do b=$(basename $a .ASM); case $b in F340|F341) continue;; esac; $W -fo=obj/lib_$b.obj $a; done   # F340/F341: Joystick in C (JOY.C)
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_WAV.obj sdk/WAV.C   # Hilfen in C (laufen im Programm)
+wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_JOY.obj sdk/JOY.C   # Joystick (Gameport 201h, PIT)
 wlib -q -n $O/RD2.LIB obj/lib_*.obj
 $W -fo=obj/notsup.obj   kern/NOTSUP.ASM
 $W -fpi87 -fo=obj/kasm.obj kern/KASM.ASM
@@ -70,7 +71,7 @@ wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/RDTCP.MOD.obj net/RDTCP
 wlink option quiet format dos name $O/RDTCP.MOD file obj/rd2mod.obj,obj/RDTCP.MOD.obj,obj/pkt.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,stack=16,map=obj/RDTCP.MOD.map disable 1172 >/dev/null
 mv $O/RDTCP.MOD.exe $O/RDTCP.MOD 2>/dev/null || true
 python3 tools/rd2link.py $O/RDTCP.MOD "TCP/IP" --type M --flags 0 >/dev/null
-for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT; do app apps/test/$t.C $t.EXE "$t"; done
+for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST JOYTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT; do app apps/test/$t.C $t.EXE "$t"; done
 app shell/SHELL.C SHELL.EXE "Shell"
 app apps/hilfe/HILFE.C HILFE.EXE "Hilfe"   # F1: HelpShow -> RDKX -> RDPRN.MOD Nr. 6 -> HILFE.EXE
 iconv -f UTF-8 -t CP437 docs/RD2_HLP.txt > $O/RD2.HLP
