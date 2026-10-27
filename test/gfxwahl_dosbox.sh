@@ -5,7 +5,7 @@
 cd "$(dirname "$0")/.."
 R=obj/dbxw; F=0
 for k in cga hgc vga; do
-  case $k in vga) MACH=vgaonly; NEIN=f; JA=c; HJA=200;; hgc) MACH=hercules; NEIN=c; JA=h; HJA=348;; *) MACH=cga; NEIN=v; JA=c; HJA=200;; esac
+  case $k in vga) MACH=vgaonly; NEIN=h; JA=c; HJA=200;; hgc) MACH=hercules; NEIN=c; JA=h; HJA=348;; *) MACH=cga; NEIN=v; JA=c; HJA=200;; esac
   for cpu in ${CPUS:-8086 386}; do
     python3 -c "import shutil; shutil.rmtree('$R', True)"; mkdir -p $R/RD2
     cp out/RD.EXE out/*.MOD out/*.DRV out/GDITEST.EXE out/GFXWAHL.EXE $R/RD2/

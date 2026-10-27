@@ -265,6 +265,10 @@ void file_owner_close(WORD task)
 static BYTE __far *pb; static WORD pn, pbig;      /* geladene Datei; pbig = groesser als PMAX */
 static BYTE lc(BYTE c) { return (c >= 'A' && c <= 'Z') ? c + 32 : c; }
 static void pfree(void);
+static LPCSTR ppfad(LPCSTR f)                     /* nur Dateiname (ohne X: und \\): im RD2-Verzeichnis, nicht im aktuellen */
+{
+    return f[1] == ':' || *f == '\\' ? f : k_hpath(f);
+}
 static int pload(LPCSTR file)
 {
     short f; void FAR *m;
@@ -272,7 +276,7 @@ static int pload(LPCSTR file)
     if (!(m = MemFixed(PMAX + 512))) return 0;
     pb = (BYTE __far *)m;
     pbig = 0;
-    if ((f = FileOpen(file, FO_READ)) >= 0) { k_lasterr = 0; pn = FileRead(f, pb, PMAX); if (pn == PMAX && FileRead(f, pb + PMAX, 1)) pbig = 1; FileClose(f); }
+    if ((f = FileOpen(ppfad(file), FO_READ)) >= 0) { k_lasterr = 0; pn = FileRead(f, pb, PMAX); if (pn == PMAX && FileRead(f, pb + PMAX, 1)) pbig = 1; FileClose(f); }
     else if (k_lasterr == RD_ERR_NOTFOUND) k_lasterr = 0;   /* nur "gibt es nicht" heisst leer */
     if (k_lasterr) { pfree(); return 0; }         /* sonst nie mit halbem Inhalt neu schreiben */
     return 1;
@@ -374,7 +378,7 @@ WORD RDK ProfileSetStr(LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR val)
         }
     } else pvoll = 2;                             /* nichts zu loeschen: Datei nicht anfassen */
     if (pvoll) { pfree(); return pvoll == 1 ? (k_lasterr = RD_ERR_FULL) : 0; }   /* passt nicht: Datei unveraendert */
-    r = FileSaveSafe(file, pb, pn);
+    r = FileSaveSafe(ppfad(file), pb, pn);
     pfree();
     return r;
 }

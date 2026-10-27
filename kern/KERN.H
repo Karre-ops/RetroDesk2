@@ -103,7 +103,7 @@ WORD mem_arena(WORD __far *a);
 WORD k_stub(WORD mode);
 extern WORD k_wseg, k_rseg;                       /* RunDos-Neustart (RUNDOS.C) */
 extern void __cdecl rd_swaprun(WORD seg);
-char *k_hpath(const char *name);                  /* RD2-Verzeichnis + Name (Puffer wird wiederverwendet) */
+char *k_hpath(const char __far *name);                  /* RD2-Verzeichnis + Name (Puffer wird wiederverwendet) */
 WORD RDK RunDos(LPCSTR prog, LPCSTR cmd, WORD flags);   /* RDGDI: Mausereignis abholen */
 extern WORD k_focus;                              /* Task, der Tastatur und Maus bekommt */
 void  input_poll(void);

@@ -70,6 +70,13 @@ typedef struct {
        cursor/cursorhide: Zeiger zeichnet der Treiber selbst (mb = 32 Bytes UND, 32 Bytes XOR) */
     void  (RDAPI *box)(short x0, short y0, short x1, short y1, WORD farbe, const BYTE FAR *muster8, WORD rop);
 } GFXDRV;
+/* Treiber mit mehr als 1 Bit (ab 27.10.2026): GFXDRV und dahinter RGB -> naechster Index und zurueck
+   (RDGDI rechnet damit Stift, Pinsel, Text, GetPixel und ColorNearest um). h.groesse = sizeof(GFXDRVF). */
+typedef struct {
+    GFXDRV g;
+    WORD  (RDAPI *farbe)(COLOR c);
+    COLOR (RDAPI *rgb)(WORD index);
+} GFXDRVF;
 
 /* ---- Sound --------------------------------------------------------------- */
 typedef struct {

@@ -10,7 +10,7 @@ static WORD k_maus;                               /* Maustasten, 0 = keine Maus 
 WORD  k_gfx;
 BYTE  k_fpu, k_cpu;
 static char cmdline[80];
-char *k_hpath(const char *n)                      /* RD2-Verzeichnis + Name, in cmdline (nach dem Start frei) */
+char *k_hpath(const char __far *n)                /* RD2-Verzeichnis + Name, in cmdline (Befehlszeile entsteht erst direkt vor task_load) */
 {
     char *d = cmdline; const char *h = k_home;
     while (*h) *d++ = *h++;
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         k_hpath("RD2SETUP.EXE");
         pb.cmd = tail;
         kr.ax = 0x4B00; kr.dx = (WORD)cmdline; kr.bx = (WORD)&pb; kr.ds = kr.es = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
-        if (CARRY) k_out("RD: ohne RD2SETUP, Vorgaben", 1);
+        if (CARRY) k_out("RD: ohne RD2SETUP", 1);
     }
     if (dlog) { kr.ax = 0x4800; kr.bx = DBUF / 16; rd_int(0x21, &kr); if (!(kr.flags & 1)) dbuf = (char __far *)MK_FP(kr.ax, 0); }
     k_fpu = (BYTE)rd_fpudet();
@@ -112,13 +112,8 @@ int main(int argc, char **argv)
     task_api();
     file_api();
     mod_api();
-    k_out("RD: RetroDesk 2 Kern (Phase 3), API 1.0", 1);
+    k_out("RD: RetroDesk 2 Kern, API 1.0", 1);
     if (a >= argc) { k_out("Aufruf: RD [/x] programm", 1); return 1; }
-    for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {
-        for (s = argv[i]; *s && h < 78; ) cmdline[h++] = *s++;
-        if (i + 1 < argc && h < 78) cmdline[h++] = ' ';
-    }
-    cmdline[h] = 0;
     mem_init(136);                                /* Reserve: DOS und der RunDos-Rest (120 Paragraphen) */
     task_init();
     {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr("RD2.INI", "System", "Maus", "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF; }
@@ -156,6 +151,11 @@ int main(int argc, char **argv)
     rd_timer_on(16384);
     rd_api[RDO_NETHAKEN] = (FARPROC)(void __far *)&k_netpause;
     if (k_sndpause) k_sndpause(2);                /* Klangtreiber jetzt laden, nicht erst im ersten Programm */
+    for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {
+        for (s = argv[i]; *s && h < 78; ) cmdline[h++] = *s++;
+        if (i + 1 < argc && h < 78) cmdline[h++] = ' ';
+    }
+    cmdline[h] = 0;
     h = task_load(argv[a], cmdline, SW_SHOW);
     if (!h) { rd_timer_off(); k_hex("RD: Fehler beim Laden", k_lasterr, 1); mem_done(); return 2; }
     task_run_all();

@@ -32,6 +32,8 @@ static BYTE FAR *mb; static WORD mbpr, mw, mh;     /* gesperrte Bitmap */
 static RECT ec[MAXCLIP]; static WORD nec;          /* wirksame Clipliste */
 static DCX *cd;
 static BYTE penb, txtb, bkb, pat[8], *patp, brnone;
+static BYTE bunt, weiss = 1;                       /* Ziel Schirm mit 16 Farben: Farbe = Index, weiss = 15 */
+static WORD patf;                                  /* bunt mit Muster: Bits 0-3 Farbe, 8-11 Hintergrund */
 
 /* ---- Bitmap als Geraet (1 Bit pro Pixel, Bit 7 links) ----------------------- */
 #define MP(x, y) (mb + (WORD)(y) * mbpr + ((WORD)(x) >> 3))
@@ -112,7 +114,7 @@ static WORD lum(COLOR c)
     c = syscol(c);
     return (WORD)(((WORD)(BYTE)c * 30U + (WORD)(BYTE)(c >> 8) * 59U + (WORD)(BYTE)(c >> 16) * 11U) / 100U);
 }
-static BYTE cbit(COLOR c) { return (BYTE)(lum(c) >= 128); }
+static BYTE cbit(COLOR c) { return bunt ? (BYTE)((GFXDRVF FAR *)drv)->farbe(syscol(c)) : (BYTE)(lum(c) >= 128); }   /* bunt: Treiber waehlt den Index */
 
 static const BYTE bayer[8][8] = {
     { 0, 32,  8, 40,  2, 34, 10, 42 }, { 48, 16, 56, 24, 50, 18, 58, 26 },
@@ -131,6 +133,11 @@ static void mkbrush(DCX *d)
 {
     WORD y, x, lv;
     brnone = (BYTE)(d->pat == PAT_NONE);
+    if (bunt) {                                   /* 16 Farben: einfarbig ohne Raster, Muster mit zwei Farben */
+        if (d->pat == PAT_SOLID || d->pat > PAT_HATCH) { pat[0] = cbit(d->brush); patp = 0; return; }
+        for (y = 0; y < 8; y++) pat[y] = mus[d->pat][y];
+        patf = (WORD)(cbit(d->brush) | ((WORD)cbit(d->bk) << 8)); patp = pat; return;
+    }
     if (d->pat == PAT_SOLID || d->pat > PAT_HATCH) {
         lv = (WORD)((lum(d->brush) * 65U + 128U) >> 8);   /* 0..64 */
         if (lv == 0 || lv >= 64) { pat[0] = (BYTE)(lv ? 1 : 0); patp = 0; return; }
@@ -271,6 +278,7 @@ static int sel(DCX *d)
     } else {
         BMPH FAR *bh = (BMPH FAR *)MemLock(d->bmp);
         if (!bh) return 0;
+        if (bh->bpp != 1) { MemUnlock(d->bmp); return 0; }   /* 4-Bit-Bitmap: nur BitBlt (b4blt) */
         dv = (GFXDRV FAR *)&mtab; mb = (BYTE FAR *)(bh + 1); mbpr = bh->bpr; mw = bh->w; mh = bh->h;
         dev.l = 0; dev.t = 0; dev.r = (short)mw; dev.b = (short)mh;
     }
@@ -283,6 +291,7 @@ static int sel(DCX *d)
     }
     if (d->typ) kc = 0;                            /* Bitmap: jedes Mal neu */
 farben:
+    bunt = (BYTE)(d->typ == 0 && gm.bpp > 1); weiss = (BYTE)(bunt ? 15 : 1);
     if (d != kd || kdirty) {                       /* Farben/Pinsel nur nach Aenderung neu umrechnen */
         penb = cbit(d->pen); txtb = cbit(d->txt); bkb = cbit(d->bk);
         mkbrush(d); kd = d; kdirty = 0;
@@ -315,7 +324,7 @@ static void hs(short y, short x0, short x1, int brush, WORD rop)   /* x0..x1 ink
         if (a > b) continue;
         /* nahe Null wird beim Umwandeln zu DS:0000, deshalb ausdruecklich ferne Null */
         ex(a, y, (short)(b + 1), (short)(y + 1));
-        if (brush && patp) dv->span(y, a, b, 0, (const BYTE FAR *)patp, rop);
+        if (brush && patp) dv->span(y, a, b, patf, (const BYTE FAR *)patp, rop);
         else dv->span(y, a, b, brush ? pat[0] : penb, (const BYTE FAR *)0, rop);
     }
 }
@@ -448,7 +457,7 @@ COLOR RDEXPORT g_GetPixel(HDC h, short x, short y)
     if (!d || !sel(d)) return c;
     x = (short)(x + d->ox); y = (short)(y + d->oy);
     for (i = 0; i < nec; i++)
-        if (x >= ec[i].l && x < ec[i].r && y >= ec[i].t && y < ec[i].b) { ex(x, y, (short)(x + 1), (short)(y + 1)); c = dv->getpixel(x, y) ? C_WHITE : C_BLACK; break; }
+        if (x >= ec[i].l && x < ec[i].r && y >= ec[i].t && y < ec[i].b) { ex(x, y, (short)(x + 1), (short)(y + 1)); c = bunt ? ((GFXDRVF FAR *)drv)->rgb(dv->getpixel(x, y)) : dv->getpixel(x, y) ? C_WHITE : C_BLACK; break; }
     unsel();
     return c;
 }
@@ -494,7 +503,7 @@ static void fill(const RECT FAR *r, int inv)
             if (q.l >= q.r || q.t >= q.b) continue;
             ex(q.l, q.t, q.r, q.b);
             if (inv) dv->box(q.l, q.t, (short)(q.r - 1), (short)(q.b - 1), 0, (const BYTE FAR *)0, ROP_NOT);
-            else dv->box(q.l, q.t, (short)(q.r - 1), (short)(q.b - 1), pat[0], patp ? (const BYTE FAR *)patp : (const BYTE FAR *)0, cd->rop);
+            else dv->box(q.l, q.t, (short)(q.r - 1), (short)(q.b - 1), patp ? patf : pat[0], patp ? (const BYTE FAR *)patp : (const BYTE FAR *)0, cd->rop);
         }
         return;
     }
@@ -548,13 +557,15 @@ void RDEXPORT g_FloodFill(HDC h, short x, short y)                    { GX_FILL 
 /* ---- Bitmaps ------------------------------------------------------------------ */
 HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
 {
-    WORD bpr = (w + 7) >> 3; HMEM m; BMPH FAR *bh;
-    (void)bpp;                                    /* Phase 3: alle Geraete haben 1 Bit */
+    WORD bpr; HMEM m; BMPH FAR *bh;
+    if (!bpp) bpp = gm.bpp > 1 ? 4 : 1;           /* 0 = Geraeteformat des Schirms (Hintergrund retten) */
+    if (bpp != 4) bpp = 1;                        /* 4 Bit: nur BitBlt mit dem Schirm, kein Zeichnen hinein */
+    bpr = bpp == 4 ? (w + 1) >> 1 : (w + 7) >> 3;
     if (!w || !h || w > MAXBW || (DWORD)bpr * h > 65000UL) { SetLastError(RD_ERR_FULL); return 0; }
     m = MemAlloc((DWORD)bpr * h + sizeof(BMPH), MEM_MOVABLE | MEM_ZEROINIT);
     if (!m) return 0;
     bh = (BMPH FAR *)MemLock(m);
-    bh->w = w; bh->h = h; bh->bpp = 1; bh->bpr = bpr;
+    bh->w = w; bh->h = h; bh->bpp = bpp; bh->bpr = bpr;
     MemUnlock(m);
     return m;
 }
@@ -589,10 +600,35 @@ static int zget(DCX *d, ZIEL *z)
       if (!bh) return 0;
       z->dv = (GFXDRV FAR *)&mtab; z->mb = (BYTE FAR *)(bh + 1); z->bpr = bh->bpr; z->w = bh->w; z->h = bh->h; return 1; }
 }
+/* 4-Bit-Bitmap (Geraeteformat) <-> Schirm, 1:1, fuer "Hintergrund retten": Schirm -> Bitmap ab 0,0,
+   Bitmap -> Schirm geclippt; der Aufrufer bleibt in Schirm und Bitmap. 1 = erledigt */
+static int b4blt(DCX *dd, short x, short y, short w, short h, DCX *sd, short sx, short sy)
+{
+    static RECT q; static BMPH FAR *bh; static BYTE FAR *z; static DCX *b; WORD i, o, bpr;
+    b = sd->typ ? sd : dd;
+    if (!b->typ || !(bh = (BMPH FAR *)MemLock(b->bmp))) return 0;
+    if (bh->bpp != 4) { MemUnlock(b->bmp); return 0; }
+    z = (BYTE FAR *)(bh + 1); bpr = bh->bpr;
+    if (!dd->typ) {                               /* Bitmap -> Schirm: je Clip-Rechteck ein put */
+        if (sel(dd)) {
+            for (i = 0; i < nec; i++) {
+                q.l = x; q.t = y; q.r = (short)(x + w); q.b = (short)(y + h); isect(&q, &ec[i]);
+                if (q.l >= q.r || q.t >= q.b) continue;
+                o = (WORD)(q.l - x + sx); ex(q.l, q.t, q.r, q.b);
+                drv->put(q.l, q.t, (short)(q.r - q.l), (short)(q.b - q.t), z + (WORD)(q.t - y + sy) * bpr + (o >> 1), bpr, 4 | ((o & 1) << 8), ROP_COPY, 0, 0);
+            }
+            unsel();
+        }
+    } else if (!sd->typ && !x && !y) { cd = 0; gbusy = 1; zweg(); drv->get(sx, sy, w, h, z, bpr); unsel(); }   /* Schirm -> Bitmap */
+    MemUnlock(b->bmp);
+    return 1;
+}
 static void blitrows(DCX *dd, short x, short y, short w, short h, DCX *sd, short sx, short sy,
                      WORD rop, WORD sw, WORD shh, WORD dw, WORD dh)
 {
     static ZIEL zs, zd; short i, n, ys, yd, step; WORD yq, yr;
+    if ((sd->typ || dd->typ) && !sw && b4blt(dd, x, y, w, h, sd, sx, sy)) return;
+    if (!sd->typ && gm.bpp > 1) return;            /* bunter Schirm -> 1-Bit-Bitmap: nicht unterstuetzt */
     if (!zget(sd, &zs)) return;
     if (!sel(dd)) { if (sd->typ == 1) MemUnlock(sd->bmp); return; }
     if (zs.dv == drv) zweg();                      /* Quelle Schirm: Zeiger nicht mitkopieren */
@@ -609,7 +645,7 @@ static void blitrows(DCX *dd, short x, short y, short w, short h, DCX *sd, short
     /* schnelle Wege ohne Zeilenpuffer (Bitmap byteweise ausgerichtet, nicht ueberlappend) */
     if (!sw && sd != dd && rop != ROP_MASK) {
         if (zs.mb && !(sx & 7)) {                  /* Bitmap -> beliebig: ganzer Block, geclippt in crows */
-            crows(y, x, w, n, zs.mb + (WORD)sy * zs.bpr + ((WORD)sx >> 3), zs.bpr, rop, 1, 0);
+            crows(y, x, w, n, zs.mb + (WORD)sy * zs.bpr + ((WORD)sx >> 3), zs.bpr, rop, weiss, 0);
             goto aus;
         }
         if (!zs.mb && mb && rop == ROP_COPY && !(x & 7) && nec == 1 && x >= ec[0].l && y >= ec[0].t &&
@@ -646,7 +682,7 @@ static void blitrows(DCX *dd, short x, short y, short w, short h, DCX *sd, short
         }
         zset(&zd);
         if (rop == ROP_MASK) crow(yd, x, w, rbuf, ROP_MASK, txtb, 0);
-        else crow(yd, x, w, rbuf, rop, 1, 0);
+        else crow(yd, x, w, rbuf, rop, weiss, 0);
     }
 aus:
     if (sd->typ == 1) MemUnlock(sd->bmp);
@@ -665,8 +701,8 @@ void RDEXPORT g_StretchBlt(HDC d, const RECT FAR *dr, HDC s, const RECT FAR *sr,
     blitrows(dd, (short)(dr->l + dd->ox), (short)(dr->t + dd->oy), 0, 0, sd, (short)(sr->l + sd->ox), (short)(sr->t + sd->oy),
              rop, (WORD)(sr->r - sr->l), (WORD)(sr->b - sr->t), (WORD)(dr->r - dr->l), (WORD)(dr->b - dr->t));
 }
-COLOR RDEXPORT g_ColorNearest(HDC h, COLOR c) { (void)h; return cbit(c) ? C_WHITE : C_BLACK; }
-WORD  RDEXPORT g_PaletteSet(HDC h, WORD f, WORD n, const COLOR FAR *c) { (void)h; (void)f; (void)n; (void)c; SetLastError(RD_ERR_NOTSUP); return 0; }
+COLOR RDEXPORT g_ColorNearest(HDC h, COLOR c) { DCX *d = getdc(h); bunt = (BYTE)(d && !d->typ && gm.bpp > 1); return bunt ? ((GFXDRVF FAR *)drv)->rgb(cbit(c)) : cbit(c) ? C_WHITE : C_BLACK; }
+WORD  RDEXPORT g_PaletteSet(HDC h, WORD f, WORD n, const COLOR FAR *c) { (void)h; if (gm.bpp < 4) { SetLastError(RD_ERR_NOTSUP); return 0; } drv->palette(f, n, c); return n; }   /* bunte Treiber haben palette */
 
 /* ---- Schirm und Wahl der Grafikart ------------------------------------------
  * Kandidaten in der Reihenfolge der automatischen Wahl. Profil "Komfort" (386 und
@@ -676,6 +712,7 @@ WORD  RDEXPORT g_PaletteSet(HDC h, WORD f, WORD n, const COLOR FAR *c) { (void)h
 typedef struct { const char *drv, *ini, *name; WORD typ; BYTE bunt; } KAND;
 static const KAND kand[] = {
     { "VGA16.DRV", "VGA16", "VGA 16 Farben", GFX_VGA16,   1 },
+    { "EGA.DRV",   "EGA",   "EGA 16 Farben", GFX_EGA,     1 },
     { "HGC.DRV",   "HGC",   "Hercules",      GFX_HGC,     0 },
     { "VGAM.DRV",  "VGA",   "VGA mono",      GFX_VGAMONO, 0 },
     { "CGA.DRV",   "CGA",   "CGA",           GFX_CGA,     0 },
@@ -978,7 +1015,7 @@ static void tzeile(short x, short y, LPCSTR s, WORD n)
     nb = ((tw + 7) >> 3) + 1;
     if (cd->bkmode == BK_TRANSPARENT) {
         if (rop == ROP_COPY) rop = ROP_MASK;
-        else { fg = (rop == ROP_XOR || rop == ROP_NOT) ? 1 : txtb; bg = rop == ROP_AND ? 1 : 0; }
+        else { fg = (rop == ROP_XOR || rop == ROP_NOT) ? weiss : txtb; bg = rop == ROP_AND ? weiss : 0; }
     }
     if (schnell && !(fstil & FS_UNDER)) {          /* Normalfall: ganze Bloecke in Assembler */
         WORD zb;
@@ -989,7 +1026,7 @@ static void tzeile(short x, short y, LPCSTR s, WORD n)
             return;
         }
         zb = ((RB * TBZ) / nb) & ~1;         /* so viele Zeilen passen in tb (kurze Texte: alle), gerade */
-        s_inv = rop == ROP_COPY && !fg && bg && !(x & 7);   /* schwarz auf weiss, ausgerichtet: hier invertieren, Treiber kopiert */
+        s_inv = !bunt && rop == ROP_COPY && !fg && bg && !(x & 7);   /* schwarz auf weiss, ausgerichtet: hier invertieren, Treiber kopiert */
         if (s_inv) { fg = 1; bg = 0; }
         s_o = go; s_n = n; s_seg = FP_SEG(fd); s_nb = nb; s_t = tb;
         for (r = 0; r < fh; r += zb) {
