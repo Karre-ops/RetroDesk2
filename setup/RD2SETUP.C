@@ -475,25 +475,47 @@ static int startfaehig(char lw, int y)            /* Variante A: leere Platte mi
     zeile(y, e == 0 ? "Festplatte ist startfaehig (FreeDOS-Kern)." : "FEHLER: Festplatte nicht startfaehig (SYS).");
     return e == 0 ? 1 : -1;
 }
+static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", 0 };   /* BIN: RDSWAP.BIN, DAT: FARBSYM.DAT */
+static void alle(const char *ziel, int y, int *k, int *fehl)       /* alle RD2-Dateien aus quelle nach ziel */
+{
+    char von[80], nach[80], z[80]; struct find_t ft; int i;
+    for (i = 0; muster[i]; i++) {
+        sprintf(von, "%s%s", quelle, muster[i]);
+        if (_dos_findfirst(von, _A_NORMAL, &ft)) continue;
+        do {
+            sprintf(von, "%s%s", quelle, ft.name); sprintf(nach, "%s%s", ziel, ft.name);
+            sprintf(z, "kopiere %s", ft.name); zeile(y, z);
+            if (kopieren(von, nach)) (*k)++; else (*fehl)++;
+        } while (!_dos_findnext(&ft));
+    }
+}
+static void weitere(const char *ziel, int y)      /* SPEC 12: Disketten 2 (Programme) und 3 (Netz) */
+{
+    static const char *nm[] = { "2 (RD2 PROG)", "3 (RD2 NETZ)" }, *mk[] = { "RDFDISK.EXE", "RDNET.EXE" };
+    char p[80], z[80]; int d, k, fehl; WORD t;
+    if ((quelle[0] & 0xDF) > 'B') return;         /* Quelle Festplatte: alles lag schon im Ordner */
+    for (d = 0; d < 2; d++) {
+        sprintf(p, "%s%s", quelle, mk[d]);
+        if (gibts(p)) continue;                   /* lag schon mit Diskette 1 vor (grosse Diskette) */
+        while (!gibts(p)) {
+            sprintf(z, "Diskette %s einlegen: Enter = weiter, Esc = auslassen", nm[d]); zeile(y, z);
+            if (((t = taste()) & 0xFF) == 27) break;
+        }
+        if (!gibts(p)) continue;
+        k = fehl = 0; alle(ziel, y, &k, &fehl);
+        sprintf(z, "Diskette %s: %d Dateien kopiert%s.", nm[d], k, fehl ? ", FEHLER" : ""); zeile(y, z);
+    }
+}
 static void installieren(void)
 {
-    static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", 0 };   /* BIN: RDSWAP.BIN fuer RunDos */
-    char ziel[64], von[80], nach[80], z[80]; struct find_t ft; int i, k = 0, fehl = 0, y = 17;
+    char ziel[64], nach[80], z[80]; int i, k = 0, fehl = 0, y = 17;
     sprintf(ziel, "%c:\\RD2", boot() == 'A' ? 'C' : boot());
     zeile(y, "Installieren nach:"); 
     if (!eingabe(19, y, ziel, 40)) { zeile(y, "Installation abgebrochen."); return; }
     if (ziel[strlen(ziel) - 1] != '\\') strcat(ziel, "\\");
     if (!stricmp(ziel, quelle)) { zeile(y + 1, "Ziel ist das Quellverzeichnis."); return; }
     if (strlen(ziel) < 4 || !ordner(ziel)) { zeile(y + 1, "Zielordner kann nicht angelegt werden."); return; }
-    for (i = 0; muster[i]; i++) {
-        sprintf(von, "%s%s", quelle, muster[i]);
-        if (_dos_findfirst(von, _A_NORMAL, &ft)) continue;
-        do {
-            sprintf(von, "%s%s", quelle, ft.name); sprintf(nach, "%s%s", ziel, ft.name);
-            sprintf(z, "kopiere %s", ft.name); zeile(y + 1, z);
-            if (kopieren(von, nach)) k++; else fehl++;
-        } while (!_dos_findnext(&ft));
-    }
+    alle(ziel, y + 1, &k, &fehl);
     sprintf(nach, "%sRD2.INI", ziel);
     if ((i = ini_schreiben(nach)) != 1) fehl++;
     sprintf(z, "%d Dateien kopiert%s.", k, i < 0 ? ", RD2.INI ueber 6 KB: nicht geaendert" : fehl ? ", FEHLER" : "");
@@ -504,6 +526,7 @@ static void installieren(void)
                : i == 1 ? "CONFIG.SYS: RD2 ist die Shell, alte Fassung: CONFIG.RDA." : "CONFIG.SYS angelegt, RD2 ist die Shell.");
     if (i == 1 && k) zeile(y + 3, "Hinweis: SET- und PATH-Zeilen der AUTOEXEC.BAT gelten mit RD2 als Shell nicht.");
     if ((ziel[0] & 0xDF) == 'C' && i != -2) startfaehig('C', y + 4);   /* G24: nur C: startet (aktive Partition der 1. Platte) */
+    weitere(ziel, y + 5);                         /* erst nach SYS: Kern und RDSYS liegen auf Diskette 1 */
     strcpy(ini, nach);
 }
 
