@@ -802,13 +802,14 @@ static void wechsel(char l)
     for (i = 0; i < MAXO; i++) if (od[i].w && od[i].pfad[0] == l) { od[i].pfad[3] = 0; f |= einlesen(&od[i]); }
     wl[k] = f ? 2 : 1;                            /* keine Diskette (Abbruch): bis "Neu einlesen" ruhen */
 }
+static COLOR dvorn = C_BLACK, dhint = C_WHITE;     /* Schreibtisch: Punktmuster, bunt einfarbig tuerkis */
 static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
 {
     PAINT ps; HDC d; RECT r; short i, y;
     switch (msg) {
     case M_PAINT:
         d = BeginPaint(w, &ps); GetClientRect(w, &r);
-        SetBrush(d, C_BLACK, PAT_GRAY50); SetBkColor(d, C_WHITE); FillRect(d, &r);
+        SetBrush(d, dvorn, PAT_GRAY50); SetBkColor(d, dhint); FillRect(d, &r);
         for (i = 0; i < nlw + nps; i++) lwmal(d, i);
         EndPaint(w, &ps); return 0;
     case M_BUTTONDOWN: case M_DBLCLK:
@@ -867,7 +868,9 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     (void)cmd; (void)show;
     inst = i;
     { SYSINFO si; KernInfo(&si); scpy(heim, si.home, sizeof heim); k = slen(heim); if (k && heim[k - 1] == '\\') heim[--k] = 0; if (k <= 2) heim[0] = 0; }
-    d = GetDC(0); W = GetCaps(d, CAPS_W); H = GetCaps(d, CAPS_H); th = GetCaps(d, CAPS_TEXTH); ReleaseDC(0, d);
+    d = GetDC(0); W = GetCaps(d, CAPS_W); H = GetCaps(d, CAPS_H); th = GetCaps(d, CAPS_TEXTH);
+    if (GetCaps(d, CAPS_FARBEN) > 2) dvorn = dhint = RGB(0, 128, 128);
+    ReleaseDC(0, d);
     mh = th + 4; ih = H <= 200 ? 16 : 32; zh = ih + th + 6;
     for (k = 1; k <= 26; k++)                     /* nur Typ, keine Diskette anfassen */
         if (!DriveInfo(k | DI_NURTYP, &di) && di.typ != DT_NONE && !(di.flags & DI_PHANTOM)) { lw[nlw] = (char)('A' + k - 1); lt[nlw++] = (char)di.typ; }

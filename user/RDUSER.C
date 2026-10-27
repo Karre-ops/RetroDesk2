@@ -50,6 +50,7 @@ typedef struct { BYTE w; RECT nr; } MERK;          /* Eintrag k = Parkplatz k */
 static MERK mk[NMK];
 static BYTE act, foc, cap, dsk;                   /* Nummern, 0 = keines; dsk = Schreibtisch der Shell */
 static short sw, sh, mh, th, mpx, mpy;                     /* Schirm, Menueleiste, Titelzeile */
+static COLOR ktitel, kdesk, kdesk2 = C_WHITE;              /* Farbschema; einfarbig schwarz/weiss */
 static DCX FAR *dcs; static GK FAR *gk;
 static HDC (FAR __pascal *gdc)(HWND);
 static struct { HDC dc; WORD n; RECT r[MAXCLIP]; } sl[NSLOT];
@@ -257,7 +258,7 @@ static void desk(void)
     HDC d = ndc(0, 1, 0); RECT r;
     if (!d) return;
     r.l = 0; r.t = mh; r.r = sw; r.b = sh;
-    SetPen(d, C_BLACK); SetBrush(d, C_BLACK, PAT_GRAY50); SetBkColor(d, C_WHITE); FillRect(d, &r);
+    SetBrush(d, kdesk, PAT_GRAY50); SetBkColor(d, kdesk2); FillRect(d, &r);
     fdc(d);
 }
 static void leiste(void)
@@ -283,7 +284,7 @@ static void rahmen(WORD i)
     if (b) Frame(d, &r);
     if (t) {
         c.l = b; c.t = b; c.r = wd - b; c.b = b + t - 1;
-        SetBrush(d, i == act ? C_BLACK : C_WHITE, PAT_SOLID); FillRect(d, &c);
+        SetBrush(d, i == act ? ktitel : C_WHITE, PAT_SOLID); FillRect(d, &c);
         Line(d, b, b + t - 1, wd - b - 1, b + t - 1);
         SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, i == act ? C_WHITE : C_BLACK);
         if (w_[i].flags & F_MIN) { TextOut(d, b + 3, b + 1, w_[i].text, -1); fdc(d); return; }   /* geparkt: nur Titel */
@@ -1297,6 +1298,7 @@ static int schirm_(void)                           /* erst beim ersten Fenster: 
     if (sw) return 1;
     if (!(d = gdc(0))) return 0;
     sw = GetCaps(d, CAPS_W); sh = GetCaps(d, CAPS_H); th = GetCaps(d, CAPS_TEXTH) + 3; mh = th + 1;
+    if (GetCaps(d, CAPS_FARBEN) > 2) { ktitel = RGB(0, 0, 128); kdesk = kdesk2 = RGB(0, 128, 128); }   /* bunt: Titel dunkelblau, Schreibtisch tuerkis */
     spr = LangGet();
     DCFree(d);
     desk(); leiste();
