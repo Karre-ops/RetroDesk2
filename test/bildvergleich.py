@@ -1,5 +1,6 @@
 """bildvergleich.py foto.ppm referenz.png [...]: Schwarz/Weiss-Vergleich Pixel fuer Pixel.
 Die Uhr oben rechts (64 x Hoehe/20) wird nicht verglichen, ausser mit MIT_UHR=1.
+BV_MASKE="name:x0,y0,x1,y1;..." blendet wechselnde Stellen in Bildern aus, deren Dateiname name enthaelt.
 Fehlt die Referenz, wird das Foto nur als PNG abgelegt (obj/*.png) und als neu gemeldet."""
 import sys, os
 from PIL import Image
@@ -20,6 +21,12 @@ for foto, ref in zip(a[0::2], a[1::2]):
         from PIL import ImageDraw
         w, h = r.size; k = (w - 64, 0, w - 1, h // 20)
         b = b.copy(); r = r.copy(); ImageDraw.Draw(b).rectangle(k, fill=1); ImageDraw.Draw(r).rectangle(k, fill=1)
+    for m in filter(None, os.environ.get('BV_MASKE', '').split(';')):
+        n, k = m.split(':')
+        if n in os.path.basename(foto):
+            from PIL import ImageDraw
+            k = tuple(int(v) for v in k.split(','))
+            b = b.copy(); r = r.copy(); ImageDraw.Draw(b).rectangle(k, fill=1); ImageDraw.Draw(r).rectangle(k, fill=1)
     d = sum(1 for p, q in zip(b.tobytes(), r.tobytes()) if p != q)
     print(("ok    " if d == 0 else "FEHLER") + f" {foto}: {d} Pixel abweichend")
     fehler += d != 0

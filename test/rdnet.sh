@@ -79,5 +79,6 @@ ok "Test: IRC erreichbar" "grep -q 'Test: IRC-Server erreichbar' <<< \"\$S\""
 ok "Test: Zeit 26.10.2026 11:30:00 (Berlin, Winterzeit)" "grep -q 'Test: Zeit: 26.10.2026 11:30:0' <<< \"\$S\""
 ok "Speicher zurueck (2 Laeufe)" "[ \$(grep -c 'Speicher vollstaendig zurueck' <<< \"\$S\") -ge 2 ]"
 for f in obj/rdnet?_*.ppm; do [ -f "$f" ] && python3 -c "from PIL import Image; Image.open('$f').save('${f%.ppm}.png')"; done
-[ -f test/ref/rdnet1_vga.png ] && python3 test/bildvergleich.py $(for f in obj/rdnet?_*.png; do echo $f test/ref/$(basename $f); done)
+# Seite 2: aktuelle Adresse/Lease wechselt, Feld ausgeblendet
+[ -f test/ref/rdnet1_vga.png ] && BV_MASKE="rdnet2:180,320,330,336" python3 test/bildvergleich.py $(for f in obj/rdnet?_*.png; do echo $f test/ref/$(basename $f); done)
 exit 0

@@ -274,10 +274,10 @@ HMOD k_sysmod(const char *name, WORD base, WORD n, const WORD *extra)
     if (md[m].flags & PF_DISCARD) { mem_put(md[m].base); md[m].loaded = 0; }   /* verwerfbar: erst beim ersten Aufruf laden */
     return m;
 }
-void k_modrest(void)                              /* Ende von RD: von Programmen geladene Module (RDTCP ueber RDKX) */
+void k_modrest(HMOD ausser)                       /* Ende von RD: von Programmen geladene Module (RDTCP ueber RDKX); RDAUSL nicht (ausser, endet nach der Speicherpruefung) */
 {
     WORD m;
-    for (m = 1; m <= MAXMOD; m++) if (md[m].used && md[m].refs) { md[m].refs = 1; k_sysend(m); }
+    for (m = 1; m <= MAXMOD; m++) if (m != ausser && md[m].used && md[m].refs) { md[m].refs = 1; k_sysend(m); }
 }
 void __far *k_modraw(HMOD m, WORD nr)
 {

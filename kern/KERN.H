@@ -96,7 +96,7 @@ int   k_dos(void);
 HMOD  k_sysmod(const char *name, WORD base, WORD n, const WORD *extra);
 void  k_sysend(HMOD m);
 void __far *k_modraw(HMOD m, WORD nr);
-void k_modrest(void);          /* Exportadresse direkt (Systemmodule, ohne Sprungstueck) */
+void k_modrest(HMOD ausser);          /* Exportadresse direkt (Systemmodule, ohne Sprungstueck) */
 extern WORD (__far __pascal *k_mausget)(WORD __far *e);
 extern void (__far __pascal *k_gdipause)(WORD an);  /* RDGDI: 0 Textmodus/Maus aus, 1 wieder an (RunDos) */
 WORD mem_arena(WORD __far *a);

@@ -168,7 +168,7 @@ int main(int argc, char **argv)
     k_sysend(user);
     k_sysend(gdi);                                /* zurueck in den Textmodus, Maus aus */
     k_sysend(kxm);
-    k_modrest();
+    k_modrest(ausm);
     nach = mem_free_bytes(0);
     k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);
     k_out(vor == nach ? "RD: Speicher vollstaendig zurueck" : "RD: SPEICHERLECK", 1);
