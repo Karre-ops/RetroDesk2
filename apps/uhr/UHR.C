@@ -137,6 +137,7 @@ static DWORD RDCALLBACK proc(HWND w, WORD msg, WORD p1, DWORD p2)
     case M_NETSTATE: case M_NETRESOLVED: case M_NETCONNECT: case M_NETDATA: netzmsg(msg, p1, p2); return 0;
     case M_KEY:                                   /* Alt+S/Eingabe Stellen, Alt+B BIOS, Esc schliesst */
         if (p1 == K_ESC) { DestroyWindow(w); return 0; }
+        if (p1 == K_F1) { HelpShow(w, "RD2.HLP", 7); return 0; }
         if (p1 == K_ENTER || p1 == 0x11F) p1 = ID_STELLEN; else if (p1 == 0x130) p1 = ID_BIOS; else if (p1 == 0x131) p1 = ID_NETZ; else break;
         /* weiter wie Knopf */
     case M_COMMAND:

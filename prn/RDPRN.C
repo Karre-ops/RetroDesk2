@@ -1,4 +1,4 @@
-/* RDPRN.C - Drucken (RDPRN.MOD), geladen von RDKX bei PrnOpen..PrnAbort (API 0x3C0..0x3C3).
+/* RDPRN.C - Drucken (RDPRN.MOD), geladen von RDKX bei PrnOpen..PrnAbort (API 0x3C0..0x3C3), ausserdem HelpShow (F1).
  * RD2.INI [Drucker]: Treiber=EPSON9 (-> EPSON9.DRV), Port=1..3 (LPT) oder 0 (Datei), Datei=Pfad
  * (Vorgabe DRUCK.PRN im RD2-Ordner; nicht PRN.*, das ist unter DOS das Druckergeraet), Entwurf=0/1. PrnOpen mit PJ_DIALOG zeigt den Druckdialog
  * (Anschluss, Kopien, Entwurf) und merkt sich die Wahl.
@@ -235,6 +235,27 @@ static WORD RDEXPORT p_PrnAbort(HDC dc, void FAR *x)
 }
 static void RDEXPORT p_Ende(void) { schluss(TRUE); selbst = 0; }   /* RD endet mit offenem Auftrag */
 
-static struct { WORD n; FARPROC f[5]; } ext = { 5, {
-    (FARPROC)p_Ende, (FARPROC)p_PrnOpen, (FARPROC)p_PrnPage, (FARPROC)p_PrnClose, (FARPROC)p_PrnAbort } };
+/* ---- HelpShow (API 0x2D3, Nr. 6): startet HILFE.EXE aus dem RD2-Ordner mit "datei thema" und kehrt sofort zurueck.
+ * Liegt hier, weil RDKX keinen Platz fuer ein eigenes Lademodul hatte (27.10.2026). ---- */
+typedef struct { WORD t; LPCSTR d; } HARG;    /* so liegen die Parameter von HelpShow auf dem Stapel (pascal) */
+
+static WORD RDEXPORT h_Show(HWND w, HARG FAR *a)
+{
+    SYSINFO si; char p[80], c[90]; WORD i = 0, k = 0, t; char z[6];
+    (void)w;
+    KernInfo(&si);
+    while (si.home[i] && i < 66) { p[i] = si.home[i]; i++; }
+    if (i && p[i - 1] != '\\') p[i++] = '\\';
+    { static const char n[] = "HILFE.EXE"; for (k = 0; k < sizeof n; k++) p[i + k] = n[k]; }
+    k = 0;
+    if (a && a->d) while (a->d[k] && k < 80) { c[k] = a->d[k]; k++; }
+    c[k++] = ' ';
+    t = a ? a->t : 0; i = 0;
+    do { z[i++] = (char)('0' + t % 10); t /= 10; } while (t && i < 5);
+    while (i) c[k++] = z[--i];
+    c[k] = 0;
+    return TaskExec(p, c, SW_SHOW) != 0;
+}
+static struct { WORD n; FARPROC f[6]; } ext = { 6, {
+    (FARPROC)p_Ende, (FARPROC)p_PrnOpen, (FARPROC)p_PrnPage, (FARPROC)p_PrnClose, (FARPROC)p_PrnAbort, (FARPROC)h_Show } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

@@ -72,6 +72,8 @@ mv $O/RDTCP.MOD.exe $O/RDTCP.MOD 2>/dev/null || true
 python3 tools/rd2link.py $O/RDTCP.MOD "TCP/IP" --type M --flags 0 >/dev/null
 for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT; do app apps/test/$t.C $t.EXE "$t"; done
 app shell/SHELL.C SHELL.EXE "Shell"
+app apps/hilfe/HILFE.C HILFE.EXE "Hilfe"   # F1: HelpShow -> RDKX -> RDPRN.MOD Nr. 6 -> HILFE.EXE
+iconv -f UTF-8 -t CP437 docs/RD2_HLP.txt > $O/RD2.HLP
 app apps/uhr/UHR.C UHR.EXE "Uhr"   # voller Stapel: GetDC laedt Treiber und Module auf dem Stapel des Programms
 app apps/notiz/NOTIZ.C NOTIZ.EXE "Notizblock"
 app apps/net/RDNET.C RDNET.EXE "Netzwerk"

@@ -475,7 +475,7 @@ static int startfaehig(char lw, int y)            /* Variante A: leere Platte mi
     zeile(y, e == 0 ? "Festplatte ist startfaehig (FreeDOS-Kern)." : "FEHLER: Festplatte nicht startfaehig (SYS).");
     return e == 0 ? 1 : -1;
 }
-static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", 0 };   /* BIN: RDSWAP.BIN, DAT: FARBSYM.DAT */
+static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", 0 };   /* BIN: RDSWAP.BIN, DAT: FARBSYM.DAT, HLP: Hilfe */
 static void alle(const char *ziel, int y, int *k, int *fehl)       /* alle RD2-Dateien aus quelle nach ziel */
 {
     char von[80], nach[80], z[80]; struct find_t ft; int i;

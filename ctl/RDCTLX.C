@@ -172,11 +172,11 @@ static BOOL RDEXPORT x_FileDialog(HWND owner, FILEDLG FAR *fd)
 #define T_SCROLL 12
 static WORD istdlg(HWND p) { return p && GetWindowData(p, 3) == (MAGIC | T_DLG); }
 static void melde(HWND h, WORD n) { HWND p = GetParent(h); if (p) SendMessage(p, M_COMMAND, (WORD)GetWindowData(h, WD_ID), MAKELONG(h, n)); }
-static int weiter(HWND h, WORD k, DWORD p2)       /* Tab, Esc, Alt+.. an den Dialog; Strg+Buchstabe und Esc an jede Eltern */
+static int weiter(HWND h, WORD k, DWORD p2)       /* Tab, Esc, Alt+.. an den Dialog; Strg+Buchstabe, Esc und F1 an jede Eltern */
 {
     HWND p = GetParent(h);
     if ((k == K_TAB || k == K_ESC || (HIWORD(p2) & KS_ALT)) && istdlg(p)) { SendMessage(p, M_KEY, k, p2); return 1; }
-    if ((((HIWORD(p2) & KS_CTRL) && k < 0x20) || k == K_ESC) && p) { SendMessage(p, M_KEY, k, p2); return 1; }
+    if ((((HIWORD(p2) & KS_CTRL) && k < 0x20) || k == K_ESC || k == K_F1) && p) {   /* F1: Hilfe des Programms */ SendMessage(p, M_KEY, k, p2); return 1; }
     return 0;
 }
 static void neu(HWND h) { InvalidateRect(h, 0, FALSE); }

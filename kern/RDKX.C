@@ -363,9 +363,12 @@ static HDC  RDEXPORT k_PrnOpen(HWND w, PRNJOB FAR *j) { return prn(2, w, j); }
 static WORD RDEXPORT k_PrnPage(HDC dc) { return prn(3, dc, 0); }
 static WORD RDEXPORT k_PrnClose(HDC dc) { return prn(4, dc, 0); }
 static void RDEXPORT k_PrnAbort(HDC dc) { prn(5, dc, 0); }
-static struct { WORD n; FARPROC f[17]; } ext = { 17, {
+/* F1-Hilfe: RDPRN.MOD Nr. 6 startet HILFE.EXE (eigenes Modul passte nicht mehr in RDKX). pascal: t liegt vor d auf
+ * dem Stapel, &t zeigt also auf { WORD t; LPCSTR d; } (HARG in RDPRN) */
+static BOOL RDEXPORT k_HelpShow(HWND w, LPCSTR d, WORD t) { (void)d; return (BOOL)prn(6, w, (PRNJOB FAR *)&t); }
+static struct { WORD n; FARPROC f[18]; } ext = { 18, {
     (FARPROC)k_ende, (FARPROC)k_TimeGet, (FARPROC)k_TimeSet, (FARPROC)k_LangGet, (FARPROC)k_ResLoad,
     (FARPROC)k_ResFree, (FARPROC)k_StrLoad, (FARPROC)k_StrGet, (FARPROC)k_DbgBreak,
     (FARPROC)x_BmpLoad, (FARPROC)x_BmpLoadFile, (FARPROC)x_IconDraw, (FARPROC)k_NetStart,
-    (FARPROC)k_PrnOpen, (FARPROC)k_PrnPage, (FARPROC)k_PrnClose, (FARPROC)k_PrnAbort } };
+    (FARPROC)k_PrnOpen, (FARPROC)k_PrnPage, (FARPROC)k_PrnClose, (FARPROC)k_PrnAbort, (FARPROC)k_HelpShow } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

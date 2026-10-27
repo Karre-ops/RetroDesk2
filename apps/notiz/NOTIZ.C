@@ -94,6 +94,7 @@ static DWORD RDAPI proc(HWND w, WORD msg, WORD p1, DWORD p2)
         if (p1 == 0x13 && (HIWORD(p2) & KS_CTRL)) speichern();
         else if (p1 == 0x0F && (HIWORD(p2) & KS_CTRL)) dialog(0);
         else if (p1 == K_ESC) PostMessage(w, M_CLOSE, 0, 0);
+        else if (p1 == K_F1) HelpShow(w, "RD2.HLP", 7);
         else break;
         return 0;
     case M_COMMAND:

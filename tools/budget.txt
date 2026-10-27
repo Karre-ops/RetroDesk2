@@ -62,7 +62,9 @@ RDIRC.EXE       12288   20   N  IRC: Verlauf 120 Zeilen, UTF-8/CP437, ZNC-Kennwo
 RDSHELL.EXE     14336   20   P  DOS-Fenster: DIR CD COPY DEL TYPE ... eingebaut, sonst RunDos (Punkt 8)
 RDCALC.EXE      90112   80   L
 RDEDIT.EXE      65536   60   P
-RDPRN.MOD        6144    8   P  Drucken: Druckdialog, Baender (48 Zeilen), LPT direkt/Datei (Punkt 7; RDKX laedt es bei PrnOpen, 27.10.)
+RDPRN.MOD        6144    8   P  Drucken (und HelpShow -> HILFE.EXE): Druckdialog, Baender (48 Zeilen), LPT direkt/Datei (Punkt 7; RDKX laedt es bei PrnOpen, 27.10.)
+HILFE.EXE        8192   16   P  Hilfeanzeige (F1, Punkt 10): Themen, Verweise, Zurueck; startet ueber HelpShow
+RD2.HLP         16384    0   P  Hilfetext RD2 (deutsch), Format docs/HILFE.md
 EPSON9.DRV       3072    3   P
 RDDISK.MOD       4096    4   P  Laufwerkszugriff fuer RDFORMAT/RD2SETUP: INT 13h, INT 21h IOCTL 44xxh, 60h, INT 25h/26h (24.10.)
 RDFDISK.EXE     40960    0   P  Partitionieren (GPL v2, aus Free FDISK)

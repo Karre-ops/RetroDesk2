@@ -575,6 +575,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         if (i != o->oben) { o->oben = i; rollen(o); InvalidateRect(w, 0, FALSE); }
         return 0;
     case M_KEY:
+        if (p1 == K_F1) { HelpShow(w, "RD2.HLP", 5); return 0; }
         y = (HIWORD(p2) & KS_SHIFT) && (p1 == K_UP || p1 == K_DOWN || p1 == K_LEFT || p1 == K_RIGHT);   /* Umschalt+Pfeil: mitmarkieren */
         if (y) setzen(o, o->sel, o->sel);
         if (p1 == K_LEFT) neusel(o, o->sel - 1);
@@ -833,6 +834,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == K_ENTER && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
         else if (p1 == K_ENTER && nlw && (HIWORD(p2) & KS_ALT)) lwinfo();   /* Alt+Eingabe: Eigenschaften */
         else if (p1 == K_ENTER && nlw) ordner_auf(lw[lsel], 0, 0);
+        else if (p1 == K_F1) HelpShow(w, "RD2.HLP", 2);
         else return DefWindowProc(w, msg, p1, p2);
         return 0;
     case M_SYSMENU:

@@ -1,0 +1,6 @@
+; Ressourcen fuer HILFE.EXE
+SPRACHE DE
+TEXTE
+  1 "Hilfe"
+  2 "Die Hilfedatei fehlt (Programmdiskette einlegen oder RD2 installieren)."
+ENDE

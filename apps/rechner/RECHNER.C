@@ -42,6 +42,7 @@ static DWORD RDAPI proc(HWND w, WORD msg, WORD p1, DWORD p2)
         return 0;
     case M_KEY:
         if (p1 == K_ESC) PostMessage(w, M_CLOSE, 0, 0);
+        else if (p1 == K_F1) HelpShow(w, "RD2.HLP", 7);
         else if (p1 == K_ENTER) taste('=');
         else if (p1 == K_BACK) taste('\b');
         else if (p1 == K_DEL) taste('C');

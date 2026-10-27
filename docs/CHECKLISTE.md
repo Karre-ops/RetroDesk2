@@ -94,7 +94,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Zwischenablage | da | |
 | Programmanmeldung `.APP`, Dateitypen öffnen das passende Programm | erledigt 25.10. | |
 | Diskettenwechsel erkennen, Liste aktualisieren | erledigt 25.10. | |
-| Hilfesystem (F1) | fehlt | `HelpShow` nur festgelegt |
+| Hilfesystem (F1) | erledigt 27.10. | HILFE.EXE + RD2.HLP (Inhalt, 13 Themen, Verweise, zurück), HelpShow über RDKX -> RDPRN.MOD Nr. 6; F1 in Schreibtisch, Ordner, Notiz, Rechner, Uhr; docs/HILFE.md, test/hilfe.sh |
 | RDSND: Speaker- und AdLib-Treiber, IMF/DRO, WAV über Lautsprecher | erledigt 26.10. | Treiber SPEAKER.DRV (Töne und Samples, Uhr läuft weiter), ADLIB.DRV, SB.DRV, COVOX.DRV (LPT1). Musik IMF/DRO in RDMUS.MOD, WAV (8 Bit mono) per `SndWavLoad` aus RD2.LIB. MPU-401 später. test/klang.sh |
 | Joystick | fehlt | `JoyRead` nur festgelegt |
 | Drucken: 9-Nadel-Treiber (ESC/P), Druckdialog | erledigt 27.10. | RDPRN.MOD (RDKX lädt es bei PrnOpen): Druckdialog (LPT1/LPT2/Datei DRUCK.PRN, Kopien, Entwurf), Seite in Bändern zu 48 Zeilen (5,6 KB statt 95 KB), LPT direkt am Port mit Rückfrage „nicht bereit“. EPSON9.DRV: ESC L 120 x 72 dpi, Entwurf ESC K 60 dpi, leere Bereiche nur Vorschub. RD2.INI [Drucker]. test/drucken.sh (QEMU-Druckerport, test/escp.py als Bild) |

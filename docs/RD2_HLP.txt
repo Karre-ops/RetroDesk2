@@ -1,0 +1,91 @@
+# RD2.HLP - Hilfe zu RetroDesk 2 (Quelle UTF-8, build.sh wandelt nach CP437). Format: docs/HILFE.md
+@0 Inhalt
+Willkommen bei RetroDesk 2. Wählen Sie ein Thema:
+
+{Erste Schritte|1}
+{Der Schreibtisch|2}
+{Fenster|3}
+{Tastatur|4}
+{Dateien und Ordner|5}
+{Programme starten|6}
+{Zubehör|7}
+{DOS-Programme|8}
+{Drucken|9}
+{Netzwerk|10}
+{Disketten und Festplatte|11}
+{Einrichtung (RD2SETUP)|12}
+
+{So benutzen Sie die Hilfe|13}
+@1 Erste Schritte
+RetroDesk 2 ist eine grafische Oberfläche für DOS-Rechner vom XT bis zum Pentium. Es läuft von Diskette oder von der Festplatte.
+Beim ersten Start erkennt die {Einrichtung|12} Grafikkarte, Maus und Klang und speichert alles in RD2.INI.
+Oben liegt die Menüleiste, darunter der {Schreibtisch|2} mit den Laufwerken. Ein Doppelklick auf ein Laufwerk öffnet es als {Ordnerfenster|5}.
+Ohne Maus geht alles auch mit der {Tastatur|4}.
+Zurück zum {Inhalt|0}.
+@2 Der Schreibtisch
+Der Schreibtisch zeigt die Laufwerke und die Programme, die Sie dort abgelegt haben.
+Das Menü RD ganz links enthält Info, {Zubehör|7}, Einstellungen und Beenden.
+Ein Klick mit der rechten Maustaste auf ein Symbol öffnet sein Menü, zum Beispiel Öffnen, Laufwerksinfo oder Formatieren.
+Programme legen Sie mit "Auf den Schreibtisch" aus dem Programmmenü ab, siehe {Programme starten|6}.
+Rechts in der Menüleiste steht die Uhrzeit.
+@3 Fenster
+Jedes Fenster hat rechts im Titel drei Felder: Minimieren (Strich), Maximieren (Viereck) und Schließen (X).
+Ein Doppelklick auf den Titel maximiert das Fenster oder stellt es wieder her, ebenso Alt+F10.
+Minimierte Fenster liegen klein unten links auf dem Schreibtisch. Ein Klick holt sie zurück.
+Die Größe ändern Sie am Fensterrand. Alt+Tab wechselt zum nächsten Programm, Alt+F4 schließt das Fenster.
+Siehe auch {Tastatur|4}.
+@4 Tastatur
+Alt oder F10: Menüleiste öffnen
+Alt+Buchstabe: Menü öffnen
+Pfeile, Eingabe, Esc: im Menü wählen, ausführen, abbrechen
+Tab: nächstes Feld im Dialog
+Alt+Tab: nächstes Programm
+Alt+F4: Fenster schließen
+Alt+F10: Fenster maximieren oder zurück
+F1: Hilfe
+Strg+Alt+Rückschritt: hängendes Programm beenden
+
+Siehe auch {Fenster|3} und {So benutzen Sie die Hilfe|13}.
+@5 Dateien und Ordner
+Ein Doppelklick auf ein Laufwerk oder einen Ordner öffnet ein Ordnerfenster. Dateien lassen sich kopieren, verschieben, umbenennen und löschen.
+Beim Löschen, Überschreiben oder Verschieben wichtiger Systemdateien fragt RetroDesk 2 zusätzlich nach.
+Textdateien öffnet ein Doppelklick im Editor oder im Notizblock.
+@6 Programme starten
+RetroDesk-Programme und DOS-Programme starten mit einem Doppelklick im Ordnerfenster oder aus dem Programmmenü.
+Mit "Auf den Schreibtisch" legen Sie ein Programm als Symbol auf den {Schreibtisch|2}.
+Wie DOS-Programme laufen, steht unter {DOS-Programme|8}.
+@7 Zubehör
+Im Menü RD unter Zubehör finden Sie:
+Uhr: große Anzeige, Uhrzeit stellen, auf Wunsch Netzzeit (siehe {Netzwerk|10})
+Notizblock: kurze Texte
+Rechner: Grundrechenarten
+Optionen: Klänge und weitere Einstellungen
+Netzwerk, FTP und IRC: siehe {Netzwerk|10}
+DOS-Fenster: DOS-Befehle wie DIR und CD
+@8 DOS-Programme
+DOS-Programme laufen ohne Umweg über eine Eingabeaufforderung. RetroDesk 2 räumt dafür den Speicher, startet das Programm und kehrt danach mit allen Fenstern zurück.
+Auf der Festplatte lagert RetroDesk 2 sich dazu aus (XMS oder Datei). Von Diskette beendet es sich und startet danach neu.
+Bleibt ein Programm resident, entfernt RetroDesk 2 es wieder und zeigt einen Hinweis.
+Für kurze Befehle gibt es das DOS-Fenster im {Zubehör|7}.
+@9 Drucken
+Programme mit Druckfunktion zeigen den Druckdialog: Anschluss LPT1, LPT2 oder Datei, Zahl der Kopien und Entwurf.
+Unterstützt werden Epson-kompatible 9-Nadel-Drucker. Druck in eine Datei landet in DRUCK.PRN im RD2-Ordner.
+Ist der Drucker nicht bereit, fragt RetroDesk 2, ob es noch einmal versuchen soll.
+@10 Netzwerk
+RetroDesk 2 hat einen eigenen TCP/IP-Teil. Nötig ist ein Paketreiber für die Netzwerkkarte, der vor RetroDesk 2 geladen wird.
+Im Programm Netzwerk stellen Sie die Adresse ein (fest oder per DHCP). Danach gehen FTP, IRC und die Netzzeit der Uhr.
+Die Netzwerkprogramme liegen auf Diskette 3.
+@11 Disketten und Festplatte
+RetroDesk 2 kommt auf vier Disketten: 1 System (startfähig), 2 Programme, 3 Netz, 4 SDK.
+Für eine neue Festplatte: mit FDISK im Laufwerksmenü partitionieren, neu starten, mit Formatieren formatieren und dann mit der {Einrichtung|12} installieren.
+Disketten formatieren Sie über das Laufwerksmenü auf dem {Schreibtisch|2}.
+@12 Einrichtung (RD2SETUP)
+RD2SETUP erkennt die Hardware einmal beim ersten Start und speichert sie in RD2.INI. Sie können es jederzeit erneut starten.
+Pfeile wählen einen Punkt, Eingabe ändert ihn. E erkennt neu, A setzt alles neu, S speichert.
+I installiert RetroDesk 2 auf die Festplatte. Danach fragt die Einrichtung nach den Disketten 2 und 3. Auf Wunsch macht sie die Festplatte mit dem FreeDOS-Kern startfähig.
+@13 So benutzen Sie die Hilfe
+Unterstrichene Wörter sind Verweise auf andere Themen.
+Tab und Umschalt+Tab wählen einen Verweis, Eingabe oder ein Mausklick folgt ihm.
+Rückschritt oder die rechte Maustaste geht zum vorigen Thema zurück. I zeigt den {Inhalt|0}.
+Pfeile, Bild auf und Bild ab blättern. Esc schließt die Hilfe.
+F1 öffnet die Hilfe in jedem Programm, das sie anbietet.
