@@ -1,0 +1,23 @@
+RetroDesk 2 - Quelltext der GPL-Teile (schriftliches Angebot)
+
+Auf den RetroDesk-2-Disketten liegen Programme unter der GNU General
+Public License Version 2 (Text: COPYING):
+
+  KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert
+                Quelle: ke2046s.zip, github.com/FDOS/kernel (Release ke2046)
+  CTMOUSE.EXE   CuteMouse 2.1, unveraendert
+                Quelle: cutemouse.sourceforge.net, ibiblio.org/pub/micro/pc-stuff/freedos
+  RDSYS.EXE     FreeDOS SYS (aus github.com/FDOS/kernel, Ordner sys)
+  RDFORMAT.EXE  FreeDOS FORMAT 0.92a (github.com/FDOS/format), geaendert
+  RDFDISK.EXE   Free FDISK (github.com/FDOS/fdisk), geaendert
+
+Angebot nach Abschnitt 3 b der GPL v2:
+Fuer mindestens drei Jahre ab der Weitergabe dieser Disketten liefert
+der Autor von RetroDesk 2 jedem Dritten auf Anfrage den vollstaendigen,
+maschinenlesbaren Quelltext dieser Programme (einschliesslich der
+Aenderungen fuer RetroDesk 2 und der Skripte zum Uebersetzen) auf
+Diskette oder per Download, gegen hoechstens die Kosten fuer
+Datentraeger und Versand.
+
+Anfrage an: @@KONTAKT@@
+

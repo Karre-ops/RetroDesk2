@@ -1,15 +1,32 @@
-RetroDesk 2 - Lizenzen (Kurzfassung, Stand 27.10.2026)
+RetroDesk 2 - Lizenzen (Stand 27.10.2026)
 
-SDK (RD2.H, RD2.LIB, RD2START.ASM): MIT-Lizenz.
+1. RetroDesk 2 (Kern, Module, Treiber, Shell, Programme): FREEWARE
+   (c) 2026 Karsten. Alle Rechte vorbehalten.
+   - Die Nutzung ist kostenlos, privat und gewerblich.
+   - Die Disketten duerfen unveraendert und vollstaendig kostenlos
+     weitergegeben werden. Verkauf oder Weitergabe gegen Entgelt ist
+     nur mit Erlaubnis des Autors gestattet.
+   - Der Quelltext wird nicht veroeffentlicht. Aendern, Zerlegen
+     (Disassemblieren) und Weitergabe veraenderter Fassungen sind
+     nicht gestattet, soweit das Gesetz es nicht ausdruecklich erlaubt.
+   - Keine Gewaehrleistung. Nutzung auf eigene Gefahr. Der Autor haftet
+     nur bei Vorsatz und grober Fahrlaessigkeit.
 
-Fremde Teile unter der GNU General Public License Version 2 (Text: COPYING):
-  KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert
-  CTMOUSE.EXE   CuteMouse 2.1, unveraendert
-  RDSYS.EXE     FreeDOS SYS
-  RDFORMAT.EXE  FreeDOS FORMAT mit RD2-Oberflaeche (geaendert fuer RetroDesk 2)
-  RDFDISK.EXE   Free FDISK mit RD2-Oberflaeche (geaendert fuer RetroDesk 2)
+2. SDK (RD2.H, RD2API.H, RD2DRV.H, RD2ORD.H, RD2START.ASM, RD2MOD.ASM,
+   RD2.LIB): MIT-Lizenz. Eigene Programme fuer RetroDesk 2 duerfen
+   frei erstellt und unter beliebiger Lizenz weitergegeben werden.
 
-Diese Teile werden OHNE JEDE GEWAEHRLEISTUNG weitergegeben (GPL v2, Abschnitte 11 und 12).
-Quelltext der GPL-Teile: siehe Diskette 4 (RD2 EXTRA).
+3. Fremde Teile unter der GNU General Public License Version 2
+   (Text: COPYING). Fuer sie gilt die GPL, nicht Abschnitt 1:
+     KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert
+     CTMOUSE.EXE   CuteMouse 2.1, unveraendert
+     RDSYS.EXE     FreeDOS SYS
+     RDFORMAT.EXE  FreeDOS FORMAT, geaendert fuer RetroDesk 2
+     RDFDISK.EXE   Free FDISK, geaendert fuer RetroDesk 2
+   Diese Teile werden OHNE JEDE GEWAEHRLEISTUNG weitergegeben
+   (GPL v2, Abschnitte 11 und 12). Quelltext: siehe QUELLEN.TXT.
+   Die uebrigen Programme liegen nur auf denselben Disketten und
+   fallen dadurch nicht unter die GPL.
 
-MS-DOS liegt nicht bei. Wer MS-DOS 5 oder hoeher besitzt, kann mit SYS A: tauschen.
+MS-DOS liegt nicht bei. Wer MS-DOS 5 oder hoeher besitzt, kann mit
+SYS A: tauschen.

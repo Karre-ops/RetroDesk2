@@ -21,14 +21,14 @@ f.seek(0); f.write(d)
 PY
 mcopy -i $O/RD2_1.IMG $K ::/KERNEL.SYS
 printf 'INSTALL=A:\\RD2\\CTMOUSE.EXE\r\nSHELL=A:\\RD2\\RD.EXE /P A:\\RD2\\SHELL.EXE\r\n' > $T/CONFIG.SYS
-txt disk/fdsys/COPYING COPYING; txt docs/LIZENZ.TXT LIZENZ.TXT
-mcopy -i $O/RD2_1.IMG $T/CONFIG.SYS $T/COPYING $T/LIZENZ.TXT ::/
+txt disk/fdsys/COPYING COPYING; txt docs/LIZENZ.TXT LIZENZ.TXT; txt docs/QUELLEN.TXT QUELLEN.TXT
+mcopy -i $O/RD2_1.IMG $T/CONFIG.SYS $T/COPYING $T/LIZENZ.TXT $T/QUELLEN.TXT ::/
 mmd -i $O/RD2_1.IMG ::/RD2; kopie RD2_1.IMG $(liste S)
 # Disketten 2 bis 4
-neu RD2_2.IMG "RD2 PROG"; mmd -i $O/RD2_2.IMG ::/RD2; kopie RD2_2.IMG $(liste P); mcopy -i $O/RD2_2.IMG $T/COPYING ::/
+neu RD2_2.IMG "RD2 PROG"; mmd -i $O/RD2_2.IMG ::/RD2; kopie RD2_2.IMG $(liste P); mcopy -i $O/RD2_2.IMG $T/COPYING $T/QUELLEN.TXT ::/
 neu RD2_3.IMG "RD2 NETZ"; mmd -i $O/RD2_3.IMG ::/RD2; kopie RD2_3.IMG $(liste N)
 neu RD2_4.IMG "RD2 EXTRA"; mmd -i $O/RD2_4.IMG ::/SDK
 mcopy -i $O/RD2_4.IMG sdk/RD2.H sdk/RD2API.H sdk/RD2DRV.H sdk/RD2ORD.H sdk/RD2START.ASM sdk/RD2MOD.ASM out/RD2.LIB ::/SDK/
-mcopy -i $O/RD2_4.IMG $T/COPYING ::/
+mcopy -i $O/RD2_4.IMG $T/COPYING $T/LIZENZ.TXT $T/QUELLEN.TXT ::/
 for i in 1 2 3 4; do echo "RD2_$i.IMG: $(mdir -i $O/RD2_$i.IMG -/ :: | tail -1)"; done
 python3 -c "import shutil; shutil.rmtree('$T', True)"
