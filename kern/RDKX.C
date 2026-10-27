@@ -128,6 +128,16 @@ static HMEM RDEXPORT k_ResLoad(HINST i, WORD typ, WORD nr)
 }
 static void RDEXPORT k_ResFree(HMEM r) { if (r) MemFree(r); }
 
+/* Datei im RD2-Verzeichnis oeffnen (DE.LNG, FARBSYM.DAT) */
+static short hopen(const char *name)
+{
+    SYSINFO si; WORD n;                           /* auf dem Stapel: spart Modulspeicher */
+    KernInfo(&si);
+    for (n = 0; n < 66 && si.home[n]; n++) pfad[n] = si.home[n];
+    if (n && pfad[n - 1] != '\\') pfad[n++] = '\\';
+    while ((pfad[n++] = *name++) != 0) ;
+    return FileOpen(pfad, FO_READ | FO_DENYNONE);
+}
 /* ---- Texte --------------------------------------------------------------------- */
 /* Zwischenspeicher je Programm: Block = WORD inst, WORD blk-low, dann die Tabelle
    (WORD anzahl, je Text WORD id, WORD offset ab Tabellenanfang, Texte mit 0). */
@@ -149,13 +159,8 @@ static BYTE FAR *stab(HINST i)
     if (i) {
         if ((f = rfind(i, RT_STRING, 1, &pos, &len)) < 0) return 0;
     } else {                                      /* Systemtexte: <home>\DE.LNG */
-        static SYSINFO si; static BYTE kopf[6]; WORD n;
-        KernInfo(&si);
-        for (n = 0; n < 66 && si.home[n]; n++) pfad[n] = si.home[n];
-        if (n && pfad[n - 1] != '\\') pfad[n++] = '\\';
-        pfad[n++] = k_LangGet() == RD_LANG_EN ? 'E' : 'D'; pfad[n++] = k_LangGet() == RD_LANG_EN ? 'N' : 'E';
-        pfad[n++] = '.'; pfad[n++] = 'L'; pfad[n++] = 'N'; pfad[n++] = 'G'; pfad[n] = 0;
-        if ((f = FileOpen(pfad, FO_READ | FO_DENYNONE)) < 0) return 0;
+        static BYTE kopf[6];
+        if ((f = hopen(k_LangGet() == RD_LANG_EN ? "EN.LNG" : "DE.LNG")) < 0) return 0;
         pos = FileSeek(f, 0, 2);
         if (pos < 6 || pos > 0xFFF0UL || (FileSeek(f, 0, 0), FileRead(f, kopf, 6)) != 6 || kopf[0] != 'R' || kopf[3] != '1') { FileClose(f); return 0; }
         len = (WORD)pos - 6; pos = 6;
@@ -214,7 +219,17 @@ static WORD rdblen(const RDBH FAR *k)             /* Laenge eines Bildes in Byte
 }
 /* Bild Nr. "cga" (0/1) suchen, sonst das erste. weiss/schwarz: Punkte, die hell bzw. dunkel
    gezeichnet werden (ohne Maske ist alles deckend). schwarz = 0: nur das Bild (BmpLoad). */
-static WORD rdbmake(const BYTE FAR *p, WORD len, WORD cga, HBMP FAR *weiss, HBMP FAR *schwarz)
+/* Farbe (RGB) -> Geraetefarbe: eine der 16 Standardfarben (Stufen 00/55/AA/FF), bei 8-Bit-Bildern
+   auf 8-Bit-Schirm (VESA) der Wuerfel 6x6x6 ab Index 16 */
+static BYTE gfarbe(const BYTE FAR *c, WORD wuerfel)
+{
+    BYTE r = c[0], g = c[1], b = c[2], t, i;
+    if (wuerfel) return (BYTE)(16 + (r + 25) / 51 * 36 + (g + 25) / 51 * 6 + (b + 25) / 51);
+    if (r < 0x80 && g < 0x80 && b < 0x80 && r >= 0x40 && g >= 0x40 && b >= 0x40) return 8;   /* dunkelgrau */
+    i = (BYTE)(r > 0xC0 || g > 0xC0 || b > 0xC0 ? 8 : 0); t = (BYTE)(i ? 0xAA : 0x55);
+    return (BYTE)(i | (r >= t ? 4 : 0) | (g >= t ? 2 : 0) | (b >= t ? 1 : 0));
+}
+static WORD rdbmake(const BYTE FAR *p, WORD len, WORD cga, HBMP FAR *weiss, HBMP FAR *schwarz, WORD bunt)
 {
     const RDBH FAR *k = 0, FAR *x; const BYTE FAR *q = p, FAR *pal, FAR *z, FAR *mk; WORD n, y, c, sb, db, v, b; BYTE FAR *w, FAR *s;
     while (len >= sizeof(RDBH)) {
@@ -228,11 +243,12 @@ static WORD rdbmake(const BYTE FAR *p, WORD len, WORD cga, HBMP FAR *weiss, HBMP
     if (!k) { SetLastError(RD_ERR_FORMAT); return 0; }
     pal = (const BYTE FAR *)(k + 1); z = pal + (k->bpp > 1 ? 3 << k->bpp : 0);
     sb = (WORD)(((DWORD)k->w * k->bpp + 7) >> 3); mk = z + sb * k->h; db = (k->w + 7) >> 3;
-    *weiss = BmpCreate(k->w, k->h, 1);
+    if (k->bpp == 1 || !schwarz) bunt = 0;       /* bunt: Bit pro Punkt des Schirms (4/8), weiss = Geraeteformat, schwarz = Maske */
+    *weiss = BmpCreate(k->w, k->h, bunt ? bunt : 1);
     if (schwarz) *schwarz = BmpCreate(k->w, k->h, 1);
     if (!*weiss || (schwarz && !*schwarz)) { if (*weiss) BmpFree(*weiss); if (schwarz && *schwarz) BmpFree(*schwarz); return 0; }
     w = (BYTE FAR *)MemLock(*weiss) + 8; s = schwarz ? (BYTE FAR *)MemLock(*schwarz) + 8 : 0;
-    for (y = 0; y < k->h; y++, z += sb, mk += db, w += db, s += schwarz ? db : 0)
+    for (y = 0; y < k->h; y++, z += sb, mk += db, w += bunt ? (k->w * bunt + 7) >> 3 : db, s += schwarz ? db : 0)
         for (c = 0; c < k->w; c++) {
             if (k->bpp == 1) v = (z[c >> 3] >> (7 - (c & 7))) & 1;
             else {
@@ -240,7 +256,11 @@ static WORD rdbmake(const BYTE FAR *p, WORD len, WORD cga, HBMP FAR *weiss, HBMP
                 v = (pal[3 * b] * 3 + pal[3 * b + 1] * 6 + pal[3 * b + 2]) >= 1280;
             }
             b = !(k->flags & 1) || ((mk[c >> 3] >> (7 - (c & 7))) & 1);
-            if (!schwarz) { if (v || !b) w[c >> 3] |= (BYTE)(0x80 >> (c & 7)); }   /* durchsichtig = hell */
+            if (bunt) {
+                v = gfarbe(pal + 3 * (k->bpp == 8 ? z[c] : (z[c >> 1] >> (c & 1 ? 0 : 4)) & 15), bunt == 8 && k->bpp == 8);
+                if (bunt == 8) w[c] = (BYTE)v; else w[c >> 1] |= (BYTE)(v << (c & 1 ? 0 : 4));
+                if (b) s[c >> 3] |= (BYTE)(0x80 >> (c & 7));
+            } else if (!schwarz) { if (v || !b) w[c >> 3] |= (BYTE)(0x80 >> (c & 7)); }   /* durchsichtig = hell */
             else if (b) { if (v) w[c >> 3] |= (BYTE)(0x80 >> (c & 7)); else s[c >> 3] |= (BYTE)(0x80 >> (c & 7)); }
         }
     MemUnlock(*weiss); if (schwarz) MemUnlock(*schwarz);
@@ -250,7 +270,7 @@ static WORD fromres(HINST i, WORD typ, WORD id, WORD cga, HBMP FAR *a, HBMP FAR 
 {
     HMEM r = ResLoad(i, typ, id); BYTE FAR *p; WORD ok = 0;
     if (!r) return 0;
-    if ((p = (BYTE FAR *)MemLock(r)) != 0) { ok = rdbmake(p, (WORD)MemSize(r), cga, a, b); MemUnlock(r); }
+    if ((p = (BYTE FAR *)MemLock(r)) != 0) { ok = rdbmake(p, (WORD)MemSize(r), cga, a, b, 0); MemUnlock(r); }
     ResFree(r);
     return ok;
 }
@@ -263,7 +283,7 @@ static HBMP RDEXPORT x_BmpLoadFile(LPCSTR name)
     if (n <= 0 || n > 0xFFF0L) SetLastError(RD_ERR_FORMAT);
     else if ((m = MemAlloc(n, MEM_MOVABLE)) != 0 && (p = (BYTE FAR *)MemLock(m)) != 0) {
         FileSeek(f, 0, 0);
-        if (FileRead(f, p, (WORD)n) == (WORD)n) rdbmake(p, (WORD)n, 0, &b, 0);
+        if (FileRead(f, p, (WORD)n) == (WORD)n) rdbmake(p, (WORD)n, 0, &b, 0, 0);
         MemUnlock(m);
     }
     if (m) MemFree(m);
@@ -273,18 +293,47 @@ static HBMP RDEXPORT x_BmpLoadFile(LPCSTR name)
 /* Symbole bleiben nach dem ersten Zeichnen geladen (8 Stueck, danach das aelteste weg). CGA-Fassung,
    wenn der Schirm hoechstens 200 Zeilen hat. */
 static struct { HINST i; WORD id, cga; HBMP w, s; } ic[8]; static WORD icn;
+/* Farbiger Satz (FARBSYM.DAT im RD2-Verzeichnis): char name[8] (Programmdatei ohne Endung), WORD nr,
+   WORD laenge, RDB1. Gilt nur bei buntem Schirm; sonst und wenn nichts passt, das Symbol des Programms. */
+static WORD farbsym(HINST i, WORD id, WORD bpp, HBMP FAR *a, HBMP FAR *b)
+{
+    struct { char n[8]; WORD nr, len; } e; char nm[8]; WORD k = 0; short f; long pos = 0; HMEM h; const char *q;
+    if (bpp < 4 || !InstRes(i, pfad, sizeof pfad)) return 0;
+    for (q = pfad; *q; q++) if (*q == '\\' || *q == ':') k = (WORD)(q - pfad + 1);
+    for (q = pfad + k, k = 0; k < 8; k++) nm[k] = *q && *q != '.' ? *q++ : 0;
+    if ((f = hopen("FARBSYM.DAT")) < 0) return 0;
+    while (FileRead(f, &e, sizeof e) == sizeof e) {
+        pos += sizeof e;
+        for (k = 0; k < 8 && e.n[k] == nm[k]; k++) ;
+        if (e.nr == id && k == 8) {
+            if ((h = rload(f, pos, e.len, 0, 0)) == 0) return 0;   /* schliesst f */
+            k = rdbmake((BYTE FAR *)MemLock(h), e.len, 0, a, b, bpp); MemUnlock(h); MemFree(h);
+            return k;
+        }
+        pos += e.len; FileSeek(f, pos, 0);
+    }
+    FileClose(f);
+    return 0;
+}
 static void RDEXPORT x_IconDraw(HDC dc, short x, short y, HINST i, WORD id)
 {
-    WORD k, cga = GetCaps(0, CAPS_H) <= 200; HDC s; COLOR alt; WORD FAR *bh, bw, bhh;
+    WORD k, cga = GetCaps(dc, CAPS_H) <= 200, bpp = GetCaps(dc, CAPS_BPP);   /* Schirm-DC: Werte des Schirms */ HDC s; COLOR alt; WORD FAR *bh, bw, bhh, fb;   /* fb: Bit pro Punkt des Bildes */
     for (k = 0; k < 8; k++)
         if (ic[k].w && ic[k].i == i && ic[k].id == id && ic[k].cga == cga && MemSize(ic[k].w)) break;
     if (k == 8) {
         k = icn++ & 7;
         if (ic[k].w) { BmpFree(ic[k].w); BmpFree(ic[k].s); ic[k].w = 0; }
-        if (!fromres(i, RT_ICON, id, cga, &ic[k].w, &ic[k].s)) { ic[k].w = 0; return; }
+        if (!farbsym(i, id, bpp, &ic[k].w, &ic[k].s) && !fromres(i, RT_ICON, id, cga, &ic[k].w, &ic[k].s)) { ic[k].w = 0; return; }
         ic[k].i = i; ic[k].id = id; ic[k].cga = cga;
     }
-    bh = (WORD FAR *)MemLock(ic[k].w); bw = bh[0]; bhh = bh[1]; MemUnlock(ic[k].w);   /* Kopf: w, h, bpp, bpr */
+    bh = (WORD FAR *)MemLock(ic[k].w); bw = bh[0]; bhh = bh[1]; fb = bh[2]; MemUnlock(ic[k].w);   /* Kopf: w, h, bpp, bpr */
+    if (fb > 1) {                                 /* farbig: zeichnet RDGDIX (Nr. 5), Bild im Geraeteformat + Maske */
+        HMOD gx = ModLoad("RDGDIX.MOD"); FARPROC f;   /* je Aufruf laden und freigeben (wie RDPRN) */
+        if (!gx) return;
+        if ((f = ModProc(gx, 5)) != 0) ((void (RDAPI *)(HDC, short, short, HBMP, HBMP))f)(dc, x, y, ic[k].w, ic[k].s);
+        ModFree(gx);
+        return;
+    }
     alt = SetTextColor(dc, C_WHITE);
     if ((s = BmpDC(ic[k].w)) != 0) { BitBlt(dc, x, y, bw, bhh, s, 0, 0, ROP_MASK); DCFree(s); }
     SetTextColor(dc, C_BLACK);

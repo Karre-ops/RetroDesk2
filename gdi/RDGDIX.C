@@ -138,5 +138,26 @@ void RDEXPORT x_FloodFill(GI FAR *g, HDC h, short x, short y)
     MemUnlock(hm); MemFree(hm);
 }
 
-static struct { WORD n; FARPROC f[4]; } ext = { 4, { (FARPROC)x_Ellipse, (FARPROC)x_RoundRect, (FARPROC)x_Polygon, (FARPROC)x_FloodFill } };
+/* Farbiges Symbol (RDKX IconDraw): b im Geraeteformat (4/8 Bit), m Maske (1 = deckend). Hintergrund in
+   eine Bitmap holen, deckende Punkte einsetzen, zurueck auf den Schirm. */
+static void RDEXPORT x_IconColor(HDC dc, short x, short y, HBMP b, HBMP m)
+{
+    WORD FAR *bh = (WORD FAR *)MemLock(b), w = bh[0], h = bh[1], fb = bh[2], zb = bh[3], mb = (w + 7) >> 3, yy, xx;
+    HBMP t = BmpCreate(w, h, 0); HDC s; BYTE FAR *p, FAR *c = (BYTE FAR *)bh + 8, FAR *k = (BYTE FAR *)MemLock(m) + 8;
+    if (t && (s = BmpDC(t)) != 0) {
+        BitBlt(s, 0, 0, w, h, dc, x, y, ROP_COPY);
+        p = (BYTE FAR *)MemLock(t) + 8;
+        for (yy = 0; yy < h; yy++, p += zb, c += zb, k += mb)
+            for (xx = 0; xx < w; xx++)
+                if (k[xx >> 3] & (0x80 >> (xx & 7))) {
+                    if (fb == 8) p[xx] = c[xx];
+                    else { BYTE n = (BYTE)(xx & 1 ? 0x0F : 0xF0); p[xx >> 1] = (BYTE)((p[xx >> 1] & ~n) | (c[xx >> 1] & n)); }
+                }
+        MemUnlock(t);
+        BitBlt(dc, x, y, w, h, s, 0, 0, ROP_COPY); DCFree(s);
+    }
+    if (t) BmpFree(t);
+    MemUnlock(b); MemUnlock(m);
+}
+static struct { WORD n; FARPROC f[5]; } ext = { 5, { (FARPROC)x_Ellipse, (FARPROC)x_RoundRect, (FARPROC)x_Polygon, (FARPROC)x_FloodFill, (FARPROC)x_IconColor } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

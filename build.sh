@@ -53,6 +53,7 @@ modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/VGA16.C VGA16.DRV "VGA 16 Farben" 0 D -dVGA16
 modul drv/VGA16.C EGA.DRV "EGA 16 Farben" 0 D -dEGA
 modul drv/VESA.C VESA.DRV "VESA 256 Farben" 0 D -3
+python3 tools/mkfarbsym.py $O/FARBSYM.DAT SHELL:1:shell/farbe/FLOPPY.TXT SHELL:2:shell/farbe/HDISK.TXT SHELL:3:shell/farbe/ORDNER.TXT SHELL:4:shell/farbe/PROG.TXT SHELL:5:shell/farbe/DOK.TXT >/dev/null || exit 1   # farbige Symbole (Diskette 2)
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D "-dVGAM -oa"   # -oa: 11 Bytes, haelt VGAM.DRV bei 4 KB (ein Cluster auf der Systemdiskette)
 modul snd/RDSND.C RDSND.MOD "Klang" 0 M
 modul snd/RDMUS.C RDMUS.MOD "Musik" 0 M

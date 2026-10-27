@@ -22,6 +22,7 @@ HGC.DRV          5120    5   S
 VGA16.DRV        6144    6   P  VGA 640x480 16 Farben, Modus 12h (Punkt 9, 27.10.)
 EGA.DRV          6144    6   P  EGA 640x350 16 Farben, Modus 10h (Punkt 9, 27.10.)
 VESA.DRV         6144    6   P  VESA 640x480 256 Farben, Modus 101h, Bankumschaltung (Punkt 9, 27.10.)
+FARBSYM.DAT      4096    0   P  farbige Symbole (16 Farben, Maske) fuer SHELL, nur bei buntem Schirm; fehlt sie: S/W
 VGAM.DRV         5120    5   S
 SPEAKER.DRV      2048    2   S
 ADLIB.DRV        2048    2   P
@@ -67,7 +68,7 @@ RDDISK.MOD       4096    4   P  Laufwerkszugriff fuer RDFORMAT/RD2SETUP: INT 13h
 RDFDISK.EXE     40960    0   P  Partitionieren (GPL v2, aus Free FDISK)
 RDFORMAT.EXE    73728    0   P  Formatieren Disketten und Festplatte: FreeDOS FORMAT 0.92a (GPL v2) mit RD2-Oberflaeche; englische FreeDOS-Texte bleiben fuers Protokoll (24.10., Karsten: Option 1, 72 KB)
 # Summen
-@SYSTEM_DISK   307200        360-KB-Systemdiskette: S-Dateien + DOS 5 (@DOS) hoechstens 300 KB, Rest (>= 50 KB) fuer RD2.INI, RD2.STA, Daten
+@SYSTEM_DISK   308224        360-KB-Systemdiskette: S-Dateien + DOS 5 (@DOS) hoechstens 301 KB (27.10.: +1 KB farbige Symbole), Rest (>= 50 KB) fuer RD2.INI, RD2.STA, Daten
 @DOS            79872        DOS 5: IO.SYS + MSDOS.SYS (kein COMMAND.COM, SHELL=RD.EXE) + CTMOUSE, je auf 1-KB-Cluster gerundet
 @DISK          362496        Nutzflaeche einer 360-KB-Diskette (354 Cluster zu 1 KB); Grenze fuer P, N, D
 @RAM_RD2               180   Oberflaeche ohne Programme, mit DOS und Maustreiber (Ziel: >= 450 KB frei)

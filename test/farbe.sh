@@ -17,7 +17,7 @@ A:\RD2\RD.EXE /NOMAUS A:\RD2\SHELL.EXE
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_farbe.txt
-mcopy -i $IMG out/VGA16.DRV out/EGA.DRV out/VESA.DRV ::/RD2/
+mcopy -i $IMG out/VGA16.DRV out/EGA.DRV out/VESA.DRV out/FARBSYM.DAT ::/RD2/
 printf '[System]\r\nGrafik=VGA16\r\n' > obj/ini16.txt; printf '[System]\r\nGrafik=EGA\r\n' > obj/iniega.txt; printf '[System]\r\nGrafik=VESA\r\n' > obj/inivesa.txt
 mcopy -i $IMG obj/ini16.txt ::/RD2/INI16.TXT; mcopy -i $IMG obj/iniega.txt ::/RD2/INIEGA.TXT; mcopy -i $IMG obj/inivesa.txt ::/RD2/INIVESA.TXT
 rm -f $SER $SOCK obj/farbe?_*.ppm
