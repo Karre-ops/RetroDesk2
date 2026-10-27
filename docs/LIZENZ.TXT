@@ -1,0 +1,15 @@
+RetroDesk 2 - Lizenzen (Kurzfassung, Stand 27.10.2026)
+
+SDK (RD2.H, RD2.LIB, RD2START.ASM): MIT-Lizenz.
+
+Fremde Teile unter der GNU General Public License Version 2 (Text: COPYING):
+  KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert
+  CTMOUSE.EXE   CuteMouse 2.1, unveraendert
+  RDSYS.EXE     FreeDOS SYS
+  RDFORMAT.EXE  FreeDOS FORMAT mit RD2-Oberflaeche (geaendert fuer RetroDesk 2)
+  RDFDISK.EXE   Free FDISK mit RD2-Oberflaeche (geaendert fuer RetroDesk 2)
+
+Diese Teile werden OHNE JEDE GEWAEHRLEISTUNG weitergegeben (GPL v2, Abschnitte 11 und 12).
+Quelltext der GPL-Teile: siehe Diskette 4 (RD2 EXTRA).
+
+MS-DOS liegt nicht bei. Wer MS-DOS 5 oder hoeher besitzt, kann mit SYS A: tauschen.

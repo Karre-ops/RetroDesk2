@@ -1,0 +1,2 @@
+FreeDOS-Kern 2046, 8086/FAT16 (ke2046_86f16.zip, github.com/FDOS/kernel/releases/tag/ke2046), unveraendert.
+Lizenz GPL v2 oder spaeter (COPYING). Quelltext: ke2046s.zip vom selben Ort.

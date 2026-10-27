@@ -1,6 +1,6 @@
 # RD2 Groessengrenzen (Phase 0). Der Build prueft ab Phase 1 jede Zeile.
 # Spalten: Datei  max_Bytes_auf_Diskette  max_KB_im_Speicher  Diskette  Beschreibung
-# Diskette (360 KB seit 24.10.2026): S = Systemdiskette (bootfaehig), P = Programme, N = Netz, D = SDK, T = nur Tests
+# Diskette (360 KB seit 24.10.2026): S = Systemdiskette (bootfaehig), P = Programme, N = Netz, D = SDK, T = nur Tests, L = spaeter (nicht im Satz)
 # Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
 RD.EXE          28672 44.25 S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock); 26.10.: 44,25 KB fuer den Klang-Takt im INT 8 und RunDos-Pause (RDSND)
@@ -60,7 +60,7 @@ RDNET.EXE       24576   20   N  Netzwerk-Einstellungen: Karte, Adresse, Zeit, Di
 RDFTP.EXE       16384   20   N  FTP als zweites Dateifenster: links Platte, rechts Server (Punkt 8)
 RDIRC.EXE       12288   20   N  IRC: Verlauf 120 Zeilen, UTF-8/CP437, ZNC-Kennwort (Punkt 8)
 RDSHELL.EXE     14336   20   P  DOS-Fenster: DIR CD COPY DEL TYPE ... eingebaut, sonst RunDos (Punkt 8)
-RDCALC.EXE      90112   80   P
+RDCALC.EXE      90112   80   L
 RDEDIT.EXE      65536   60   P
 RDPRN.MOD        6144    8   P  Drucken: Druckdialog, Baender (48 Zeilen), LPT direkt/Datei (Punkt 7; RDKX laedt es bei PrnOpen, 27.10.)
 EPSON9.DRV       3072    3   P
