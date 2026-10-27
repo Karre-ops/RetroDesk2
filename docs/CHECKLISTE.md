@@ -98,7 +98,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | RDSND: Speaker- und AdLib-Treiber, IMF/DRO, WAV über Lautsprecher | erledigt 26.10. | Treiber SPEAKER.DRV (Töne und Samples, Uhr läuft weiter), ADLIB.DRV, SB.DRV, COVOX.DRV (LPT1). Musik IMF/DRO in RDMUS.MOD, WAV (8 Bit mono) per `SndWavLoad` aus RD2.LIB. MPU-401 später. test/klang.sh |
 | Joystick | erledigt 27.10. | `JoyRead`/`JoyCalibrate` in RD2.LIB (sdk/JOY.C, läuft im Programm, Kern unverändert): Gameport 201h, Zeit über PIT (gleiche Werte auf XT und Pentium), Joystick A/B, x/y -100..100, Mitte und Grenzen lernt es selbst, ohne Gameport RD_ERR_NOTSUP. test/joystick.sh (QEMU ohne Gameport, DOSBox 2axis). Bewegung nur am echten Gerät prüfbar |
 | Drucken: 9-Nadel-Treiber (ESC/P), Druckdialog | erledigt 27.10. | RDPRN.MOD (RDKX lädt es bei PrnOpen): Druckdialog (LPT1/LPT2/Datei DRUCK.PRN, Kopien, Entwurf), Seite in Bändern zu 48 Zeilen (5,6 KB statt 95 KB), LPT direkt am Port mit Rückfrage „nicht bereit“. EPSON9.DRV: ESC L 120 x 72 dpi, Entwurf ESC K 60 dpi, leere Bereiche nur Vorschub. RD2.INI [Drucker]. test/drucken.sh (QEMU-Druckerport, test/escp.py als Bild) |
-| Serielle Schnittstelle (Nullmodem, Modem) | fehlt | |
+| Serielle Schnittstelle (Nullmodem, Modem) | später | nach 2.0 (Karsten, 27.10.): Netz über Karte und FTP decken die Datenverbindung ab. Idee für später: RDCOM.MOD + SLIP in RDTCP, kleines TERMINAL.EXE |
 | Festplatte einrichten (RDFDISK), formatieren, startfähig (FreeDOS) | da | test/kette.sh |
 | Installation auf Festplatte (RD2SETUP) | da | |
 | Bootfähige Systemdiskette mit FreeDOS-Kern, Satz aus 360-KB-Disketten | teils | Diskette 1 startet; Aufteilung auf Diskette 2 bis 4 prüfen |
@@ -118,4 +118,4 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 7. Drucken, danach RDCALC mit Kurven und Druck.
 8. Netz: RDTCP, RDNET, Netzzeit, FTP, IRC, DOS-Shell-Fenster. (erledigt 26.10.)
 9. Farbe (Profil Komfort): VGA16.DRV (Modus 12h, Assembler), EGA 640x350 (16 Farben), danach VESA 256 Farben mit Bankumschaltung; Farben in RDGDI/RDUSER (Palette, Systemfarben). (aufgenommen 26.10., erledigt 27.10.: dazu farbige Symbole FARBSYM.DAT)
-10. Hilfe, Joystick, serielle Schnittstelle, SDK-Rest, Diskettensatz, Test am PC10-III, Release 2.0.
+10. Hilfe (erledigt), Joystick (erledigt), SDK-Rest, Diskettensatz, Test am PC10-III, Release 2.0.
