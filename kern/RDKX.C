@@ -301,8 +301,22 @@ static WORD RDEXPORT k_NetStart(HWND w)
     if (!ModLoad("RDTCP.MOD") || _rd2api[0x381] == f) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
     return ((WORD (RDAPI *)(HWND))_rd2api[0x381])(w);
 }
-static struct { WORD n; FARPROC f[13]; } ext = { 13, {
+/* ---- Drucken: RDPRN.MOD je Aufruf laden (haelt sich selbst von PrnOpen bis PrnClose/PrnAbort) ---- */
+static WORD prn(WORD nr, HWND w, PRNJOB FAR *j)    /* RDPRN-Exporte nehmen alle (HWND bzw. HDC, PRNJOB FAR *) */
+{
+    HMOD m = ModLoad("RDPRN.MOD"); FARPROC f; WORD r = 0;
+    if (!m) return 0;                             /* LastError von ModLoad */
+    if ((f = ModProc(m, nr)) != 0) r = ((WORD (RDAPI *)(HWND, PRNJOB FAR *))f)(w, j);
+    ModFree(m);
+    return r;
+}
+static HDC  RDEXPORT k_PrnOpen(HWND w, PRNJOB FAR *j) { return prn(2, w, j); }
+static WORD RDEXPORT k_PrnPage(HDC dc) { return prn(3, dc, 0); }
+static WORD RDEXPORT k_PrnClose(HDC dc) { return prn(4, dc, 0); }
+static void RDEXPORT k_PrnAbort(HDC dc) { prn(5, dc, 0); }
+static struct { WORD n; FARPROC f[17]; } ext = { 17, {
     (FARPROC)k_ende, (FARPROC)k_TimeGet, (FARPROC)k_TimeSet, (FARPROC)k_LangGet, (FARPROC)k_ResLoad,
     (FARPROC)k_ResFree, (FARPROC)k_StrLoad, (FARPROC)k_StrGet, (FARPROC)k_DbgBreak,
-    (FARPROC)x_BmpLoad, (FARPROC)x_BmpLoadFile, (FARPROC)x_IconDraw, (FARPROC)k_NetStart } };
+    (FARPROC)x_BmpLoad, (FARPROC)x_BmpLoadFile, (FARPROC)x_IconDraw, (FARPROC)k_NetStart,
+    (FARPROC)k_PrnOpen, (FARPROC)k_PrnPage, (FARPROC)k_PrnClose, (FARPROC)k_PrnAbort } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

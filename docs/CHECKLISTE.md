@@ -47,7 +47,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Funktion | RD2 | Bemerkung |
 |---|---|---|
 | Menü Programme, Programm anheften (bis 12) | erledigt 25.10. | `.APP` und `PROGRAMM.LST`, Schreibtisch-Symbole (Variante 2) |
-| Netzprogramme (Paketreiber vorher laden) | fehlt | |
+| Netzprogramme (Paketreiber vorher laden) | erledigt 26.10. | RDTCP.MOD (eigener Stack), RDFTP, RDIRC, RDNET, Netzzeit; Paketreiber vor RD2 laden. test/netz.sh, test/rdftp.sh, test/rdirc.sh |
 | DOS-Programm mit vollem Speicher, danach zurück mit allen Fenstern | da | RunDos, XMS oder Auslagerdatei, test/rundos.sh |
 | Programm auf anderer Diskette im selben Laufwerk (RDGO) | da | test/rundos_disk.sh |
 | Zustand wiederherstellen (Ordner, Fenster, Auswahl) | erledigt 25.10. | `RD2.STA` |
@@ -56,18 +56,18 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 
 | Funktion | RD2 | Bemerkung |
 |---|---|---|
-| Uhr groß mit Datum, Stellen, Netzzeit, BIOS-Uhr schreiben | teilweise | UHR.EXE (RD-Menü): 7-Segment, Datum, Stellen, BIOS; Netzzeit folgt mit RDTCP (Punkt 8). test/uhr.sh |
+| Uhr groß mit Datum, Stellen, Netzzeit, BIOS-Uhr schreiben | erledigt 26.10. | UHR.EXE (RD-Menü): 7-Segment, Datum, Stellen, BIOS, Netzzeit (SNTP über RDTCP). test/uhr.sh, test/netzzeit.sh |
 | Notizblock (80 x 60, Strg+S) | erledigt | NOTIZ.EXE (RD-Menü, Doppelklick auf TXT/INI/DOC/NFO/DIZ/LOG): 80 Zeilen x 60 Zeichen wie RD1, Strg+S, Strg+O, Rückfrage, zu lange Dateien nur lesend. test/notiz.sh |
 | Einfacher Rechner (8087 wenn da) | erledigt | RECHNER.EXE (RD-Menü): Tasten und Anzeige wie RD1, Rechenkern mit Dezimalziffern (genau, ohne 8087 und ohne Emulator); "8087" im Titel wie RD1. test/rechner.sh, test/rechner_kern.sh (20000 Folgen gleich RD1) |
-| Optionen: Systemklänge, Start nach dem Booten, Netzzeit beim Booten | teilweise | OPTIONEN.EXE (RD-Menü): Systemklänge in RD2.INI [System] Systemklang (RDSND hält sich daran); Start nach dem Booten schaltet SHELL= in CONFIG.SYS um ("REM RD2", alte Shell wieder, doppelte INSTALL= aus AUTOEXEC weg, Aus nur mit vorhandener Shell). Netzzeit grau bis Punkt 8. test/optionen.sh |
+| Optionen: Systemklänge, Start nach dem Booten, Netzzeit beim Booten | erledigt 26.10. | OPTIONEN.EXE (RD-Menü): Systemklänge in RD2.INI [System] Systemklang (RDSND hält sich daran); Start nach dem Booten schaltet SHELL= in CONFIG.SYS um ("REM RD2", alte Shell wieder, doppelte INSTALL= aus AUTOEXEC weg, Aus nur mit vorhandener Shell), Netzzeit beim Booten. test/optionen.sh, test/netzzeit.sh |
 | Systemklänge über AdLib oder PC-Lautsprecher, AdLib-Erkennung | erledigt 26.10. | RDSND.MOD lädt den Treiber aus RD2.INI [Hardware] Sound; RD2SETUP erkennt AdLib, Sound Blaster, Covox. test/klang.sh |
 
 ### Programme
 
 | Funktion | RD2 | Bemerkung |
 |---|---|---|
-| RDEDIT (8000 Zeilen, Auswahl, Zwischenablage, Suchen/Ersetzen, Gehe zu, sicheres Speichern, .BAK für Startdateien) | fehlt | Zwischenablage und `FileSaveSafe` sind im Kern da |
-| RDCALC wissenschaftlich mit Kurven, Verlauf, Druck (ESC/P), Zustand | fehlt | |
+| RDEDIT (8000 Zeilen, Auswahl, Zwischenablage, Suchen/Ersetzen, Gehe zu, sicheres Speichern, .BAK für Startdateien) | erledigt | RDEDIT.EXE: 8000 Zeilen, Auswahl, Zwischenablage, Suchen/Ersetzen, Gehe zu, FileSaveSafe, .BAK. test/edit.sh |
+| RDCALC wissenschaftlich mit Kurven, Verlauf, Druck (ESC/P), Zustand | zurückgestellt 27.10. | Karsten: Rechner vorerst lassen, wie er ist |
 | DOS-Shell-Fenster (RDSHELL) | erledigt 26.10. | RD > DOS-Fenster: DIR [/W], CD, X:, MD, RD, DEL, REN, COPY, TYPE, VOL, MEM, VER, DATE, TIME, ECHO, CLS eingebaut (ohne COMMAND.COM); andere Programme über RunDos, Suche in RD2.INI [DOS] Pfad=, .BAT über COMMAND.COM ([DOS] Comspec=); Diskettenbetrieb ohne XMS: Hinweis, Start über den Schreibtisch; `test/rdshell.sh` |
 | RDNET: Netzkarte, DHCP oder feste IP, FTP/IRC-Einstellungen, Test | erledigt 26.10. | RDNET.EXE (RD-Menü Netzwerk), Seiten Karte/Adresse/Zeit/Dienste, Netztest, RD2.INI. test/rdnet.sh |
 | Eigener TCP/IP-Stapel (ARP, IP, ICMP, TCP, UDP, DHCP, DNS) | erledigt 26.10. | RDTCP.MOD, ohne mTCP, wird beim ersten NetStart geladen. test/netz.sh (QEMU NE2000) |
@@ -97,7 +97,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Hilfesystem (F1) | fehlt | `HelpShow` nur festgelegt |
 | RDSND: Speaker- und AdLib-Treiber, IMF/DRO, WAV über Lautsprecher | erledigt 26.10. | Treiber SPEAKER.DRV (Töne und Samples, Uhr läuft weiter), ADLIB.DRV, SB.DRV, COVOX.DRV (LPT1). Musik IMF/DRO in RDMUS.MOD, WAV (8 Bit mono) per `SndWavLoad` aus RD2.LIB. MPU-401 später. test/klang.sh |
 | Joystick | fehlt | `JoyRead` nur festgelegt |
-| Drucken: 9-Nadel-Treiber (ESC/P), Druckdialog | fehlt | |
+| Drucken: 9-Nadel-Treiber (ESC/P), Druckdialog | erledigt 27.10. | RDPRN.MOD (RDKX lädt es bei PrnOpen): Druckdialog (LPT1/LPT2/Datei DRUCK.PRN, Kopien, Entwurf), Seite in Bändern zu 48 Zeilen (5,6 KB statt 95 KB), LPT direkt am Port mit Rückfrage „nicht bereit“. EPSON9.DRV: ESC L 120 x 72 dpi, Entwurf ESC K 60 dpi, leere Bereiche nur Vorschub. RD2.INI [Drucker]. test/drucken.sh (QEMU-Druckerport, test/escp.py als Bild) |
 | Serielle Schnittstelle (Nullmodem, Modem) | fehlt | |
 | Festplatte einrichten (RDFDISK), formatieren, startfähig (FreeDOS) | da | test/kette.sh |
 | Installation auf Festplatte (RD2SETUP) | da | |

@@ -58,6 +58,7 @@ RDIRC.EXE       12288   20   N  IRC: Verlauf 120 Zeilen, UTF-8/CP437, ZNC-Kennwo
 RDSHELL.EXE     14336   20   P  DOS-Fenster: DIR CD COPY DEL TYPE ... eingebaut, sonst RunDos (Punkt 8)
 RDCALC.EXE      90112   80   P
 RDEDIT.EXE      65536   60   P
+RDPRN.MOD        6144    8   P  Drucken: Druckdialog, Baender (48 Zeilen), LPT direkt/Datei (Punkt 7; RDKX laedt es bei PrnOpen, 27.10.)
 EPSON9.DRV       3072    3   P
 RDDISK.MOD       4096    4   P  Laufwerkszugriff fuer RDFORMAT/RD2SETUP: INT 13h, INT 21h IOCTL 44xxh, 60h, INT 25h/26h (24.10.)
 RDFDISK.EXE     40960    0   P  Partitionieren (GPL v2, aus Free FDISK)
@@ -68,6 +69,7 @@ RDFORMAT.EXE    73728    0   P  Formatieren Disketten und Festplatte: FreeDOS FO
 @DISK          362496        Nutzflaeche einer 360-KB-Diskette (354 Cluster zu 1 KB); Grenze fuer P, N, D
 @RAM_RD2               180   Oberflaeche ohne Programme, mit DOS und Maustreiber (Ziel: >= 450 KB frei)
 DOSTEST.EXE      4096    0   T  Test: RunDos (auslagern, DOS-Programm, zurueck)
+PRNTEST.EXE      4096    0   T  Test: Drucken (Testseite, Kopien, zwei Seiten, Abbruch)
 AUSLTEST.EXE     4096    0   T  Test: Auslagern bei Speichermangel (XMS, RD2.SWP, Diskette)
 TSRTEST.EXE      4096    0   T  Test: bleibt resident (Audit M10, RunDos entfernt es)
 FREIMEM.EXE     16384    0   T  Test: normales DOS-Programm fuer DOSTEST

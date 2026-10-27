@@ -57,6 +57,9 @@ modul drv/SND.C SPEAKER.DRV "PC-Lautsprecher" 0 D -dSPK
 modul drv/SND.C ADLIB.DRV "AdLib" 0 D -dADL
 modul drv/SND.C SB.DRV "Sound Blaster" 0 D -dSB
 modul drv/SND.C COVOX.DRV "Covox" 0 D -dCOVOX
+# Drucken: RDPRN.MOD (Dialog, Baender, LPT/Datei) laedt RDKX bei PrnOpen; Treiber EPSON9.DRV
+modul prn/RDPRN.C RDPRN.MOD "Drucken" 0 M "-ml -r"
+modul drv/PRN.C EPSON9.DRV "Epson 9-Nadel" 0 D -dEPSON9
 # Netz: RDTCP.MOD (TCP/IP) mit Empfangsroutine net/PKT.ASM
 $W -fo=obj/pkt.obj net/PKT.ASM
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/RDTCP.MOD.obj net/RDTCP.C
@@ -98,6 +101,7 @@ APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 app apps/test/DOSTEST.C DOSTEST.EXE "DOSTEST"
 app apps/test/AUSLTEST.C AUSLTEST.EXE "AUSLTEST"
+app apps/test/PRNTEST.C PRNTEST.EXE "PRNTEST"
 app apps/test/SNDTEST.C SNDTEST.EXE "SNDTEST"
 app apps/test/NETTEST.C NETTEST.EXE "NETTEST"
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/FREIMEM.EXE -fo=obj/freimem.obj apps/test/FREIMEM.C >/dev/null

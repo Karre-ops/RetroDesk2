@@ -67,7 +67,8 @@ int main(int argc, char **argv)
     WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0, ctl = 0, ausm = 0, snd;
     static const WORD kx[] = { 2, RDO_TimeGet, 3, RDO_TimeSet, 4, RDO_LangGet, 5, RDO_ResLoad, 6, RDO_ResFree,
                                7, RDO_StrLoad, 8, RDO_StrGet, 9, RDO_DbgBreak,
-                               10, RDO_BmpLoad, 11, RDO_BmpLoadFile, 12, RDO_IconDraw, 13, RDO_NetStart, 0 };
+                               10, RDO_BmpLoad, 11, RDO_BmpLoadFile, 12, RDO_IconDraw, 13, RDO_NetStart,
+                               14, RDO_PrnOpen, 15, RDO_PrnPage, 16, RDO_PrnClose, 17, RDO_PrnAbort, 0 };
     static const WORD ux[] = { 0x46, RDO_SendMessage, 0x47, RDO_DispatchMessage, 0x48, RDO_MsgRegister, 0 };
     static const WORD gdix[] = { 0x3C + 1, RDO_GetDC, 0x3C + 2, RDO_ReleaseDC, 0x3C + 3, RDO_GfxList, 0x3C + 4, RDO_GfxSelect, 0 };
     char *s;

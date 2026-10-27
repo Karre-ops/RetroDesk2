@@ -17,4 +17,12 @@ TEXTE
   14 "File not found."
   15 "File &type:"
   16 "The path is too long."
+  20 "Print"
+  21 "Printer:"
+  22 "&File (DRUCK.PRN)"
+  23 "&Copies:"
+  24 "&Draft (faster, 60 dpi)"
+  25 "The printer is not ready. Check paper, cable and power. Try again?"
+  26 "Printer driver missing or wrong:"
+  27 "This printer port does not exist."
 ENDE

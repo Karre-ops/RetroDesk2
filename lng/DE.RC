@@ -17,4 +17,12 @@ TEXTE
   14 "Datei nicht gefunden."
   15 "Datei&typ:"
   16 "Der Pfad ist zu lang."
+  20 "Drucken"
+  21 "Drucker:"
+  22 "&Datei (DRUCK.PRN)"
+  23 "&Kopien:"
+  24 "&Entwurf (schneller, 60 dpi)"
+  25 "Der Drucker ist nicht bereit. Papier, Kabel und Strom prÅfen. Nochmal versuchen?"
+  26 "Druckertreiber fehlt oder passt nicht:"
+  27 "Diesen Druckeranschluss gibt es nicht."
 ENDE

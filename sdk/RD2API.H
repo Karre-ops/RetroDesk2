@@ -251,6 +251,6 @@ RDF(0x389, DWORD,   NetLocalIP,     (void))
 
 /* ---- Drucker ------------------------------------------------------------- */
 RDF(0x3C0, HDC,     PrnOpen,        (HWND owner, PRNJOB FAR *job)) /* zeigt Druckdialog wenn PJ_DIALOG */
-RDF(0x3C1, WORD,    PrnPage,        (HDC dc))                     /* Seite fertig */
+RDF(0x3C1, WORD,    PrnPage,        (HDC dc))                     /* Band fertig: PRN_NOCHMAL = Seite noch einmal zeichnen, 0 = Seite gedruckt */
 RDF(0x3C2, WORD,    PrnClose,       (HDC dc))
 RDF(0x3C3, void,    PrnAbort,       (HDC dc))

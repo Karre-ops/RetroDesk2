@@ -87,11 +87,13 @@ typedef struct {
 } SNDDRV;
 
 /* ---- Drucker ------------------------------------------------------------- */
+/* RDPRN gibt dem Treiber eine Ausgaberoutine (LPT-Port oder Datei); 0 = ok, sonst RD_ERR_* (z. B. RD_ERR_ABORT). */
+typedef WORD (RDAPI *PRNOUT)(const BYTE FAR *p, WORD n);
 typedef struct {
     DRVHEAD h;
-    WORD  (RDAPI *open)(PRNJOB FAR *job, WORD port);          /* port 0 = LPT1 */
-    WORD  bandhoehe;                                          /* Zeilen je Band (9-Nadel: 8) */
-    WORD  (RDAPI *band)(const BYTE FAR *bits, WORD zeilenbytes, WORD zeilen); /* 1 Bit, links oben */
+    WORD  (RDAPI *open)(PRNJOB FAR *job, PRNOUT aus);         /* setzt dpi_x, dpi_y, breite, hoehe; PJ_ENTWURF beachten */
+    WORD  bandhoehe;                                          /* Zeilen je Durchgang (9-Nadel: 8); RDPRN gibt Vielfache */
+    WORD  (RDAPI *band)(const BYTE FAR *bits, WORD zeilenbytes, WORD zeilen); /* 1 Bit, 1 = Punkt, links oben */
     WORD  (RDAPI *page)(void);                                /* Seitenvorschub */
     WORD  (RDAPI *close)(BOOL abbruch);
 } PRNDRV;

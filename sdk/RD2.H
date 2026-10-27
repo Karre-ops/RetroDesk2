@@ -515,6 +515,7 @@ typedef struct {
 #define PJ_DIALOG 0x0001
 #define PJ_QUER   0x0002
 #define PJ_ENTWURF 0x0004
+#define PRN_NOCHMAL 1                             /* PrnPage: Seite noch einmal zeichnen (naechstes Band oder Kopie) */
 
 /* Zwischenablage */
 #define CF_TEXT 1
