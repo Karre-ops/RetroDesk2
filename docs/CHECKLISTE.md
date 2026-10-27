@@ -1,4 +1,4 @@
-# RD2: Checkliste Funktionsumfang (Stand 25.10.2026)
+# RD2: Checkliste Funktionsumfang (Stand 27.10.2026)
 
 Ziel (Karsten, 25.10.2026): alle Funktionen von RetroDesk 1.2 plus die für RD2 beschlossenen. Erst wenn alles da
 ist, wird RDUSER nach Messung zerlegt. Grundlage: README von RD1 (main, v1.2), Branch `rechner` (RDCALC),
@@ -21,7 +21,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Tastatur: F10, Alt+Buchstabe, Pfeile, Eingabe, Esc, Tab in Dialogen | da | test/menu.sh, dlg.sh |
 | Bedienung nur mit Maus oder nur mit Tastatur | da | |
 | Grafik CGA 640x200, VGA 640x480, Hercules 720x348 | da | Treiber in Assembler, Bildvergleiche |
-| Farbe (Profil Komfort, 386+): VGA16 640x480 16 Farben, EGA 640x350 16 Farben, VESA 256 Farben | teilweise | teilweise | 27.10. Teil 3: VESA.DRV (Modus 101h, 640x480, 256 Farben, Bankumschaltung INT 10h 4F05h, Palette 16 Standardfarben + Würfel 6x6x6 + 24 Grau), Geräteformat 8 Bit in RDGDI (Hintergrund retten), nur von Hand wählbar (Menü Grafik, RD2SETUP), Diskette 2. Offen: farbige Symbole (Kern macht noch alles S/W). 27.10. Teil 4: farbige Symbole (FARBSYM.DAT auf Diskette 2, 16/256 Farben mit Maske, Zeichnen in RDGDIX, S/W bleibt Rückfall); Fehler behoben: Symbole kamen auf VGA als 32x16 (CGA-Fassung). |
+| Farbe (Profil Komfort, 386+): VGA16 640x480 16 Farben, EGA 640x350 16 Farben, VESA 256 Farben | fehlt | erledigt 27.10. | Voller Testsatz 27.10. grün (44 Tests). 27.10. Teil 3: VESA.DRV (Modus 101h, 640x480, 256 Farben, Bankumschaltung INT 10h 4F05h, Palette 16 Standardfarben + Würfel 6x6x6 + 24 Grau), Geräteformat 8 Bit in RDGDI (Hintergrund retten), nur von Hand wählbar (Menü Grafik, RD2SETUP), Diskette 2. Offen: farbige Symbole (Kern macht noch alles S/W). 27.10. Teil 4: farbige Symbole (FARBSYM.DAT auf Diskette 2, 16/256 Farben mit Maske, Zeichnen in RDGDIX, S/W bleibt Rückfall); Fehler behoben: Symbole kamen auf VGA als 32x16 (CGA-Fassung). |
 | Schriften 8x8, 8x14, 8x16 mit Umlauten | da | SYS8/14/16.FNT |
 | Startparameter /CGA /VGA /HGC /SPK /NOSND | prüfen | Grafikwahl nach Hardware ist da |
 | Deutsch und Englisch | da | DE.LNG, EN.LNG, Ressourcen je Sprache |
@@ -117,5 +117,5 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 6. RDEDIT.
 7. Drucken, danach RDCALC mit Kurven und Druck.
 8. Netz: RDTCP, RDNET, Netzzeit, FTP, IRC, DOS-Shell-Fenster. (erledigt 26.10.)
-9. Farbe (Profil Komfort): VGA16.DRV (Modus 12h, Assembler), EGA 640x350 (16 Farben), danach VESA 256 Farben mit Bankumschaltung; Farben in RDGDI/RDUSER (Palette, Systemfarben). (aufgenommen 26.10.)
+9. Farbe (Profil Komfort): VGA16.DRV (Modus 12h, Assembler), EGA 640x350 (16 Farben), danach VESA 256 Farben mit Bankumschaltung; Farben in RDGDI/RDUSER (Palette, Systemfarben). (aufgenommen 26.10., erledigt 27.10.: dazu farbige Symbole FARBSYM.DAT)
 10. Hilfe, Joystick, serielle Schnittstelle, SDK-Rest, Diskettensatz, Test am PC10-III, Release 2.0.
