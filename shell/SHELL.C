@@ -1004,7 +1004,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_PSTART && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
         else if (p1 == CM_PWEG && lsel >= nlw) pdesk(prgn[psy[lsel - nlw]], 0);
         else if (p1 == CM_FDISK) einrichten();
-        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 9) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE", "PAPIERK.EXE" }; char p[80];
+        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 10) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE", "PAPIERK.EXE", "TASKMAN.EXE" }; char p[80];
             if (werkzeug(p, zn[p1 - CM_ZUB])) starten(p); }
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
         else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); DbgHex("SHELL: versteckte", verst); alle_neu(); }

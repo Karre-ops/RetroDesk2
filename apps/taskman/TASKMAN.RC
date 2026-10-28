@@ -1,0 +1,29 @@
+; Ressourcen fuer TASKMAN.EXE
+SPRACHE DE
+TEXTE
+  1 "Taskmanager"
+  2 "Programm beenden (nicht gespeicherte Daten gehen verloren): "
+  3 "Das ist die Oberfl„che (SHELL). Ohne sie gibt es keinen Schreibtisch mehr. Trotzdem beenden?"
+  4 "Frei: "
+ENDE
+DIALOG 10 "Taskmanager" 0 0 240 140
+  LIST                  40   8   8 224 92 WS_VSCROLL
+  STATIC   ""           41   8 104 224 10
+  BUTTON   "&Beenden"   21   8 118  70 14
+  BUTTON   "&Aktualisieren" 22  84 118  80 14
+  BUTTON   "Schlieáen"   2 170 118  62 14 STANDARD
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Task manager"
+  2 "End program (unsaved data will be lost): "
+  3 "This is the desktop (SHELL). Without it there is no desktop. End it anyway?"
+  4 "Free: "
+ENDE
+DIALOG 10 "Task manager" 0 0 240 140
+  LIST                  40   8   8 224 92 WS_VSCROLL
+  STATIC   ""           41   8 104 224 10
+  BUTTON   "&End task"  21   8 118  70 14
+  BUTTON   "&Refresh"   22  84 118  80 14
+  BUTTON   "Close"       2 170 118  62 14 STANDARD
+ENDE
