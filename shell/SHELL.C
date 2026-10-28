@@ -355,13 +355,30 @@ static WORD loesche(BYTE attr)                    /* qv samt Inhalt */
     if (attr & (FA_RDONLY | FA_HIDDEN | FA_SYSTEM)) FileAttr(qv, 0, 1);
     return FileDelete(qv);
 }
+/* Papierkorb (nur Festplatte): Datei nach X:\PAPIERK\ umbenennen, PAPIERK.LST "Name|Originalpfad" anhaengen.
+   Ordner und Umschalt+Entf loeschen sofort. PAPIERK.EXE zeigt, stellt wieder her, leert. */
+static BYTE endg;
+static BYTE platte(char l) { short i; for (i = 0; i < nlw; i++) if (lw[i] == l) return lt[i] == DT_HARD; return 0; }
+static WORD papier(LPCSTR name)                   /* qv = Datei */
+{
+    char n[13]; short f, k; WORD r;
+    qn[0] = qv[0]; qn[1] = ':'; qn[2] = 0; scat(qn, "\\PAPIERK", sizeof qn); DirMake(qn); scat(qn, "\\", sizeof qn);
+    scpy(n, name, sizeof n); k = (short)slen(qn); scat(qn, n, sizeof qn);
+    for (f = 0; f < 36 && FileFindFirst(qn, FA_HIDDEN | FA_SYSTEM | FA_RDONLY | FA_ARCH, (FINDDATA *)buf) == 0; f++) qn[k] = (char)(f < 10 ? '0' + f : 'A' + f - 10);
+    if ((r = FileRename(qv, qn)) != 0) return r;
+    scpy(n, qn + k, sizeof n);
+    qn[k] = 0; scat(qn, "PAPIERK.LST", sizeof qn);
+    if ((f = FileOpen(qn, FO_RW)) < 0 && (f = FileCreate(qn, 0)) < 0) return RD_ERR_DISK;
+    FileSeek(f, 0, 2); FileWrite(f, n, slen(n)); FileWrite(f, "|", 1); FileWrite(f, qv, slen(qv)); FileWrite(f, "\r\n", 2); FileClose(f);
+    return 0;
+}
 static void loeschen(ORDNER *o)
 {
-    EINTRAG FAR *e; short i, n, mk = 0; WORD r = 0; char t[8];
+    EINTRAG FAR *e; short i, n, mk = 0; WORD r = 0; char t[8]; BYTE pk = (BYTE)(!endg && platte(o->pfad[0]));
     if (!o->h || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
     for (i = 0; i < o->n; i++) mk += e[i].mark;
     if ((n = anzahl(o, e)) == 0) { MemUnlock(o->h); return; }
-    zahl(t, n); fmt(buf, StrGet(inst, 7), t, 0);
+    zahl(t, n); fmt(buf, StrGet(inst, pk ? 39 : 7), t, 0);
     if (MsgBox(GetActive(), buf, "RD", MB_YESNO | MB_WARN) != ID_YES) { MemUnlock(o->h); return; }
     for (i = 0; i < o->n; i++) if (betrifft(o, e, i, mk)) {
         scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
@@ -370,11 +387,11 @@ static void loeschen(ORDNER *o)
     CursorBusy(TRUE);
     for (i = 0; i < o->n && !r; i++) if (betrifft(o, e, i, mk)) {
         scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
-        if ((r = loesche(e[i].attr)) != 0) fehler(e[i].name, r);
+        if ((r = (pk && !(e[i].attr & FA_DIR)) ? papier(e[i].name) : loesche(e[i].attr)) != 0) fehler(e[i].name, r);
     }
     MemUnlock(o->h);
     CursorBusy(FALSE);
-    DbgPrint("SHELL: geloescht");
+    DbgPrint(pk ? "SHELL: Papierkorb" : "SHELL: geloescht");
     alle_neu();
 }
 static void umbenennen(ORDNER *o)
@@ -737,7 +754,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == K_F6) kopieren(o, 1, 0);
         else if (p1 == K_F2) umbenennen(o);
         else if (p1 == K_F7) neuer_ordner(o);
-        else if (p1 == K_DEL || p1 == K_F8) loeschen(o);
+        else if (p1 == K_DEL || p1 == K_F8) { endg = (BYTE)((HIWORD(p2) & KS_SHIFT) != 0); loeschen(o); endg = 0; }   /* Umschalt+Entf: endgueltig */
         else return DefWindowProc(w, msg, p1, p2);
         if (y) setzen(o, o->sel, o->sel);
         return 0;
@@ -987,7 +1004,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_PSTART && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
         else if (p1 == CM_PWEG && lsel >= nlw) pdesk(prgn[psy[lsel - nlw]], 0);
         else if (p1 == CM_FDISK) einrichten();
-        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 8) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE" }; char p[80];
+        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 9) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE", "PAPIERK.EXE" }; char p[80];
             if (werkzeug(p, zn[p1 - CM_ZUB])) starten(p); }
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
         else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); DbgHex("SHELL: versteckte", verst); alle_neu(); }

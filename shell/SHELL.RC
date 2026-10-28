@@ -12,6 +12,7 @@ MENU 1
     ITEM "&FTP"                8
     ITEM "I&RC"                9
     ITEM "&DOS-Fenster"       10
+    ITEM "&Papierkorb"        11
     TRENNER
     ITEM "&Beenden..."         2
   ENDE
@@ -129,6 +130,7 @@ TEXTE
   36 "Suchen in %s nach (z. B. *.BAS):"
   37 "%s Treffer in %s"
   38 "Nichts gefunden."
+  39 "%s Eintrag/Eintr„ge in den Papierkorb legen?\n(Ordner werden gel”scht, Umschalt+Entf l”scht sofort.)"
 ENDE
 SPRACHE EN
 MENU 1
@@ -143,6 +145,7 @@ MENU 1
     ITEM "&FTP"                8
     ITEM "I&RC"                9
     ITEM "&DOS window"        10
+    ITEM "Recycle &bin"       11
     TRENNER
     ITEM "E&xit..."            2
   ENDE
@@ -260,6 +263,7 @@ TEXTE
   36 "Search %s for (e.g. *.BAS):"
   37 "%s matches in %s"
   38 "Nothing found."
+  39 "Move %s item(s) to the recycle bin?\n(Folders are deleted, Shift+Del deletes at once.)"
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"

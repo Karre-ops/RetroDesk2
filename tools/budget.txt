@@ -38,6 +38,7 @@ SHELL.EXE       40960   30   S  Desktop, Dateimanager (Teile verwerfbar)
 UHR.EXE          8192   12   P  Zubehoer (4 KB Stapel: Nachladen laeuft darauf), Netzzeit per SNTP (Datumsrechnung mit long: +2,6 KB)
 NOTIZ.EXE       10240   10   P  Zubehoer
 RECHNER.EXE      8192   10   P  Zubehoer, kleiner Rechner (4 KB Stapel wie UHR, Rechenkern Dezimalziffern)
+PAPIERK.EXE      6144    8   P  Zubehoer Papierkorb (RD-Menue): X:\PAPIERK\PAPIERK.LST, wiederherstellen/loeschen/leeren, 8 KB Tabelle beim Lauf
 OPTIONEN.EXE     6144    8   P  Zubehoer Optionen (Dialog; beim Lauf 24 KB Puffer fuer CONFIG.SYS/AUTOEXEC.BAT)
 LEER.EXE         2048    0   T  Testprogramm Phase 1 (faellt spaeter weg)
 UEBER.EXE        2048    0   T  G12-Test: LEER.EXE mit minalloc FFFFh (beim Bauen erzeugt)
