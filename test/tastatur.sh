@@ -21,9 +21,9 @@ QP=$!
 Q() { timeout 10 python3 ../test/qemu/qmon.py "$@" >/dev/null 2>&1; }
 waitn() { local c; for i in $(seq 300); do c=$(grep -c "$1" $SER 2>/dev/null); [ "${c:-0}" -ge "${2:-1}" ] && return 0; sleep 0.2; done; return 1; }
 waitn "KEYTEST: bereit" || { echo "FEHLER KEYTEST startet nicht"; F=1; }
-for k in z y shift-2 semicolon apostrophe bracket_left minus shift-minus grave_accent a equal e shift-equal a grave_accent spc ctrl-alt-q alt_r-q less alt_r-less shift-0 ctrl-z ctrl-alt-f1 z ctrl-alt-f2 z esc; do Q "sendkey $k"; sleep 0.3; done
+for k in z y shift-2 semicolon apostrophe bracket_left minus shift-minus grave_accent a equal e shift-equal a grave_accent spc ctrl-alt-q alt_r-q less alt_r-less shift-0 ctrl-z ctrl-alt-f1 z ctrl-alt-f2 z delete home esc; do Q "sendkey $k"; sleep 0.3; done
 waitn "K 011B"
-erw="2C79 157A 0322 2794 2884 1A81 0CE1 0C3F 1E83 1282 1E85 395E 1040 1040 563C 567C 0B3D 1519 2C7A 2C79"
+erw="2C79 157A 0322 2794 2884 1A81 0CE1 0C3F 1E83 1282 1E85 395E 1040 1040 563C 567C 0B3D 1519 2C7A 2C79 5300 4700"
 ist=$(grep -o "K [0-9A-F]*" $SER | cut -c3- | grep -v 011B | tr '\n' ' ' | sed 's/ $//')
 if [ "$ist" = "$erw" ]; then echo "ok     DOS: deutsche Belegung (y/z, Umlaute, ß, Tottasten, AltGr, <>|, Strg+Z, Umschalten US/DE)"
 else echo "FEHLER DOS-Belegung"; echo "  soll: $erw"; echo "  ist:  $ist"; F=1; fi

@@ -401,12 +401,11 @@ int24:
     mov  al, 3
     iret
 
-; INT 9: Strg+Alt+Rueckschritt merken, dann alter Tastaturhandler
+; INT 9: Strg+Alt+Rueckschritt merken, dann alter Tastaturhandler. Port 60h nur lesen, wenn Strg+Alt gedrueckt
+; sind: emulierte 8042 (QEMU) geben beim Lesen schon das naechste Byte (E0 xx) heraus, das BIOS saehe sonst
+; graue Tasten doppelt und ohne E0 (Entf loeschte zweimal).
 int9:
     push ax
-    in   al, 60h
-    cmp  al, 0Eh
-    jne  i9_old
     push ds
     mov  ax, 40h
     mov  ds, ax
@@ -414,12 +413,14 @@ int9:
     and  al, 0Ch
     cmp  al, 0Ch
     jne  i9_no
+    in   al, 60h
+    cmp  al, 0Eh
+    jne  i9_no
     mov  ax, DGROUP
     mov  ds, ax
     mov  _rd_killreq, 1
 i9_no:
     pop  ds
-i9_old:
     pop  ax
     jmp  dword ptr cs:old9
 

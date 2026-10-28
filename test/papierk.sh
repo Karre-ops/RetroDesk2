@@ -18,7 +18,7 @@ waitn() { local c; for i in $(seq 250); do c=$(tr -d '\r' < $SER | grep -c "$1")
 ok() { if waitn "$1" ${3:-1}; then echo "ok     $2"; else echo "FEHLER $2"; F=1; fi; }
 waitn "SHELL: bereit"; sleep 3; Q "sendkey kp_2"; sleep 0.5; Q "sendkey ret"
 ok 'SHELL: Ordner C:\\ ' "Ordner C:\\ offen"
-sleep 3; Q "sendkey end"; sleep 0.5; Q "sendkey f8"; sleep 1.5; Q "screendump obj/pk1.ppm"; Q "sendkey ret"
+sleep 3; Q "sendkey end"; sleep 0.5; Q "sendkey delete"; sleep 1.5; Q "screendump obj/pk1.ppm"; Q "sendkey ret"
 ok "SHELL: Papierkorb" "Entf auf der Festplatte legt in den Papierkorb"
 sleep 2; Q "sendkey alt-spc"; sleep 0.8; Q "sendkey b"; sleep 1.5; Q "sendkey ret"
 ok "PAPIERK: Eintraege 0x00000001" "PAPIERK.EXE zeigt 1 Eintrag"

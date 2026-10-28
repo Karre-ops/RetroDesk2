@@ -19,6 +19,9 @@ e0      db 0                    ; letzter Code war E0
 altgr   db 0                    ; rechte Alt gedrueckt
 tot     db 0                    ; anstehende Tottaste 1 ^, 2 ´, 3 `
 alt9    dd 0
+alt15   dd 0
+mit4f   db 0                    ; BIOS ruft INT 15h/4Fh: Scancode von dort, Port 60h nicht lesen
+letzt   db 0FFh
 alt2f   dd 0
 
 ; DE-Tabelle ab Scancode 02h bis 35h: normal, Umschalt, AltGr. 0 = BIOS-Zeichen lassen, 1..3 = Tottaste
@@ -94,6 +97,13 @@ int2f:
 i2f_alt:
     jmp  dword ptr cs:alt2f
 
+int15:
+    cmp  ah, 4Fh
+    jne  i15_alt
+    mov  cs:letzt, al
+i15_alt:
+    jmp  dword ptr cs:alt15
+
 int9:
     push ax
     push bx
@@ -103,8 +113,13 @@ int9:
     push di
     push ds
     push es
-    in   al, 60h
-    mov  dl, al                 ; dl = Scancode
+    mov  dl, 0FFh
+    cmp  cs:mit4f, 0
+    jne  i9_0
+    in   al, 60h                ; XT (8255): Lesen schadet nicht
+    mov  dl, al
+i9_0:
+    mov  cs:letzt, 0FFh
     mov  ax, 40h
     mov  es, ax
     mov  di, es:[1Ch]           ; Ende vorher = Platz des neuen Eintrags
@@ -112,6 +127,13 @@ int9:
     call dword ptr cs:alt9      ; BIOS verarbeitet die Taste
     push cs
     pop  ds
+    cmp  mit4f, 0
+    je   i9_00
+    mov  dl, letzt              ; AT: Scancode, den das BIOS an INT 15h/4Fh gab
+    cmp  dl, 0FFh
+    jne  i9_00
+    jmp  fertig
+i9_00:
     mov  al, e0
     mov  e0, 0
     cmp  dl, 0E0h
@@ -370,7 +392,23 @@ laden:
     int  21h
     mov  word ptr alt9, bx
     mov  word ptr alt9+2, es
-    mov  ax, 352Fh
+    mov  ah, 0C0h               ; BIOS-Merkmale: Bit 4 von Byte 5 = INT 9 ruft INT 15h/4Fh
+    stc
+    int  15h
+    jc   l0
+    or   ah, ah
+    jnz  l0
+    test byte ptr es:[bx+5], 10h
+    jz   l0
+    mov  mit4f, 1
+    mov  ax, 3515h
+    int  21h
+    mov  word ptr alt15, bx
+    mov  word ptr alt15+2, es
+    mov  dx, offset int15
+    mov  ax, 2515h
+    int  21h
+l0: mov  ax, 352Fh
     int  21h
     mov  word ptr alt2f, bx
     mov  word ptr alt2f+2, es
