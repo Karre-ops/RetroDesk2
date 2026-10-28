@@ -20,6 +20,7 @@ $W -fo=obj/swap.obj kern/SWAP.ASM
 $W -fo=obj/rdswap.obj kern/RDSWAP.ASM
 wlink option quiet format raw bin name $O/RDSWAP.BIN file obj/rdswap.obj option offset=0 2>&1 | grep -v "W1014\|W1023" || true
 (cd obj && wasm -q -0 -fo=rdkeyb.obj ../drv/RDKEYB.ASM && wlink option quiet format dos com name ../$O/RDKEYB.COM file rdkeyb.obj)   # Tastatur DE/US
+(cd obj && wasm -q -0 -fo=rdmaus.obj ../drv/RDMAUS.ASM && wlink option quiet format dos com name ../$O/RDMAUS.COM file rdmaus.obj)   # Maus PS/2, seriell (Bus/InPort folgt)
 cp ../test/qemu/CTMOUSE.EXE $O/CTMOUSE.EXE   # CuteMouse (GPL, unveraendert), siehe docs/LIZENZ.md
 # Kern: Small, SS != DS (API-Aufrufe kommen mit dem Stack des Programms)
 for c in RD MEM TASK FILE MOD RUNDOS; do wcc -0 -ms -zu -os -ol -s -zq -w4 -bt=dos -i=sdk -fo=obj/k_$c.obj kern/$c.C; done
