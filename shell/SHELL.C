@@ -30,6 +30,7 @@
 #define CM_PSTART 110                             /* Programmsymbol: starten */
 #define CM_PWEG   111                             /* Programmsymbol vom Schreibtisch nehmen */
 #define CM_PDESK  112                             /* Ordner: Programm auf den Schreibtisch */
+#define CM_FEIG   113                             /* Datei-Eigenschaften (Alt+Eingabe) */
 #define CM_PRG    401                             /* 401..412: angeheftete Programme */
 #define CM_PLEER  413
 #define MAXP      12
@@ -381,6 +382,44 @@ static void umbenennen(ORDNER *o)
     DbgPrint("SHELL: umbenannt");
     alle_neu();
 }
+/* ---- Datei-Eigenschaften: Name, Groesse, Datum/Zeit, Attribute (Schreibgeschuetzt, Versteckt, System, Archiv) ---- */
+static char ez[3][48]; static WORD eat;
+static BOOL RDCALLBACK eproc(HWND d, WORD msg, WORD p1, DWORD p2)
+{
+    WORD i;
+    (void)p2;
+    if (msg == M_INITDIALOG) {
+        for (i = 0; i < 3; i++) DlgSetText(d, (WORD)(41 + i), ez[i]);
+        for (i = 0; i < 4; i++) DlgCheck(d, (WORD)(31 + i), (eat & (i == 3 ? FA_ARCH : 1 << i)) != 0);
+    }
+    if (msg == M_COMMAND && p1 == ID_OK)
+        for (eat &= FA_DIR, i = 0; i < 4; i++) if (DlgChecked(d, (WORD)(31 + i))) eat |= i == 3 ? FA_ARCH : 1 << i;
+    return FALSE;
+}
+static void z2(char *p, WORD v) { p[0] = (char)('0' + v / 10 % 10); p[1] = (char)('0' + v % 10); }
+static void eigenschaften(ORDNER *o)
+{
+    EINTRAG FAR *e; FINDDATA fd; char *p; WORD at, r;
+    if (o->sel < 0 || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
+    scpy(buf, e[o->sel].name, 13); MemUnlock(o->h);
+    if (buf[0] == '.') return;
+    scpy(qv, o->pfad, sizeof qv); scat(qv, buf, sizeof qv);
+    if (FileFindFirst(qv, FA_RDONLY | FA_HIDDEN | FA_SYSTEM | FA_DIR | FA_ARCH, &fd)) { fehler(buf, LastError()); return; }
+    scpy(ez[0], StrGet(inst, 32), sizeof ez[0]); scat(ez[0], qv, sizeof ez[0]);
+    scpy(ez[1], StrGet(inst, 33), sizeof ez[1]);
+    if (fd.attr & FA_DIR) scat(ez[1], StrGet(inst, 31), sizeof ez[1]);
+    else { p = ez[1]; while (*p) p++; p = zahl(p, fd.groesse); scpy(p, " Bytes", 8); }
+    scpy(ez[2], StrGet(inst, 34), sizeof ez[2]); p = ez[2]; while (*p) p++;
+    z2(p, fd.datum & 31); p[2] = '.'; z2(p + 3, (fd.datum >> 5) & 15); p[5] = '.'; p = zahl(p + 6, 1980 + (fd.datum >> 9));
+    *p++ = ' '; z2(p, fd.zeit >> 11); p[2] = ':'; z2(p + 3, (fd.zeit >> 5) & 63); p[5] = 0;
+    eat = at = fd.attr;
+    DbgPrint("SHELL: Eigenschaften"); DbgPrint(ez[1]); DbgPrint(ez[2]);
+    if (DialogRun(inst, 20, GetActive(), eproc, 0) != ID_OK || eat == at) return;
+    if ((at & FA_SYSTEM) && !sicher(qv, at, 19)) return;
+    if ((r = FileAttr(qv, (WORD)(eat & ~FA_DIR), 1)) == 0xFFFF) {   /* liefert sonst die Attribute */ MsgBox(GetActive(), StrGet(inst, 35), "RD", MB_OK | MB_WARN); DbgHex("SHELL: Attribut Fehler", r); return; }
+    DbgHex("SHELL: Attribute", eat);
+    alle_neu();
+}
 static void neuer_ordner(ORDNER *o)
 {
     char n[13]; WORD r;
@@ -584,6 +623,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == K_DOWN) neusel(o, o->sel + o->spalten < o->n ? o->sel + o->spalten : o->n - 1);
         else if (p1 == K_HOME) neusel(o, 0);
         else if (p1 == K_END) neusel(o, o->n - 1);
+        else if ((p1 == K_ENTER || p1 == 0x11C) && (HIWORD(p2) & KS_ALT)) eigenschaften(o);   /* 11C: Alt+Eingabe vom erweiterten BIOS */   /* Alt+Eingabe: Eigenschaften */
         else if (p1 == K_ENTER) oeffnen(o);
         else if (p1 == K_BACK) hoch(o);
         else if (p1 == K_INS) { markieren(o, o->sel); neusel(o, o->sel + 1); }
@@ -617,6 +657,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_KOPIE) kopieren(o, 0, 0);
         else if (p1 == CM_VERSCH) kopieren(o, 1, 0);
         else if (p1 == CM_UMBEN) umbenennen(o);
+        else if (p1 == CM_FEIG) eigenschaften(o);
         else if (p1 == CM_MKDIR) neuer_ordner(o);
         else if (p1 == CM_LOESCH) loeschen(o);
         else if (p1 == CM_ANHEFT || p1 == CM_PDESK) anheften(o, p1 == CM_PDESK);
@@ -832,7 +873,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         if (p1 == K_DOWN && lsel < nlw + nps - 1) { lsel++; InvalidateRect(w, 0, FALSE); }
         else if (p1 == K_UP && lsel > 0) { lsel--; InvalidateRect(w, 0, FALSE); }
         else if (p1 == K_ENTER && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
-        else if (p1 == K_ENTER && nlw && (HIWORD(p2) & KS_ALT)) lwinfo();   /* Alt+Eingabe: Eigenschaften */
+        else if ((p1 == K_ENTER || p1 == 0x11C) && nlw && (HIWORD(p2) & KS_ALT)) lwinfo();   /* Alt+Eingabe: Eigenschaften */
         else if (p1 == K_ENTER && nlw) ordner_auf(lw[lsel], 0, 0);
         else if (p1 == K_F1) HelpShow(w, "RD2.HLP", 2);
         else return DefWindowProc(w, msg, p1, p2);

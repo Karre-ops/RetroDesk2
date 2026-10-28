@@ -24,6 +24,7 @@ MENU 2
     ITEM "&Umbenennen...\tF2"   106
     ITEM "&Neuer Ordner...\tF7" 107
     ITEM "&Lîschen\tEntf"       108
+    ITEM "&Eigenschaften...\tAlt+Eingabe" 113
     ITEM "An&heften/Lîsen"      109
     ITEM "Auf den Schreib&tisch" 112
     TRENNER
@@ -67,6 +68,18 @@ MENU 4
     ITEM "Vom Schreibtisch &entfernen" 111
   ENDE
 ENDE
+DIALOG 20 "Eigenschaften" 0 0 224 112
+  STATIC   ""            41   8   8 208 10
+  STATIC   ""            42   8  20 208 10
+  STATIC   ""            43   8  32 208 10
+  GROUP    "Attribute"   -1   8  46 140 58
+  CHECK    "&SchreibgeschÅtzt" 31 14  56 126 10
+  CHECK    "&Versteckt"  32  14  68 126 10
+  CHECK    "S&ystem"     33  14  80 126 10
+  CHECK    "&Archiv"     34  14  92 126 10
+  BUTTON   "OK"           1 160  52  56 14 STANDARD
+  BUTTON   "Abbruch"      2 160  72  56 14
+ENDE
 TEXTE
   1 "RetroDesk 2, API %s"
   2 "RetroDesk 2 beenden?"
@@ -98,6 +111,11 @@ TEXTE
   28 "(leer)"
   29 "Es kînnen hîchstens 12 Programme\nangeheftet sein."
   30 "im Prozessor"
+  31 "Ordner"
+  32 "Name: "
+  33 "Grî·e: "
+  34 "GeÑndert: "
+  35 "Attribute konnten nicht gesetzt werden."
 ENDE
 SPRACHE EN
 MENU 1
@@ -124,6 +142,7 @@ MENU 2
     ITEM "&Rename...\tF2"       106
     ITEM "&New folder...\tF7"   107
     ITEM "&Delete\tDel"         108
+    ITEM "Propert&ies...\tAlt+Enter" 113
     ITEM "&Pin/unpin"           109
     ITEM "On the des&ktop"      112
     TRENNER
@@ -167,6 +186,18 @@ MENU 4
     ITEM "&Remove from desktop" 111
   ENDE
 ENDE
+DIALOG 20 "Properties" 0 0 224 112
+  STATIC   ""            41   8   8 208 10
+  STATIC   ""            42   8  20 208 10
+  STATIC   ""            43   8  32 208 10
+  GROUP    "Attributes"   -1   8  46 140 58
+  CHECK    "&Read-only" 31 14  56 126 10
+  CHECK    "&Hidden"  32  14  68 126 10
+  CHECK    "S&ystem"     33  14  80 126 10
+  CHECK    "&Archiv"     34  14  92 126 10
+  BUTTON   "OK"           1 160  52  56 14 STANDARD
+  BUTTON   "Cancel"      2 160  72  56 14
+ENDE
 TEXTE
   1 "RetroDesk 2, API %s"
   2 "Exit RetroDesk 2?"
@@ -198,6 +229,11 @@ TEXTE
   28 "(empty)"
   29 "At most 12 programs\ncan be pinned."
   30 "built into CPU"
+  31 "Folder"
+  32 "Name: "
+  33 "Size: "
+  34 "Modified: "
+  35 "Could not set the attributes."
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"
