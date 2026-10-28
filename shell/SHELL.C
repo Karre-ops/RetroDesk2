@@ -42,6 +42,7 @@
 #define CM_NEU    201
 #define CM_SYMB   202                             /* Ansicht: Symbole */
 #define CM_LISTE  203                             /* Ansicht: Liste (Name, Groesse, Datum) */
+#define CM_VERST  204                             /* Ansicht: versteckte Dateien anzeigen (grau) */
 #define MAXE      240                             /* Eintraege je Ordner */
 #define MAXO      6                               /* Ordnerfenster */
 #define ZB        100                             /* Zellenbreite */
@@ -109,6 +110,12 @@ static void masse(ORDNER *o, short b, short h)
     o->zeilen = h / (liste ? th + 2 : zh); if (o->zeilen < 1) o->zeilen = 1;
     rollen(o);
 }
+static BYTE verst;                                /* versteckte/System-Dateien zeigen (RD2.STA liste Bit 1) */
+static void grau_ueber(HDC d, short l, short t, short rr, short b)   /* versteckt: 50 % aufhellen */
+{
+    RECT q; q.l = l; q.t = t; q.r = rr; q.b = b;
+    SetRop(d, ROP_OR); SetBkColor(d, C_BLACK); SetBrush(d, C_WHITE, PAT_GRAY50); FillRect(d, &q); SetRop(d, ROP_COPY);
+}
 static int vor(LPCSTR a, LPCSTR b)                /* a vor b, ohne Gross/Klein */
 {
     while (*a && (*a | 0x20) == (*b | 0x20)) a++, b++;
@@ -137,7 +144,7 @@ static WORD einlesen(ORDNER *o)                   /* 0 = gelesen, sonst Fehler (
     if (o->h && (e = (EINTRAG FAR *)MemLock(o->h)) != 0) {
         scpy(buf, o->pfad, sizeof buf); scat(buf, "*.*", sizeof buf);
         for (pass = 0; pass < 2; pass++)          /* erst Ordner, dann Dateien */
-            if ((x = FileFindFirst(buf, FA_DIR, &f)) != 0) { if (x != RD_ERR_NOTFOUND) r = x; }
+            if ((x = FileFindFirst(buf, (WORD)(FA_DIR | (verst ? FA_HIDDEN | FA_SYSTEM : 0)), &f)) != 0) { if (x != RD_ERR_NOTFOUND) r = x; }
             else do {
                 if ((f.attr & FA_LABEL) || (f.name[0] == '.' && !f.name[1])) continue;
                 if (((f.attr & FA_DIR) != 0) != (pass == 0) || n >= MAXE) continue;
@@ -648,11 +655,13 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &r);
         if (o->h && (e = (EINTRAG FAR *)MemLock(o->h)) != 0) {
             for (i = o->oben * o->spalten; i < o->n; i++) {
-                if (liste) { y = (i - o->oben) * (th + 2); if (y >= r.b) break; zeile(d, y, r.r, &e[i], i == o->sel); continue; }
+                if (liste) { y = (i - o->oben) * (th + 2); if (y >= r.b) break; zeile(d, y, r.r, &e[i], i == o->sel);
+                             if ((e[i].attr & (FA_HIDDEN | FA_SYSTEM)) && i != o->sel) grau_ueber(d, 0, y, r.r, (short)(y + th + 2)); continue; }
                 x = (i % o->spalten) * ZB; y = (i / o->spalten - o->oben) * zh;
                 if (y >= r.b) break;
                 IconDraw(d, x + (ZB - 32) / 2, y + 2, inst, symbol(&e[i]));
                 schild(d, x, y + ih + 3, ZB, e[i].name, i == o->sel);
+                if ((e[i].attr & (FA_HIDDEN | FA_SYSTEM)) && i != o->sel) grau_ueber(d, x, y, (short)(x + ZB), (short)(y + zh));
                 if (e[i].mark) { RECT m; m.l = x + 4; m.t = y + 2; m.r = m.l + 6; m.b = m.t + 6; SetBrush(d, C_BLACK, PAT_SOLID); FillRect(d, &m); }
             }
             MemUnlock(o->h);
@@ -737,6 +746,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_HOCH) hoch(o);
         else if (p1 == CM_NEU) { wl[o->pfad[0] - 'A'] = 1; einlesen(o); }   /* gibt die Wechselabfrage wieder frei */
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
+        else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); DbgHex("SHELL: versteckte", verst); alle_neu(); }
         else if (p1 == CM_KOPIE) kopieren(o, 0, 0);
         else if (p1 == CM_VERSCH) kopieren(o, 1, 0);
         else if (p1 == CM_UMBEN) umbenennen(o);
@@ -788,7 +798,7 @@ static STA z;
 static void sta_schreiben(void)
 {
     char p[80]; short i; HWND a = GetActive();
-    z.kopf[0] = 'R'; z.kopf[1] = 'D'; z.kopf[2] = 'S'; z.kopf[3] = '1'; z.ver = 1; z.liste = liste; z.lsel = (BYTE)lsel; z.n = 0; z.akt = 0xFF;
+    z.kopf[0] = 'R'; z.kopf[1] = 'D'; z.kopf[2] = 'S'; z.kopf[3] = '1'; z.ver = 1; z.liste = (BYTE)(liste | verst << 1); z.lsel = (BYTE)lsel; z.n = 0; z.akt = 0xFF;
     for (i = 0; i < MAXO; i++) if (od[i].w) {
         STAO *s = &z.o[z.n];
         scpy(s->pfad, od[i].pfad, sizeof s->pfad); GetWindowRect(od[i].w, &s->r); s->sel = od[i].sel; s->oben = od[i].oben;
@@ -805,8 +815,8 @@ static void sta_lesen(void)
     if ((f = FileOpen(p, 0)) < 0) return;
     n = FileRead(f, &z, sizeof z); FileClose(f);
     if (n == 0xFFFF || n < 10 || z.kopf[0] != 'R' || z.kopf[1] != 'D' || z.kopf[2] != 'S' || z.kopf[3] != '1' || z.ver != 1 || z.n > MAXO || n < 10 + z.n * sizeof(STAO)) return;   /* unbekannt: ignorieren */
-    liste = (BYTE)(z.liste & 1); if (z.lsel < nlw) lsel = z.lsel;
-    MenuCheck(mbar, CM_SYMB, !liste); MenuCheck(mbar, CM_LISTE, liste);
+    liste = (BYTE)(z.liste & 1); verst = (BYTE)(z.liste >> 1 & 1); if (z.lsel < nlw) lsel = z.lsel;
+    MenuCheck(mbar, CM_SYMB, !liste); MenuCheck(mbar, CM_LISTE, liste); MenuCheck(mbar, CM_VERST, verst);
     for (i = 0; i < z.n; i++) {
         STAO *s = &z.o[i];
         s->pfad[sizeof s->pfad - 1] = 0;
@@ -980,6 +990,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 >= CM_ZUB && p1 < CM_ZUB + 8) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE" }; char p[80];
             if (werkzeug(p, zn[p1 - CM_ZUB])) starten(p); }
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
+        else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); DbgHex("SHELL: versteckte", verst); alle_neu(); }
         else if (p1 >= CM_PRG && p1 < CM_PRG + nprg) starten(prg[p1 - CM_PRG]);
         return 0;
     case M_TIMER:

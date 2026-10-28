@@ -36,6 +36,8 @@ MENU 2
     ITEM "&Symbole"            202 HAKEN
     ITEM "&Liste"              203
     TRENNER
+    ITEM "&Versteckte Dateien" 204
+    TRENNER
     ITEM "&Neu einlesen"       201
   ENDE
   POPUP "&Programme"
@@ -164,6 +166,8 @@ MENU 2
   POPUP "&View"
     ITEM "&Icons"              202 HAKEN
     ITEM "&List"               203
+    TRENNER
+    ITEM "&Hidden files"       204
     TRENNER
     ITEM "&Refresh"            201
   ENDE
