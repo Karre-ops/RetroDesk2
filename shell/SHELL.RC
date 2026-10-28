@@ -65,6 +65,7 @@ MENU 3
     ITEM "&Suchen...\tStrg+F"   304
     TRENNER
     ITEM "&Formatieren..."     302 GRAU
+    ITEM "Diskette &kopieren..." 305 GRAU
     ITEM "Festplatte ein&richten..." 303 GRAU
   ENDE
 ENDE
@@ -199,6 +200,7 @@ MENU 3
     ITEM "&Search...\tCtrl+F"   304
     TRENNER
     ITEM "&Format..."          302 GRAU
+    ITEM "&Copy disk..."       305 GRAU
     ITEM "Set up &hard disk..." 303 GRAU
   ENDE
 ENDE

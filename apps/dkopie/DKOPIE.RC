@@ -1,0 +1,53 @@
+; Ressourcen fuer DKOPIE.EXE
+SPRACHE DE
+TEXTE
+  1 "Diskette kopieren"
+  2 "Zieldiskette muss im gleichen Format formatiert sein."
+  3 "Quelldiskette einlegen."
+  4 "Zieldiskette einlegen. Ihr Inhalt wird Åberschrieben."
+  5 "Lese ..."
+  6 "Lesefehler auf der Quelldiskette."
+  7 "Zu wenig Speicher."
+  8 "Schreibe ..."
+  9 "Schreibfehler (Zieldiskette im gleichen Format formatiert?)."
+  10 "Zieldiskette ist schreibgeschÅtzt."
+  11 "Fertig, Diskette kopiert."
+  12 "RDDISK.MOD fehlt."
+ENDE
+DIALOG 10 "Diskette kopieren" 0 0 220 118
+  GROUP    "Laufwerke"   -1   8   4 204 36
+  RADIO    "&A: nach A:" 31  14  14  90 10 AN
+  RADIO    "&B: nach B:" 32  14  25  90 10
+  RADIO    "A: nach B&:" 33 114  14  90 10
+  RADIO    "B: nach A&." 34 114  25  90 10
+  PROGRESS              41   8  48 204  8
+  STATIC   ""           42   8  62 204 20
+  BUTTON   "&Kopieren"   1  40  96  64 14 STANDARD
+  BUTTON   "Schlie·en"   2 116  96  64 14
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Copy disk"
+  2 "The target disk must be formatted in the same format."
+  3 "Insert the source disk."
+  4 "Insert the target disk. Its contents will be overwritten."
+  5 "Reading ..."
+  6 "Read error on the source disk."
+  7 "Not enough memory."
+  8 "Writing ..."
+  9 "Write error (target formatted in the same format?)."
+  10 "Target disk is write-protected."
+  11 "Done, disk copied."
+  12 "RDDISK.MOD is missing."
+ENDE
+DIALOG 10 "Copy disk" 0 0 220 118
+  GROUP    "Drives"      -1   8   4 204 36
+  RADIO    "&A: to A:"   31  14  14  90 10 AN
+  RADIO    "&B: to B:"   32  14  25  90 10
+  RADIO    "A: to B&:"   33 114  14  90 10
+  RADIO    "B: to A&."   34 114  25  90 10
+  PROGRESS              41   8  48 204  8
+  STATIC   ""           42   8  62 204 20
+  BUTTON   "&Copy"       1  40  96  64 14 STANDARD
+  BUTTON   "Close"       2 116  96  64 14
+ENDE

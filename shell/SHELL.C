@@ -33,6 +33,7 @@
 #define CM_FEIG   113                             /* Datei-Eigenschaften (Alt+Eingabe) */
 #define CM_SUCH   114                             /* Dateien suchen ab dem Ordner (Strg+F) */
 #define CM_LSUCH  304                             /* Dateien suchen auf dem Laufwerk */
+#define CM_DKOP   305                             /* Diskette kopieren (DKOPIE.EXE) */
 #define CM_PRG    401                             /* 401..412: angeheftete Programme */
 #define CM_PLEER  413
 #define MAXP      12
@@ -973,7 +974,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
             else if (msg == M_DBLCLK) ordner_auf(lw[i], 0, 0);
             else if ((p1 & 0xFF) == 2) {
                 char p[80]; WORD an = (lt[i] == DT_FLOPPY || lt[i] == DT_HARD) && rdformat(p);
-                MenuEnable(mlw, CM_FORMAT, an);
+                MenuEnable(mlw, CM_FORMAT, an); MenuEnable(mlw, CM_DKOP, lt[i] == DT_FLOPPY);
                 MenuEnable(mlw, CM_FDISK, werkzeug(p, "RDFDISK.EXE"));
                 y = (short)MenuPopup(w, mlw, 0, (short)LOWORD(p2), (short)HIWORD(p2));
                 if (y) PostMessage(w, M_COMMAND, y, 0);
@@ -999,6 +1000,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_ENDE) { char t[40]; scpy(t, StrGet(inst, 2), sizeof t); if (MsgBox(GetActive(), t, "RD", MB_YESNO | MB_ASK) == ID_YES) { sta_schreiben(); PostQuit(0); } }
         else if (p1 == CM_OEFFNEN && lsel < nlw) ordner_auf(lw[lsel], 0, 0);
         else if (p1 == CM_LWINFO && lsel < nlw) lwinfo();
+        else if (p1 == CM_DKOP) { char p[80]; if (werkzeug(p, "DKOPIE.EXE")) starten(p); }
         else if (p1 == CM_LSUCH && lsel < nlw) { char a[4]; a[0] = lw[lsel]; a[1] = ':'; a[2] = '\\'; a[3] = 0; suchen(a); }
         else if (p1 == CM_FORMAT && lsel < nlw) formatieren();
         else if (p1 == CM_PSTART && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
