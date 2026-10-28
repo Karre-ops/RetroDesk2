@@ -5,13 +5,13 @@ cd "$(dirname "$0")/.."
 IMG=obj/rechner.img; SER=obj/rechner_com1.txt; SOCK=/tmp/qmon_rechner.sock
 cat > obj/ae_rechner.txt <<'AE'
 @echo off
-A:\CTMOUSE.EXE
+A:\RDMAUS.COM
 A:\RD2\RD.EXE /VGA A:\RD2\RECHNER.EXE T
 A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RECHNER.EXE T
 A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/ae_rechner.txt
-mcopy -i $IMG ../test/qemu/CTMOUSE.EXE ::/
+mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/rechner?_*.ppm
 timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
@@ -31,9 +31,9 @@ lauf() {
   k c 9 shift-5 ret; pr "9 % (Prozent)" 0.09
   k delete
   # Maus (QEMU-Einheit 3 Pixel waagrecht, 1,5 senkrecht, ab oben links): "9" bei (478,152), "Wz" bei (570,182)
-  null() { Q "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.4; }
-  null; Q "mouse_move 159 101" sleep0.6 "mouse_button 1" sleep0.2 "mouse_button 0" sleep0.5; pr "Klick 9" 9
-  null; Q "mouse_move 190 121" sleep0.6 "mouse_button 1" sleep0.2 "mouse_button 0" sleep0.5; pr "Klick Wz" 3
+  null() { Q "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.4; }   # RDMAUS: 0,5 Pixel je Einheit senkrecht, daher 4 Schritte
+  null; Q "mouse_move 477 303" sleep0.6 "mouse_button 1" sleep0.2 "mouse_button 0" sleep0.5; pr "Klick 9" 9
+  null; Q "mouse_move 570 363" sleep0.6 "mouse_button 1" sleep0.2 "mouse_button 0" sleep0.5; pr "Klick Wz" 3
   k 4 ret; pr "danach Tastatur (Fokus zurueck)" 4
   Q "sendkey esc"
   waitn "RECHNER: bereit" 2 || { echo "FEHLER: Rechner 2 startet nicht"; return; }; sleep 3

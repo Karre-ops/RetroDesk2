@@ -11,7 +11,6 @@ Geprüft an den Lizenztexten selbst: GNU GPL Version 2 (gnu.org) und den Kopfzei
 | FreeDOS `SYS` (kernel/sys) | GPL v2 „oder später“ | Grundlage für `RDSYS.EXE` |
 | FreeDOS `FORMAT` (Eric Auer u. a.) | GPL v2 „oder später“ | Grundlage für `RDFORMAT.EXE` |
 | Free FDISK (Brian Reifsnyder, Bernd Boeckmann) | GPL **Version 2** (ohne „oder später“); einzelne Hilfsdateien (printf, ansicon, svarlang) MIT | Grundlage für `RDFDISK.EXE` |
-| CuteMouse `CTMOUSE.EXE` | GPL | Diskette 1, unverändert |
 | MS-DOS 5 | Microsoft, nicht weitergebbar | wird **nicht** verteilt; Nutzer kann mit `SYS A:` tauschen |
 
 Weil FDISK nur GPL v2 erlaubt, stehen alle drei Werkzeuge einheitlich unter **GPL v2**.

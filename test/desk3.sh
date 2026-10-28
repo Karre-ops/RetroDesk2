@@ -1,13 +1,13 @@
 #!/bin/bash
-# Shell Teil 3 (VGA, PS/2-Maus mit CTMOUSE): Ordner ZIEL anlegen (F7), CONFIG.SYS mit der Maus auf ZIEL
+# Shell Teil 3 (VGA, PS/2-Maus mit RDMAUS): Ordner ZIEL anlegen (F7), CONFIG.SYS mit der Maus auf ZIEL
 # ziehen (gleiches Laufwerk = verschieben), Rechtsklick auf Laufwerk A: -> Eigenschaften.
-# Maus: QEMU mouse_button 1 = links, 2 = rechts. QEMU-Einheit = 3 Pixel waagrecht, 1,5 senkrecht (gemessen); jeder Weg beginnt oben links (0,0).
+# Maus: QEMU mouse_button 1 = links, 2 = rechts. RDMAUS: 1 QEMU-Einheit = 1 Pixel waagrecht, 0,5 senkrecht (Wege unten = 3x die CTMOUSE-Werte); jeder Weg beginnt oben links (0,0).
 # Ordnerfenster: Client ab (50,72), Zelle 100 x 54. Bilder obj/desk3_zug.ppm, obj/desk3_lw.ppm.
 cd "$(dirname "$0")/.."
 IMG=obj/desk3.img; SER=obj/desk3_com1.txt; SOCK=/tmp/qmon_desk3.sock
-printf '@echo off\nA:\\CTMOUSE.EXE\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_desk3.txt
+printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_desk3.txt
 bash tools/mkdisk.sh $IMG obj/ae_desk3.txt >/dev/null
-mcopy -i $IMG ../test/qemu/CTMOUSE.EXE ::/
+mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/desk3_zug.ppm obj/desk3_lw.ppm; touch $SER
 timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
@@ -15,19 +15,19 @@ QP=$!
 sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_desk3.py
 Q() { python3 obj/qmon_desk3.py "$@"; }
 waitn() { for i in $(seq 400); do [ "$(tr -d '\r' < $SER | grep -c "$1" || true)" -ge "$2" ] && return 0; sleep 0.2; done; echo "FEHLER: warte vergeblich auf '$1'"; return 1; }
-null() { Q "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.4; }
+null() { Q "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.4; }   # RDMAUS: 0,5 Pixel je Einheit senkrecht, daher 4 Schritte
 tippe() { local a=(); for c in $(echo "$1" | sed 's/./& /g'); do a+=("sendkey $c" sleep0.15); done; Q "${a[@]}"; }
 ok=1
 waitn "SHELL: bereit" 1 && sleep 3 && Q "sendkey ret"
 waitn 'SHELL: Ordner A:\\ ' 1 && sleep 2 && Q "sendkey f7" sleep1.5 && tippe ziel && Q "sendkey ret"
 if waitn "SHELL: Ordner angelegt" 1; then
   sleep 2; null
-  Q "mouse_move 67 96" sleep0.6 "mouse_button 1" sleep0.4 "mouse_move 0 -6" sleep0.3 "mouse_move 0 -12" sleep0.3 "mouse_move 0 -18" sleep0.5 "screendump obj/desk3_zug.ppm" sleep0.3 "mouse_button 0"
+  Q "mouse_move 201 288" sleep0.6 "mouse_button 1" sleep0.4 "mouse_move 0 -18" sleep0.3 "mouse_move 0 -36" sleep0.3 "mouse_move 0 -54" sleep0.5 "screendump obj/desk3_zug.ppm" sleep0.3 "mouse_button 0"
 fi
 waitn "SHELL: Systemwarnung" 1 && sleep 1.5 && Q "screendump obj/desk3_warn.ppm" sleep0.3 "sendkey tab" sleep0.4 "sendkey ret"   # CONFIG.SYS: Ja
 if waitn "SHELL: verschoben" 1; then
   sleep 2; null
-  Q "mouse_move 12 31" sleep0.6 "mouse_button 2" sleep0.2 "mouse_button 0" sleep1.0 "screendump obj/desk3_pop.ppm" sleep0.3 "sendkey e"
+  Q "mouse_move 36 93" sleep0.6 "mouse_button 2" sleep0.2 "mouse_button 0" sleep1.0 "screendump obj/desk3_pop.ppm" sleep0.3 "sendkey e"
 fi
 sleep 3; Q "screendump obj/desk3_lw.ppm" sleep0.3 "sendkey ret"
 sleep 1.5; Q "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sendkey ret"

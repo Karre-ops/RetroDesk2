@@ -5,8 +5,6 @@ Public License Version 2 (Text: COPYING):
 
   KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert
                 Quelle: ke2046s.zip, github.com/FDOS/kernel (Release ke2046)
-  CTMOUSE.EXE   CuteMouse 2.1, unveraendert
-                Quelle: cutemouse.sourceforge.net, ibiblio.org/pub/micro/pc-stuff/freedos
   RDSYS.EXE     FreeDOS SYS (aus github.com/FDOS/kernel, Ordner sys)
   RDFORMAT.EXE  FreeDOS FORMAT 0.92a (github.com/FDOS/format), geaendert
   RDFDISK.EXE   Free FDISK (github.com/FDOS/fdisk), geaendert

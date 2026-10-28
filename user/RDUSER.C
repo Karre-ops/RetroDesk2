@@ -1105,18 +1105,18 @@ WORD RDEXPORT u_KeyState(WORD taste)              /* 0: KS_* der Umschalttasten 
     return 0;
 }
 
-static WORD my[16][12];
+static WORD my[16][8];                            /* Diaet: 15 Zeichen je Name reichen (laengster im System: 7) */
 WORD RDEXPORT u_MsgRegister(LPCSTR name)          /* ab 0xC000, gleicher Name = gleiche Nummer */
 {
     WORD i, j; char *s;
     if (!name || !*name) return fehl(RD_ERR_FORMAT);
     for (i = 0; i < 16 && my[i][0]; i++) {
         s = (char *)my[i];
-        for (j = 0; j < 23 && name[j] && (s[j] | 0x20) == (name[j] | 0x20); j++) ;
-        if (j == 23 || (!name[j] && !s[j])) return 0xC000 + i;
+        for (j = 0; j < 15 && name[j] && (s[j] | 0x20) == (name[j] | 0x20); j++) ;
+        if (j == 15 || (!name[j] && !s[j])) return 0xC000 + i;
     }
     if (i == 16) return fehl(RD_ERR_FULL);
-    scpy((char *)my[i], name, 24);
+    scpy((char *)my[i], name, 16);
     return 0xC000 + i;
 }
 

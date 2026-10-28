@@ -4,9 +4,9 @@
 # 600 ms (ueber den alten 500 ms) oeffnen das Laufwerk als Doppelklick. Tempo 5 = doppelt so schnell: halber Weg (6 15 statt 12 31).
 cd "$(dirname "$0")/.."
 IMG=obj/maus.img; SER=obj/maus_com1.txt; SOCK=/tmp/qmon_maus.sock; F=0
-printf '@echo off\nA:\\CTMOUSE.EXE\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\MAUS.EXE T\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_maus.txt
+printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\MAUS.EXE T\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_maus.txt
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') MAUS.EXE" bash tools/mkdisk.sh $IMG obj/ae_maus.txt >/dev/null 2>&1
-mcopy -i $IMG ../test/qemu/CTMOUSE.EXE ::/
+mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK; touch $SER
 timeout 140 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
@@ -19,7 +19,7 @@ from PIL import Image, ImageChops
 a=Image.open('$1').convert('L'); b=Image.open('$2').convert('L'); print(sum(1 for v in ImageChops.difference(a,b).tobytes() if v))"; }
 waitn "MAUS: gespeichert" 1 && echo "ok     MAUS.EXE hat gespeichert" || { echo "FEHLER MAUS.EXE"; F=1; }
 if waitn "SHELL: bereit" 1; then
-  sleep 3; Q "mouse_move -400 -400" sleep0.3 "mouse_move -400 -400" sleep0.5 "mouse_move 6 15" sleep0.8 "screendump obj/maus_vor.ppm" sleep0.3 \
+  sleep 3; Q "mouse_move -400 -400" sleep0.3 "mouse_move -400 -400" sleep0.3 "mouse_move -400 -400" sleep0.3 "mouse_move -400 -400" sleep0.5 "mouse_move 18 45" sleep0.8 "screendump obj/maus_vor.ppm" sleep0.3 \
     "mouse_button 1" sleep0.2 "mouse_button 0" sleep1.2 "screendump obj/maus_pop.ppm" sleep0.3 "sendkey esc" sleep1.0
   n=$(diffpx obj/maus_vor.ppm obj/maus_pop.ppm); [ "$n" -gt 3000 ] && echo "ok     linke Taste wirkt als rechte (Kontextmenue, $n Pixel)" || { echo "FEHLER kein Kontextmenue ($n Pixel)"; F=1; }
   Q "mouse_button 2" sleep0.1 "mouse_button 0" sleep0.5 "mouse_button 2" sleep0.1 "mouse_button 0" sleep3.5

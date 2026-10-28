@@ -103,7 +103,7 @@ static void post_in(WORD msg, WORD p1, DWORD p2, short x, short y)
 }
 void input_poll(void)
 {
-    static WORD e[4]; WORD i, ks, k; BYTE a, sc; BYTE __far *bda = (BYTE __far *)MK_FP(0x40, 0);
+    static WORD e[4], sndt = 0xFFFF; WORD i, ks, k; BYTE a, sc; BYTE __far *bda = (BYTE __far *)MK_FP(0x40, 0);
     if (inpoll) return;
     inpoll = 1;
     if (kbext == 0xFF) kbext = (BYTE)((bda[0x96] & 0x10) ? 0x10 : 0);   /* 101-Tasten-BIOS */
@@ -138,7 +138,8 @@ void input_poll(void)
             }
         } else post_in(M_BUTTONUP, e[1] | (ks << 8), xy, x, y);
     }
-    k_pausen(2);                                  /* RDSND: Ende der Musik melden, RDTCP: Pakete bearbeiten (nicht aus dem Interrupt) */
+    if (k_netpause) k_netpause(2);                /* RDTCP: Pakete bearbeiten (nicht aus dem Interrupt) */
+    if (k_sndpause && (WORD)rd_ticks != sndt) { sndt = (WORD)rd_ticks; k_sndpause(2); }   /* RDSND: Musikende einmal je Takt (Diaet: Eingabe schneller) */
     inpoll = 0;
 }
 

@@ -63,7 +63,25 @@ WORD RDK KernInfo(SYSINFO FAR *si)
     return 0;
 }
 
-int main(int argc, char **argv)
+/* Befehlszeile selbst zerlegen (Diaet: ohne Watcom-argv und damit ohne malloc/Heap aus der clib) */
+static char kab[160]; static char *argv[10];
+static int kargs(void)
+{
+    BYTE __far *p; char *d = kab; WORD psp, i, n; int c = 1;
+    kr.ax = 0x6200; rd_int(0x21, &kr); psp = kr.bx;
+    for (p = (BYTE __far *)MK_FP(*(WORD __far *)MK_FP(psp, 0x2C), 0); p[0] | p[1]; p++) ;
+    for (argv[0] = d, p += 4; *p && d < kab + 66; ) *d++ = *p++;
+    *d++ = 0;
+    for (p = (BYTE __far *)MK_FP(psp, 0x80), n = *p++, i = 0; c < 9; ) {
+        while (i < n && p[i] <= ' ') i++;
+        if (i >= n) break;
+        for (argv[c++] = d; i < n && p[i] > ' ' && d < kab + sizeof kab - 1; ) *d++ = p[i++];
+        *d++ = 0;
+    }
+    return c;
+}
+
+int main(void)
 {
     WORD h; int a = 1, i, koop = 0; DWORD vor, nach; HMOD gdi, kxm, user = 0, ctl = 0, ausm = 0, snd;
     static const WORD kx[] = { 2, RDO_TimeGet, 3, RDO_TimeSet, 4, RDO_LangGet, 5, RDO_ResLoad, 6, RDO_ResFree,
@@ -72,7 +90,7 @@ int main(int argc, char **argv)
                                14, RDO_PrnOpen, 15, RDO_PrnPage, 16, RDO_PrnClose, 17, RDO_PrnAbort, 18, RDO_HelpShow, 0 };
     static const WORD ux[] = { 0x46, RDO_SendMessage, 0x47, RDO_DispatchMessage, 0x48, RDO_MsgRegister, 0 };
     static const WORD gdix[] = { 0x3C + 1, RDO_GetDC, 0x3C + 2, RDO_ReleaseDC, 0x3C + 3, RDO_GfxList, 0x3C + 4, RDO_GfxSelect, 0 };
-    char *s;
+    char *s; int argc = kargs();
     kr.ax = 0x00E3; kr.dx = 0; rd_int(0x14, &kr);           /* COM1 9600 8N1 */
     for (i = 0, s = argv[0]; *s && i < 64; s++) k_home[i++] = *s;
     while (i > 0 && k_home[i - 1] != '\\' && k_home[i - 1] != ':') i--;

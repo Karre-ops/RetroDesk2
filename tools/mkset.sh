@@ -20,7 +20,7 @@ d[0:3] = s[0:3]; d[0x3E:0x200] = s[0x3E:0x200]   # FreeDOS-Bootsektor (laedt KER
 f.seek(0); f.write(d)
 PY
 mcopy -i $O/RD2_1.IMG $K ::/KERNEL.SYS
-printf 'INSTALL=A:\\RD2\\RDKEYB.COM DE\r\nINSTALL=A:\\RD2\\CTMOUSE.EXE\r\nSHELL=A:\\RD2\\RD.EXE /P A:\\RD2\\SHELL.EXE\r\n' > $T/CONFIG.SYS
+printf 'INSTALL=A:\\RD2\\RDKEYB.COM DE\r\nINSTALL=A:\\RD2\\RDMAUS.COM\r\nSHELL=A:\\RD2\\RD.EXE /P A:\\RD2\\SHELL.EXE\r\n' > $T/CONFIG.SYS
 txt disk/fdsys/COPYING COPYING; txt docs/LIZENZ.TXT LIZENZ.TXT; txt docs/QUELLEN.TXT QUELLEN.TXT
 mcopy -i $O/RD2_1.IMG $T/CONFIG.SYS $T/COPYING $T/LIZENZ.TXT $T/QUELLEN.TXT ::/
 mmd -i $O/RD2_1.IMG ::/RD2; kopie RD2_1.IMG $(liste S)

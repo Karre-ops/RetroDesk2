@@ -8,8 +8,7 @@ RD2SETUP.EXE    32768    0   S  Einrichtung und Installation (eigenes DOS-Progra
 RDSYS.EXE       24576    0   S  FreeDOS SYS 3.6 (GPL v2), unveraendert; RD2SETUP: Festplatte startfaehig (24.10.)
 RDSWAP.BIN       1664    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speicher (nicht im Kern)
 RDKEYB.COM       1536    0   S  Tastaturtreiber DE/US (Assembler, resident ca. 0,8 KB), INSTALL= in CONFIG.SYS (27.10.)
-RDMAUS.COM       3072    0   S  Maustreiber PS/2, seriell MS/Logitech/Mouse Systems (Assembler, resident ca. 1,3 KB), INSTALL= in CONFIG.SYS (28.10.); Bus/InPort folgt
-CTMOUSE.EXE      6144    0   S  CuteMouse 2.1 (FreeDOS, GPL, unveraendert): Maustreiber seriell/PS2, Setup traegt ihn als INSTALL= ein (24.10.)
+RDMAUS.COM       5120    0   S  Maustreiber PS/2, seriell MS/Logitech/Mouse Systems (Assembler, resident ca. 3,3 KB mit Grafikzeiger), Bus/InPort/PS2/seriell, ersetzt CTMOUSE, INSTALL= in CONFIG.SYS (28.10.)
 RDGDI.MOD       16448 19.53125 S  Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5); 23.10.: 18,5 KB fuer schnelle Textausgabe (statt Auslagern, Text wird staendig gebraucht); 27.10.: 19,5 KB fuer 16 Farben (Farbindex, Muster zweifarbig, 4-Bit-Hintergrund)
 RDKX.MOD         6144    6   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.)
 RDAUSL.MOD       3072    3   S  Auslagern bei Speichermangel nach XMS oder RD2.SWP (nur Festplatte), bleibt geladen, nur wenn es ein Ziel gibt (25.10.)
@@ -79,7 +78,7 @@ RDFDISK.EXE     40960    0   P  Partitionieren (GPL v2, aus Free FDISK)
 RDFORMAT.EXE    73728    0   P  Formatieren Disketten und Festplatte: FreeDOS FORMAT 0.92a (GPL v2) mit RD2-Oberflaeche; englische FreeDOS-Texte bleiben fuers Protokoll (24.10., Karsten: Option 1, 72 KB)
 # Summen
 @SYSTEM_DISK   348160        360-KB-Systemdiskette: S-Dateien + DOS 5 (@DOS) hoechstens 340 KB (27.10. Karsten: 360 KB ausnutzen, Rest fuer RD2.INI/RD2.STA); vorher 302 KB (27.10.: +1 KB farbige Symbole, +1 KB RD2SETUP Mehrdisketten), Rest (>= 50 KB) fuer RD2.INI, RD2.STA, Daten
-@DOS            79872        DOS 5: IO.SYS + MSDOS.SYS (kein COMMAND.COM, SHELL=RD.EXE) + CTMOUSE, je auf 1-KB-Cluster gerundet
+@DOS            73728        DOS 5: IO.SYS + MSDOS.SYS (kein COMMAND.COM, SHELL=RD.EXE), je auf 1-KB-Cluster gerundet (28.10.: CTMOUSE entfaellt, RDMAUS zaehlt als S-Datei)
 @DISK          362496        Nutzflaeche einer 360-KB-Diskette (354 Cluster zu 1 KB); Grenze fuer P, N, D
 @RAM_RD2               180   Oberflaeche ohne Programme, mit DOS und Maustreiber (Ziel: >= 450 KB frei)
 DOSTEST.EXE      4096    0   T  Test: RunDos (auslagern, DOS-Programm, zurueck)

@@ -2,7 +2,7 @@
 # Gesamtkette leere Festplatte -> RD2 installiert, drei Starts von Diskette auf derselben 20-MB-Platte:
 # 1. RDFDISK: Anlegen (ganze Platte), Schreiben  -> C: primaer, aktiv
 # 2. RDFORMAT C: (Schnell)                         -> FAT16, fsck sauber
-# 3. RD2SETUP: Installieren nach C:\RD2            -> Dateien, CONFIG.SYS mit SHELL= und INSTALL=CTMOUSE, startfaehig (J)
+# 3. RD2SETUP: Installieren nach C:\RD2            -> Dateien, CONFIG.SYS mit SHELL= und INSTALL=RDMAUS /P, startfaehig (J)
 # 4. Start von der Festplatte ohne Diskette          -> FreeDOS-Kern, RD2 als Shell, Desktop
 # Nur Tastatur. Bilder obj/kette{1..3}.ppm.
 cd "$(dirname "$0")/.."
@@ -63,10 +63,10 @@ waitscr "Einrichtung" 120 && { Q "sendkey i" sleep2 "sendkey ret"; waitscr "star
 wait $QP
 C="-i $H@@$OFS"
 mdir $C -b ::/RD2 > obj/kette_dir.txt 2>&1
-for d in RD.EXE RDGDI.MOD RDSWAP.BIN CTMOUSE.EXE RD2SETUP.EXE RD2.INI SHELL.EXE; do pruef "3 C:\\RD2\\$d" "grep -qi '/$d' obj/kette_dir.txt"; done
+for d in RD.EXE RDGDI.MOD RDSWAP.BIN RDMAUS.COM RD2SETUP.EXE RD2.INI SHELL.EXE; do pruef "3 C:\\RD2\\$d" "grep -qi '/$d' obj/kette_dir.txt"; done
 mtype $C ::/CONFIG.SYS 2>/dev/null | tr -d '\r' > obj/kette_cs.txt
 pruef "3 CONFIG.SYS SHELL=C:\\RD2\\RD.EXE /P" "grep -q '^SHELL=C:\\\\RD2\\\\RD.EXE /P C:\\\\RD2\\\\SHELL.EXE$' obj/kette_cs.txt"
-pruef "3 CONFIG.SYS INSTALL=CTMOUSE" "grep -q '^INSTALL=C:\\\\RD2\\\\CTMOUSE.EXE$' obj/kette_cs.txt"
+pruef "3 CONFIG.SYS INSTALL=RDMAUS /P" "grep -q '^INSTALL=C:\\\\RD2\\\\RDMAUS.COM /P$' obj/kette_cs.txt"
 dd if=$H of=obj/kette_part.img bs=512 skip=63 count=$NSEK 2>/dev/null
 pruef "3 FAT16 sauber nach Installation" "fsck.fat -n obj/kette_part.img >/dev/null 2>&1"
 pruef "3 Meldung startfaehig" "grep -q 'Festplatte ist startfaehig' obj/schirm_kette3.txt"

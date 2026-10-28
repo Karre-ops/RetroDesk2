@@ -3,8 +3,8 @@
 # 1. Bestehendes DOS: Ziel C:\SPIELE\RD2 (Zwischenordner fehlt), CONFIG.SYS mit SHELL=COMMAND.COM und
 #    AUTOEXEC.BAT mit Maustreiber. Rueckfragen: Shell eintragen (J), Maustreiber uebernehmen (J).
 #    Erwartet: Dateien, RD2.INI, CONFIG.SYS mit REM SHELL=..., SHELL=C:\SPIELE\RD2\RD.EXE /P,
-#    INSTALL=C:\TREIBER\MOUSE.COM /S50, kein CTMOUSE, Sicherung CONFIG.RDA, AUTOEXEC.BAT unveraendert.
-# 2. Leere Festplatte: Ziel C:\RD2, keine Rueckfragen, CONFIG.SYS neu mit SHELL= und INSTALL=CTMOUSE (PS/2 in QEMU).
+#    INSTALL=C:\TREIBER\MOUSE.COM /S50, kein RDMAUS, Sicherung CONFIG.RDA, AUTOEXEC.BAT unveraendert.
+# 2. Leere Festplatte: Ziel C:\RD2, keine Rueckfragen, CONFIG.SYS neu mit SHELL= und INSTALL=RDMAUS /P (PS/2 in QEMU).
 cd "$(dirname "$0")/.."
 IMG=obj/inst720.img; HD=obj/inst_hd.img; F=0
 printf '@echo off\r\nA:\\RD2\\RD2SETUP.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' | tr -d '\r' > obj/ae_inst.txt
@@ -20,7 +20,7 @@ starten() {
 }
 ende() { waitscr "CONFIG.SYS" 30; waitscr "startfaehig machen" 30 && { $Q "sendkey n" >/dev/null 2>&1; waitscr "nicht startfaehig gemacht" 10 || { echo "FEHLER Frage startfaehig ($1)"; F=1; }; } || { echo "FEHLER keine Frage startfaehig ($1)"; F=1; }; sleep 1; $Q text > obj/schirm_install$1.txt 2>/dev/null; $Q "sendkey esc" sleep2 "sendkey n" >/dev/null 2>&1; wait $QP; }
 dateien() { mdir $C -b ::/$1 > obj/inst_dir.txt 2>&1
-  for d in RD.EXE RDGDI.MOD RDSWAP.BIN CTMOUSE.EXE RD2SETUP.EXE RD2.INI; do grep -qi "/$d" obj/inst_dir.txt && echo "ok     $1/$d" || { echo "FEHLER $1/$d fehlt"; F=1; }; done; }
+  for d in RD.EXE RDGDI.MOD RDSWAP.BIN RDMAUS.COM RD2SETUP.EXE RD2.INI; do grep -qi "/$d" obj/inst_dir.txt && echo "ok     $1/$d" || { echo "FEHLER $1/$d fehlt"; F=1; }; done; }
 pruef() { grep -q "$1" obj/inst_cs.txt && echo "ok     CONFIG.SYS: $2" || { echo "FEHLER CONFIG.SYS: $2"; F=1; }; }
 
 # ---- Fall 1: bestehendes DOS ----
@@ -40,7 +40,7 @@ pruef "^FILES=20" "alte Zeile bleibt"
 pruef "^REM SHELL=C:\\\\COMMAND.COM" "alte Shell als REM"
 pruef "^SHELL=C:\\\\SPIELE\\\\RD2\\\\RD.EXE /P C:\\\\SPIELE\\\\RD2\\\\SHELL.EXE$" "SHELL=RD.EXE /P"
 pruef "^INSTALL=C:\\\\TREIBER\\\\MOUSE.COM /S50$" "Maustreiber aus AUTOEXEC.BAT (ohne LH)"
-grep -q CTMOUSE obj/inst_cs.txt && { echo "FEHLER CONFIG.SYS: CTMOUSE trotz eigenem Maustreiber"; F=1; } || echo "ok     CONFIG.SYS: kein zweiter Maustreiber"
+grep -q RDMAUS obj/inst_cs.txt && { echo "FEHLER CONFIG.SYS: RDMAUS trotz eigenem Maustreiber"; F=1; } || echo "ok     CONFIG.SYS: kein zweiter Maustreiber"
 mtype $C ::/CONFIG.RDA | tr -d '\r' | grep -q "^SHELL=C:\\\\COMMAND.COM" && echo "ok     Sicherung CONFIG.RDA" || { echo "FEHLER keine CONFIG.RDA"; F=1; }
 mtype $C ::/AUTOEXEC.BAT | cmp -s - obj/ae_alt.tmp && echo "ok     AUTOEXEC.BAT unveraendert" || { echo "FEHLER AUTOEXEC.BAT veraendert"; F=1; }
 grep -q "PATH-Zeilen" obj/schirm_install1.txt && echo "ok     Hinweis SET/PATH" || { echo "FEHLER kein Hinweis SET/PATH"; F=1; }
@@ -56,7 +56,7 @@ grep -q "CONFIG.SYS angelegt" obj/schirm_install2.txt && echo "ok     Meldung CO
 dateien RD2
 mtype $C ::/CONFIG.SYS | tr -d '\r' > obj/inst_cs.txt
 pruef "^SHELL=C:\\\\RD2\\\\RD.EXE /P C:\\\\RD2\\\\SHELL.EXE$" "SHELL=RD.EXE /P"
-pruef "^INSTALL=C:\\\\RD2\\\\CTMOUSE.EXE$" "CTMOUSE fuer die PS/2-Maus"
+pruef "^INSTALL=C:\\\\RD2\\\\RDMAUS.COM /P$" "RDMAUS /P fuer die PS/2-Maus"
 [ "$(wc -l < obj/inst_cs.txt)" = 3 ] && grep -q "^INSTALL=C:.RD2.RDKEYB.COM DE" obj/inst_cs.txt && echo "ok     CONFIG.SYS: Shell, RDKEYB DE, CTMOUSE" || { echo "FEHLER CONFIG.SYS hat Fremdes"; cat obj/inst_cs.txt; F=1; }
 mtype $C ::/AUTOEXEC.BAT >/dev/null 2>&1 && { echo "FEHLER AUTOEXEC.BAT angelegt"; F=1; } || echo "ok     keine AUTOEXEC.BAT"
 [ $F = 0 ] && echo "Installation: alles ok"

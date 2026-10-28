@@ -438,18 +438,14 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
     }
     sprintf(pf, "%sRDKEYB.COM", ziel);           /* Tastatur DE/US, gilt auch in DOS-Programmen */
     if (!kbda && gibts(pf)) { sprintf(z, "INSTALL=%s %s\r\n", pf, p[P_TAST].wert[p[P_TAST].v]); NEU(z); }
-    if (!mausda) {                                /* Maustreiber: CTMOUSE fuer seriell/PS2, sonst Herstellertreiber */
-        sprintf(pf, "%sCTMOUSE.EXE", ziel);
-        if ((!strncmp(mauswert, "SERIELL", 7) || !strcmp(mauswert, "PS2") || (!alt && !strcmp(mauswert, "DOS"))) && gibts(pf)) {
-            sprintf(z, "INSTALL=%s\r\n", pf); NEU(z);
-        } else if (!alt && (!strncmp(mauswert, "BUS", 3) || !strncmp(mauswert, "INPORT", 6))) {
-            w[0] = 0; zeile(y, "Treiber fuer die Busmaus (z.B. A:\\MOUSE.COM, leer = keiner):");
-            if (eingabe(62, y, w, 17) && gibts(w)) {
-                q = strrchr(w, '\\'); q = q ? q + 1 : (w[1] == ':' ? w + 2 : w);
-                sprintf(pf, "%s%s", ziel, q);
-                if (kopieren(w, pf)) { sprintf(z, "INSTALL=%s\r\n", pf); NEU(z); }
-            }
-        }
+    if (!mausda) {                                /* eigener Maustreiber RDMAUS: Schalter nach der Erkennung */
+        sprintf(pf, "%sRDMAUS.COM", ziel); w[0] = 0;
+        if (!strncmp(mauswert, "SERIELL:COM", 11)) sprintf(w, " /S%c", mauswert[11]);
+        else if (!strcmp(mauswert, "PS2")) strcpy(w, " /P");
+        else if (!strncmp(mauswert, "BUS", 3)) strcpy(w, " /B");
+        else if (!strcmp(mauswert, "INPORT:238")) strcpy(w, " /I2");
+        else if (!strncmp(mauswert, "INPORT", 6)) strcpy(w, " /I1");
+        if ((w[0] || !alt) && gibts(pf)) { sprintf(z, "INSTALL=%s%s\r\n", pf, w); NEU(z); }
     }
     if ((f = fopen(cs, "wb")) == NULL) return 0;
     m = fwrite(neu, 1, o, f);

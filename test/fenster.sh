@@ -1,14 +1,14 @@
 #!/bin/bash
-# Fenster (Checkliste Punkt 2, VGA, PS/2-Maus mit CTMOUSE): Ordner A:\ oeffnen, an der Ecke rechts unten
+# Fenster (Checkliste Punkt 2, VGA, PS/2-Maus mit RDMAUS): Ordner A:\ oeffnen, an der Ecke rechts unten
 # groesser ziehen, mit dem Feld rechts im Titel minimieren, mit Alt+Tab zurueckholen, noch einmal minimieren
 # und mit Alt+F6 (jedes BIOS) zurueckholen. 26.10.: Felder rechts _ Viereck X; Viereck maximiert, Doppelklick auf den
 # Titel stellt die alte Groesse her; minimiert wird unten links geparkt, Klick darauf holt es zurueck. QEMU-Einheit = 3 Pixel waagrecht, 1,5 senkrecht; Wege ab (0,0).
 # Bilder obj/fen_{gross,min,tab}.ppm.
 cd "$(dirname "$0")/.."
 IMG=obj/fen.img; SER=obj/fen_com1.txt; SOCK=/tmp/qmon_fen.sock
-printf '@echo off\nA:\\CTMOUSE.EXE\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_fen.txt
+printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_fen.txt
 bash tools/mkdisk.sh $IMG obj/ae_fen.txt >/dev/null
-mcopy -i $IMG ../test/qemu/CTMOUSE.EXE ::/
+mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/fen_*.ppm; touch $SER
 timeout 400 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
@@ -16,27 +16,30 @@ QP=$!
 sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_fen.py
 Q() { python3 obj/qmon_fen.py "$@"; }
 waitn() { for i in $(seq 400); do [ "$(tr -d '\r' < $SER | grep -c "$1" || true)" -ge "$2" ] && return 0; sleep 0.2; done; echo "FEHLER: warte vergeblich auf '$1'"; return 1; }
-null() { Q "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.4; }
-geh() { null; Q "mouse_move $1 $2" sleep0.6; }
+null() { Q "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.4; }   # RDMAUS: 0,5 Pixel je Einheit senkrecht, daher 4 Schritte
+geh() {   # RDMAUS: 3 Mickeys je CTMOUSE-Einheit; in Schritten bis 150, grosse Spruenge kommen in QEMU nicht ganz an
+  local x=$(($1*3)) y=$(($2*3)) a=() dx dy
+  while [ $x -gt 0 ] || [ $y -gt 0 ]; do dx=$((x>150?150:x)); dy=$((y>150?150:y)); a+=("mouse_move $dx $dy" sleep0.1); x=$((x-dx)); y=$((y-dy)); done
+  null; Q "${a[@]}" sleep0.5; }
 ok=1
 waitn "SHELL: bereit" 1 && sleep 3 && Q "sendkey ret"
 waitn 'SHELL: Ordner A:\\ ' 1 && sleep 2 && Q "screendump obj/fen_auf.ppm"
-if [ -n "$NUR_AUF" ]; then geh ${ECKE:-121 185}; Q "mouse_button 1" sleep0.4 "mouse_move 10 10" sleep0.4 "screendump obj/fen_zeig.ppm" "mouse_button 0"; sleep 2; Q "sendkey alt-f4" sleep1 "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sendkey ret"; wait $QP; exit 0; fi
-geh ${ECKE:-121 185}; Q "mouse_button 1" sleep0.4 "mouse_move 10 10" sleep0.3 "mouse_move 10 10" sleep0.3 "mouse_move 10 10" sleep0.5 "mouse_button 0"
+if [ -n "$NUR_AUF" ]; then geh ${ECKE:-121 185}; Q "mouse_button 1" sleep0.4 "mouse_move 30 30" sleep0.4 "screendump obj/fen_zeig.ppm" "mouse_button 0"; sleep 2; Q "sendkey alt-f4" sleep1 "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sendkey ret"; wait $QP; exit 0; fi
+geh ${ECKE:-121 185}; Q "mouse_button 1" sleep0.4 "mouse_move 30 30" sleep0.3 "mouse_move 30 30" sleep0.3 "mouse_move 30 30" sleep0.5 "mouse_button 0"
 waitn "SHELL: Groesse" 1 && sleep 2 && Q "screendump obj/fen_gross.ppm"
-geh ${MAXI:-138 41}; Q "mouse_button 1" sleep0.2 "mouse_button 0"
+geh ${MAXI:-143 41}; Q "mouse_button 1" sleep0.2 "mouse_button 0"
 waitn "SHELL: Groesse" 2 && sleep 2 && Q "screendump obj/fen_max.ppm"
 geh ${TITEL:-110 19}; Q "mouse_button 1" sleep0.12 "mouse_button 0" sleep0.12 "mouse_button 1" sleep0.12 "mouse_button 0"
 waitn "SHELL: Groesse" 3 && sleep 2
-geh ${MINI:-134 41}; Q "mouse_button 1" sleep0.2 "mouse_button 0"
+geh ${MINI:-137 41}; Q "mouse_button 1" sleep0.2 "mouse_button 0"
 waitn "SHELL: Groesse 0x00000000" 1 && sleep 2 && Q "screendump obj/fen_min.ppm"
 Q "sendkey alt-tab"
 waitn "SHELL: aktiv" 1 && sleep 2 && Q "screendump obj/fen_tab.ppm"
-geh ${MINI:-134 41}; Q "mouse_button 1" sleep0.2 "mouse_button 0"
+geh ${MINI:-137 41}; Q "mouse_button 1" sleep0.2 "mouse_button 0"
 waitn "SHELL: Groesse 0x00000000" 2 && sleep 1.5
 geh ${PARK:-17 313}; Q "mouse_button 1" sleep0.2 "mouse_button 0"
 waitn "SHELL: aktiv" 2 && sleep 1.5
-geh ${MINI:-134 41}; Q "mouse_button 1" sleep0.2 "mouse_button 0"
+geh ${MINI:-137 41}; Q "mouse_button 1" sleep0.2 "mouse_button 0"
 waitn "SHELL: Groesse 0x00000000" 3 && sleep 1.5 && Q "sendkey alt-f6"
 waitn "SHELL: aktiv" 3 && sleep 1.5
 Q "sendkey alt-f4" sleep1.5 "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sendkey ret"
