@@ -31,6 +31,8 @@
 #define CM_PWEG   111                             /* Programmsymbol vom Schreibtisch nehmen */
 #define CM_PDESK  112                             /* Ordner: Programm auf den Schreibtisch */
 #define CM_FEIG   113                             /* Datei-Eigenschaften (Alt+Eingabe) */
+#define CM_SUCH   114                             /* Dateien suchen ab dem Ordner (Strg+F) */
+#define CM_LSUCH  304                             /* Dateien suchen auf dem Laufwerk */
 #define CM_PRG    401                             /* 401..412: angeheftete Programme */
 #define CM_PLEER  413
 #define MAXP      12
@@ -420,6 +422,86 @@ static void eigenschaften(ORDNER *o)
     DbgHex("SHELL: Attribute", eat);
     alle_neu();
 }
+static ORDNER *ordner_auf(char l, LPCSTR pfad, RECT *wr);
+/* ---- Dateien suchen: Muster mit * und ? (8.3), ab einem Ordner durch alle Unterordner (8 Ebenen), 100 Treffer ---- */
+#define SMAX 100
+#define SLEN 66
+static HMEM sh; static WORD sn; static short ssel; static char sm[13], sp[SLEN + 14];
+static BYTE teil(const char *n, const char *m, WORD k)   /* Namens- oder Endungsteil, hoechstens k Zeichen */
+{
+    WORD i;
+    for (i = 0; i < k; i++) {
+        if (*m == '*') return 1;
+        if (!*m) return (BYTE)!*n;
+        if (*m == '?') { if (*n) n++; m++; continue; }
+        if (!*n || (*n & 0xDF) != (*m & 0xDF)) return 0;
+        n++; m++;
+    }
+    return 1;
+}
+static BYTE passt(const char *n)                  /* n gegen sm (beide NAME.EXT) */
+{
+    char a[13], b[13], *q; const char *e1, *e2;
+    scpy(a, n, 13); scpy(b, sm, 13);
+    q = a; while (*q && *q != '.') q++; e1 = *q ? q + 1 : q; *q = 0;
+    q = b; while (*q && *q != '.') q++; e2 = *q ? q + 1 : "*"; if (!*q && b[0] == '*') e2 = "*"; else if (!*q) e2 = ""; *q = 0;
+    return teil(a, b, 8) && teil(e1, e2, 3);
+}
+static void durch(WORD l, WORD tief)              /* sp[0..l) = Ordner mit \ am Ende */
+{
+    FINDDATA f; char FAR *t; WORD k;
+    sp[l] = 0; scat(sp, "*.*", sizeof sp);
+    if (FileFindFirst(sp, FA_DIR | FA_HIDDEN | FA_SYSTEM | FA_RDONLY | FA_ARCH, &f)) return;
+    do {
+        if (f.name[0] == '.' || sn >= SMAX) continue;
+        sp[l] = 0;
+        if (passt(f.name) && (t = (char FAR *)MemLock(sh)) != 0) {
+            t += sn * SLEN; for (k = 0; k < l && k < SLEN - 13; k++) t[k] = sp[k];
+            for (t += k, k = 0; f.name[k]; k++) t[k] = f.name[k];
+            t[k] = (char)((f.attr & FA_DIR) ? '\\' : 0); t[k + (t[k] != 0)] = 0;
+            MemUnlock(sh); sn++;
+        }
+        if ((f.attr & FA_DIR) && tief < 8 && l + 13 < SLEN) {
+            sp[l] = 0; scat(sp, f.name, sizeof sp); k = (WORD)slen(sp); sp[k++] = '\\'; sp[k] = 0;
+            durch(k, (WORD)(tief + 1));
+            sp[l] = 0; scat(sp, "*.*", sizeof sp);   /* DTA gehoert f, Suche geht weiter */
+        }
+    } while (!FileFindNext(&f));
+}
+static BOOL RDCALLBACK sproc(HWND d, WORD msg, WORD p1, DWORD p2)
+{
+    HWND l = DlgItem(d, 40); char FAR *t; WORD i;
+    if (msg == M_INITDIALOG) {
+        DlgSetText(d, 41, buf);
+        if ((t = (char FAR *)MemLock(sh)) != 0) { for (i = 0; i < sn; i++) SendMessage(l, L_ADD, 0, (DWORD)(LPCSTR)(t + i * SLEN)); MemUnlock(sh); }
+        if (sn) SendMessage(l, L_SETSEL, 0, 0);
+        SetFocus(l);
+    }
+    if (msg == M_COMMAND && p1 == 40 && HIWORD(p2) == N_DBLCLK) { ssel = (short)SendMessage(l, L_GETSEL, 0, 0); DialogEnd(d, ID_OK); return TRUE; }
+    if (msg == M_COMMAND && p1 == ID_OK) ssel = (short)SendMessage(l, L_GETSEL, 0, 0);
+    return FALSE;
+}
+static void suchen(LPCSTR ab)                     /* ab: Ordner mit \ am Ende */
+{
+    char z[8], *q; char FAR *t; WORD i;
+    scpy(sp, ab, sizeof sp); fmt(buf, StrGet(inst, 36), sp, 0);
+    if (!sm[0]) scpy(sm, "*.*", sizeof sm);
+    if (!InputBox(GetActive(), buf, "RD", sm, sizeof sm) || !sm[0]) return;
+    for (q = sm; *q; q++) if (*q >= 'a' && *q <= 'z') *q = (char)(*q - 32);
+    if (!sh && !(sh = MemAlloc((DWORD)SMAX * SLEN, MEM_MOVABLE))) { fehler(sm, RD_ERR_NOMEM); return; }
+    sn = 0; ssel = -1; CursorBusy(TRUE); durch((WORD)slen(sp), 0); CursorBusy(FALSE);
+    zahl(z, sn); scpy(qv, ab, sizeof qv); fmt(buf, StrGet(inst, 37), z, qv);
+    DbgPrint("SHELL: Suche"); DbgPrint(buf);
+    if (!sn) { MsgBox(GetActive(), StrGet(inst, 38), "RD", MB_OK | MB_INFO); return; }
+    if ((t = (char FAR *)MemLock(sh)) != 0) { DbgPrint((LPCSTR)t); MemUnlock(sh); }
+    if (DialogRun(inst, 21, GetActive(), sproc, 0) != ID_OK || ssel < 0 || ssel >= (short)sn) return;
+    if (!(t = (char FAR *)MemLock(sh))) return;
+    t += ssel * SLEN; for (i = 0; t[i] && i < sizeof qv - 1; i++) qv[i] = t[i]; qv[i] = 0; MemUnlock(sh);
+    if (i && qv[i - 1] == '\\') qv[--i] = 0;     /* Ordner-Treffer: den Ordner selbst nicht, sondern den darueber */
+    while (i && qv[i - 1] != '\\') i--; qv[i] = 0;
+    DbgPrint("SHELL: Suche oeffnet"); DbgPrint(qv);
+    ordner_auf(qv[0], qv, 0);
+}
 static void neuer_ordner(ORDNER *o)
 {
     char n[13]; WORD r;
@@ -625,6 +707,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == K_END) neusel(o, o->n - 1);
         else if ((p1 == K_ENTER || p1 == 0x11C) && (HIWORD(p2) & KS_ALT)) eigenschaften(o);   /* 11C: Alt+Eingabe vom erweiterten BIOS */   /* Alt+Eingabe: Eigenschaften */
         else if (p1 == K_ENTER) oeffnen(o);
+        else if (p1 == 6 && (HIWORD(p2) & KS_CTRL)) suchen(o->pfad);   /* Strg+F */
         else if (p1 == K_BACK) hoch(o);
         else if (p1 == K_INS) { markieren(o, o->sel); neusel(o, o->sel + 1); }
         else if (HIWORD(p2) & KS_ALT) return DefWindowProc(w, msg, p1, p2);   /* Alt+Leertaste usw. */
@@ -658,6 +741,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_VERSCH) kopieren(o, 1, 0);
         else if (p1 == CM_UMBEN) umbenennen(o);
         else if (p1 == CM_FEIG) eigenschaften(o);
+        else if (p1 == CM_SUCH) suchen(o->pfad);
         else if (p1 == CM_MKDIR) neuer_ordner(o);
         else if (p1 == CM_LOESCH) loeschen(o);
         else if (p1 == CM_ANHEFT || p1 == CM_PDESK) anheften(o, p1 == CM_PDESK);
@@ -873,7 +957,8 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         if (p1 == K_DOWN && lsel < nlw + nps - 1) { lsel++; InvalidateRect(w, 0, FALSE); }
         else if (p1 == K_UP && lsel > 0) { lsel--; InvalidateRect(w, 0, FALSE); }
         else if (p1 == K_ENTER && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
-        else if ((p1 == K_ENTER || p1 == 0x11C) && nlw && (HIWORD(p2) & KS_ALT)) lwinfo();   /* Alt+Eingabe: Eigenschaften */
+        else if ((p1 == K_ENTER || p1 == 0x11C) && nlw && (HIWORD(p2) & KS_ALT)) lwinfo();
+        else if (p1 == 6 && (HIWORD(p2) & KS_CTRL) && lsel < nlw) PostMessage(w, M_COMMAND, CM_LSUCH, 0);   /* Strg+F */   /* Alt+Eingabe: Eigenschaften */
         else if (p1 == K_ENTER && nlw) ordner_auf(lw[lsel], 0, 0);
         else if (p1 == K_F1) HelpShow(w, "RD2.HLP", 2);
         else return DefWindowProc(w, msg, p1, p2);
@@ -887,6 +972,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_ENDE) { char t[40]; scpy(t, StrGet(inst, 2), sizeof t); if (MsgBox(GetActive(), t, "RD", MB_YESNO | MB_ASK) == ID_YES) { sta_schreiben(); PostQuit(0); } }
         else if (p1 == CM_OEFFNEN && lsel < nlw) ordner_auf(lw[lsel], 0, 0);
         else if (p1 == CM_LWINFO && lsel < nlw) lwinfo();
+        else if (p1 == CM_LSUCH && lsel < nlw) { char a[4]; a[0] = lw[lsel]; a[1] = ':'; a[2] = '\\'; a[3] = 0; suchen(a); }
         else if (p1 == CM_FORMAT && lsel < nlw) formatieren();
         else if (p1 == CM_PSTART && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
         else if (p1 == CM_PWEG && lsel >= nlw) pdesk(prgn[psy[lsel - nlw]], 0);

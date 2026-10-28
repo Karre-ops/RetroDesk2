@@ -25,6 +25,7 @@ MENU 2
     ITEM "&Neuer Ordner...\tF7" 107
     ITEM "&L”schen\tEntf"       108
     ITEM "&Eigenschaften...\tAlt+Eingabe" 113
+    ITEM "Su&chen...\tStrg+F"   114
     ITEM "An&heften/L”sen"      109
     ITEM "Auf den Schreib&tisch" 112
     TRENNER
@@ -57,6 +58,7 @@ MENU 3
   POPUP "Laufwerk"
     ITEM "™&ffnen\tEingabe"   101
     ITEM "&Eigenschaften\tAlt+Eingabe" 301
+    ITEM "&Suchen...\tStrg+F"   304
     TRENNER
     ITEM "&Formatieren..."     302 GRAU
     ITEM "Festplatte ein&richten..." 303 GRAU
@@ -67,6 +69,12 @@ MENU 4
     ITEM "&Starten\tEingabe"   110
     ITEM "Vom Schreibtisch &entfernen" 111
   ENDE
+ENDE
+DIALOG 21 "Suchen" 0 0 280 150
+  STATIC   ""            41   8   6 264 10
+  LIST                   40   8  18 264 102 WS_VSCROLL
+  BUTTON   "Ordner &”ffnen" 1  60 128  80 14 STANDARD
+  BUTTON   "Schlieáen"    2 150 128  70 14
 ENDE
 DIALOG 20 "Eigenschaften" 0 0 224 112
   STATIC   ""            41   8   8 208 10
@@ -116,6 +124,9 @@ TEXTE
   33 "Gr”áe: "
   34 "Ge„ndert: "
   35 "Attribute konnten nicht gesetzt werden."
+  36 "Suchen in %s nach (z. B. *.BAS):"
+  37 "%s Treffer in %s"
+  38 "Nichts gefunden."
 ENDE
 SPRACHE EN
 MENU 1
@@ -143,6 +154,7 @@ MENU 2
     ITEM "&New folder...\tF7"   107
     ITEM "&Delete\tDel"         108
     ITEM "Propert&ies...\tAlt+Enter" 113
+    ITEM "&Search...\tCtrl+F"   114
     ITEM "&Pin/unpin"           109
     ITEM "On the des&ktop"      112
     TRENNER
@@ -175,6 +187,7 @@ MENU 3
   POPUP "Drive"
     ITEM "&Open\tEnter"        101
     ITEM "&Properties\tAlt+Enter" 301
+    ITEM "&Search...\tCtrl+F"   304
     TRENNER
     ITEM "&Format..."          302 GRAU
     ITEM "Set up &hard disk..." 303 GRAU
@@ -185,6 +198,12 @@ MENU 4
     ITEM "&Start\tEnter"        110
     ITEM "&Remove from desktop" 111
   ENDE
+ENDE
+DIALOG 21 "Search" 0 0 280 150
+  STATIC   ""            41   8   6 264 10
+  LIST                   40   8  18 264 102 WS_VSCROLL
+  BUTTON   "&Open folder" 1  60 128  80 14 STANDARD
+  BUTTON   "Close"    2 150 128  70 14
 ENDE
 DIALOG 20 "Properties" 0 0 224 112
   STATIC   ""            41   8   8 208 10
@@ -234,6 +253,9 @@ TEXTE
   33 "Size: "
   34 "Modified: "
   35 "Could not set the attributes."
+  36 "Search %s for (e.g. *.BAS):"
+  37 "%s matches in %s"
+  38 "Nothing found."
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"
