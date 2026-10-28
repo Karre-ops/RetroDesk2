@@ -3,7 +3,7 @@
 # Microsoft-Maus an COM2 (QEMU msmouse, /S2). Je Lauf: Rechtsklick auf Laufwerk A: oeffnet das Kontextmenue,
 # Doppelklick oeffnet den Ordner A:\ (RDMAUS: 1 QEMU-Einheit = 1 Pixel waagrecht, 0,5 senkrecht, also 3x der CTMOUSE-Weg aus desk3.sh).
 # Zur Ecke oben links in Schritten von 100 (die serielle QEMU-Maus kappt jede Bewegung auf 127).
-# Lauf 3 (grafik): Treiberzeiger in DOS-Programmen (ZTEST.COM aus test/dos, Modus 3, 6, 4, 13h, 12h).
+# Lauf 3 (grafik): Treiberzeiger in DOS-Programmen (ZTEST.COM aus test/dos, Modus 3, 6, 4, 13h, 12h, dann Funktion 10h).
 # Aufruf: test/rdmaus.sh [ps2|seriell|grafik]   (ohne Angabe alle drei, je ca. 40-60 s)
 cd "$(dirname "$0")/.."
 F=0
@@ -58,6 +58,16 @@ n,x,w=lit('obj/rdm_g$m.ppm'); n2,x2,_=lit('obj/rdm_g${m}b.ppm'); print(n,x,n2,x2
     if [ "$1" -ge 30 ] && [ "$1" -le 2000 ] && [ "$4" -gt "$2" ]; then echo "ok     Modus ${m}h: Zeiger sichtbar ($1 Punkte), bewegt sich (x $2 -> $4)"
     else echo "FEHLER Modus ${m}h: $r"; F=1; fi
   done
+  Q "screendump obj/rdm_f10a.ppm" sleep0.3 "sendkey spc" sleep1.2 "screendump obj/rdm_f10b.ppm" sleep0.3 "sendkey spc" sleep1
+  r=$(python3 -c "
+from PIL import Image
+def lit(f):
+    a=Image.open(f).convert('L'); w,h=a.size; p=a.load(); bg=p[0,h-1]
+    return sum(1 for y in range(h) for x in range(w) if p[x,y]!=bg)
+print(lit('obj/rdm_f10a.ppm'), lit('obj/rdm_f10b.ppm'))")
+  set -- $r
+  if [ "$1" = 0 ] && [ "$2" -ge 30 ]; then echo "ok     Funktion 10h: Zeiger im Bereich aus, nach Funktion 1 wieder da ($2 Punkte)"
+  else echo "FEHLER Funktion 10h: $r"; F=1; fi
   sleep 2; kill $QP 2>/dev/null; wait $QP 2>/dev/null
 }
 case "$1" in ps2) lauf ps2 "" "";; seriell) lauf seriell "/S2" "-serial msmouse";; grafik) grafik;;

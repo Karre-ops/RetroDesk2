@@ -1,0 +1,14 @@
+# Bochs fuer test/busmaus.sh: MAUSTYP, DISK und COM werden vom Skript ersetzt
+megs: 4
+romimage: file=/usr/share/bochs/BIOS-bochs-latest
+vgaromimage: file=/usr/share/vgabios/vgabios.bin
+floppya: 1_44=DISK, status=inserted
+boot: floppy
+display_library: rfb, options="timeout=30"
+mouse: enabled=1, type=MAUSTYP
+com1: enabled=1, mode=socket-client, dev=localhost:5901
+log: LOG
+panic: action=report
+error: action=report
+cpu: ips=20000000
+clock: sync=realtime, time0=local

@@ -7,7 +7,7 @@
 ;         RDMAUS /S1../S4 serielle Microsoft- oder Logitech-Maus an COMn (1200 Baud 7N1)
 ;         RDMAUS /M1../M4 serielle Mouse-Systems-Maus an COMn (1200 Baud 8N1, 5 Bytes)
 ; Auch als INSTALL= in CONFIG.SYS. Ist schon ein Maustreiber geladen, bleibt RDMAUS draussen.
-; INT 33h 00-10, 13-17, 1A-1E, 21, 24. Zeiger im Textmodus und in den Grafikmodi 4, 5, 6 (CGA direkt), 13h
+; INT 33h 00-10 (10h: Zeiger in einem Bereich aus, bis Funktion 1), 13-17, 1A-1E, 21, 24. Zeiger im Textmodus und in den Grafikmodi 4, 5, 6 (CGA direkt), 13h
 ; (direkt) und 0Dh-12h (EGA/VGA ueber das BIOS; INT 10h wird mitgezaehlt, damit der Zeiger nie mitten in
 ; einen BIOS-Aufruf zeichnet). RD2 zeichnet seinen Zeiger selbst. Hercules-Grafik: kein Treiberzeiger.
 ; Erkennung: INT 33h AX=0024h liefert BX=0100h, CH=Art (1 Bus, 2 seriell, 3 InPort, 4 PS/2), CL=IRQ;
@@ -42,6 +42,8 @@ mickx   dw 0
 micky   dw 0
 knopf   db 0                    ; Bit 0 links, 1 rechts, 2 Mitte
 zeig    db 0FFh                 ; Zaehler: 0 = sichtbar
+ausb    db 0                    ; Funktion 10h: 1 = Ausblendbereich gilt
+ausr    dw 4 dup (0)            ; links, oben, rechts, unten
 gedr    dw 3 dup (0)            ; Druecken je Taste: Zahl
 gedrx   dw 3 dup (0)
 gedry   dw 3 dup (0)
@@ -124,7 +126,23 @@ malen proc near                 ; Zeiger zeichnen, wenn sichtbar
     jne  ma9
     cmp  gemalt, 0
     jne  ma9
-    push es
+    cmp  ausb, 0                ; Funktion 10h: im Bereich nicht zeichnen (Zeiger 16x16 ab Brennpunkt)
+    je   ma0
+    mov  ax, posx
+    sub  ax, hotx
+    cmp  ax, ausr+4
+    jg   ma0
+    add  ax, 15
+    cmp  ax, ausr
+    jl   ma0
+    mov  ax, posy
+    sub  ax, hoty
+    cmp  ax, ausr+6
+    jg   ma0
+    add  ax, 15
+    cmp  ax, ausr+2
+    jge  ma9
+ma0: push es
     mov  ax, 40h
     mov  es, ax
     mov  al, es:[49h]
@@ -829,7 +847,7 @@ inpisr proc far                 ; InPort: Register 0 Tasten, 1 X, 2 Y, 7 Modus
     out  dx, al
     inc  dx
     in   al, dx
-    mov  ch, al                 ; Bit 0 Mitte, 1 links, 2 rechts (1 = gedrueckt)
+    mov  ch, al                 ; Bit 2 links, 1 Mitte, 0 rechts (1 = gedrueckt, wie MS-InPort/Bochs/86Box)
     dec  dx
     mov  al, 7
     out  dx, al
@@ -837,13 +855,13 @@ inpisr proc far                 ; InPort: Register 0 Tasten, 1 X, 2 Y, 7 Modus
     mov  al, 19h                ; weiter mit 30 Hz und Interrupt
     out  dx, al
     xor  cl, cl
-    test ch, 2
+    test ch, 4
     jz   ip1
     or   cl, 1
-ip1: test ch, 4
+ip1: test ch, 1
     jz   ip2
     or   cl, 2
-ip2: test ch, 1
+ip2: test ch, 2
     jz   ip3
     or   cl, 4
 ip3: mov  al, bl
@@ -862,6 +880,7 @@ inpisr endp
 grund proc near                 ; Funktion 0/21h: Zustand zuruecksetzen
     call weg
     mov  zeig, 0FFh
+    mov  ausb, 0
     xor  ax, ax
     mov  minx, ax
     mov  miny, ax
@@ -954,7 +973,7 @@ int33 endp
 pfeil dw 3FFFh,1FFFh,0FFFh,07FFh,03FFh,01FFh,00FFh,007Fh,003Fh,001Fh,01FFh,10FFh,30FFh,0F87Fh,0F87Fh,0FC3Fh
       dw 0000h,4000h,6000h,7000h,7800h,7C00h,7E00h,7F00h,7F80h,7C00h,6C00h,4600h,0600h,0300h,0300h,0000h
 tab33 dw f00, f01, f02, f03, f04, f05, f06, f07, f08, f09, f0a, f0b, f0c, fnix, fnix, f0f
-      dw fnix, fnix, fnix, fnix, f14, f15, f16, f17, fnix, fnix, f1a, f1b, fnix, f1d, f1e, fnix
+      dw f10, fnix, fnix, fnix, f14, f15, f16, f17, fnix, fnix, f1a, f1b, fnix, f1d, f1e, fnix
       dw fnix, f21, fnix, fnix, f24
 
 r_ax equ word ptr [bp+16]
@@ -979,11 +998,26 @@ f21: cli
     mov  r_bx, ax
     ret
 f01: cli
+    mov  ausb, 0                ; hebt auch den Bereich von Funktion 10h auf
     cmp  zeig, 0
     je   f01e
     inc  zeig
+f01e: call malen
+    sti
+    ret
+f10: cli                        ; CX, DX links oben, SI, DI rechts unten
+    mov  ax, r_cx
+    mov  ausr, ax
+    mov  ax, r_dx
+    mov  ausr+2, ax
+    mov  ax, [bp+8]
+    mov  ausr+4, ax
+    mov  ax, [bp+6]
+    mov  ausr+6, ax
+    mov  ausb, 1
+    call weg
     call malen
-f01e: sti
+    sti
     ret
 f02: cli
     call weg
