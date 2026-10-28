@@ -859,7 +859,7 @@ static void lwmal(HDC d, short k)
 {
     RECT r; char t[3];
     lwfeld(k, &r);
-    if (k >= nlw) { IconDraw(d, r.l + (56 - 32) / 2, r.t + 2, inst, IC_PROG); schild(d, r.l, r.t + ih + 3, 56, prgn[psy[k - nlw]], k == lsel); return; }
+    if (k >= nlw) { const char *q = prgn[psy[k - nlw]]; IconDraw(d, r.l + (56 - 32) / 2, r.t + 2, inst, (q[0] | 0x20) == 'p' && (q[1] | 0x20) == 'a' && (q[6] | 0x20) == 'k' && !q[7] ? 6 : IC_PROG); schild(d, r.l, r.t + ih + 3, 56, prgn[psy[k - nlw]], k == lsel); return; }
     IconDraw(d, r.l + (56 - 32) / 2, r.t + 2, inst, lt[k] == DT_FLOPPY ? IC_FLOPPY : IC_HDISK);
     t[0] = lw[k]; t[1] = ':'; t[2] = 0;
     schild(d, r.l, r.t + ih + 3, 56, t, k == lsel);

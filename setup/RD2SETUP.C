@@ -531,6 +531,8 @@ static void installieren(void)
     if (i == 1 && k) zeile(y + 3, "Hinweis: SET- und PATH-Zeilen der AUTOEXEC.BAT gelten mit RD2 als Shell nicht.");
     if ((ziel[0] & 0xDF) == 'C' && i != -2) startfaehig('C', y + 4);   /* G24: nur C: startet (aktive Partition der 1. Platte) */
     weitere(ziel, y + 5);                         /* erst nach SYS: Kern und RDSYS liegen auf Diskette 1 */
+    sprintf(z, "%sPAPIERK.EXE", ziel);           /* Papierkorb-Symbol auf den Schreibtisch (nur neue PROGRAMM.LST) */
+    if (gibts(z)) { FILE *f; sprintf(z, "%sPROGRAMM.LST", ziel); if (!gibts(z) && (f = fopen(z, "w")) != NULL) { fprintf(f, "[Papierk]\nDatei=%sPAPIERK.EXE\nSchreibtisch=1\n", ziel); fclose(f); } }
     strcpy(ini, nach);
 }
 
