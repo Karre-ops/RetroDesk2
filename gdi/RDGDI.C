@@ -527,7 +527,7 @@ void RDEXPORT g_InvertRect(HDC h, const RECT FAR *r)
 }
 
 /* Ellipse, runde Rechtecke, Polygone, Fuellen: in RDGDIX.MOD (verwerfbar, bei Bedarf) */
-static HMOD xm; static FARPROC xf[5];
+static HMOD xm; static FARPROC xf[8];
 static WORD RDEXPORT i_begin(HDC h, GIS FAR *s)
 {
     DCX *d = getdc(h); WORD i;
@@ -544,7 +544,8 @@ static void RDEXPORT i_end(void) { unsel(); }
 static void RDEXPORT i_span(short y, short a, short b, WORD br) { hs(y, a, b, br, cd->rop); }
 static void RDEXPORT i_line(short x0, short y0, short x1, short y1) { line(x0, y0, x1, y1); }
 static WORD RDEXPORT i_get(short x, short y) { ex(x, y, (short)(x + 1), (short)(y + 1)); return dv->getpixel(x, y); }
-static GI gi = { i_begin, i_end, i_span, i_line, i_get };
+static WORD RDEXPORT i_gfx(WORD i, WORD was, void FAR *m);
+static GI gi = { i_begin, i_end, i_span, i_line, i_get, i_gfx };
 static FARPROC xp(WORD nr)
 {
     if (!xm && !(xm = ModLoad("RDGDIX.MOD"))) return 0;
@@ -555,6 +556,8 @@ void RDEXPORT g_Ellipse(HDC h, const RECT FAR *r, WORD fl)            { GX_RECT 
 void RDEXPORT g_RoundRect(HDC h, const RECT FAR *r, WORD rad, WORD fl) { GX_RECT f = (GX_RECT)xp(2); if (f) f(&gi, h, r, rad, fl); }
 void RDEXPORT g_Polygon(HDC h, const POINT FAR *p, WORD n, WORD fl)    { GX_POLY f = (GX_POLY)xp(3); if (f) f(&gi, h, p, n, fl); }
 void RDEXPORT g_FloodFill(HDC h, short x, short y)                    { GX_FILL f = (GX_FILL)xp(4); if (f) f(&gi, h, x, y); }
+WORD RDEXPORT g_GfxList(GFXINFO FAR *l, WORD max)                     { GX_LIST f = (GX_LIST)xp(6); return f ? f(&gi, l, max) : 0; }
+WORD RDEXPORT g_GfxSelect(WORD typ)                                   { GX_SEL f = (GX_SEL)xp(7); return f ? f(&gi, typ) : RD_ERR_NOTFOUND; }
 
 /* ---- Bitmaps ------------------------------------------------------------------ */
 HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
@@ -711,14 +714,14 @@ WORD  RDEXPORT g_PaletteSet(HDC h, WORD f, WORD n, const COLOR FAR *c) { (void)h
  * schneller, oder Profil=KOMFORT in RD2.INI) nimmt Farbe zuerst, "Schnell" (8088/286)
  * nur 1-Bit-Treiber. Von Hand (Menue Grafik, RD2.INI Grafik=, RD /CGA ...) geht jede
  * Art, deren Treiber die Hardware erkennt; sonst gilt die automatische Wahl. */
-typedef struct { const char *drv, *ini, *name; WORD typ; } KAND;   /* bunt: typ ab GFX_EGA */
+typedef struct { const char *drv, *ini; WORD typ; } KAND;   /* bunt: typ ab GFX_EGA; Namen fuer die Liste in RDGDIX */
 static const KAND kand[] = {
-    { "VGA16.DRV", "VGA16", "VGA 16 Farben", GFX_VGA16 },
-    { "EGA.DRV",   "EGA",   "EGA 16 Farben", GFX_EGA },
-    { "VESA.DRV",  "VESA",  "VESA 256 Farben", GFX_VESA },
-    { "HGC.DRV",   "HGC",   "Hercules",      GFX_HGC },
-    { "VGAM.DRV",  "VGA",   "VGA mono",      GFX_VGAMONO },
-    { "CGA.DRV",   "CGA",   "CGA",           GFX_CGA },
+    { "VGA16.DRV", "VGA16", GFX_VGA16 },
+    { "EGA.DRV",   "EGA", GFX_EGA },
+    { "VESA.DRV",  "VESA", GFX_VESA },
+    { "HGC.DRV",   "HGC", GFX_HGC },
+    { "VGAM.DRV",  "VGA", GFX_VGAMONO },
+    { "CGA.DRV",   "CGA", GFX_CGA },
 };
 #define NK (sizeof kand / sizeof kand[0])
 static GFXMODE pm;
@@ -773,32 +776,24 @@ static int bildschirm(void)
         if ((kand[i].typ < GFX_EGA || komfort()) && !probe(i, &gm, 1)) { mausan(); return 1; }
     return 0;
 }
-WORD RDEXPORT g_GfxList(GFXINFO FAR *l, WORD max)
+/* Grafikwahl fuer das Menue Grafik: Liste und Auswahl liegen in RDGDIX (selten gebraucht).
+ * i_gfx(i, was, m): was 0 = Typ von Kandidat i (0xFFFF = Ende), 1 = Hardware pruefen und Modus nach
+ * m (0xFFFF = geht nicht, sonst Bit 0 aktiv, 1 fest gewaehlt, 2 waere Standard), 2 = in RD2.INI eintragen
+ * (i = 0xFFFF: AUTO). */
+static WORD RDEXPORT i_gfx(WORD i, WORD was, void FAR *m)
 {
-    WORD i, n = 0, std = 0; int f;
-    lesen(); f = fest();
-    for (i = 0; i < NK && n < max; i++) {
-        GFXINFO FAR *e = &l[n]; const char *q = kand[i].name; WORD k = 0;
-        if (drv && kand[i].typ == gfxtyp) pm = gm;
-        else if (probe(i, &pm, 0)) continue;
-        e->typ = kand[i].typ; e->w = pm.w; e->h = pm.h; e->farben = pm.farben; e->flags = 0;
-        if (drv && kand[i].typ == gfxtyp) e->flags |= GI_AKTIV;
-        if (f == (int)i) e->flags |= GI_GEWAEHLT;
-        if (!std && (kand[i].typ < GFX_EGA || komfort())) { e->flags |= GI_STANDARD; std = 1; }
-        while (*q && k < sizeof e->name - 1) e->name[k++] = *q++;
-        e->name[k] = 0;
-        n++;
-    }
-    return n;
-}
-WORD RDEXPORT g_GfxSelect(WORD typ)
-{
-    WORD i;
-    if (!typ) return ProfileSetStr("RD2.INI", "System", "Grafik", "AUTO");
-    for (i = 0; i < NK && kand[i].typ != typ; i++) ;
-    if (i == NK) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
-    if (!(drv && typ == gfxtyp) && probe(i, &pm, 0)) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
-    return ProfileSetStr("RD2.INI", "System", "Grafik", kand[i].ini);
+    WORD r = 0; int ak;
+    if (was == 2) return ProfileSetStr("RD2.INI", "System", "Grafik", i < NK ? kand[i].ini : "AUTO");
+    if (i >= NK) return 0xFFFF;
+    if (!was) return kand[i].typ;
+    if (!i) lesen();
+    ak = drv && kand[i].typ == gfxtyp;
+    if (ak) pm = gm; else if (probe(i, &pm, 0)) return 0xFFFF;
+    *(GFXMODE FAR *)m = pm;
+    if (ak) r |= 1;
+    if (fest() == (int)i) r |= 2;
+    if (kand[i].typ < GFX_EGA || komfort()) r |= 4;
+    return r;
 }
 /* ---- Schriften und Text --------------------------------------------------------
  * .FNT-Dateien (SPEC 7) liegen einmal im Speicher (MEM_SHARE, gehoeren RDGDI),

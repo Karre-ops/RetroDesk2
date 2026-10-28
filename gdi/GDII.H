@@ -38,8 +38,11 @@ typedef struct {
     void (RDEXPORT *span)(short y, short a, short b, WORD brush);   /* 1 Pinsel, 0 Stift */
     void (RDEXPORT *line)(short x0, short y0, short x1, short y1);
     WORD (RDEXPORT *get)(short x, short y);       /* innerhalb bb */
+    WORD (RDEXPORT *gfx)(WORD i, WORD was, void FAR *m);      /* Grafikwahl (m: GFXMODE), siehe RDGDI i_gfx */
 } GI;
 typedef void (RDAPI *GX_RECT)(GI FAR *g, HDC h, const RECT FAR *r, WORD a, WORD b);
 typedef void (RDAPI *GX_POLY)(GI FAR *g, HDC h, const POINT FAR *p, WORD n, WORD fl);
 typedef void (RDAPI *GX_FILL)(GI FAR *g, HDC h, short x, short y);
+typedef WORD (RDAPI *GX_LIST)(GI FAR *g, GFXINFO FAR *l, WORD max);
+typedef WORD (RDAPI *GX_SEL)(GI FAR *g, WORD typ);
 #endif

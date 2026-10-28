@@ -2,6 +2,7 @@
  * Polygone, Fuellen. Verwerfbares Modul, laedt RDGDI beim ersten Aufruf nach. Kein
  * eigener Zustand ueber einen Aufruf hinaus; gezeichnet wird ueber die Tabelle GI. */
 #include "GDII.H"
+#include "RD2DRV.H"
 
 static GIS s;
 static WORD isqrt(DWORD v)
@@ -159,5 +160,31 @@ static void RDEXPORT x_IconColor(HDC dc, short x, short y, HBMP b, HBMP m)
     if (t) BmpFree(t);
     MemUnlock(b); MemUnlock(m);
 }
-static struct { WORD n; FARPROC f[5]; } ext = { 5, { (FARPROC)x_Ellipse, (FARPROC)x_RoundRect, (FARPROC)x_Polygon, (FARPROC)x_FloodFill, (FARPROC)x_IconColor } };
+/* Grafikwahl (Menue Grafik): Namen in der Reihenfolge der Kandidaten von RDGDI (kand[]) */
+static const char *const gnam[] = { "VGA 16 Farben", "EGA 16 Farben", "VESA 256 Farben", "Hercules", "VGA mono", "CGA" };
+static WORD RDEXPORT x_GfxList(GI FAR *g, GFXINFO FAR *l, WORD max)
+{
+    WORD i, n = 0, std = 0, t, f, k; GFXMODE m; const char *q; GFXINFO FAR *e;
+    for (i = 0; n < max && (t = g->gfx(i, 0, 0)) != 0xFFFF; i++) {
+        if ((f = g->gfx(i, 1, (void FAR *)&m)) == 0xFFFF) continue;
+        e = &l[n++];
+        e->typ = t; e->w = m.w; e->h = m.h; e->farben = m.farben; e->flags = 0;
+        if (f & 1) e->flags |= GI_AKTIV;
+        if (f & 2) e->flags |= GI_GEWAEHLT;
+        if (!std && (f & 4)) { e->flags |= GI_STANDARD; std = 1; }
+        for (q = i < sizeof gnam / sizeof gnam[0] ? gnam[i] : "?", k = 0; *q && k < sizeof e->name - 1; ) e->name[k++] = *q++;
+        e->name[k] = 0;
+    }
+    return n;
+}
+static WORD RDEXPORT x_GfxSelect(GI FAR *g, WORD typ)
+{
+    WORD i, t; GFXMODE m;
+    if (!typ) return g->gfx(0xFFFF, 2, 0);
+    for (i = 0; (t = g->gfx(i, 0, 0)) != 0xFFFF && t != typ; i++) ;
+    if (t == 0xFFFF || g->gfx(i, 1, (void FAR *)&m) == 0xFFFF) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
+    return g->gfx(i, 2, 0);
+}
+static struct { WORD n; FARPROC f[7]; } ext = { 7, { (FARPROC)x_Ellipse, (FARPROC)x_RoundRect, (FARPROC)x_Polygon, (FARPROC)x_FloodFill, (FARPROC)x_IconColor,
+                                               (FARPROC)x_GfxList, (FARPROC)x_GfxSelect } };
 void FAR * RDAPI RdModInit(void) { return &ext; }
