@@ -57,7 +57,7 @@ dateien RD2
 mtype $C ::/CONFIG.SYS | tr -d '\r' > obj/inst_cs.txt
 pruef "^SHELL=C:\\\\RD2\\\\RD.EXE /P C:\\\\RD2\\\\SHELL.EXE$" "SHELL=RD.EXE /P"
 pruef "^INSTALL=C:\\\\RD2\\\\CTMOUSE.EXE$" "CTMOUSE fuer die PS/2-Maus"
-[ "$(wc -l < obj/inst_cs.txt)" = 2 ] && echo "ok     CONFIG.SYS nur 2 Zeilen" || { echo "FEHLER CONFIG.SYS hat Fremdes"; cat obj/inst_cs.txt; F=1; }
+[ "$(wc -l < obj/inst_cs.txt)" = 3 ] && grep -q "^INSTALL=C:.RD2.RDKEYB.COM DE" obj/inst_cs.txt && echo "ok     CONFIG.SYS: Shell, RDKEYB DE, CTMOUSE" || { echo "FEHLER CONFIG.SYS hat Fremdes"; cat obj/inst_cs.txt; F=1; }
 mtype $C ::/AUTOEXEC.BAT >/dev/null 2>&1 && { echo "FEHLER AUTOEXEC.BAT angelegt"; F=1; } || echo "ok     keine AUTOEXEC.BAT"
 [ $F = 0 ] && echo "Installation: alles ok"
 exit $F

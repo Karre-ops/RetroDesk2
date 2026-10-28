@@ -238,9 +238,10 @@ static PUNKT p[] = {
     { "Sound Blaster", "SB",  { 0 }, { 0 }, 0, 0, 0 },
     { "XMS-Ablage", "XMS",    { "0", "64", "128", "256", "512" }, { "aus", "64 KB", "128 KB", "256 KB", "512 KB" }, 5, 0, 0 },
     { "Netz",       "Netz",   { "KEIN", "PAKET" }, { "keins", "Paketreiber" }, 2, 0, 0 },
+    { "Tastatur",   "Tastatur", { "DE", "US" }, { "Deutsch (RDKEYB)", "US-Englisch (RDKEYB)" }, 2, 0, 0 },
 };
 #define NP (sizeof p / sizeof p[0])
-enum { P_GRAFIK, P_PROFIL, P_MAUS, P_KLANG, P_SB, P_XMS, P_NETZ };
+enum { P_GRAFIK, P_PROFIL, P_MAUS, P_KLANG, P_SB, P_XMS, P_NETZ, P_TAST };
 static char ini[80], quelle[80];
 
 static void setze(PUNKT *q, const char *w) { BYTE i; for (i = 0; i < q->n; i++) if (!stricmp(q->wert[i], w)) { q->v = i; return; } }
@@ -391,11 +392,11 @@ static const char *nicht[] = { "REM", "ECHO", "SET", "PATH", "PROMPT", "CLS", "G
    Rueckgabe: 1 geaendert (Sicherung CONFIG.RDA), 3 neu angelegt, 2 schon eingetragen, 0 Fehler, -1 Datei zu gross, -2 abgelehnt */
 static int shell_eintragen(const char *ziel, int y, int *verloren)
 {
-    char cs[16], z[96], w[64], pf[80]; size_t n, o = 0, m; char *a, *e, *q; int alt, i, mausda = 0; FILE *f;
+    char cs[16], z[96], w[64], pf[80]; size_t n, o = 0, m; char *a, *e, *q; int alt, i, mausda = 0, kbda; FILE *f;
     sprintf(cs, "%c:\\CONFIG.SYS", ziel[0]); sprintf(z, "%c:\\AUTOEXEC.BAT", ziel[0]);
     alt = gibts(cs) || gibts(z); *verloren = 0;
     n = lesen(cs); if (n == sizeof buf - 1) return -1;
-    strcpy(neu, buf); strupr(neu); sprintf(z, "%sRD.EXE", ziel);
+    strcpy(neu, buf); strupr(neu); kbda = strstr(neu, "KEYB") != 0; sprintf(z, "%sRD.EXE", ziel);   /* Tastaturtreiber schon in CONFIG.SYS */
     if (strstr(neu, z)) return 2;
     if (alt && !janein(y, "RD2 als Shell in CONFIG.SYS eintragen (J/N)?")) return -2;
     if (n) { sprintf(z, "%c:\\CONFIG.RDA", ziel[0]); if (!kopieren(cs, z)) return 0; lesen(cs); }
@@ -431,9 +432,12 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
             sprintf(z, "Uebernehmen (J/N)? %.58s", q);
             if (!janein(y, z)) continue;
             if (strstr(pf, "MOUSE")) mausda = 1;
+            if (strstr(pf, "KEYB")) kbda = 1;       /* eigener Treiber (z. B. Commodore) bleibt, kein RDKEYB */
             sprintf(z, "INSTALL=%s%.60s\r\n", pf, q + m); NEU(z);
         }
     }
+    sprintf(pf, "%sRDKEYB.COM", ziel);           /* Tastatur DE/US, gilt auch in DOS-Programmen */
+    if (!kbda && gibts(pf)) { sprintf(z, "INSTALL=%s %s\r\n", pf, p[P_TAST].wert[p[P_TAST].v]); NEU(z); }
     if (!mausda) {                                /* Maustreiber: CTMOUSE fuer seriell/PS2, sonst Herstellertreiber */
         sprintf(pf, "%sCTMOUSE.EXE", ziel);
         if ((!strncmp(mauswert, "SERIELL", 7) || !strcmp(mauswert, "PS2") || (!alt && !strcmp(mauswert, "DOS"))) && gibts(pf)) {
@@ -475,7 +479,7 @@ static int startfaehig(char lw, int y)            /* Variante A: leere Platte mi
     zeile(y, e == 0 ? "Festplatte ist startfaehig (FreeDOS-Kern)." : "FEHLER: Festplatte nicht startfaehig (SYS).");
     return e == 0 ? 1 : -1;
 }
-static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", 0 };   /* BIN: RDSWAP.BIN, DAT: FARBSYM.DAT, HLP: Hilfe */
+static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", "*.COM", 0 };   /* BIN: RDSWAP.BIN, DAT: FARBSYM.DAT, HLP: Hilfe, COM: RDKEYB */
 static void alle(const char *ziel, int y, int *k, int *fehl)       /* alle RD2-Dateien aus quelle nach ziel */
 {
     char von[80], nach[80], z[80]; struct find_t ft; int i;
