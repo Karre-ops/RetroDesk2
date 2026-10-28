@@ -66,6 +66,7 @@ MENU 3
     TRENNER
     ITEM "&Formatieren..."     302 GRAU
     ITEM "Diskette &kopieren..." 305 GRAU
+    ITEM "&PrÅfen..."          306
     ITEM "Festplatte ein&richten..." 303 GRAU
   ENDE
 ENDE
@@ -201,6 +202,7 @@ MENU 3
     TRENNER
     ITEM "&Format..."          302 GRAU
     ITEM "&Copy disk..."       305 GRAU
+    ITEM "Chec&k disk..."      306
     ITEM "Set up &hard disk..." 303 GRAU
   ENDE
 ENDE

@@ -1,0 +1,53 @@
+; Ressourcen fuer DPRUEF.EXE
+SPRACHE DE
+TEXTE
+  1 "DatentrÑger prÅfen"
+  2 "RDDISK.MOD fehlt."
+  3 "FAT-Kopien sind verschieden."
+  4 "UngÅltiger Cluster: "
+  5 "Querverweis (Cluster doppelt belegt): "
+  6 "Kette unterbrochen: "
+  7 "Ordner nicht lesbar: "
+  8 "Grî·e passt nicht zur Kette: "
+  9 "DatentrÑger nicht lesbar oder kein FAT12/FAT16."
+  10 "Zu wenig Speicher."
+  11 "PrÅfe ..."
+  12 "Verlorene Cluster: "
+  13 "Fehler gefunden. Reparieren behebt verlorene Cluster und FAT-Kopien."
+  14 "Keine Fehler gefunden."
+  15 "Reparieren schreibt auf den DatentrÑger. Vorher sichern ist ratsam. Jetzt reparieren?"
+ENDE
+DIALOG 10 "DatentrÑger prÅfen" 0 0 280 150
+  LIST                  40   8   8 264 84 WS_VSCROLL
+  PROGRESS              41   8  96 264  8
+  STATIC   ""           42   8 108 264 18
+  BUTTON   "&PrÅfen"     1   8 130  70 14 STANDARD
+  BUTTON   "&Reparieren" 21  86 130  80 14
+  BUTTON   "Schlie·en"   2 202 130  70 14
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Check disk"
+  2 "RDDISK.MOD is missing."
+  3 "FAT copies differ."
+  4 "Invalid cluster: "
+  5 "Cross-link (cluster used twice): "
+  6 "Broken chain: "
+  7 "Folder not readable: "
+  8 "Size does not match chain: "
+  9 "Disk not readable or not FAT12/FAT16."
+  10 "Not enough memory."
+  11 "Checking ..."
+  12 "Lost clusters: "
+  13 "Errors found. Repair fixes lost clusters and FAT copies."
+  14 "No errors found."
+  15 "Repair writes to the disk. A backup first is advisable. Repair now?"
+ENDE
+DIALOG 10 "Check disk" 0 0 280 150
+  LIST                  40   8   8 264 84 WS_VSCROLL
+  PROGRESS              41   8  96 264  8
+  STATIC   ""           42   8 108 264 18
+  BUTTON   "&Check"      1   8 130  70 14 STANDARD
+  BUTTON   "&Repair"    21  86 130  80 14
+  BUTTON   "Close"       2 202 130  70 14
+ENDE

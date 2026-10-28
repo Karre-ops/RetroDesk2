@@ -34,6 +34,7 @@
 #define CM_SUCH   114                             /* Dateien suchen ab dem Ordner (Strg+F) */
 #define CM_LSUCH  304                             /* Dateien suchen auf dem Laufwerk */
 #define CM_DKOP   305                             /* Diskette kopieren (DKOPIE.EXE) */
+#define CM_PRUEF  306                             /* Datentraeger pruefen (DPRUEF.EXE X:) */
 #define CM_PRG    401                             /* 401..412: angeheftete Programme */
 #define CM_PLEER  413
 #define MAXP      12
@@ -1001,6 +1002,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_OEFFNEN && lsel < nlw) ordner_auf(lw[lsel], 0, 0);
         else if (p1 == CM_LWINFO && lsel < nlw) lwinfo();
         else if (p1 == CM_DKOP) { char p[80]; if (werkzeug(p, "DKOPIE.EXE")) starten(p); }
+        else if (p1 == CM_PRUEF && lsel < nlw) { char p[80], c[4]; c[0] = lw[lsel]; c[1] = ':'; c[2] = 0; if (werkzeug(p, "DPRUEF.EXE")) TaskExec(p, c, SW_SHOW); }
         else if (p1 == CM_LSUCH && lsel < nlw) { char a[4]; a[0] = lw[lsel]; a[1] = ':'; a[2] = '\\'; a[3] = 0; suchen(a); }
         else if (p1 == CM_FORMAT && lsel < nlw) formatieren();
         else if (p1 == CM_PSTART && lsel >= nlw) starten(prg[psy[lsel - nlw]]);

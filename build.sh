@@ -87,6 +87,7 @@ app apps/optionen/OPTIONEN.C OPTIONEN.EXE "Optionen"
 app apps/papierk/PAPIERK.C PAPIERK.EXE "Papierkorb"
 app apps/taskman/TASKMAN.C TASKMAN.EXE "Taskmanager"
 app apps/dkopie/DKOPIE.C DKOPIE.EXE "Diskette kopieren"
+app apps/dpruef/DPRUEF.C DPRUEF.EXE "Datentraeger pruefen"
 app apps/edit/RDEDIT.C RDEDIT.EXE "Editor"
 # RDFORMAT: RD2-Oberflaeche + FreeDOS FORMAT 0.92a (GPL v2); FreeDOS-Dateien mit disk/fdshim.h (DOS ueber RDDISK.MOD)
 FDF="createfs floppy hdisk main savefs bcread prf userint driveio getopt init recordbc uformat msghlpr"
