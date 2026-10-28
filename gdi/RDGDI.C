@@ -226,6 +226,7 @@ static void mausan(void)                          /* Kern hat den Treiber schon 
     mx = (short)(gm.w / 2); my = (short)(gm.h / 2);
     m33(4, 0, (WORD)mx, (WORD)my);
     mqk = mqs = 0; moved = 0; cvis = 1; con = 0;
+    { WORD v = (WORD)(7 - ((si.maus >> 8) & 7)) * 2; if (v - 4 < 9) m33(0x0F, 0, v, v * 2); }   /* Tempo 1..5 -> 12..4 Mickeys je 8 Punkte (3 = Treiberstandard 8), nach jedem Zuruecksetzen */
     m33h(0x0C, 0x7F, (void (__far *)(void))mhandler);
     cli(); zhin(); sti();
 }
@@ -245,6 +246,7 @@ WORD RDEXPORT g_MausHole(WORD FAR *e)
     if (mqk != mqs) {
         volatile MEV *q = &mq[mqk & 15];
         e[0] = q->art; e[1] = q->taste; e[2] = (WORD)q->x; e[3] = (WORD)q->y; mqk++;
+        if (si.maus & 0x8000 && (e[1] & 3) % 3) e[1] ^= 3;   /* Linkshaender: Taste 1/2 tauschen */
     } else if (moved) { moved = 0; e[0] = 1; e[1] = mbt; e[2] = (WORD)mx; e[3] = (WORD)my; }
     else r = 0;
     sti();

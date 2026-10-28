@@ -96,7 +96,7 @@ typedef struct {
     DWORD kb_ext;                                 /* XMS/DPMI gesamt */
     WORD  grafik;                                 /* GFX_* */
     WORD  sound;                                  /* SC_* */
-    WORD  maus;                                   /* Tasten, 0 = keine Maus */
+    WORD  maus;                                   /* Tasten (Niederbyte), 0 = keine Maus; Hochbyte: Tempo 1..5, Bit 15 Tasten getauscht (RD2.INI [Maus]) */
     BYTE  bootlw;                                 /* 1 = A: */
     BYTE  festplatte;                             /* 0 = Diskettenbetrieb */
     WORD  sprache;                                /* RD_LANG_* */

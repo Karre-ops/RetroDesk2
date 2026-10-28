@@ -1,0 +1,49 @@
+; Ressourcen fuer MAUS.EXE
+SPRACHE DE
+TEXTE
+  1 "Maus"
+  2 "Gespeichert. Die Einstellungen gelten beim n„chsten Start von RD2."
+  3 "Doppelklick erkannt."
+  4 "Einfacher Klick."
+ENDE
+DIALOG 10 "Maus" 0 0 236 120
+  GROUP    "Geschwindigkeit"  -1   8   4 220 26
+  RADIO    "&1"          31  14  15  34 10
+  RADIO    "&2"          32  56  15  34 10
+  RADIO    "&3"          33  98  15  34 10
+  RADIO    "&4"          34 140  15  34 10
+  RADIO    "&5"          35 182  15  34 10
+  GROUP    "Doppelklick"  -1   8  34 220 26
+  RADIO    "&kurz"       41  14  45  60 10
+  RADIO    "&mittel"     42  84  45  60 10
+  RADIO    "&lang"       43 154  45  60 10
+  CHECK    "Linke und rechte Taste &tauschen"  51   8  66 220 10
+  BUTTON   "Te&st"       52   8  82  50 14
+  STATIC   "Zweimal schnell klicken."  53  66  85 162 10
+  BUTTON   "OK"           1  60 100  56 14 STANDARD
+  BUTTON   "Abbrechen"    2 124 100  56 14
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Mouse"
+  2 "Saved. The settings take effect the next time RD2 starts."
+  3 "Double-click detected."
+  4 "Single click."
+ENDE
+DIALOG 10 "Mouse" 0 0 236 120
+  GROUP    "Speed"       -1   8   4 220 26
+  RADIO    "&1"          31  14  15  34 10
+  RADIO    "&2"          32  56  15  34 10
+  RADIO    "&3"          33  98  15  34 10
+  RADIO    "&4"          34 140  15  34 10
+  RADIO    "&5"          35 182  15  34 10
+  GROUP    "Double-click" -1   8  34 220 26
+  RADIO    "&short"      41  14  45  60 10
+  RADIO    "&medium"     42  84  45  60 10
+  RADIO    "&long"       43 154  45  60 10
+  CHECK    "Swap left and right &buttons"  51   8  66 220 10
+  BUTTON   "&Test"       52   8  82  50 14
+  STATIC   "Click twice quickly."  53  66  85 162 10
+  BUTTON   "OK"           1  60 100  56 14 STANDARD
+  BUTTON   "Cancel"       2 124 100  56 14
+ENDE

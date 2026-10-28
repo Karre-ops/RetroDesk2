@@ -85,7 +85,7 @@ WORD (__far __pascal *k_mausget)(WORD __far *e);
 WORD k_focus;
 static int enqueue(WORD n, HWND w, WORD msg, WORD p1, DWORD p2);
 static BYTE inpoll, kbext = 0xFF;
-static DWORD lastdown; static short ldx, ldy; static WORD ldb;
+static DWORD lastdown; static short ldx, ldy; static WORD ldb; WORD k_dbl = 500;   /* RD2.INI [Maus] Doppelklick */
 static MSG im;                                    /* Eingabe auf dem Weg zum Fenster */
 DWORD (__far __pascal *k_wnd)(WORD art, HWND w, WORD msg, WORD p1, DWORD p2);
 static void post_in(WORD msg, WORD p1, DWORD p2, short x, short y)
@@ -129,7 +129,7 @@ void input_poll(void)
         ks = (bda[0x17] & 3 ? KS_SHIFT : 0) | (bda[0x17] & (KS_CTRL | KS_ALT));
         if (e[0] == 1) post_in(M_MOUSEMOVE, e[1], xy, x, y);
         else if (e[0] == 2) {
-            if (e[1] == ldb && now - lastdown < 500 && x - ldx < 5 && ldx - x < 5 && y - ldy < 5 && ldy - y < 5) {
+            if (e[1] == ldb && now - lastdown < k_dbl && x - ldx < 5 && ldx - x < 5 && y - ldy < 5 && ldy - y < 5) {
                 post_in(M_DBLCLK, e[1] | (ks << 8), xy, x, y); lastdown = 0;
             } else {
                 post_in(M_BUTTONDOWN, e[1] | (ks << 8), xy, x, y);

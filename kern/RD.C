@@ -6,6 +6,7 @@
 KREGS kr;
 WORD  k_lasterr;
 char  k_home[66];
+static const char k_ini[] = "RD2.INI", k_ms[] = "Maus";   /* einmal fuer alle RD2.INI-Zugriffe */
 static WORD k_maus;                               /* Maustasten, 0 = keine Maus */
 WORD  k_gfx;
 BYTE  k_fpu, k_cpu;
@@ -116,12 +117,14 @@ int main(int argc, char **argv)
     if (a >= argc) { k_out("Aufruf: RD [/x] programm", 1); return 1; }
     mem_init(136);                                /* Reserve: DOS und der RunDos-Rest (120 Paragraphen) */
     task_init();
-    {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr("RD2.INI", "System", "Maus", "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF; }
+    {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr(k_ini, "System", k_ms, "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF;
+      { extern WORD k_dbl; k_dbl = ProfileGetInt(k_ini, k_ms, "Doppelklick", 500); } }
     if (!k_maus) {                                /* Maustreiber da? Vektor 33h gesetzt und kein IRET */
         BYTE __far * __far *v = (BYTE __far * __far *)MK_FP(0, 0x33 * 4);
         if (*v && **v != 0xCF) { kr.ax = 0; kr.bx = 0; rd_int(0x33, &kr); if (kr.ax == 0xFFFF) k_maus = kr.bx == 0xFFFF ? 2 : kr.bx; }
     }
     if (k_maus == 0xFFFF) k_maus = 0;
+    if (k_maus) k_maus |= (ProfileGetInt(k_ini, k_ms, "Tempo", 3) | (ProfileGetInt(k_ini, k_ms, "Tasten", 0) ? 0x80 : 0)) << 8;   /* Hochbyte fuer RDGDI: Tempo 1..5, Bit 7 Tasten tauschen */
     if (k_umb_paras) k_hex("RD: UMB", (DWORD)k_umb_paras << 4, 1);
     mod_xinit();
     if ((ausm = ModLoad("RDAUSL.MOD")) != 0) {   /* Auslagern (XMS, RD2.SWP); RD2.INI Auslagern=0 prueft das Modul */
