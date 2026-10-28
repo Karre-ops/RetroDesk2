@@ -2,3 +2,5 @@ obj/
 out/
 sdk/lib/
 kern/NOTSUP.ASM
+test/qemu/*.img
+test/qemu/CTMOUSE.EXE

@@ -15,7 +15,7 @@ A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RDFTP.EXE T A:\T1\
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_rdftp.txt >/dev/null
-mcopy -o -i $IMG ../test/qemu/pkt/NE2000.COM ::/
+mcopy -o -i $IMG test/qemu/pkt/NE2000.COM ::/
 rm -rf obj/ftproot obj/rdftp_t1 obj/rdftp_aus; mkdir -p obj/ftproot/pub obj/rdftp_t1 obj/rdftp_aus
 python3 - <<'PY'
 import random
@@ -36,7 +36,7 @@ timeout 270 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,form
   -netdev user,id=n0 -device ne2k_isa,iobase=0x300,irq=3,netdev=n0 \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_rdftp.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_rdftp.py
 Q() { python3 obj/qmon_rdftp.py "$@" 2>/dev/null; }
 waitn() { for i in $(seq 300); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; echo "FEHLER: warte auf $1 ($2)"; return 1; }
 lauf() {

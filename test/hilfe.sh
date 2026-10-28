@@ -14,7 +14,7 @@ rm -f $SER $S obj/hilfe?.ppm
 timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!
-Q() { timeout 10 python3 ../test/qemu/qmon.py "$@" >/dev/null 2>&1; }
+Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
 waitn() { for i in $(seq 300); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "${2:-1}" ] && return 0; sleep 0.2; done; return 1; }
 ok() { if waitn "$1" ${3:-1}; then echo "ok     $2"; else echo "FEHLER $2"; F=1; fi; }
 ok "HILFE: bereit" "Hilfe startet"

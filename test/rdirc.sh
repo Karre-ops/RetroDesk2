@@ -14,7 +14,7 @@ A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RDIRC.EXE T
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_rdirc.txt >/dev/null
-mcopy -o -i $IMG ../test/qemu/pkt/NE2000.COM ::/
+mcopy -o -i $IMG test/qemu/pkt/NE2000.COM ::/
 printf '[Netz]\r\nDHCP=1\r\n[IRC]\r\nServer=10.0.2.2\r\nPort=6667\r\nNick=RD2\r\nKanal=#retro\r\nKennwort=geheim\r\n' > obj/rdirc_ini.txt
 mcopy -o -i $IMG obj/rdirc_ini.txt ::/RD2/RD2.INI
 rm -f $SER $SOCK $HOSTLOG obj/rdirc?_*.ppm
@@ -26,7 +26,7 @@ timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,form
   -netdev user,id=n0 -device ne2k_isa,iobase=0x300,irq=3,netdev=n0 \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_rdirc.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_rdirc.py
 Q() { python3 obj/qmon_rdirc.py "$@" 2>/dev/null; }
 tipp() { python3 - "$1" <<'PY'
 import sys, subprocess

@@ -4,7 +4,7 @@
 # 3 Entwurf, 2 Kopien, 2 Seiten in die Datei: 60 dpi, 4 Seiten.  4 Abbruch nach dem ersten Band.
 cd "$(dirname "$0")/.."
 SER=obj/prn_com1.txt; F=0; : > obj/prn_alle.txt; SOCK=/tmp/qmon_prn.sock
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_prn.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_prn.py
 lauf() {  # $1 Name  $2 PRNTEST-Befehl  $3 RD2.INI  $4 QEMU-Zusatz
   local IMG=obj/prn_$1.img
   printf '@echo off\r\nA:\\RD2\\RD.EXE /NOMAUS /CGA A:\\RD2\\PRNTEST.EXE %s\r\nA:\\FDAPM.COM POWEROFF\r\n' "$2" > obj/ae_prn.txt

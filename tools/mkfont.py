@@ -33,7 +33,7 @@ def fnt(name, h, ober, glyph):
 d = bios()
 o8 = suche(d, bytes([0x30, 0x78, 0xCC, 0xCC, 0xFC, 0xCC, 0xCC, 0]), 8)
 o16 = suche(d, bytes([0, 0, 0x10, 0x38, 0x6C, 0xC6, 0xC6, 0xFE, 0xC6, 0xC6, 0xC6, 0xC6, 0, 0, 0, 0]), 16)
-f14 = open(os.path.join(D, "..", "..", "RDFONT.F14"), "rb").read()
+f14 = open(os.path.join(D, "..", "rd1ref", "RDFONT.F14"), "rb").read()
 fnt("SYS8.FNT", 8, 7, lambda c: d[o8 + c * 8:o8 + c * 8 + 8])
 fnt("SYS14.FNT", 14, 11, lambda c: f14[c * 14:c * 14 + 14])
 fnt("SYS16.FNT", 16, 12, lambda c: d[o16 + c * 16:o16 + c * 16 + 16])

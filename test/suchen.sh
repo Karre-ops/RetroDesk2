@@ -9,7 +9,7 @@ rm -f $SER $S; touch $SER
 timeout 140 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!
-Q() { timeout 10 python3 ../test/qemu/qmon.py "$@" >/dev/null 2>&1; }
+Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
 waitn() { local c; for i in $(seq 250); do c=$(tr -d '\r' < $SER | grep -c "$1"); [ "${c:-0}" -ge "${2:-1}" ] && return 0; sleep 0.2; done; return 1; }
 tipp() { local s=$1 i c; for ((i = 0; i < ${#s}; i++)); do c=${s:i:1}; case $c in .) c=dot;; '*') c=shift-8;; '?') c=shift-slash;; *) c=$(echo $c | tr A-Z a-z);; esac; Q "sendkey $c"; sleep 0.15; done; }
 such() { Q "sendkey ctrl-f"; sleep 1.5; for i in 1 2 3 4 5 6 7 8 9 10 11 12; do Q "sendkey backspace"; sleep 0.1; done; tipp "$1"; Q "sendkey ret"; }

@@ -24,7 +24,7 @@ rm -f $SER $SOCK obj/edit?_*.ppm
 timeout 600 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_edit.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_edit.py
 Q() { python3 obj/qmon_edit.py "$@"; }
 waitn() { for i in $(seq 900); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 tipp() { local s=$1 i c a=(); for ((i = 0; i < ${#s}; i++)); do c=${s:i:1}; case $c in ' ') c=spc;; [A-Z]) c=shift-${c,,};; ':') c=shift-semicolon;; '!') c=shift-1;; esac; a+=("sendkey $c" sleep0.06); done; Q "${a[@]}"; }

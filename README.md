@@ -1,6 +1,6 @@
 # RetroDesk 2 (in Arbeit)
 
-Grafische Umgebung für 8088 (640 KB, Diskettenbetrieb) bis Pentium. Entwurf: [../docs/ENTWURF_RD2.md](../docs/ENTWURF_RD2.md), Plan: [../docs/PLAN_RD2.md](../docs/PLAN_RD2.md).
+Grafische Umgebung für 8088 (640 KB, Diskettenbetrieb) bis Pentium. Entwurf: [docs/ENTWURF_RD2.md](docs/ENTWURF_RD2.md), Plan: [docs/PLAN_RD2.md](docs/PLAN_RD2.md).
 
 Stand: Phase 0 (Spezifikation API 1.0) freigegeben am 19.10.2026, Phase 1 (Gerüst, Diskettentest) fertig.
 **Phase 2, Teil 1** fertig: Speicherverwaltung (Handles, verschiebbar, verwerfbar, Verdichten), Tasks mit Zeitscheiben, Nachrichten, Zeitgeber, 8087-Zustand je Task.
@@ -40,3 +40,15 @@ python3 rd2/tools/apicheck.py                       # Nummern/Namen
 wcc -0 -mm -zq -i=rd2/sdk rd2/test/hdrtest.c        # 16 Bit
 wcc386 -zq -i=rd2/sdk rd2/test/hdrtest.c            # 32 Bit
 ```
+
+## Eigenes Repository (seit 28.10.2026)
+
+RD2 lag bis Commit 69e187f im Unterordner `rd2/` von Karre-ops/retrodesk (Branch rd2). Die Geschichte
+wurde mit `git subtree split` übernommen. Aus dem RD1-Repo kamen dazu:
+
+- `test/qemu/`: QEMU-Steuerung (qmon.py), Netztest-Helfer, NE2000-Paket-Treiber. `boot.img`
+  (FreeDOS-Startdiskette) und `CTMOUSE.EXE` (nur test/install.sh) stehen wie bisher nicht im Git
+  und müssen lokal nach `test/qemu/` gelegt werden.
+- `docs/ENTWURF_RD2.md`, `docs/PLAN_RD2.md`: Entwurf und Plan.
+- `rd1ref/`: Teile von RetroDesk 1 als Vergleich (Schrift RDFONT.F14 für tools/mkfont.py,
+  calc.c für test/rechner_kern.sh, gfx.c/mouse.c für den Leistungsvergleich bench).

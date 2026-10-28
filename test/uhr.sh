@@ -14,7 +14,7 @@ rm -f $SER $SOCK obj/uhr?_*.ppm
 timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_uhr.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_uhr.py
 Q() { python3 obj/qmon_uhr.py "$@"; }
 waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 bs() { for i in 1 2 3 4 5 6 7 8 9 10; do Q "sendkey backspace" sleep0.1; done; }

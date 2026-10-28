@@ -5,7 +5,7 @@
 # am PC10-III wird dieselbe Verzeichnisstruktur auf eine DOS-5-Bootdiskette kopiert).
 set -e
 cd "$(dirname "$0")/.."
-IMG=$1; AE=$2; SRC=../test/qemu/boot.img
+IMG=$1; AE=$2; SRC=test/qemu/boot.img
 rm -f $IMG
 mformat -C -f ${FMT:-360} -v RD2SYSTEM -i $IMG ::
 python3 - $SRC $IMG <<'PY'

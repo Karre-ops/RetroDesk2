@@ -13,7 +13,7 @@ A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RDNET.EXE T A:\T1\
 A:\FDAPM.COM POWEROFF
 AE
 NUR="RD.EXE RDGDI.MOD RDUSER.MOD RDKX.MOD RDCTL.MOD RDCTLX.MOD RDSND.MOD SPEAKER.DRV VGAM.DRV CGA.DRV SYS16.FNT SYS8.FNT SYS14.FNT DE.LNG RDTCP.MOD RDNET.EXE" bash tools/mkdisk.sh $IMG obj/ae_rdnet.txt
-mcopy -o -i $IMG ../test/qemu/pkt/NE2000.COM ::/
+mcopy -o -i $IMG test/qemu/pkt/NE2000.COM ::/
 mkdir -p obj/rdn/T1; printf 'FILES=20\r\nSHELL=A:\\RD2\\RD.EXE /P A:\\RD2\\SHELL.EXE\r\n' > obj/rdn/T1/CONFIG.SYS
 mmd -i $IMG ::/T1 2>/dev/null; mcopy -o -i $IMG obj/rdn/T1/CONFIG.SYS ::/T1/
 rm -f $SER $SOCK $HOSTLOG obj/rdnet?_*.ppm
@@ -41,7 +41,7 @@ timeout 270 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,form
   -netdev user,id=n0 -device ne2k_isa,iobase=0x300,irq=3,netdev=n0 \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_rdnet.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_rdnet.py
 Q() { python3 obj/qmon_rdnet.py "$@"; }
 waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; echo "FEHLER: warte auf $1 ($2)"; return 1; }
 tippe() { local a=() c k; for ((i=0; i<${#1}; i++)); do c=${1:i:1}; case $c in .) k=dot;; *) k=$c;; esac; a+=("sendkey $k" sleep0.15); done; Q "${a[@]}"; }

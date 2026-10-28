@@ -1,6 +1,6 @@
 # RetroDesk 2: Spezifikation API 1.0 (Phase 0)
 
-Stand: 19.10.2026, **freigegeben** am 19.10.2026. Grundlage: [ENTWURF_RD2.md](../../docs/ENTWURF_RD2.md), [PLAN_RD2.md](../../docs/PLAN_RD2.md)
+Stand: 19.10.2026, **freigegeben** am 19.10.2026. Grundlage: [ENTWURF_RD2.md](ENTWURF_RD2.md), [PLAN_RD2.md](PLAN_RD2.md)
 
 Verbindlich sind die Header im SDK, dieses Dokument erklärt sie und legt die Dateiformate fest:
 

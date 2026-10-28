@@ -14,7 +14,7 @@ for lauf in "/P"; do
   timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
     -serial file:$SER -monitor unix:/tmp/qmon_s.sock,server,nowait >/dev/null 2>&1 &
   QP=$!
-  Q="python3 ../test/qemu/qmon.py"; export QMON=/tmp/qmon_s.sock
+  Q="python3 test/qemu/qmon.py"; export QMON=/tmp/qmon_s.sock
   waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
   if waitscr "RetroDesk ist beendet" 200; then echo "ok     Rest meldet das Ende und wartet"; else echo "FEHLER keine Meldung vom Rest"; F=1; fi
   N1=$(grep -c "DOSTEST: mit KEEP" $SER)

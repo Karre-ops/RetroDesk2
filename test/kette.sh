@@ -7,9 +7,9 @@
 # Nur Tastatur. Bilder obj/kette{1..3}.ppm.
 cd "$(dirname "$0")/.."
 H=obj/kette_hd.img; SOCK=/tmp/qmon_kette.sock; export QMON=$SOCK; F=0
-Q() { python3 ../test/qemu/qmon.py "$@" >/dev/null 2>&1; }
+Q() { python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
 waitn() { for i in $(seq ${3:-600}); do [ "$(grep -ac "$1" $2 2>/dev/null)" -ge "${4:-1}" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
-waitscr() { for i in $(seq ${2:-30}); do python3 ../test/qemu/qmon.py text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
+waitscr() { for i in $(seq ${2:-30}); do python3 test/qemu/qmon.py text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
 starten() {  # $1 Diskette, $2 serielles Protokoll
   rm -f $SOCK $2
   timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$1,format=raw,if=floppy,index=0 \
@@ -59,7 +59,7 @@ pruef "2 FAT16 sauber (fsck)" "fsck.fat -n obj/kette_part.img >/dev/null 2>&1"
 printf '@echo off\r\nA:\\RD2\\RD2SETUP.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' | tr -d '\r' > obj/ae_k3.txt
 SETUP=1 bash tools/mkdisk.sh obj/kette_a3.img obj/ae_k3.txt >/dev/null 2>&1
 S=obj/kette3_com1.txt; starten obj/kette_a3.img $S
-waitscr "Einrichtung" 120 && { Q "sendkey i" sleep2 "sendkey ret"; waitscr "startfaehig machen" 90 && Q "sendkey j"; waitscr "Festplatte ist startfaehig\|FEHLER: Festplatte" 60; sleep 1; python3 ../test/qemu/qmon.py text > obj/schirm_kette3.txt 2>/dev/null; Q "screendump obj/kette3.ppm" sleep0.3 "sendkey esc" sleep2 "sendkey n"; }
+waitscr "Einrichtung" 120 && { Q "sendkey i" sleep2 "sendkey ret"; waitscr "startfaehig machen" 90 && Q "sendkey j"; waitscr "Festplatte ist startfaehig\|FEHLER: Festplatte" 60; sleep 1; python3 test/qemu/qmon.py text > obj/schirm_kette3.txt 2>/dev/null; Q "screendump obj/kette3.ppm" sleep0.3 "sendkey esc" sleep2 "sendkey n"; }
 wait $QP
 C="-i $H@@$OFS"
 mdir $C -b ::/RD2 > obj/kette_dir.txt 2>&1

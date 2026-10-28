@@ -16,7 +16,7 @@ rm -f $SER $SOCK obj/rechner?_*.ppm
 timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_rechner.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_rechner.py
 Q() { python3 obj/qmon_rechner.py "$@"; }
 waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 k() { local a=() c; for c in "$@"; do a+=("sendkey $c" sleep0.15); done; Q "${a[@]}"; }

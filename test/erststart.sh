@@ -14,7 +14,7 @@ rm -f $SER /tmp/qmon_e.sock
 timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:/tmp/qmon_e.sock,server,nowait >/dev/null 2>&1 &
 QP=$!
-Q="python3 ../test/qemu/qmon.py"; export QMON=/tmp/qmon_e.sock
+Q="python3 test/qemu/qmon.py"; export QMON=/tmp/qmon_e.sock
 waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
 if waitscr "Erster Start" 90; then echo "ok     Einrichtung erscheint beim ersten Start"; $Q text > obj/schirm_setup.txt 2>/dev/null
 else echo "FEHLER keine Einrichtung"; F=1; fi

@@ -7,7 +7,7 @@
 # Danach prueft Python die Tabellen (MBR, EMBR). FAELLE="leer weg" waehlt aus. Bilder obj/fdisk{1..3}_FALL.ppm.
 cd "$(dirname "$0")/.."
 SOCK=/tmp/qmon_fdisk.sock
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_fdisk.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_fdisk.py
 Q() { python3 obj/qmon_fdisk.py "$@"; }
 waitn() { for i in $(seq ${3:-600}); do [ "$(grep -c "$1" $2 2>/dev/null || true)" -ge "${4:-1}" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\RDFDISK.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_fdisk.txt

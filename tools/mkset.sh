@@ -13,7 +13,7 @@ kopie() { img=$1; shift; for f in "$@"; do [ -f out/$f ] || { echo "mkset: out/$
 txt() { sed 's/$/\r/' "$1" > $T/$2; }
 # Diskette 1
 neu RD2_1.IMG RD2SYSTEM
-python3 - ../test/qemu/boot.img $O/RD2_1.IMG <<'PY'
+python3 - test/qemu/boot.img $O/RD2_1.IMG <<'PY'
 import sys
 s = open(sys.argv[1], 'rb').read(512); f = open(sys.argv[2], 'r+b'); d = bytearray(f.read(512))
 d[0:3] = s[0:3]; d[0x3E:0x200] = s[0x3E:0x200]   # FreeDOS-Bootsektor (laedt KERNEL.SYS), BPB der 360-KB-Diskette

@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 IMG=obj/inst720.img; HD=obj/inst_hd.img; F=0
 printf '@echo off\r\nA:\\RD2\\RD2SETUP.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' | tr -d '\r' > obj/ae_inst.txt
 SETUP=1 bash tools/mkdisk.sh $IMG obj/ae_inst.txt
-Q="python3 ../test/qemu/qmon.py"
+Q="python3 test/qemu/qmon.py"
 waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
 starten() {
   rm -f /tmp/qmon_i.sock
@@ -27,7 +27,7 @@ pruef() { grep -q "$1" obj/inst_cs.txt && echo "ok     CONFIG.SYS: $2" || { echo
 bash tools/mkhd.sh $HD; C="-i $HD@@32256"
 printf 'FILES=20\r\nSHELL=C:\\COMMAND.COM C:\\ /P\r\n' > obj/cs_alt.tmp; mcopy $C obj/cs_alt.tmp ::/CONFIG.SYS
 printf '@ECHO OFF\r\nPATH A:\\\r\nLH C:\\TREIBER\\MOUSE.COM /S50\r\nREM Ende\r\n' > obj/ae_alt.tmp; mcopy $C obj/ae_alt.tmp ::/AUTOEXEC.BAT
-mmd $C ::/TREIBER; mcopy $C ../test/qemu/CTMOUSE.EXE ::/TREIBER/MOUSE.COM
+mmd $C ::/TREIBER; mcopy $C test/qemu/CTMOUSE.EXE ::/TREIBER/MOUSE.COM
 starten
 $Q "sendkey i" sleep1 "sendkey backspace" "sendkey backspace" "sendkey backspace" >/dev/null 2>&1
 for k in s p i e l e backslash r d 2 ret; do $Q "sendkey $k" >/dev/null 2>&1; done

@@ -32,7 +32,7 @@ rm -f $SER /tmp/qmon.sock
 timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:/tmp/qmon.sock,server,nowait >/dev/null 2>&1 &
 QP=$!
-Q="python3 ../test/qemu/qmon.py"
+Q="python3 test/qemu/qmon.py"
 waitser() { for i in $(seq ${2:-60}); do grep -q "$1" $SER 2>/dev/null && return 0; sleep 1; done; return 1; }
 waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
 # MODTEST: Diskette wechseln, wenn das Programm es sagt; Kern muss dann nach RD2SYSTEM fragen

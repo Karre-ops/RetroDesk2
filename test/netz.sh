@@ -10,7 +10,7 @@ A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\NETTEST.EXE
 A:\FDAPM.COM POWEROFF
 AE
 NUR="${NUR:-RD.EXE RDGDI.MOD RDUSER.MOD RDKX.MOD RDCTL.MOD RDSND.MOD SPEAKER.DRV VGAM.DRV SYS16.FNT SYS8.FNT SYS14.FNT DE.LNG RDTCP.MOD NETTEST.EXE}" bash tools/mkdisk.sh $IMG obj/ae_netz.txt
-mcopy -o -i $IMG ../test/qemu/pkt/NE2000.COM ::/
+mcopy -o -i $IMG test/qemu/pkt/NE2000.COM ::/
 rm -f $SER $SOCK $HOSTLOG
 python3 - > $HOSTLOG 2>&1 <<'PY' &
 import socket, threading, time, sys

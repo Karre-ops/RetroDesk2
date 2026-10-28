@@ -13,7 +13,7 @@ rm -f $SER $SOCK obj/fen_*.ppm; touch $SER
 timeout 400 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_fen.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_fen.py
 Q() { python3 obj/qmon_fen.py "$@"; }
 waitn() { for i in $(seq 400); do [ "$(tr -d '\r' < $SER | grep -c "$1" || true)" -ge "$2" ] && return 0; sleep 0.2; done; echo "FEHLER: warte vergeblich auf '$1'"; return 1; }
 null() { Q "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.2 "mouse_move -400 -400" sleep0.4; }   # RDMAUS: 0,5 Pixel je Einheit senkrecht, daher 4 Schritte

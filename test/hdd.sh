@@ -7,7 +7,7 @@
 # Bilder obj/hdd{1..4}_FALL.ppm: 1 Einstellungen  2 Rueckfrage  3 Fortschritt  4 Ergebnis
 cd "$(dirname "$0")/.."
 SOCK=/tmp/qmon_hdd.sock
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_hdd.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_hdd.py
 Q() { python3 obj/qmon_hdd.py "$@"; }
 OFS=32256
 neue_platte() {   # $1 = Bild: MBR (16 Koepfe, 63 Sektoren, ZYL Zylinder), Partition ab LBA 63, Typ TYP, aktiv

@@ -18,7 +18,7 @@ rm -f $SER $S
 timeout 150 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!
-Q() { timeout 10 python3 ../test/qemu/qmon.py "$@" >/dev/null 2>&1; }
+Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
 waitn() { local c; for i in $(seq 300); do c=$(grep -c "$1" $SER 2>/dev/null); [ "${c:-0}" -ge "${2:-1}" ] && return 0; sleep 0.2; done; return 1; }
 waitn "KEYTEST: bereit" || { echo "FEHLER KEYTEST startet nicht"; F=1; }
 for k in z y shift-2 semicolon apostrophe bracket_left minus shift-minus grave_accent a equal e shift-equal a grave_accent spc ctrl-alt-q alt_r-q less alt_r-less shift-0 ctrl-z ctrl-alt-f1 z ctrl-alt-f2 z delete home esc; do Q "sendkey $k"; sleep 0.3; done

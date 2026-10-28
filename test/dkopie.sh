@@ -12,7 +12,7 @@ rm -f $SER $S; touch $SER
 timeout 140 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -drive file=$SRC,format=raw,if=floppy,index=1 -boot a \
   -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!
-Q() { timeout 10 python3 ../test/qemu/qmon.py "$@" >/dev/null 2>&1; }
+Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
 cnt() { tr -d '\r' < $SER | grep -c "$1"; }
 q=0; z=0
 for i in $(seq 500); do

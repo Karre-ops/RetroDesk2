@@ -25,7 +25,7 @@ rm -f $SER $SOCK obj/rdsh?_*.ppm; touch $SER
 timeout 240 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_rdsh.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_rdsh.py
 Q() { python3 obj/qmon_rdsh.py "$@" 2>/dev/null; }
 waitn() { for i in $(seq 450); do [ "$(tr -d '\r' < $SER | grep -c -- "$1" || true)" -ge "$2" ] && return 0; sleep 0.2; done; echo "FEHLER: warte auf $1 ($2)"; return 1; }
 waitn "RDSHELL: | A:.*>rd test" 1 && Q "screendump obj/rdsh1_vga.ppm"

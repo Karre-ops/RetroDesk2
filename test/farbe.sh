@@ -24,7 +24,7 @@ rm -f $SER $SOCK obj/farbe?_*.ppm
 timeout 420 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_farbe.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_farbe.py
 Q() { timeout 30 python3 obj/qmon_farbe.py "$@"; }
 waitn() { for i in $(seq 600); do [ "$(tr -d '\r' < $SER 2>/dev/null | grep -c "$1" || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 for n in 1 2 3; do

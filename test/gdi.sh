@@ -14,7 +14,7 @@ rm -f $SER $SOCK obj/gdi_cga.ppm obj/gdi_vga.ppm
 timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_gdi.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_gdi.py
 Q() { python3 obj/qmon_gdi.py "$@"; }
 waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null)" -ge "$2" ] && return 0; sleep 0.2; done; return 1; }
 waitn "GDITEST: fertig" 1 && sleep 0.5 && Q "screendump obj/gdi_cga.ppm" "pmemsave 0xb8000 16384 obj/gdi_cga.vram"

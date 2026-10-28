@@ -10,7 +10,7 @@ rm -f $SER $S; touch $SER
 timeout 130 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!
-Q() { timeout 10 python3 ../test/qemu/qmon.py "$@" >/dev/null 2>&1; }
+Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
 waitn() { local c; for i in $(seq 250); do c=$(tr -d '\r' < $SER | grep -c "$1"); [ "${c:-0}" -ge "${2:-1}" ] && return 0; sleep 0.2; done; return 1; }
 waitn "SHELL: bereit"; sleep 3; Q "sendkey ret"
 waitn "SHELL: Ordner A:\\\\ $sicht" && echo "ok     ohne Schalter: $sicht Eintraege (GEHEIM.TXT unsichtbar)" || { echo "FEHLER ohne Schalter (soll $sicht)"; tr -d '\r' < $SER | grep "Ordner A"; F=1; }

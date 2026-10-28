@@ -19,7 +19,7 @@ lauf() {   # $1 Name, $2 RDMAUS-Schalter, $3 QEMU-Zusatz
   timeout 70 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
     -serial file:$SER $3 -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
   QP=$!
-  sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_rdm.py
+  sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_rdm.py
   Q() { timeout 20 python3 obj/qmon_rdm.py "$@" >/dev/null 2>&1; }
   waitn() { for i in $(seq 250); do [ "$(tr -d '\r' < $SER | grep -ac "$1" || true)" -ge "$2" ] && return 0; sleep 0.2; done; return 1; }
   if waitn "SHELL: bereit" 1; then
@@ -42,7 +42,7 @@ grafik() {   # Treiberzeiger fuer DOS-Programme: ZTEST.COM setzt Modus 3, 6, 4, 
   timeout 70 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
     -serial null -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
   QP=$!
-  sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_rdm.py
+  sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_rdm.py
   Q() { timeout 20 python3 obj/qmon_rdm.py "$@" >/dev/null 2>&1; }
   sleep 14
   for m in 03 06 04 13 12; do

@@ -11,7 +11,7 @@ rm -f $SER $SOCK; touch $SER
 timeout 140 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_maus.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_maus.py
 Q() { timeout 20 python3 obj/qmon_maus.py "$@" >/dev/null 2>&1; }
 waitn() { for i in $(seq 300); do [ "$(tr -d '\r' < $SER | grep -ac "$1" || true)" -ge "$2" ] && return 0; sleep 0.2; done; return 1; }
 diffpx() { python3 -c "

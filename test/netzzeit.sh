@@ -17,7 +17,7 @@ A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\SHELL.EXE
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_nz.txt >/dev/null   # 360 KB reichen nicht fuer Shell, Netz und Paketreiber
-mcopy -o -i $IMG ../test/qemu/pkt/NE2000.COM ::/
+mcopy -o -i $IMG test/qemu/pkt/NE2000.COM ::/
 rm -f obj/nz_ini.txt; mcopy -o -i $IMG ::/RD2/RD2.INI obj/nz_ini.txt 2>/dev/null
 python3 - <<'PY'
 import os
@@ -43,7 +43,7 @@ timeout 240 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,form
   -netdev user,id=n0 -device ne2k_isa,iobase=0x300,irq=3,netdev=n0 \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
 QP=$!
-sed "s#/tmp/qmon.sock#$SOCK#" ../test/qemu/qmon.py > obj/qmon_nz.py
+sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_nz.py
 Q() { python3 obj/qmon_nz.py "$@"; }
 waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; echo "FEHLER: warte auf $1 ($2)"; return 1; }
 lauf() {

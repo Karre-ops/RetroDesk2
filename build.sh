@@ -21,7 +21,7 @@ $W -fo=obj/rdswap.obj kern/RDSWAP.ASM
 wlink option quiet format raw bin name $O/RDSWAP.BIN file obj/rdswap.obj option offset=0 2>&1 | grep -v "W1014\|W1023" || true
 (cd obj && wasm -q -0 -fo=rdkeyb.obj ../drv/RDKEYB.ASM && wlink option quiet format dos com name ../$O/RDKEYB.COM file rdkeyb.obj)   # Tastatur DE/US
 (cd obj && wasm -q -0 -fo=rdmaus.obj ../drv/RDMAUS.ASM && wlink option quiet format dos com name ../$O/RDMAUS.COM file rdmaus.obj)   # Maus: Bus, InPort, PS/2, seriell
-nasm -f bin -o obj/ZTEST.COM ../rd2/test/dos/ZTEST.ASM 2>/dev/null || nasm -f bin -o obj/ZTEST.COM test/dos/ZTEST.ASM   # Testprogramm fuer test/rdmaus.sh
+nasm -f bin -o obj/ZTEST.COM test/dos/ZTEST.ASM   # Testprogramm fuer test/rdmaus.sh
 # Kern: Small, SS != DS (API-Aufrufe kommen mit dem Stack des Programms)
 for c in RD MEM TASK FILE MOD RUNDOS; do wcc -0 -ms -zu -os -ol -s -zq -w4 -bt=dos -i=sdk -fo=obj/k_$c.obj kern/$c.C; done
 wlink option quiet system dos name $O/RD.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj/k_TASK.obj,obj/k_FILE.obj,obj/k_MOD.obj,obj/k_RUNDOS.obj,obj/kasm.obj,obj/swap.obj,obj/notsup.obj option map=obj/rd.map >/dev/null
@@ -110,7 +110,7 @@ wlink option quiet format dos name $O/RDFDISK.EXE file obj/rd2start.obj,obj/RDFD
 python3 tools/rdrc.py disk/RDFDISK.RC obj/RDFDISK.res >/dev/null || exit 1; python3 tools/rd2link.py $O/RDFDISK.EXE "Festplatte" --res obj/RDFDISK.res >/dev/null
 # Leistungsvergleich RD1 gegen RD2 (test/bench.sh): BENCH2 ueber die RD2-API, BENCH1 mit dem RD1-Renderer aus main
 app bench/BENCH2.C BENCH2.EXE "Bench2"
-( T=obj/bench1; mkdir -p $T; rm -f $T/*; cp bench/BENCH1.C $T/bench1.c; cp ../gfx.c ../mouse.c ../gfx.h ../mouse.h $T/
+( T=obj/bench1; mkdir -p $T; rm -f $T/*; cp bench/BENCH1.C $T/bench1.c; cp rd1ref/gfx.c rd1ref/mouse.c rd1ref/gfx.h rd1ref/mouse.h $T/
   cd $T && wcl -0 -ms -os -s -fpi -bt=dos -zq -fe=BENCH1.EXE bench1.c gfx.c mouse.c >/dev/null ) || echo "FEHLER BENCH1"
 APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done

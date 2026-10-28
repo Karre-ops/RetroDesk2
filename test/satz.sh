@@ -3,8 +3,8 @@
 # danach ohne Diskette von C: starten. Prueft Dateien aller drei Disketten, KERNEL.SYS, CONFIG.SYS und den Start.
 cd "$(dirname "$0")/.."
 F=0; S=/tmp/qmon_satz.sock; export QMON=$S
-Q() { timeout 10 python3 ../test/qemu/qmon.py "$@" >/dev/null 2>&1; }
-T() { timeout 10 python3 ../test/qemu/qmon.py text 2>/dev/null; }
+Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
+T() { timeout 10 python3 test/qemu/qmon.py text 2>/dev/null; }
 waitscr() { for i in $(seq ${2:-30}); do T | grep -q "$1" && return 0; sleep 1; done; return 1; }
 bash tools/mkset.sh >/dev/null 2>&1 || { echo "FEHLER mkset"; exit 1; }
 for i in 1 2 3; do cp out/set/RD2_$i.IMG obj/satz$i.img; done
