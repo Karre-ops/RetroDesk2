@@ -3,7 +3,7 @@
 # Diskette (360 KB seit 24.10.2026): S = Systemdiskette (bootfaehig), P = Programme, N = Netz, D = SDK, T = nur Tests, L = spaeter (nicht im Satz)
 # Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
-RD.EXE          28800 44.375 S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock); 26.10.: 44,25 KB fuer den Klang-Takt im INT 8 und RunDos-Pause (RDSND)
+RD.EXE          28864 44.4375 S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock); 26.10.: 44,25 KB fuer den Klang-Takt im INT 8 und RunDos-Pause (RDSND)
 RD2SETUP.EXE    32768    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier; +1 KB Sound Blaster 26.10.); +1 KB Mehrdisketten-Installation 27.10.
 RDSYS.EXE       24576    0   S  FreeDOS SYS 3.6 (GPL v2), unveraendert; RD2SETUP: Festplatte startfaehig (24.10.)
 RDSWAP.BIN       1664    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speicher (nicht im Kern)
@@ -38,6 +38,7 @@ SHELL.EXE       40960   30   S  Desktop, Dateimanager (Teile verwerfbar)
 UHR.EXE          8192   12   P  Zubehoer (4 KB Stapel: Nachladen laeuft darauf), Netzzeit per SNTP (Datumsrechnung mit long: +2,6 KB)
 NOTIZ.EXE       10240   10   P  Zubehoer
 RECHNER.EXE      8192   10   P  Zubehoer, kleiner Rechner (4 KB Stapel wie UHR, Rechenkern Dezimalziffern)
+SCHONER.EXE      5120    8   P  Bildschirmschoner (Sterne, Uhr, Schwarz; RD2.INI [Schoner] Zeit= Sekunden, Art=)
 MAUS.EXE         4096    6   P  Mauseinstellungen (RD2.INI [Maus]: Tempo, Doppelklick, Tasten)
 DPRUEF.EXE       7168   10   P  Datentraeger pruefen (wie CHKDSK, FAT12/16, INT 25h/26h ueber RDDISK.MOD)
 DKOPIE.EXE       5120    8   P  Diskette kopieren (wie DISKCOPY, RDDISK.MOD/INT 13h), Zylinderpuffer beim Lauf

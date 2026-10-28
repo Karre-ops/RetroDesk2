@@ -1,0 +1,43 @@
+; Ressourcen fuer SCHONER.EXE
+SPRACHE DE
+TEXTE
+  1 "Bildschirmschoner"
+  2 "Gespeichert. Die Wartezeit gilt ab dem n„chsten Start von RD2, die Art sofort."
+ENDE
+DIALOG 10 "Bildschirmschoner" 0 0 236 122
+  GROUP    "Art"         -1   8   4 220 26
+  RADIO    "S&ternenfeld" 31  14  15  70 10
+  RADIO    "&Uhr"        32  90  15  60 10
+  RADIO    "Sch&warz"    33 156  15  64 10
+  GROUP    "Starten nach"  -1   8  34 220 40
+  RADIO    "&aus"        41  14  45  60 10
+  RADIO    "&1 Minute"   42  84  45  66 10
+  RADIO    "&2 Minuten"  43 154  45  66 10
+  RADIO    "&5 Minuten"  44  14  58  60 10
+  RADIO    "1&0 Minuten" 45  84  58  66 10
+  RADIO    "15 M&inuten" 46 154  58  66 10
+  BUTTON   "&Vorschau"   52   8 100  60 14
+  BUTTON   "OK"           1 100 100  56 14 STANDARD
+  BUTTON   "Abbrechen"    2 164 100  60 14
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Screen saver"
+  2 "Saved. The wait time takes effect the next time RD2 starts, the type right away."
+ENDE
+DIALOG 10 "Screen saver" 0 0 236 122
+  GROUP    "Type"        -1   8   4 220 26
+  RADIO    "S&tarfield"  31  14  15  70 10
+  RADIO    "&Clock"      32  90  15  60 10
+  RADIO    "&Black"      33 156  15  64 10
+  GROUP    "Start after" -1   8  34 220 40
+  RADIO    "&off"        41  14  45  60 10
+  RADIO    "&1 minute"   42  84  45  66 10
+  RADIO    "&2 minutes"  43 154  45  66 10
+  RADIO    "&5 minutes"  44  14  58  60 10
+  RADIO    "1&0 minutes" 45  84  58  66 10
+  RADIO    "15 m&inutes" 46 154  58  66 10
+  BUTTON   "&Preview"    52   8 100  60 14
+  BUTTON   "OK"           1 100 100  56 14 STANDARD
+  BUTTON   "Cancel"       2 164 100  60 14
+ENDE

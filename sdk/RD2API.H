@@ -57,6 +57,7 @@ RDF(0x021, void,    TimerKill,      (HWND w, WORD id))
 RDF(0x022, DWORD,   TickCount,      (void))                       /* ms seit Start */
 RDF(0x023, void,    TimeGet,        (RDTIME FAR *t))
 RDF(0x024, WORD,    TimeSet,        (const RDTIME FAR *t, WORD bios))
+RDF(0x025, DWORD,   InputIdle,      (void))                       /* ms seit der letzten Taste/Mausaktion (Bildschirmschoner) */
 
 /* ---- Kern: Profil, Zwischenablage, Ressourcen, Sprache ----------------- */
 RDF(0x030, WORD,    ProfileGetStr,  (LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR def, LPSTR buf, WORD len))

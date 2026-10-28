@@ -85,7 +85,7 @@ WORD (__far __pascal *k_mausget)(WORD __far *e);
 WORD k_focus;
 static int enqueue(WORD n, HWND w, WORD msg, WORD p1, DWORD p2);
 static BYTE inpoll, kbext = 0xFF;
-static DWORD lastdown; static short ldx, ldy; static WORD ldb; WORD k_dbl = 500;   /* RD2.INI [Maus] Doppelklick */
+static DWORD lastdown; static short ldx, ldy; static WORD ldb; WORD k_dbl = 500; static DWORD k_ein;   /* RD2.INI [Maus] Doppelklick */
 static MSG im;                                    /* Eingabe auf dem Weg zum Fenster */
 DWORD (__far __pascal *k_wnd)(WORD art, HWND w, WORD msg, WORD p1, DWORD p2);
 static void post_in(WORD msg, WORD p1, DWORD p2, short x, short y)
@@ -120,12 +120,13 @@ void input_poll(void)
         ks = (bda[0x17] & 3 ? KS_SHIFT : 0) | (bda[0x17] & (KS_CTRL | KS_ALT));
         if (ks & KS_SHIFT && !(bda[0x17] & 0x20) && sc >= 0x47 && sc <= 0x53 && sc != 0x4A && sc != 0x4E) a = 0;   /* Umschalt+Ziffernblock (XT): Pfeil statt Ziffer, fuers Markieren */
         k = a ? a : 0x100 + sc;
-        post_in(M_KEY, k, ((DWORD)ks << 16) | 1, 0, 0);
+        post_in(M_KEY, k, ((DWORD)ks << 16) | 1, 0, 0); k_ein = ms_now();
         if (a) post_in(M_CHAR, a, ((DWORD)ks << 16) | 1, 0, 0);
     }
     if (k_mausget) while (k_mausget((WORD __far *)e)) {
         short x = (short)e[2], y = (short)e[3]; DWORD now = ms_now(), xy = ((DWORD)e[3] << 16) | e[2];
         if (!k_focus) continue;
+        k_ein = now;
         ks = (bda[0x17] & 3 ? KS_SHIFT : 0) | (bda[0x17] & (KS_CTRL | KS_ALT));
         if (e[0] == 1) post_in(M_MOUSEMOVE, e[1], xy, x, y);
         else if (e[0] == 2) {
@@ -375,6 +376,7 @@ void RDK TimerKill(HWND w, WORD id)
     for (j = 0; j < NTIMER; j++) if (t->tm[j].id == id && t->tm[j].w == w) t->tm[j].ms = 0;
 }
 DWORD RDK TickCount(void) { return ms_now(); }
+DWORD RDK InputIdle(void) { return ms_now() - k_ein; }
 
 /* ---- Tasks ------------------------------------------------------------------- */
 HTASK RDK TaskSelf(void) { return k_cur; }
@@ -446,6 +448,6 @@ void task_api(void)
     KAPI(GetMessage, GetMessage); KAPI(PeekMessage, PeekMessage); KAPI(WaitMessage, WaitMessage);
     KAPI(TaskYield, TaskYield); KAPI(PostTask, PostTask); KAPI(PostQuit, PostQuit);
     KAPI(DispatchMessage, DispatchMessage); KAPI(TimerSet, TimerSet); KAPI(TimerKill, TimerKill);
-    KAPI(TickCount, TickCount); KAPI(TaskSelf, TaskSelf); KAPI(TaskExec, TaskExec); KAPI(TaskKill, TaskKill);
+    KAPI(TickCount, TickCount); KAPI(InputIdle, InputIdle); KAPI(TaskSelf, TaskSelf); KAPI(TaskExec, TaskExec); KAPI(TaskKill, TaskKill);
     KAPI(TaskFirst, TaskFirst); KAPI(TaskNext, TaskNext);
 }

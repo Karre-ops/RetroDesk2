@@ -36,6 +36,7 @@
 #define CM_DKOP   305                             /* Diskette kopieren (DKOPIE.EXE) */
 #define CM_PRUEF  306                             /* Datentraeger pruefen (DPRUEF.EXE X:) */
 #define CM_PRG    401                             /* 401..412: angeheftete Programme */
+static WORD szeit; static BYTE slauf;                /* RD2.INI [Schoner] Zeit= Sekunden (0 = aus), laeuft schon */
 #define CM_PLEER  413
 #define MAXP      12
 #define CM_LWINFO 301
@@ -1008,14 +1009,15 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_PSTART && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
         else if (p1 == CM_PWEG && lsel >= nlw) pdesk(prgn[psy[lsel - nlw]], 0);
         else if (p1 == CM_FDISK) einrichten();
-        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 10) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE", "PAPIERK.EXE", "TASKMAN.EXE" }; char p[80];
+        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 12) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE", "PAPIERK.EXE", "TASKMAN.EXE", "MAUS.EXE", "SCHONER.EXE" }; char p[80];
             if (werkzeug(p, zn[p1 - CM_ZUB])) starten(p); }
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
         else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); DbgHex("SHELL: versteckte", verst); alle_neu(); }
         else if (p1 >= CM_PRG && p1 < CM_PRG + nprg) starten(prg[p1 - CM_PRG]);
         return 0;
     case M_TIMER:
-        uhr();
+        if (!slauf) uhr();                        /* Uhr in der Menueleiste ruht, solange der Schoner laeuft */
+        if (szeit && InputIdle() / 1000 >= (DWORD)szeit) { char u[80]; if (!slauf && werkzeug(u, "SCHONER.EXE")) TaskExec(u, "S", SW_SHOW); slauf = 1; } else slauf = 0;   /* Bildschirmschoner: einmal je Ruhephase */
         if ((tk ^= 1) == 0) for (i = 0; i < MAXO; i++) if (od[i].w) wechsel(od[i].pfad[0]);   /* alle 2 s */
         return 0;
     case M_CLOSE: return 0;                       /* der Schreibtisch bleibt */
@@ -1044,7 +1046,8 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     if (!desk) return 1;
     MenuSet(desk, mbar);
     TimerSet(desk, 1, 1000); uhr(); prgladen(); sta_lesen();
-    { char p[80], u[80]; if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "Netz", "Zeit", 0) && werkzeug(u, "UHR.EXE")) TaskExec(u, "N", SW_HIDE); }   /* Netzzeit beim Start */
+    { char p[80], u[80]; if (werkzeug(p, "RD2.INI")) szeit = (WORD)ProfileGetInt(p, "Schoner", "Zeit", 300);
+      if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "Netz", "Zeit", 0) && werkzeug(u, "UHR.EXE")) TaskExec(u, "N", SW_HIDE); }   /* Netzzeit beim Start */
     DbgPrint("SHELL: bereit");
     while (GetMessage(&m)) DispatchMessage(&m);
     DbgPrint("SHELL: Ende");
