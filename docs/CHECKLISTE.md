@@ -115,7 +115,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Installation auf Festplatte (RD2SETUP) | da | |
 | Bootfähige Systemdiskette mit FreeDOS-Kern, Satz aus 360-KB-Disketten | teils | Diskette 1 startet; Aufteilung auf Diskette 2 bis 4 prüfen |
 | SDK: RD2.H, RD2.LIB, Startcode | da | |
-| Ressourcen-Compiler RDRC | teils | nur als Python-Werkzeug, DOS-Fassung fehlt |
+| Ressourcen-Compiler RDRC | erledigt 28.10. | RDRC.EXE (DOS, 8086, tools/RDRC.C) übersetzt .RC und hängt RD2-Block + Ressourcen an die EXE (ersetzt rdrc.py + rd2link.py, byte-gleich bei allen 24 .RC im Baum, test/rdrc.sh in DOSBox). Auf Diskette 4 in \\SDK. |
 | SDK: Turbo Pascal (RD2.PAS), Beispiele, Handbuch DE/EN | fehlt | |
 | Später: 386 (Modus P, DOS im Fenster), RD2 bootet ohne DOS | später | nach 2.0 |
 

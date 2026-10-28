@@ -121,6 +121,8 @@ app apps/test/SNDTEST.C SNDTEST.EXE "SNDTEST"
 app apps/test/NETTEST.C NETTEST.EXE "NETTEST"
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/FREIMEM.EXE -fo=obj/freimem.obj apps/test/FREIMEM.C >/dev/null
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/TSRTEST.EXE -fo=obj/tsrtest.obj apps/test/TSRTEST.C >/dev/null
+# RDRC.EXE: Ressourcen-Compiler und Linker fuer das SDK (DOS-Fassung von rdrc.py + rd2link.py)
+python3 tools/mkrdrcdef.py obj/rdrcdef.h && wcl -0 -ms -os -s -zq -w4 -bt=dos -i=obj -fe=$O/RDRC.EXE -fo=obj/rdrc.obj tools/RDRC.C >/dev/null || echo "FEHLER RDRC"
 python3 tools/mkfont.py $O >/dev/null
 # Einrichtung: normales DOS-Programm (Small, Watcom-Bibliothek), laeuft ohne RetroDesk
 $W -fpi87 -fo=obj/setasm.obj setup/SETASM.ASM
