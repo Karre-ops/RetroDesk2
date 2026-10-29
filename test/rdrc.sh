@@ -22,6 +22,13 @@ python3 tools/rdrc.py apps/notiz/NOTIZ.RC $W/X/z.res >/dev/null; python3 tools/r
 python3 tools/rd2link.py $W/X/PO.EXE "Ohne" >/dev/null
 printf 'MENU 1\r\n  POPUP "Datei"\r\n    ITEM "Ende" 10 BLAU\r\n  ENDE\r\nENDE\r\n' > $W/X/BOES.RC
 printf 'cd \\X\r\nC:\\RDRC.EXE NOTIZ.RC Z.EXE "Erst"\r\nC:\\RDRC.EXE NOTIZ.RC Z.EXE "Notiz" > Z.TXT\r\nC:\\RDRC.EXE - O.EXE "Ohne" > O.TXT\r\nC:\\RDRC.EXE BOES.RC O2.EXE "x" > B.TXT\r\nif errorlevel 1 echo FEHLERCODE >> B.TXT\r\n' >> $W/T.BAT
+# /PAS: Pascal-EXE aus test/pascal.sh (Turbo Pascal und Free Pascal), Vorspann wie rd2link.py --pas, zweimal = einmal
+NPAS=0
+for q in obj/pas/tp/PTEST.EXE obj/pas/fp/PHALLO.exe; do [ -f $q ] || continue
+  NPAS=$((NPAS+1)); cp $q $W/X/PAS$NPAS.EXE; cp $q $W/X/PP$NPAS.EXE
+  python3 tools/rd2link.py $W/X/PP$NPAS.EXE "Pascal $NPAS" --pas obj/RD2PAS.BIN >/dev/null
+  printf 'C:\\RDRC.EXE - PAS%d.EXE "Pascal %d" /PAS > P%d.TXT\r\nC:\\RDRC.EXE - PAS%d.EXE "Pascal %d" /PAS >> P%d.TXT\r\n' $NPAS $NPAS $NPAS $NPAS $NPAS $NPAS >> $W/T.BAT
+done
 printf 'cd \\\r\necho ENDE > ENDE.TXT\r\nexit\r\n' >> $W/T.BAT
 for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in dosbox*) kill ${p#/proc/} 2>/dev/null;; esac; done
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy timeout 100 dosbox -noconsole -c "mount c $W" -c "c:" -c "T.BAT" -exit >/dev/null 2>&1
@@ -34,6 +41,10 @@ done
 [ $ok = $N ] && echo "ok     alle $N .RC byte-gleich mit rdrc.py + rd2link.py (Typ P/M/D, Stapel, KB, Version, Flags, Name mit Umlauten)"
 cmp -s $W/X/Z.EXE $W/X/PZ.EXE && echo "ok     zweites Linken ersetzt den Anhang" || { echo "FEHLER zweites Linken"; F=1; }
 cmp -s $W/X/O.EXE $W/X/PO.EXE && echo "ok     RDRC - ohne Ressourcen" || { echo "FEHLER RDRC -"; F=1; }
+if [ $NPAS = 0 ]; then echo "--     /PAS nicht geprueft (erst test/pascal.sh laufen lassen)"
+else ok2=0; for k in $(seq $NPAS); do cmp -s $W/X/PAS$k.EXE $W/X/PP$k.EXE && ok2=$((ok2+1)); done
+  [ $ok2 = $NPAS ] && echo "ok     /PAS: $NPAS Pascal-EXE (TP, FPC) byte-gleich mit rd2link.py --pas, zweiter Lauf aendert nichts" || { echo "FEHLER /PAS ($ok2 von $NPAS)"; F=1; }
+fi
 B2=$(tr -d '\r' < $W/X/B.TXT 2>/dev/null | tr '\n' ' ')
 if echo "$B2" | grep -q "BOES.RC(3): unbekannt: BLAU.*FEHLERCODE"; then echo "ok     Fehler mit Zeile: $B2"; else echo "FEHLER Fehlermeldung: $B2"; F=1; fi
 [ $F = 0 ] && echo "RDRC: alles ok" || echo "RDRC: FEHLER"

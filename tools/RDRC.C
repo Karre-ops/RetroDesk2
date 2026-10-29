@@ -3,6 +3,7 @@
 
    RDRC QUELLE.RC PROG.EXE "Name" [/T:P|M|D] [/S:Stapel] [/K:KB] [/V:Version] [/A:API] [/F:Flags]
    RDRC - PROG.EXE "Name" ...      nur RD2-Block, keine Ressourcen
+   /PAS                             Pascal-Programm: Vorspann sdk/RD2PAS.ASM vor das Bild (wie rd2link.py --pas)
 
    Haengt an die MZ-EXE den 48-Byte-RD2-Block, das Verzeichnis, die Ressourcendaten und den
    16-Byte-Abschluss "RD2!". Ein vorhandener Anhang wird ersetzt. Zahlen dezimal oder 0x.. */
@@ -14,6 +15,7 @@
 #include <fcntl.h>
 #include <malloc.h>
 #include "rdrcdef.h"            /* aus sdk/RD2.H erzeugt: struct { char *n; unsigned long v; } stile[] */
+#include "rd2pas.h"             /* aus sdk/RD2PAS.ASM: unsigned char rd2pas[] (Vorspann fuer /PAS) */
 
 #define MAXRES   128
 #define MAXTOK   48
@@ -342,6 +344,58 @@ static void uebersetze(const char *pfad)
     fclose(rc); rc = 0;
 }
 
+/* /PAS: Vorspann rd2pas[] vor das Bild, Bild um N Paragraphen verschieben (wie pascal() in rd2link.py).
+   Bild bis img; liefert das neue Bildende. Schon vorgespannt: unveraendert. */
+static int kp_rd(int fd, long pos, void *b, unsigned n) { lseek(fd, pos, SEEK_SET); return read(fd, b, n) == (int)n; }
+static int kp_wr(int fd, long pos, const void *b, unsigned n) { lseek(fd, pos, SEEK_SET); return write(fd, b, n) == (int)n; }
+static long vorspann(int fd, long img, const char *dn)
+{
+    static unsigned char k[28], sig[6], st[sizeof rd2pas], cp[2048];
+    W hdr, crlc, lfa, minalloc, maxalloc, ss, sp, ip, cs, n, j, w; long rest, pos, top, end; int t;
+    if (!kp_rd(fd, 0, k, 28)) fehler("%s: Lesefehler", dn);
+    hdr = *(W *)(k + 8) * 16; crlc = *(W *)(k + 6); lfa = *(W *)(k + 24);
+    if (kp_rd(fd, hdr + 0x112L, sig, 6) && !memcmp(sig, "RD2PAS", 6)) return img;
+    minalloc = *(W *)(k + 10); maxalloc = *(W *)(k + 12); ss = *(W *)(k + 14); sp = *(W *)(k + 16);
+    ip = *(W *)(k + 20); cs = *(W *)(k + 22); n = sizeof rd2pas / 16;
+    if (maxalloc != 0xFFFF && maxalloc > minalloc) minalloc = maxalloc;
+    end = sizeof rd2pas + (img - hdr);
+    top = (end + 15) / 16 + minalloc;
+    if (top > 0xA000L) fehler("%s: Pascal-Programm braucht zu viel Speicher ({$M} verkleinern)", dn);
+    memcpy(st, rd2pas, sizeof rd2pas);
+    *(W *)(st + 0x11A) = ip; *(W *)(st + 0x11C) = cs + n; *(W *)(st + 0x11E) = sp; *(W *)(st + 0x120) = ss + n;
+    *(W *)(st + 0x122) = (W)top; *(W *)(st + 0x13E) = (W)(end / 16); *(W *)(st + 0x140) = (W)(end % 16);
+    t = open("RDRC2.$$$", O_RDWR | O_BINARY | O_CREAT | O_TRUNC, 0666);
+    if (t < 0) fehler("RDRC2.$$$ laesst sich nicht anlegen", 0);
+    for (pos = 0; pos < hdr; pos += j) {                    /* Kopf */
+        j = (W)(hdr - pos > (long)sizeof cp ? sizeof cp : hdr - pos);
+        if (!kp_rd(fd, pos, cp, j) || !kp_wr(t, pos, cp, j)) fehler("%s: Lesefehler", dn);
+    }
+    if (!kp_wr(t, hdr, st, sizeof rd2pas)) fehler("Schreibfehler RDRC2.$$$", 0);
+    for (pos = hdr, rest = img - hdr; rest > 0; rest -= j, pos += j) {   /* Bild dahinter */
+        j = (W)(rest > (long)sizeof cp ? sizeof cp : rest);
+        if (!kp_rd(fd, pos, cp, j) || !kp_wr(t, pos + sizeof rd2pas, cp, j)) fehler("%s: Lesefehler", dn);
+    }
+    for (j = 0; j < crlc; j++) {                            /* Verweise: Wert und Eintrag + N */
+        W e[2]; long p;
+        if (!kp_rd(t, lfa + 4L * j, e, 4)) fehler("%s: Verweistabelle", dn);
+        p = (long)e[1] * 16 + e[0];
+        if (p + 2 > img - hdr) { close(t); remove("RDRC2.$$$"); fehler("%s: Verweis ausserhalb des Bildes", dn); }
+        if (!kp_rd(t, hdr + sizeof rd2pas + p, &w, 2)) fehler("%s: Lesefehler", dn);
+        w += n; kp_wr(t, hdr + sizeof rd2pas + p, &w, 2);
+        e[1] += n; kp_wr(t, lfa + 4L * j, e, 4);
+    }
+    end += hdr;
+    *(W *)(k + 2) = (W)(end % 512); *(W *)(k + 4) = (W)((end + 511) / 512); *(W *)(k + 10) = minalloc;
+    *(W *)(k + 14) = ss + n; *(W *)(k + 20) = 0x110; *(W *)(k + 22) = 0;
+    kp_wr(t, 0, k, 28);
+    for (pos = 0; pos < end; pos += j) {                    /* zurueck in die EXE */
+        j = (W)(end - pos > (long)sizeof cp ? sizeof cp : end - pos);
+        if (!kp_rd(t, pos, cp, j) || !kp_wr(fd, pos, cp, j)) fehler("%s: Schreibfehler", dn);
+    }
+    close(t); remove("RDRC2.$$$");
+    return end;
+}
+
 static D opt(const char *s)
 {
     D v;
@@ -352,16 +406,17 @@ static D opt(const char *s)
 static void hilfe(void)
 {
     printf("RDRC - Ressourcen-Compiler fuer RetroDesk 2\n\n"
-           "RDRC QUELLE.RC PROG.EXE \"Name\" [/T:P|M|D] [/S:Stapel] [/K:KB] [/V:Version] [/A:API] [/F:Flags]\n"
+           "RDRC QUELLE.RC PROG.EXE \"Name\" [/T:P|M|D] [/S:Stapel] [/K:KB] [/V:Version] [/A:API] [/F:Flags] [/PAS]\n"
            "RDRC - PROG.EXE \"Name\" ...   (ohne Ressourcen)\n\n"
            "Uebersetzt QUELLE.RC und haengt RD2-Block und Ressourcen an PROG.EXE an.\n"
-           "Vorgaben: /T:P /S:4096 /K:0 /V:0x0100 /A:0x0100 /F:0. Name hoechstens 15 Zeichen.\n");
+           "Vorgaben: /T:P /S:4096 /K:0 /V:0x0100 /A:0x0100 /F:0. Name hoechstens 15 Zeichen.\n"
+           "/PAS: Pascal-Programm (Turbo Pascal, Free Pascal mit Unit RD2): Vorspann davor.\n");
     exit(1);
 }
 
 int main(int argc, char **argv)
 {
-    char typ = 'P'; D api = 0x100, flags = 0, stack = 4096, kb = 0, ver = 0x100;
+    char typ = 'P'; int pas = 0; D api = 0x100, flags = 0, stack = 4096, kb = 0, ver = 0x100;
     unsigned char kopf[28], blk[48], ab[16], kp[4096];
     char *name = 0; int i, fd; long dl, img, ende;
     W summe = 0; D pos, off;
@@ -370,6 +425,7 @@ int main(int argc, char **argv)
     name = argv[3];
     for (i = 4; i < argc; i++) {
         char *a = argv[i];
+        if ((a[0] == '/' || a[0] == '-') && !stricmp(a + 1, "PAS")) { pas = 1; continue; }
         if ((a[0] != '/' && a[0] != '-') || !a[1] || a[2] != ':') hilfe();
         switch (toupper(a[1])) {
         case 'T': typ = (char)toupper(a[3]); if (!strchr("PMD", typ) || !typ || a[4]) hilfe(); break;
@@ -397,6 +453,7 @@ int main(int argc, char **argv)
     img = (long)*(W *)(kopf + 4) * 512 - (*(W *)(kopf + 2) ? 512 - *(W *)(kopf + 2) : 0);
     if (ende < img) { close(fd); fehler("%s: Datei kuerzer als im MZ-Kopf angegeben", argv[2]); }
     if (chsize(fd, img)) { close(fd); fehler("%s: laesst sich nicht kuerzen", argv[2]); }
+    if (pas) img = vorspann(fd, img, argv[2]);
 
     memset(blk, 0, 48);
     blk[0] = 'R'; blk[1] = 'D'; blk[2] = '2'; blk[3] = typ;

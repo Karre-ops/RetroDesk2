@@ -121,8 +121,9 @@ app apps/test/SNDTEST.C SNDTEST.EXE "SNDTEST"
 app apps/test/NETTEST.C NETTEST.EXE "NETTEST"
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/FREIMEM.EXE -fo=obj/freimem.obj apps/test/FREIMEM.C >/dev/null
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/TSRTEST.EXE -fo=obj/tsrtest.obj apps/test/TSRTEST.C >/dev/null
+python3 tools/mkpas.py $O/RD2.PAS 2>/dev/null || echo "FEHLER RD2.PAS"   # Unit RD2 fuer Turbo Pascal und Free Pascal (SDK)
 # RDRC.EXE: Ressourcen-Compiler und Linker fuer das SDK (DOS-Fassung von rdrc.py + rd2link.py)
-python3 tools/mkrdrcdef.py obj/rdrcdef.h && wcl -0 -ms -os -s -zq -w4 -bt=dos -i=obj -fe=$O/RDRC.EXE -fo=obj/rdrc.obj tools/RDRC.C >/dev/null || echo "FEHLER RDRC"
+nasm -f bin -o obj/RD2PAS.BIN sdk/RD2PAS.ASM && python3 -c "d=open('obj/RD2PAS.BIN','rb').read(); open('obj/rd2pas.h','w').write('static const unsigned char rd2pas[%d] = {' % len(d) + ','.join(str(b) for b in d) + '};\\n')" && python3 tools/mkrdrcdef.py obj/rdrcdef.h && wcl -0 -ms -os -s -zq -w4 -bt=dos -i=obj -fe=$O/RDRC.EXE -fo=obj/rdrc.obj tools/RDRC.C >/dev/null || echo "FEHLER RDRC"
 python3 tools/mkfont.py $O >/dev/null
 # Einrichtung: normales DOS-Programm (Small, Watcom-Bibliothek), laeuft ohne RetroDesk
 $W -fpi87 -fo=obj/setasm.obj setup/SETASM.ASM

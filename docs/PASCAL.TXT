@@ -1,0 +1,92 @@
+RetroDesk 2 - Programme in Pascal
+==================================
+
+RD2-Programme lassen sich in Turbo Pascal (5.5, 6.0, 7.0) und in Free Pascal
+(i8086-msdos, Cross-Compiler) schreiben. Benoetigt werden aus \SDK und \SDK\PASCAL:
+
+  RD2.PAS     Unit RD2: alle RD2-Funktionen, Strukturen und Konstanten
+  RDRC.EXE    haengt Vorspann, RD2-Block und Ressourcen an die EXE
+  PHALLO.PAS  Beispiel: Fenster, Zeichnen, Mausklicks, Esc schliesst
+  PTEST.PAS   Beispiel: Befehlszeile, Heap, Exitcode
+  RD2PAS.ASM  Quelltext des Vorspanns (nur zur Information)
+
+
+1. Bauen
+--------
+
+Turbo Pascal (auf dem XT selbst):
+
+  TPC PHALLO.PAS
+  RDRC - PHALLO.EXE "Hallo Pascal" /PAS
+
+Mit Ressourcen (Menue, Dialoge, Texte, Symbole) statt "-" die .RC angeben:
+
+  RDRC PHALLO.RC PHALLO.EXE "Hallo Pascal" /PAS
+
+Free Pascal (Cross-Compiler auf einem anderen PC, Speichermodell Large):
+
+  ppcross8086 -Tmsdos -WmLarge -O2 -XX -CX PHALLO.PAS
+  RDRC - PHALLO.EXE "Hallo Pascal" /PAS
+
+/PAS darf mehrmals laufen (zum Beispiel nach einer geaenderten .RC), der
+Vorspann kommt nur einmal davor. Ohne /PAS startet ein Pascal-Programm nicht.
+
+
+2. Regeln
+---------
+
+- RD2 muss die erste Unit in "uses" sein.
+- Keine Crt, Graph oder Write/WriteLn auf den Bildschirm: RD2 zeichnet selbst.
+  Dateien mit Assign/Reset/Rewrite gehen wie gewohnt.
+- Speicher mit {$M Stapel,HeapMin,HeapMax}. RD2 gibt dem Programm HeapMax
+  (hoechstens etwa 600 KB), zum Beispiel {$M 8192,0,16384} fuer 16 KB Heap.
+- Das Programm endet mit dem Ende des Hauptprogramms oder mit Halt(code).
+  Ein Laufzeitfehler erscheint als Meldung "Laufzeitfehler 200 bei ssss:oooo".
+- Zeiger, Texte und Strukturen werden als Pointer uebergeben:
+    GetClientRect(fe, @r);
+    TextOut(dc, 10, 10, Z('Hallo'), -1);
+  Z() macht aus einem Pascal-String einen 0-terminierten Text (acht Puffer
+  im Wechsel, also bis zu acht Z() in einem Aufruf). PasStr() geht zurueck.
+- Turbo Pascal 5.5 kann Funktionsergebnisse nicht verwerfen. Dafuer gibt es
+  die Variable Egal:   Egal := SetBkMode(dc, BK_TRANSPARENT);
+  (Turbo Pascal 6/7 und Free Pascal: {$X+}, dann geht auch der blosse Aufruf.)
+- Strukturen heissen wie in RD2.H mit T davor: TMsg, TRect, TPoint, TPaint,
+  TWndClass, TSysInfo, TRdTime ... Felder heissen wie in C (in Pascal
+  reservierte Namen mit _ dahinter, zum Beispiel label_).
+- RD2Inst (HINST), RD2Show und RD2Cmd (Befehlszeile) stehen nach dem Start
+  bereit. ParamStr und ParamCount gehen ebenfalls.
+
+
+3. Fensterfunktionen
+--------------------
+
+Eine Fensterfunktion (und eine Dialogfunktion) ist far und pascal:
+
+  {$F+}
+  function Proc(w: HWND; msg, p1: Word; p2: Longint): Longint;
+    {$IFDEF FPC} pascal; {$ENDIF}
+
+Uebergeben wird sie immer ueber CbProc, das setzt beim Aufruf das
+Datensegment des Programms:
+
+  wc.proc := CbProc(@Proc);
+
+Bis zu 16 Rueckrufe je Programm. Nachrichtenschleife:
+
+  while GetMessage(@m) <> 0 do Egal := DispatchMessage(@m);
+
+
+4. Wie es funktioniert
+----------------------
+
+Der Kern startet ein RD2-Programm per FAR CALL ohne PSP. Das Laufzeitsystem
+von Pascal erwartet aber einen DOS-Start. RDRC /PAS setzt deshalb einen
+Vorspann (rund 900 Bytes) vor das Programm: er baut MCB und PSP, loescht den
+Speicher hinter dem Bild, setzt den Stack aus dem EXE-Kopf und faengt waehrend
+des Starts die DOS-Aufrufe ab, die das System sonst veraendern wuerden
+(Interrupt-Vektoren, Speicherblock, Programmende). Die Unit RD2 meldet am Ende
+ihrer Initialisierung "fertig", danach ist INT 21h wieder unberuehrt. Am Ende
+kehrt sie ueber ExitProc mit dem Exitcode zum Kern zurueck. Der Kern selbst
+kennt keinen Unterschied zwischen C- und Pascal-Programmen.
+
+Getestet mit Turbo Pascal 5.5 und Free Pascal 3.2.2 (test/pascal.sh).

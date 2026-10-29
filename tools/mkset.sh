@@ -29,6 +29,7 @@ neu RD2_2.IMG "RD2 PROG"; mmd -i $O/RD2_2.IMG ::/RD2; kopie RD2_2.IMG $(liste P)
 neu RD2_3.IMG "RD2 NETZ"; mmd -i $O/RD2_3.IMG ::/RD2; kopie RD2_3.IMG $(liste N)
 neu RD2_4.IMG "RD2 EXTRA"; mmd -i $O/RD2_4.IMG ::/SDK
 mcopy -i $O/RD2_4.IMG sdk/RD2.H sdk/RD2API.H sdk/RD2DRV.H sdk/RD2ORD.H sdk/RD2START.ASM sdk/RD2MOD.ASM out/RD2.LIB out/RDRC.EXE ::/SDK/
+mmd -i $O/RD2_4.IMG ::/SDK/PASCAL; mcopy -i $O/RD2_4.IMG out/RD2.PAS sdk/RD2PAS.ASM apps/pascal/PHALLO.PAS apps/pascal/PTEST.PAS docs/PASCAL.TXT ::/SDK/PASCAL/
 mcopy -i $O/RD2_4.IMG $T/COPYING $T/LIZENZ.TXT $T/QUELLEN.TXT ::/
 for i in 1 2 3 4; do echo "RD2_$i.IMG: $(mdir -i $O/RD2_$i.IMG -/ :: | tail -1)"; done
 python3 -c "import shutil; shutil.rmtree('$T', True)"
