@@ -67,6 +67,77 @@ static WORD pkt(void)                             /* geladener Paketreiber: INT 
     return 0;
 }
 static const char *basis(LPCSTR p) { LPCSTR s = p + slen(p); while (s > p && s[-1] != '\\' && s[-1] != ':') s--; return (const char *)s; }
+/* Treiber live laden wie RD1 (29.10.2026): direkt per EXEC, ohne Auslagern. Platz dafuer laesst der Kern oben
+ * frei ([Netz] Platz= in Paragraphen, schreibt speichern(), wenn der Treiber nicht beim Booten kommt).
+ * InDOS hochzaehlen, damit der Kern waehrend des Treiberstarts nicht umschaltet; Ausgabe nach NUL.
+ * 0 = geladen, sonst DOS-Fehler (8 = kein Platz: dann wie bisher mit Neustart). */
+static WORD dosexec(const char *prog, const char *arg)
+{
+    static char tail[128], fcb[16], nul[] = "NUL"; static WORD pb[7];
+    WORD n = 0, r = 0, h1 = 0xFFFF, fh = 0xFFFF, pp = (WORD)prog, pbo = (WORD)pb, np = (WORD)nul, dseg;
+    BYTE FAR *ind;
+    tail[1] = ' ';
+    while (arg[n] && n < 124) { tail[n + 2] = arg[n]; n++; }
+    tail[0] = (char)(n + 1); tail[n + 2] = 13;
+    _asm { mov dseg, ds }
+    pb[0] = 0; pb[1] = (WORD)tail; pb[3] = pb[5] = (WORD)fcb; pb[2] = pb[4] = pb[6] = dseg;
+    _asm {
+        mov  ah, 34h
+        int  21h
+        inc  byte ptr es:[bx]
+        mov  word ptr ind, bx
+        mov  word ptr ind+2, es
+        mov  ah, 45h
+        mov  bx, 1
+        int  21h
+        jc   k1
+        mov  h1, ax
+    k1: mov  ax, 3D01h
+        mov  dx, np
+        int  21h
+        jc   k2
+        mov  fh, ax
+        mov  bx, ax
+        mov  cx, 1
+        mov  ah, 46h
+        int  21h
+    k2: push ds
+        push es
+        push bp
+        push si
+        push di
+        mov  dx, pp
+        mov  bx, pbo
+        mov  ax, ds
+        mov  es, ax
+        mov  ax, 4B00h
+        int  21h
+        pop  di
+        pop  si
+        pop  bp
+        pop  es
+        pop  ds
+        jc   k3
+        xor  ax, ax
+    k3: mov  r, ax
+        mov  bx, h1
+        cmp  bx, 0FFFFh
+        je   k4
+        mov  cx, 1
+        mov  ah, 46h
+        int  21h
+        mov  ah, 3Eh
+        int  21h
+    k4: mov  bx, fh
+        cmp  bx, 0FFFFh
+        je   k5
+        mov  ah, 3Eh
+        int  21h
+    k5:
+    }
+    (*ind)--;
+    return r;
+}
 static void param(char *d, WORD n)                /* Befehlszeile des Treibers aus der Vorlage */
 {
     const char *t = karten[karte].par; char *v;
@@ -175,6 +246,9 @@ static WORD speichern(void)
     ProfileSetStr(ini, "Netz", "IP", ip); ProfileSetStr(ini, "Netz", "Maske", maske);
     ProfileSetStr(ini, "Netz", "Gateway", gw); ProfileSetStr(ini, "Netz", "DNS", dns); ProfileSetStr(ini, "Netz", "Name", name);
     ProfileSetStr(ini, "Netz", "NTP", ntp);
+    { FINDDATA fd; WORD pl = 0;                   /* Platz fuer das Live-Laden: Datei + PSP + Umgebung */
+      if (!boot && karte != K_KEIN && treiber[0] && FileFindFirst(treiber, 0, &fd) == 0) pl = (WORD)((fd.groesse + 15) >> 4) + 64;
+      zahl(t, pl, sizeof t); ProfileSetStr(ini, "Netz", "Platz", t); }
     ProfileSetStr(ini, "Netz", "ZoneName", zone == ZONE_EIGEN ? "*" : zonen[zone].name);
     { short m = zone == ZONE_EIGEN ? abw(eigen) : zonen[zone].min; char z[8]; if (m == 0x7FFF) m = 0;
       if (m < 0) { z[0] = '-'; zahl(z + 1, (DWORD)-m, 7); } else zahl(z, (DWORD)m, 8); ProfileSetStr(ini, "Netz", "Zone", z); }
@@ -438,13 +512,18 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
             if (speichern()) { MsgBox(0, StrGet(hi, 8), StrGet(hi, 1), MB_OK | MB_WARN); if (r == ID_OK) continue; }
             if (r == ID_OK) break;
             if (!pkt() && karte != K_KEIN && treiber[0]) {   /* wie RD1: Treiber bei Bedarf laden (Karsten, 29.10.2026) */
-                if (MsgBox(0, StrGet(hi, 50), StrGet(hi, 1), MB_YESNO | MB_ASK) == ID_YES) {
-                    char z[120]; WORD n = slen(treiber);
-                    param(z, sizeof z); pr("lade Treiber: ", z);
-                    if (MemFree(hm), hm = 0, RunDos(treiber, z[n] ? z + n + 1 : "", RD_DOS_NEU) == 0) break;
-                    hm = MemAlloc(2L * CMAX, MEM_MOVABLE);
+                char z[120]; WORD n = slen(treiber);
+                if (MsgBox(0, StrGet(hi, 50), StrGet(hi, 1), MB_YESNO | MB_ASK) != ID_YES) continue;
+                param(z, sizeof z); pr("lade Treiber: ", z);
+                if (dosexec(treiber, z[n] ? z + n + 1 : "") != 0 || !pkt()) {   /* kein Platz frei: wie bisher mit Neustart */
+                    pr("live ging nicht", "");
+                    if (MsgBox(0, StrGet(hi, 51), StrGet(hi, 1), MB_YESNO | MB_ASK) == ID_YES) {
+                        if (MemFree(hm), hm = 0, RunDos(treiber, z[n] ? z + n + 1 : "", RD_DOS_NEU) == 0) break;
+                        hm = MemAlloc(2L * CMAX, MEM_MOVABLE);
+                    }
+                    continue;
                 }
-                continue;
+                pr("Treiber live geladen", "");
             }
             DialogRun(inst, 15, 0, tproc, 0);
             pr("Test zu", "");

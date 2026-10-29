@@ -158,3 +158,4 @@ void  mod_unwind(TASK *t);                        /* Task endet: offene Modulauf
 #endif
 WORD profile_flush(void);                         /* FILE.C: INI-Zwischenspeicher schreiben und freigeben */
 WORD k_dosshell(void);                            /* RUNDOS.C: nach dem Ende als Shell COMMAND.COM starten */
+void mem_tsr(WORD paras);                         /* MEM.C: oben Platz fuer einen Treiber lassen */

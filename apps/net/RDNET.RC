@@ -40,7 +40,8 @@ TEXTE
   47 "Neuseeland"
   48 "Eigener Treiber"
   49 "Kein Netz"
-  50 "Kein Paketreiber geladen. Jetzt laden? RD2 startet dafÅr neu, andere offene Programme werden beendet. Danach Netzwerk erneut testen."
+  50 "Kein Paketreiber geladen. Jetzt laden?"
+  51 "FÅr den Treiber ist gerade kein Platz frei. RD2 neu starten und ihn dabei laden? Andere offene Programme werden beendet. Danach Netzwerk erneut testen."
 ENDE
 DIALOG 11 "Netzwerk" 0 0 280 150
   BUTTON   "&1 Karte"    91   8   4  62 14
@@ -191,7 +192,8 @@ TEXTE
   47 "New Zealand"
   48 "Own driver"
   49 "No network"
-  50 "No packet driver loaded. Load it now? RD2 restarts for this, other open programs are closed. Then test the network again."
+  50 "No packet driver loaded. Load it now?"
+  51 "There is no free room for the driver right now. Restart RD2 and load it then? Other open programs are closed. Then test the network again."
 ENDE
 DIALOG 11 "Network" 0 0 280 150
   BUTTON   "&1 Card"    91   8   4  62 14

@@ -147,6 +147,11 @@ int main(void)
     task_init();
     {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr(k_ini, "System", k_ms, "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF;
       { extern WORD k_dbl; k_dbl = ProfileGetInt(k_ini, k_ms, "Doppelklick", 500); } }
+    {  /* Paketreiber nicht geladen: Platz fuer RDNET-Live-Laden lassen ([Netz] Platz=, Paragraphen) */
+        const char __far * __far *v = (const char __far * __far *)MK_FP(0, 0x60 * 4); const char __far *q;
+        for (i = 0; i <= 0x20; i++) if ((q = v[i]) != 0 && q[3] == 'P' && q[4] == 'K' && q[5] == 'T' && q[8] == 'R') break;
+        if (i > 0x20) mem_tsr(ProfileGetInt(k_ini, "Netz", "Platz", 0));
+    }
     if (!k_maus) {                                /* Maustreiber da? Vektor 33h gesetzt und kein IRET */
         BYTE __far * __far *v = (BYTE __far * __far *)MK_FP(0, 0x33 * 4);
         if (*v && **v != 0xCF) { kr.ax = 0; kr.bx = 0; rd_int(0x33, &kr); if (kr.ax == 0xFFFF) k_maus = kr.bx == 0xFFFF ? 2 : kr.bx; }

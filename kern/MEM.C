@@ -91,6 +91,16 @@ void mem_init(WORD reserve)
     nblk = 1; blk[0].seg = arena; blk[0].paras = arena_paras; blk[0].flags = B_FREE; blk[0].h = 0; blk[0].owner = 0;
     if (arena) umb_grab();
 }
+void mem_tsr(WORD paras)                         /* oben Platz fuer einen spaeter geladenen Treiber (RDNET live) */
+{
+    WORD i;
+    for (i = 0; i < nblk; i++)
+        if ((blk[i].flags & B_FREE) && blk[i].seg + blk[i].paras == arena + arena_paras && blk[i].paras > paras + 4096) {
+            kr.ax = 0x4A00; kr.es = arena; kr.bx = arena_paras - paras; rd_int(0x21, &kr);
+            if (!CARRY) { arena_paras -= paras; blk[i].paras -= paras; }
+            return;
+        }
+}
 WORD mem_arena(WORD __far *a)                   /* RunDos: a[0] Arena, a[1] Groesse; liefert Ende des belegten Teils */
 {
     WORD i, t = arena;
