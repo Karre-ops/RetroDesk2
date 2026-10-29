@@ -44,6 +44,21 @@ static BOOL frage(LPCSTR s)                  /* Ja/Nein; Testmodus: Ja */
     if (test) return TRUE;
     return MsgBox(dl, s, StrGet(hi, 1), MB_YESNO | MB_INFO) == ID_YES;
 }
+static void malen(void) { MSG m; while (PeekMessage(&m, 1)) DispatchMessage(&m); }   /* z. B. Rest der Meldung weg */
+static void neustart(void)                        /* INI und DOS-Puffer schreiben, dann Warmstart (wie RDFDISK) */
+{
+    void (__far *reset)(void) = (void (__far *)(void))0xFFFF0000UL;
+    TaskYield();                                  /* Kern schreibt den RD2.INI-Zwischenspeicher */
+    DbgPrint("INSTALL: Neustart");
+    _asm { mov ah, 0Dh
+           int 21h }
+    *(WORD __far *)0x00400072UL = 0x1234;         /* Warmstart: kein Speichertest */
+    _asm { cli
+           mov al, 0FEh
+           out 64h, al }                          /* AT: Reset ueber den Tastaturcontroller; XT: Port frei */
+    { WORD i; for (i = 0; i < 0xFFFF; i++) ; }
+    reset();
+}
 static void meldung(WORD n, WORD art) { DbgPrint(StrGet(hi, n)); if (test) return; MsgBox(dl, StrGet(hi, n), StrGet(hi, 1), MB_OK | art); }
 
 /* ---- Dateien -------------------------------------------------------------------- */
@@ -84,7 +99,8 @@ static BOOL einlegen(const char *marke, WORD txt) /* Diskette mit der Datei mark
     while (!gibts(pfad)) {
         DbgPrint(StrGet(hi, txt));
         if (MsgBox(dl, StrGet(hi, txt), StrGet(hi, 1), MB_OKCANCEL | MB_INFO) != ID_OK &&
-            MsgBox(dl, StrGet(hi, 17), StrGet(hi, 1), MB_YESNO | MB_WARN) == ID_YES) return FALSE;
+            MsgBox(dl, StrGet(hi, 17), StrGet(hi, 1), MB_YESNO | MB_WARN) == ID_YES) { malen(); return FALSE; }
+        malen();                                  /* Meldung weg, Balken wieder sichtbar */
     }
     return TRUE;
 }
@@ -246,6 +262,7 @@ static void installieren(void)
     ini();
     c = DlgChecked(dl, ID_CFG) ? config() : -2;
     CursorBusy(FALSE);
+    SendMessage(DlgItem(dl, ID_BALKEN), C_SETPOS, 0, 4L * TEIL);   /* fertig: Balken ganz voll */
     cpy(pfad, ziel); cat(pfad, "PAPIERK.EXE");    /* Papierkorb auf den Schreibtisch (nur neue PROGRAMM.LST) */
     cpy(z2, ziel); cat(z2, "PROGRAMM.LST");
     if (gibts(pfad) && !gibts(z2)) { ProfileSetStr(z2, "Papierk", "Datei", pfad); ProfileSetStr(z2, "Papierk", "Schreibtisch", "1"); }
@@ -256,7 +273,7 @@ static void installieren(void)
     if (verloren) meldung(15, MB_INFO);
     if (sys) {                                    /* zuletzt: RD2 verlaesst kurz die Grafik (ohne XMS: Neustart von RD2) */
         char a[8];
-        meldung(13, MB_INFO);
+        meldung(13, MB_INFO); malen();
         a[0] = quelle[0]; a[1] = ':'; a[2] = '\\'; a[3] = ' '; a[4] = ziel[0]; a[5] = ':'; a[6] = 0;
         cpy(t, a); cat(t, " /UPDATE");
         cpy(pfad, quelle); cat(pfad, "RDSYS.EXE");
@@ -267,8 +284,9 @@ static void installieren(void)
             RunDos(pfad, t, 0);
         }
     }
-    meldung(14, MB_INFO);
     DbgPrint("INSTALL: fertig");
+    DbgPrint(StrGet(hi, 24));
+    if (!test && MsgBox(dl, StrGet(hi, 24), StrGet(hi, 1), MB_YESNO | MB_ASK) == ID_YES) neustart();
     EnableWindow(DlgItem(dl, ID_CANCEL), TRUE);
     DlgSetText(dl, ID_CANCEL, StrGet(hi, 23));
 }
