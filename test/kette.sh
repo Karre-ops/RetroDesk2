@@ -2,7 +2,7 @@
 # Gesamtkette leere Festplatte -> RD2 installiert, drei Starts von Diskette auf derselben 20-MB-Platte:
 # 1. RDFDISK: Anlegen (ganze Platte), Schreiben  -> C: primaer, aktiv
 # 2. RDFORMAT C: (Schnell)                         -> FAT16, fsck sauber
-# 3. RD2SETUP: Installieren nach C:\RD2            -> Dateien, CONFIG.SYS mit SHELL= und INSTALL=RDMAUS /P, startfaehig (J)
+# 3. RD2SETUP: T (Textinstallation) nach C:\RD2         -> Dateien, CONFIG.SYS mit SHELL= und INSTALL=RDMAUS /P, startfaehig (J)
 # 4. Start von der Festplatte ohne Diskette          -> FreeDOS-Kern, RD2 als Shell, Desktop
 # Nur Tastatur. Bilder obj/kette{1..3}.ppm.
 cd "$(dirname "$0")/.."
@@ -59,7 +59,7 @@ pruef "2 FAT16 sauber (fsck)" "fsck.fat -n obj/kette_part.img >/dev/null 2>&1"
 printf '@echo off\r\nA:\\RD2\\RD2SETUP.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' | tr -d '\r' > obj/ae_k3.txt
 SETUP=1 bash tools/mkdisk.sh obj/kette_a3.img obj/ae_k3.txt >/dev/null 2>&1
 S=obj/kette3_com1.txt; starten obj/kette_a3.img $S
-waitscr "Einrichtung" 120 && { Q "sendkey i" sleep2 "sendkey ret"; waitscr "startfaehig machen" 90 && Q "sendkey j"; waitscr "Festplatte ist startfaehig\|FEHLER: Festplatte" 60; sleep 1; python3 test/qemu/qmon.py text > obj/schirm_kette3.txt 2>/dev/null; Q "screendump obj/kette3.ppm" sleep0.3 "sendkey esc" sleep2 "sendkey n"; }
+waitscr "Einrichtung" 120 && { Q "sendkey t" sleep2 "sendkey ret"; waitscr "startfaehig machen" 90 && Q "sendkey j"; waitscr "Festplatte ist startfaehig\|FEHLER: Festplatte" 60; sleep 1; python3 test/qemu/qmon.py text > obj/schirm_kette3.txt 2>/dev/null; Q "screendump obj/kette3.ppm" sleep0.3 "sendkey esc" sleep2 "sendkey n"; }
 wait $QP
 C="-i $H@@$OFS"
 mdir $C -b ::/RD2 > obj/kette_dir.txt 2>&1

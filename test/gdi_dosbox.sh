@@ -13,8 +13,9 @@ for k in ${KARTEN:-cga hgc vga}; do
     -c "C:\\RD2\\RD.EXE /D /NOMAUS $OPT $P.EXE $STUFE > \\LOG.TXT" -c exit >/dev/null 2>&1
   echo "--- $k"
   tr -d '\r' < $R/LOG.TXT | sed -n '/^-$/,$p' | grep -E "$P|RDGDI|SPEICHER|Speicher voll|Fehler"
+  rm -f obj/${B}_$k.ppm obj/${B}_${k}_gross.png   # kein altes Bild vergleichen
   if [ -f $R/RD2/SHOT.BIN ]; then
-    cp $R/RD2/SHOT.BIN obj/${B}_$k.bin; python3 ../test/shot.py obj/${B}_$k.bin $k obj/${B}_${k}_gross.png
+    cp $R/RD2/SHOT.BIN obj/${B}_$k.bin; python3 tools/shot.py obj/${B}_$k.bin $k obj/${B}_${k}_gross.png
     python3 -c "from PIL import Image; import sys; w,h={'cga':(640,200),'hgc':(720,348),'vga':(640,480)}['$k']; Image.open('obj/${B}_${k}_gross.png').convert('1').resize((w,h),Image.NEAREST).save('obj/${B}_${k}.ppm')"
     python3 test/bildvergleich.py obj/${B}_$k.ppm test/ref/${B}_$k.png || F=1
   else echo "FEHLER kein SHOT.BIN"; F=1; fi
