@@ -27,20 +27,30 @@ extern WORD rd_fpudet(void);
 /* ---- Bildschirm (BIOS, 80x25) ------------------------------------------------ */
 static union REGS r;
 static BYTE attr = 0x07;
-static void gotoxy(int x, int y) { r.h.ah = 2; r.h.bh = 0; r.h.dl = (BYTE)x; r.h.dh = (BYTE)y; int86(0x10, &r, &r); }
-static void putch_a(char c)
+/* Bildschirm direkt im Textspeicher (29.10.2026: BIOS-Ausgabe Zeichen fuer Zeichen war auf dem 8086 sehr langsam,
+ * je Taste rund 5000 INT-10h-Aufrufe). Ohne 80-Spalten-Textmodus weiter ueber das BIOS. */
+static WORD far *vid; static int cx, cy;
+static void vinit(void)
 {
-    r.h.ah = 9; r.h.al = (BYTE)c; r.h.bh = 0; r.h.bl = attr; r.x.cx = 1; int86(0x10, &r, &r);
-    r.h.ah = 3; r.h.bh = 0; int86(0x10, &r, &r); gotoxy(r.h.dl + 1, r.h.dh);
+    r.h.ah = 0x0F; int86(0x10, &r, &r);
+    vid = (r.h.al <= 3 || r.h.al == 7) && r.h.ah == 80
+        ? (WORD far *)MK_FP(r.h.al == 7 ? 0xB000 : 0xB800, *(WORD far *)MK_FP(0x40, 0x4E)) : 0;
 }
-static void puts_a(const char *s) { while (*s) putch_a(*s++); }
+static void gotoxy(int x, int y) { cx = x; cy = y; r.h.ah = 2; r.h.bh = 0; r.h.dl = (BYTE)x; r.h.dh = (BYTE)y; int86(0x10, &r, &r); }
+static void putch_a(char c)                     /* Zeichen an (cx, cy), Cursor nur logisch weiter */
+{
+    if (vid) { if (cx < 80 && cy < 25) vid[cy * 80 + cx] = (WORD)((attr << 8) | (BYTE)c); cx++; return; }
+    r.h.ah = 9; r.h.al = (BYTE)c; r.h.bh = 0; r.h.bl = attr; r.x.cx = 1; int86(0x10, &r, &r);
+    gotoxy(cx + 1, cy);
+}
+static void puts_a(const char *s) { while (*s) putch_a(*s++); if (vid) gotoxy(cx, cy); }
 static void zeile(int y, const char *s)          /* ganze Zeile, Rest mit Leerzeichen */
 {
     int n = 0; gotoxy(0, y);
     while (*s && n < 80) { putch_a(*s++); n++; }
     while (n++ < 80) putch_a(' ');
 }
-static void cls(void) { r.x.ax = 0x0600; r.h.bh = 0x07; r.x.cx = 0; r.x.dx = 0x184F; int86(0x10, &r, &r); gotoxy(0, 0); }
+static void cls(void) { vinit(); r.x.ax = 0x0600; r.h.bh = 0x07; r.x.cx = 0; r.x.dx = 0x184F; int86(0x10, &r, &r); gotoxy(0, 0); }
 static WORD taste(void) { r.h.ah = 0; int86(0x16, &r, &r); return r.x.ax; }
 #define T_HOCH 0x4800
 #define T_RUNTER 0x5000
