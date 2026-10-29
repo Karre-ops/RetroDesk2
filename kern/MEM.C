@@ -208,6 +208,7 @@ static WORD get(WORD paras, WORD flags, WORD h, WORD owner)
         if (numb) { minseg = 0xA000; seg = take(paras, flags, h, owner); minseg = 0; if (seg) return seg; }
     }
     if ((seg = take(paras, flags, h, owner)) != 0) return seg;
+    if (profile_flush(), (seg = take(paras, flags, h, owner)) != 0) return seg;   /* INI-Zwischenspeicher frei */
     compact();
     if ((seg = take(paras, flags, h, owner)) != 0) return seg;
     while (discard_one() || aus()) {

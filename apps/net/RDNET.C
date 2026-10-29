@@ -437,6 +437,15 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         if (r == ID_TEST || r == ID_OK) {
             if (speichern()) { MsgBox(0, StrGet(hi, 8), StrGet(hi, 1), MB_OK | MB_WARN); if (r == ID_OK) continue; }
             if (r == ID_OK) break;
+            if (!pkt() && karte != K_KEIN && treiber[0]) {   /* wie RD1: Treiber bei Bedarf laden (Karsten, 29.10.2026) */
+                if (MsgBox(0, StrGet(hi, 50), StrGet(hi, 1), MB_YESNO | MB_ASK) == ID_YES) {
+                    char z[120]; WORD n = slen(treiber);
+                    param(z, sizeof z); pr("lade Treiber: ", z);
+                    if (MemFree(hm), hm = 0, RunDos(treiber, z[n] ? z + n + 1 : "", RD_DOS_NEU) == 0) break;
+                    hm = MemAlloc(2L * CMAX, MEM_MOVABLE);
+                }
+                continue;
+            }
             DialogRun(inst, 15, 0, tproc, 0);
             pr("Test zu", "");
             continue;

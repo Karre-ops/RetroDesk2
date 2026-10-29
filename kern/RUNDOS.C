@@ -58,9 +58,39 @@ WORD k_stub(WORD mode)                            /* Block ganz oben, RDSWAP.BIN
     cpy(s->rdp, k_home, 66);
     return seg;
 }
+/* Ende als Shell (29.10.2026, Karsten): statt "RetroDesk ist beendet" COMMAND.COM starten, EXIT holt RD2 zurueck.
+ * Sucht COMSPEC, Startlaufwerk \ und \DOS, das RD2-Verzeichnis. 0xD5 = im Rest eingetragen, 0 = keins gefunden. */
+static int gibt(const char *p) { d21(0x4300, 0, 0, (WORD)p); return !CARRY; }
+WORD k_dosshell(void)
+{
+    static char p[80]; STUB __far *s; WORD i, k, lw, psp; const char __far *e;   /* static: DS, nicht Stapel */
+    if (!k_wseg || (s = (STUB __far *)MK_FP(k_wseg, 0))->mode != 2) return 0;
+    psp = d21(0x6200, 0, 0, 0), psp = kr.bx; p[0] = 0;
+    if ((i = *(WORD __far *)MK_FP(psp, 0x2C)) != 0)
+        for (e = (const char __far *)MK_FP(i, 0); *e; e += k + 1) {
+            for (k = 0; e[k]; k++) ;
+            if (e[0] == 'C' && e[1] == 'O' && e[2] == 'M' && e[3] == 'S' && e[4] == 'P' && e[5] == 'E' && e[6] == 'C' && e[7] == '=') { cpy((char __far *)p, e + 8, 80); break; }
+        }
+    for (i = 0; p[i]; i++) ;
+    if (i < 11 || ((p[i - 11] | 0x20) != 'c' || (p[i - 4] != '.') || (p[i - 1] | 0x20) != 'm' || (p[i - 5] | 0x20) != 'd')) p[0] = 0;   /* nur ...COMMAND.COM, nicht RD.EXE */
+    d21(0x3305, 0, 0, 0); lw = (BYTE)kr.dx; if (lw < 1 || lw > 26) lw = 3;
+    for (k = 0; k < 4 && !(p[0] && gibt(p)); k++) {
+        if (k == 3) { cpy((char __far *)p, k_home, 66); for (i = 0; p[i]; i++) ; if (i && p[i - 1] != '\\') p[i++] = '\\'; cpy((char __far *)p + i, "COMMAND.COM", 14); continue; }
+        if (k == 0 && p[0]) continue;
+        p[0] = (char)('@' + lw); cpy((char __far *)p + 1, k == 2 ? ":\\DOS\\COMMAND.COM" : ":\\COMMAND.COM", 20);
+    }
+    if (!p[0] || !gibt(p)) return 0;
+    cpy(s->path, p, 80);
+    for (i = k = 0; p[i]; i++) if (p[i] == '\\') k = i + 1;
+    p[k] = 0; cpy(s->tail + 2, p, 124);          /* COMMAND X:\DIR\ setzt COMSPEC */
+    s->flags = 0;
+    d21(0x0900, 0, 0, (WORD)"RetroDesk 2 ist beendet. EXIT startet RetroDesk 2 wieder.\r\n$");
+    return 0xD5;
+}
 WORD RDK RunDos(LPCSTR prog, LPCSTR cmd, WORD flags)
 {
     STUB __far *s; WORD seg, n, top, r = 0, neu = 0, a[2], psp;
+    profile_flush();
     psp = d21(0x6200, 0, 0, 0), psp = kr.bx;
     top = mem_arena((WORD __far *)a);
     n = (WORD)(((DWORD)(top - psp - 16) + 63) / 64);          /* KB zum Auslagern */

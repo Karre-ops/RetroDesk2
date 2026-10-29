@@ -14,7 +14,7 @@ TEXTE
   11 "Die Abweichung zu UTC bitte als +hh:mm eintragen."
   12 "Paketreiber suchen"
   20 "Paketreiber: INT "
-  21 "Kein Paketreiber. Unter 1 Karte eintragen, neu booten."
+  21 "Kein Paketreiber geladen (unter 1 Karte: Testen lÑdt ihn, Beim Booten laden fÅr immer)."
   22 "Netz starten ..."
   23 "Adresse: "
   24 "Gateway: "
@@ -40,6 +40,7 @@ TEXTE
   47 "Neuseeland"
   48 "Eigener Treiber"
   49 "Kein Netz"
+  50 "Kein Paketreiber geladen. Jetzt laden? RD2 startet dafÅr neu, andere offene Programme werden beendet. Danach Netzwerk erneut testen."
 ENDE
 DIALOG 11 "Netzwerk" 0 0 280 150
   BUTTON   "&1 Karte"    91   8   4  62 14
@@ -164,7 +165,7 @@ TEXTE
   11 "Please enter the offset to UTC as +hh:mm."
   12 "Find packet driver"
   20 "Packet driver: INT "
-  21 "No packet driver. Set it under 1 Card, reboot."
+  21 "No packet driver loaded (1 Card: Test loads it, Load at boot keeps it)."
   22 "Starting network ..."
   23 "Address: "
   24 "Gateway: "
@@ -190,6 +191,7 @@ TEXTE
   47 "New Zealand"
   48 "Own driver"
   49 "No network"
+  50 "No packet driver loaded. Load it now? RD2 restarts for this, other open programs are closed. Then test the network again."
 ENDE
 DIALOG 11 "Network" 0 0 280 150
   BUTTON   "&1 Card"    91   8   4  62 14

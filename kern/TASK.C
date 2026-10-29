@@ -35,6 +35,7 @@ static void reap(void)
     for (i = 1; i < MAXTASK; i++)
         if (k_task[i].state == T_ZOMBIE && i != k_cur) {
             if (k_wnd) k_wnd(3, i, 0, 0, 0);       /* RDUSER: Fenster des Tasks weg */
+            profile_flush();                      /* INI-Zwischenspeicher gehoert evtl. diesem Task */
             mod_unwind(&k_task[i]);
             file_owner_close(i);
             mem_owner_free(i);
@@ -146,6 +147,7 @@ void input_poll(void)
 static void schedule(int wait)
 {
     WORD i, n; TASK *t;
+    profile_flush();                              /* geaenderte INI einmal schreiben (FILE.C) */
     if (wait && k_cur && k_task[k_cur].state == T_READY) k_task[k_cur].state = T_WAIT;
     for (;;) {
         for (i = 1, n = k_cur, t = &k_task[n]; i <= MAXTASK; i++) {   /* reihum ohne Division */
@@ -340,6 +342,7 @@ static int fetch(MSG FAR *m, int remove)
 
 BOOL RDK GetMessage(MSG FAR *m)
 {
+    profile_flush();
     for (;;) { input_poll(); if (fetch(m, 1)) break; schedule(1); }
     return m->msg != M_QUIT;
 }

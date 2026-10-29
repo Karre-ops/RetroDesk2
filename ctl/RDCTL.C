@@ -130,14 +130,33 @@ static int weiterkey(HWND h, WORD k, DWORD p2, WORD pfeile)
     }
     return 0;
 }
+/* Lange Texte (29.10.2026): der Fenstertext hat 32 Zeichen; laengere Texte von Static, Check, Radio, Knopf und Gruppe
+ * stehen zusaetzlich in einem eigenen Block (Fensterdaten 2), den die Zeichenroutinen bevorzugen. */
+static void ltset(HWND h, LPCSTR s)
+{
+    HMEM m = (HMEM)GetWindowData(h, 2); WORD n = 0; LPSTR b;
+    SetWindowText(h, s);
+    if (m) MemFree(m);
+    m = 0; while (s[n]) n++;
+    if (n > 31 && (m = MemAlloc(n + 1, MEM_MOVABLE)) != 0 && (b = (LPSTR)MemLock(m)) != 0) { do b[n] = s[n]; while (n--); MemUnlock(m); }
+    SetWindowData(h, 2, m);
+}
+static LPCSTR ltget(HWND h, char *t, WORD n)      /* Text zum Zeichnen; danach ltfrei */
+{
+    HMEM m = (HMEM)GetWindowData(h, 2); LPCSTR b;
+    if (m && (b = (LPCSTR)MemLock(m)) != 0) return b;
+    GetWindowText(h, t, n); return t;
+}
+static void ltfrei(HWND h) { HMEM m = (HMEM)GetWindowData(h, 2); if (m) MemUnlock(m); }
 static DWORD gemeinsam(HWND h, WORD typ, WORD msg, WORD p1, DWORD p2)
 {
     char t[33];
     switch (msg) {
     case M_CREATE: SetWindowData(h, 3, MAGIC | typ); if (GetWindowData(h, WD_STIL) & ES_CHECKED) SetWindowData(h, 0, 1); return 0;
     case M_SETFOCUS: case M_KILLFOCUS: case M_ENABLE: neu(h); return 0;
-    case C_SETTEXT: SetWindowText(h, (LPCSTR)p2); InvalidateRect(h, 0, TRUE); return 0;
+    case C_SETTEXT: ltset(h, (LPCSTR)p2); InvalidateRect(h, 0, TRUE); return 0;
     case C_GETTEXT: return GetWindowText(h, (LPSTR)p2, p1);
+    case M_DESTROY: { HMEM m = (HMEM)GetWindowData(h, 2); if (m) { MemFree(m); SetWindowData(h, 2, 0); } } return 0;
     case C_SETCHECK: if (GetWindowData(h, 0) != (p1 ? 1UL : 0UL)) { SetWindowData(h, 0, p1 ? 1 : 0); neu(h); } return 0;
     case C_GETCHECK: return GetWindowData(h, 0);
     case C_CLICK: if (!gesperrt(h)) ausloesen(h, typ); return 0;
@@ -189,9 +208,9 @@ static void kasten(HWND h, WORD typ)
         if (GetWindowData(h, 0)) { q.l += sb / 4 + 1; q.r -= sb / 4 + 1; q.t += s / 4 + 1; q.b -= s / 4 + 1; SetBrush(d, C_BLACK, PAT_SOLID); Ellipse(d, &q, 1); }
     }
     if (GetWindowData(h, 1) & 1) { q.l = 0; q.t = y; q.r = sb; q.b = (short)(y + s); InvertRect(d, &q); }
-    GetWindowText(h, t, sizeof t); x = (short)(sb + 6);
+    x = (short)(sb + 6);
     SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
-    w = ctext(d, x, (short)((r.b - hh) / 2), t, 1);
+    w = ctext(d, x, (short)((r.b - hh) / 2), ltget(h, t, sizeof t), 1); ltfrei(h);
     if (GetFocus() == h) punkte(d, (short)(x - 2), (short)((r.b - hh) / 2 - 1), (short)(x + w + 2), (short)((r.b + hh) / 2 + 1));
     if (gesperrt(h)) grau(d, &r);
     EndPaint(h, &ps);
@@ -213,10 +232,11 @@ DWORD RDEXPORT c_Static(HWND h, WORD msg, WORD p1, DWORD p2)
     PAINT ps; RECT r; HDC d; char t[33];
     if (msg != M_PAINT) return gemeinsam(h, T_STATIC, msg, p1, p2);
     d = BeginPaint(h, &ps); GetClientRect(h, &r); weiss(d, &r);
-    GetWindowText(h, t, sizeof t);
+    { LPCSTR x = ltget(h, t, sizeof t);
     SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
     if ((WORD)GetWindowData(h, WD_ID) == 0xFFFE && mbtxt) TextBox(d, &r, mbtxt, TB_WRAP);   /* G31 */
-    else if (mkey(t)) ctext(d, 0, 0, t, 1); else TextBox(d, &r, t, TB_WRAP);
+    else if (mkey(x)) ctext(d, 0, 0, x, 1); else TextBox(d, &r, x, TB_WRAP);
+    ltfrei(h); }
     if (gesperrt(h)) grau(d, &r);
     EndPaint(h, &ps);
     return 0;
@@ -608,7 +628,7 @@ static short lauf(HINST inst, const BYTE FAR *v, HWND owner, DLGPROC proc, DWORD
         id = (WORD)q[0]; e[0] = (short)(q[1] * cw / 4); e[1] = (short)(q[2] * ch / 8); e[2] = (short)(q[3] * cw / 4); e[3] = (short)(q[4] * ch / 8);
         es = *(const DWORD FAR *)(q + 5);
         c = CreateWindow(kl, ueber(kl), es | WS_CHILD | WS_VISIBLE, e[0], e[1], e[2], e[3], dlg, id, inst);
-        (void)c;
+        if (c && slen(ueber(kl)) > 31) SendMessage(c, C_SETTEXT, 0, (DWORD)ueber(kl));   /* lange Texte (ltset) */
         tx = (LPCSTR)(q + 7);
     }
     if (owner) EnableWindow(owner, FALSE);

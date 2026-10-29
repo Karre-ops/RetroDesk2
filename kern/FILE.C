@@ -91,9 +91,11 @@ static void prep(LPCSTR path)
 #define SETNAME(p) (kr.dx = FP_OFF(p), kr.ds = FP_SEG(p))
 
 /* ---- Dateien ---------------------------------------------------------------- */
+WORD profile_flush(void); static BYTE pin2(void);
+#define PFL0() if (!pin2()) profile_flush()   /* INI-Zwischenspeicher vorher schreiben (Profile unten) */
 short RDK FileOpen(LPCSTR name, WORD mode)
 {
-    prep(name);
+    PFL0(); prep(name);
     kr.ax = 0x3D00 | (mode & 0x73); SETNAME(name);
     if (!dos21()) return -1;
     if (kr.ax < 64) fown[kr.ax] = (BYTE)k_cur;
@@ -101,7 +103,7 @@ short RDK FileOpen(LPCSTR name, WORD mode)
 }
 short RDK FileCreate(LPCSTR name, WORD attr)
 {
-    prep(name);
+    PFL0(); prep(name);
     kr.ax = 0x3C00; kr.cx = attr; SETNAME(name);
     if (!dos21()) return -1;
     if (kr.ax < 64) fown[kr.ax] = (BYTE)k_cur;
@@ -130,22 +132,23 @@ WORD RDK FileClose(short f)
     if (f >= 0 && f < 64) fown[f] = 0;
     return dos21() ? 0 : k_lasterr;
 }
-WORD RDK FileDelete(LPCSTR name)  { prep(name); kr.ax = 0x4100; SETNAME(name); return dos21() ? 0 : k_lasterr; }
+WORD RDK FileDelete(LPCSTR name)  { PFL0(); prep(name); kr.ax = 0x4100; SETNAME(name); return dos21() ? 0 : k_lasterr; }
 WORD RDK FileRename(LPCSTR a, LPCSTR b)
 {
-    prep(a); kr.ax = 0x5600; SETNAME(a); kr.di = FP_OFF(b); kr.es = FP_SEG(b);
+    PFL0(); prep(a); kr.ax = 0x5600; SETNAME(a); kr.di = FP_OFF(b); kr.es = FP_SEG(b);
     return dos21() ? 0 : k_lasterr;
 }
 static void setdta(FINDDATA FAR *fd) { kr.ax = 0x1A00; SETNAME(fd); rd_int(0x21, &kr); }
 WORD RDK FileFindFirst(LPCSTR muster, WORD attr, FINDDATA FAR *fd)
 {
-    prep(muster); setdta(fd);
+    PFL0(); prep(muster); setdta(fd);
     kr.ax = 0x4E00; kr.cx = attr; SETNAME(muster);
     return dos21() ? 0 : k_lasterr;
 }
 WORD RDK FileFindNext(FINDDATA FAR *fd) { setdta(fd); kr.ax = 0x4F00; return dos21() ? 0 : k_lasterr; }
 WORD RDK FileAttr(LPCSTR name, WORD neu, WORD setzen)
 {
+    PFL0();
     prep(name); kr.ax = setzen ? 0x4301 : 0x4300; kr.cx = neu; SETNAME(name);
     return dos21() ? kr.cx : 0xFFFF;
 }
@@ -263,21 +266,41 @@ void file_owner_close(WORD task)
 /* ---- Profile (INI) --------------------------------------------------------- */
 #define PMAX 16384
 static BYTE __far *pb; static WORD pn, pbig;      /* geladene Datei; pbig = groesser als PMAX */
+/* Zwischenspeicher (29.10.2026, Karsten: Speichern in RDNET ratterte auf der Platte): die Datei bleibt bis zum
+ * naechsten GetMessage/TaskYield (schedule ruft profile_flush) oder bis eine andere Datei kommt geladen,
+ * Aenderungen werden dann einmal geschrieben. Unveraenderte Werte schreiben gar nicht. */
+static char pname[80]; static BYTE pdirty, pin;
 static BYTE lc(BYTE c) { return (c >= 'A' && c <= 'Z') ? c + 32 : c; }
 static void pfree(void);
 static LPCSTR ppfad(LPCSTR f)                     /* nur Dateiname (ohne X: und \\): im RD2-Verzeichnis, nicht im aktuellen */
 {
     return f[1] == ':' || *f == '\\' ? f : k_hpath(f);
 }
+static int pgleich(LPCSTR a, LPCSTR b) { while (lc((BYTE)*a) == lc((BYTE)*b)) { if (!*a) return 1; a++; b++; } return 0; }
+WORD profile_flush(void)
+{
+    WORD r = 0;
+    if (!pb || pin) return 0;
+    pin = 1; if (pdirty) r = FileSaveSafe(pname, pb, pn); pin = 0;
+    pdirty = 0; pfree();
+    return r;
+}
+static BYTE pin2(void) { return (BYTE)(pin || !pb); }
 static int pload(LPCSTR file)
 {
-    short f; void FAR *m;
+    short f; void FAR *m; LPCSTR fp = ppfad(file); WORD i;
+    if (pb && pgleich(pname, fp)) return 1;
+    profile_flush();
+    for (i = 0; i < sizeof pname - 1 && fp[i]; i++) pname[i] = fp[i];
+    pname[i] = 0;
     pn = 0; pb = 0;
     if (!(m = MemFixed(PMAX + 512))) return 0;
     pb = (BYTE __far *)m;
     pbig = 0;
-    if ((f = FileOpen(ppfad(file), FO_READ)) >= 0) { k_lasterr = 0; pn = FileRead(f, pb, PMAX); if (pn == PMAX && FileRead(f, pb + PMAX, 1)) pbig = 1; FileClose(f); }
+    pin = 1;
+    if ((f = FileOpen(pname, FO_READ)) >= 0) { k_lasterr = 0; pn = FileRead(f, pb, PMAX); if (pn == PMAX && FileRead(f, pb + PMAX, 1)) pbig = 1; FileClose(f); }
     else if (k_lasterr == RD_ERR_NOTFOUND) k_lasterr = 0;   /* nur "gibt es nicht" heisst leer */
+    pin = 0;
     if (k_lasterr) { pfree(); return 0; }         /* sonst nie mit halbem Inhalt neu schreiben */
     return 1;
 }
@@ -325,7 +348,6 @@ WORD RDK ProfileGetStr(LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR def, LPSTR bu
         while (v < e && n + 1 < len) buf[n++] = pb[v++];
     } else if (def) while (def[n] && n + 1 < len) { buf[n] = def[n]; n++; }
     buf[n] = 0; l = n;
-    pfree();
     return l;
 }
 short RDK ProfileGetInt(LPCSTR file, LPCSTR sec, LPCSTR key, short def)
@@ -358,12 +380,14 @@ WORD RDK ProfileSetStr(LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR val)
 {
     static WORD se, v; WORD line, r;
     if (!pload(file)) return k_lasterr ? k_lasterr : (k_lasterr = RD_ERR_NOMEM);
-    if (pbig) { pfree(); return k_lasterr = RD_ERR_FULL; }   /* nie abgeschnitten zurueckschreiben */
+    if (pbig) { profile_flush(); return k_lasterr = RD_ERR_FULL; }   /* nie abgeschnitten zurueckschreiben */
     pvoll = 0;
     line = pfind(sec, key, &se, &v);
     if (line != 0xFFFF) {
         WORD nl = nextl(line);
-        if (val) { WORD e = eol(v); pput(v, e - v, val, 0, 0); }
+        if (val) { WORD e = eol(v), i = 0; while (v + i < e && val[i] && pb[v + i] == (BYTE)val[i]) i++;
+                   if (v + i == e && !val[i]) return 0;   /* gleicher Wert: nichts schreiben */
+                   pput(v, e - v, val, 0, 0); }
         else pput(line, nl - line, 0, 0, 0);    /* Schluessel loeschen */
     } else if (val) {
         if (se != 0xFFFF) {
@@ -377,10 +401,9 @@ WORD RDK ProfileSetStr(LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR val)
             pput(pn, 0, "\r\n", 0, 0);
         }
     } else pvoll = 2;                             /* nichts zu loeschen: Datei nicht anfassen */
-    if (pvoll) { pfree(); return pvoll == 1 ? (k_lasterr = RD_ERR_FULL) : 0; }   /* passt nicht: Datei unveraendert */
-    r = FileSaveSafe(ppfad(file), pb, pn);
-    pfree();
-    return r;
+    if (pvoll) { r = pvoll == 1 ? (k_lasterr = RD_ERR_FULL) : 0; if (!pdirty) pfree(); return r; }   /* passt nicht: Datei unveraendert */
+    pdirty = 1; (void)r;
+    return 0;
 }
 
 /* ---- Zwischenablage -------------------------------------------------------- */

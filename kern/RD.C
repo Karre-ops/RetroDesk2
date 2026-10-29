@@ -159,7 +159,7 @@ int main(void)
         mem_sw = (DWORD (__far __pascal *)(WORD, WORD, WORD))k_modraw(ausm, 2);
         if (!mem_sw || !mem_sw(3, FP_SEG((void __far *)&mem_swi), (WORD)&mem_swi)) { mem_sw = 0; ModFree(ausm); ausm = 0; }
     }
-    vor = mem_free_bytes(0);
+    profile_flush(); vor = mem_free_bytes(0);
     kxm = k_sysmod("RDKX.MOD", 0, 0, kx);                 /* Zeit, Sprache, Ressourcen, Texte (verwerfbar) */
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
     if (!gdi) k_hex("RD: ohne RDGDI", k_lasterr, 1);
@@ -190,6 +190,7 @@ int main(void)
     h = task_load(argv[a], cmdline, SW_SHOW);
     if (!h) { rd_timer_off(); k_hex("RD: Fehler beim Laden", k_lasterr, 1); mem_done(); return 2; }
     task_run_all();
+    profile_flush();
     clip_done();                                  /* Zwischenablage gehoert dem Kern */
     rd_timer_off();
     k_mausget = 0; k_gdipause = 0; k_wnd = 0;
@@ -210,6 +211,7 @@ int main(void)
         kr.ax = 0x4900; kr.es = FP_SEG(dbuf); rd_int(0x21, &kr);
     }
     mem_done();
+    if (!k_rseg && k_dosshell()) return 0xD5;     /* Shell beendet: COMMAND.COM, EXIT holt RD2 zurueck */
     if (k_rseg) { if (k_wseg) return 0xD5; rd_swaprun(k_rseg); }   /* RunDos-Neustart: kehrt nicht zurueck */
     return 0;
 }
