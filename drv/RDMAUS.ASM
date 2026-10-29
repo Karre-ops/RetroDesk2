@@ -1475,7 +1475,14 @@ is2: mov  cl, al
     inc  al
     cmp  al, 8
     jb   is2
-    mov  al, 5
+    mov  al, 5                  ; nichts gefunden (manche Karten melden sich erst bei Bewegung, z. B. die
+    push ds                     ; eingebaute Maus des Commodore PC10-III mit IRQ 2): AT (Modell FCh) IRQ 5,
+    mov  bx, 0F000h             ; XT-Klasse mit nur einem PIC IRQ 2 (dort liegt auf 5 die Festplatte)
+    mov  ds, bx
+    cmp  byte ptr ds:[0FFFEh], 0FCh
+    pop  ds
+    je   is9
+    mov  al, 2
 is9: ret
 irqsuche endp
 ianaus  dw 0
