@@ -46,6 +46,9 @@ static WORD taste(void) { r.h.ah = 0; int86(0x16, &r, &r); return r.x.ax; }
 #define T_RUNTER 0x5000
 #define T_ENTER 0x1C0D
 #define T_ESC   0x011B
+#define T_LINKS 0x4B00
+#define T_RECHTS 0x4D00
+#define T_BS    0x0E08
 
 /* ---- Zeit ---------------------------------------------------------------------- */
 static volatile DWORD __far *tick = (DWORD __far *)MK_FP(0x40, 0x6C);
@@ -170,9 +173,21 @@ static int seriell_da(WORD p)                     /* Microsoft-Protokoll: nach D
 }
 static void maus_erkennen(void)
 {
-    WORD __far *com = (WORD __far *)MK_FP(0x40, 0); int i;
+    WORD __far *com = (WORD __far *)MK_FP(0x40, 0); int i; struct SREGS sr;
     hw_ps2 = 0;
-    if (int33_da()) { strcpy(mausinfo, "DOS-Treiber (INT 33h) geladen"); strcpy(mauswert, "DOS"); return; }
+    if (int33_da()) {                             /* RDMAUS schon geladen (Startdiskette): Art und IRQ abfragen */
+        r.x.ax = 0x4D; int86x(0x33, &r, &r, &sr);
+        if (_fmemcmp(MK_FP(sr.es, r.x.di), "RDMS", 4) == 0) {
+            r.x.ax = 0x24; int86(0x33, &r, &r);
+            switch (r.h.ch) {
+            case 1: strcpy(mausinfo, "Busmaus (RDMAUS)"); strcpy(mauswert, "BUS:23C"); return;
+            case 2: sprintf(mauswert, "SERIELL:COM%d", r.h.cl == 3 ? 2 : 1); sprintf(mausinfo, "serielle Maus an COM%c (RDMAUS)", mauswert[11]); return;
+            case 3: strcpy(mausinfo, "Busmaus InPort (RDMAUS)"); strcpy(mauswert, "INPORT:23C"); return;
+            case 4: strcpy(mausinfo, "PS/2-Maus (RDMAUS)"); strcpy(mauswert, "PS2"); return;
+            }
+        }
+        strcpy(mausinfo, "eigener Treiber (INT 33h) geladen"); strcpy(mauswert, "DOS"); return;
+    }
     strcpy(mauswert, "KEINE");
     if (inport_da(0x23C)) { strcpy(mausinfo, "Busmaus InPort 23Ch"); strcpy(mauswert, "INPORT:23C"); return; }
     if (inport_da(0x238)) { strcpy(mausinfo, "Busmaus InPort 238h"); strcpy(mauswert, "INPORT:238"); return; }
@@ -229,12 +244,16 @@ static void speicher_erkennen(void)
 }
 
 /* ---- Einstellungen ------------------------------------------------------------- */
-typedef struct { const char *titel, *key; const char *wert[8]; const char *anzeige[8]; BYTE n, v, erk; } PUNKT;
+typedef struct { const char *titel, *key; const char *wert[14]; const char *anzeige[14]; BYTE n, v, erk; } PUNKT;
 static PUNKT p[] = {
     { "Grafik",     "Grafik", { 0 }, { 0 }, 0, 0, 0 },
     { "Profil",     "Profil", { "SCHNELL", "KOMFORT" }, { "Schnell (1 Bit)", "Komfort (Farbe, ab 386)" }, 2, 0, 0 },
-    { "Maus",       "Maus",   { "DOS", "KEINE" }, { "DOS-Treiber (INT 33h)", "keine" }, 2, 0, 0 },
-    { "Klang",      "Sound",  { "SPEAKER", "ADLIB", "SB", "COVOX", "AUS" }, { "PC-Lautsprecher", "AdLib (388h)", "Sound Blaster", "Covox (LPT1)", "aus" }, 5, 0, 0 },
+    { "Maus",       "Maus",   { "SERIELL:COM1", "SERIELL:COM2", "SERIELL:COM3", "SERIELL:COM4", "MSYS:COM1", "MSYS:COM2",
+                                "PS2", "BUS:23C", "INPORT:23C", "INPORT:238", "DOS", "KEINE" },
+                              { "seriell COM1", "seriell COM2", "seriell COM3", "seriell COM4", "Mouse Systems COM1",
+                                "Mouse Systems COM2", "PS/2", "Busmaus", "InPort 23Ch", "InPort 238h",
+                                "eigener Treiber", "keine" }, 12, 11, 11 },
+    { "Klang",      "Sound",  { "SPEAKER", "ADLIB", "SB", "COVOX", "AUS" }, { "PC-Lautsprecher", "AdLib (388h)", "Sound Blaster", "Covox (LPT1)", "keine" }, 5, 0, 0 },
     { "Sound Blaster", "SB",  { 0 }, { 0 }, 0, 0, 0 },
     { "XMS-Ablage", "XMS",    { "0", "64", "128", "256", "512" }, { "aus", "64 KB", "128 KB", "256 KB", "512 KB" }, 5, 0, 0 },
     { "Netz",       "Netz",   { "KEIN", "PAKET" }, { "keins", "Paketreiber" }, 2, 0, 0 },
@@ -268,7 +287,7 @@ static void vorschlag(int i)                     /* Wert aus der Erkennung */
     switch (i) {
     case P_GRAFIK: grafikliste(); q->v = (BYTE)((cpu >= 5 && hw_vga && quelle_vga16) ? 0 : (hw_vga && quelle_vga16) ? 1 : 0); break;
     case P_PROFIL: q->v = (BYTE)(cpu >= 5); break;
-    case P_MAUS:   q->v = (BYTE)(strcmp(mauswert, "DOS") != 0); break;
+    case P_MAUS:   q->v = (BYTE)(q->n - 1); setze(q, mauswert); break;
     case P_KLANG:  q->v = (BYTE)(hw_sb ? 2 : hw_adlib ? 1 : 0); break;
     case P_SB:     sbliste(); q->v = 0; break;
     case P_XMS:    q->v = (BYTE)(xmskb >= 256 ? 3 : xmskb >= 128 ? 2 : xmskb >= 64 ? 1 : 0); break;
@@ -289,11 +308,17 @@ static void erkennen(int i)                      /* -1 = alles */
 
 /* ---- RD2.INI: Schluessel in [System] ersetzen oder anhaengen, Rest bleibt ------- */
 static char buf[6144], neu[6144];
+static void maus_auswahl(void)                    /* gewaehlte Maus gilt fuer MausHW= und den RDMAUS-Schalter */
+{
+    const char *w = p[P_MAUS].wert[p[P_MAUS].v];
+    if (stricmp(w, "DOS")) strcpy(mauswert, w);
+}
 static int ini_schreiben(const char *datei)
 {
     FILE *f; size_t n = 0, o = 0; char *z, *e; int insys = 0, sysda = 0; BYTE done[NP + 2]; WORD i;
     char zeile_[80];
     memset(done, 0, sizeof done);
+    maus_auswahl();
     if ((f = fopen(datei, "rb")) != NULL) { n = fread(buf, 1, sizeof buf - 1, f); fclose(f); }
     if (n == sizeof buf - 1) return -1;           /* zu gross: nicht kuerzen, nicht schreiben */
     buf[n] = 0;
@@ -440,12 +465,16 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
     if (!kbda && gibts(pf)) { sprintf(z, "INSTALL=%s %s\r\n", pf, p[P_TAST].wert[p[P_TAST].v]); NEU(z); }
     if (!mausda) {                                /* eigener Maustreiber RDMAUS: Schalter nach der Erkennung */
         sprintf(pf, "%sRDMAUS.COM", ziel); w[0] = 0;
+        maus_auswahl();
         if (!strncmp(mauswert, "SERIELL:COM", 11)) sprintf(w, " /S%c", mauswert[11]);
+        else if (!strncmp(mauswert, "MSYS:COM", 8)) sprintf(w, " /M%c", mauswert[8]);
         else if (!strcmp(mauswert, "PS2")) strcpy(w, " /P");
         else if (!strncmp(mauswert, "BUS", 3)) strcpy(w, " /B");
         else if (!strcmp(mauswert, "INPORT:238")) strcpy(w, " /I2");
         else if (!strncmp(mauswert, "INPORT", 6)) strcpy(w, " /I1");
-        if ((w[0] || !alt) && gibts(pf)) { sprintf(z, "INSTALL=%s%s\r\n", pf, w); NEU(z); }
+        i = p[P_MAUS].v;                          /* "keine" oder "eigener Treiber" gewaehlt: kein RDMAUS */
+        if ((w[0] || !alt) && gibts(pf) && stricmp(p[P_MAUS].wert[i], "KEINE") && stricmp(p[P_MAUS].wert[i], "DOS"))
+            { sprintf(z, "INSTALL=%s%s\r\n", pf, w); NEU(z); }
     }
     if ((f = fopen(cs, "wb")) == NULL) return 0;
     m = fwrite(neu, 1, o, f);
@@ -508,7 +537,7 @@ static void weitere(const char *ziel, int y)      /* SPEC 12: Disketten 2 (Progr
 }
 static void installieren(void)
 {
-    char ziel[64], nach[80], z[80]; int i, k = 0, fehl = 0, y = 17;
+    char ziel[64], nach[80], z[80]; int i, k = 0, fehl = 0, y = 19;
     sprintf(ziel, "%c:\\RD2", boot() == 'A' ? 'C' : boot());
     zeile(y, "Installieren nach:"); 
     if (!eingabe(19, y, ziel, 40)) { zeile(y, "Installation abgebrochen."); return; }
@@ -533,11 +562,13 @@ static void installieren(void)
 }
 
 /* ---- Liste --------------------------------------------------------------------- */
+static int sichtbar(WORD i) { return i != P_SB || !stricmp(p[P_KLANG].wert[p[P_KLANG].v], "SB"); }
 static void zeigen(int sel, int erst)
 {
     char z[100]; WORD i;
     attr = 0x70; zeile(0, " RetroDesk 2 - Einrichtung"); attr = 0x07;
-    if (erst) zeile(1, " Erster Start: bitte pruefen und mit S speichern."); else zeile(1, "");
+    zeile(1, erst ? " Erster Start: I installiert mit diesen Werten, S speichert hier."
+                 : " Werte pruefen. I installiert mit diesen Werten, S speichert hier.");
     sprintf(z, " Rechner: %s, %s, DOS %d.%02d, %u KB, XMS %u KB, hoher Speicher %u KB",
             cpuname[cpu & 7], fpu ? "8087" : "kein 8087", dosv >> 8, dosv & 0xFF, konvkb, xmskb, umbkb);
     zeile(3, z);
@@ -545,14 +576,17 @@ static void zeigen(int sel, int erst)
     if (pkt_int) sprintf(z + strlen(z), " an INT %Xh", pkt_int);
     zeile(4, z);
     for (i = 0; i < NP; i++) {
-        sprintf(z, " %c %-12s %-26s %s", (int)i == sel ? 16 : ' ', p[i].titel, p[i].anzeige[p[i].v],
-                p[i].v == p[i].erk ? "" : "(von Hand)");
+        if (!sichtbar(i)) { sprintf(z, "   %-12s -", p[i].titel); attr = 0x08; zeile(6 + i, z); continue; }
+        z[0] = 0;
+        if (p[i].v != p[i].erk) sprintf(z, "geaendert, erkannt: %.18s", p[i].anzeige[p[i].erk]);
+        { char a[48]; strcpy(a, z);
+          sprintf(z, " %c %-13s %-23s %s", (int)i == sel ? 16 : ' ', p[i].titel, p[i].anzeige[p[i].v], a); }
         attr = (BYTE)((int)i == sel ? 0x70 : 0x07); zeile(6 + i, z);
     }
     attr = 0x07;
-    zeile(13, " Pfeile: waehlen   Enter/Leertaste: aendern   E: neu erkennen   A: alles neu");
-    zeile(14, " S: speichern   I: auf Festplatte installieren   Esc: beenden");
-    sprintf(z, " Einstellungen: %s", ini); zeile(15, z);
+    zeile(15, " Hoch/runter: waehlen   Enter/links/rechts: aendern   E: neu erkennen   A: alle");
+    zeile(16, " S: auf Diskette speichern   I: auf Festplatte installieren   Esc: Ende");
+    sprintf(z, " Einstellungen: %s", ini); zeile(17, z);
 }
 
 int main(int argc, char **argv)
@@ -576,15 +610,16 @@ int main(int argc, char **argv)
     for (;;) {
         zeigen(sel, erst);
         k = taste();
-        if (k == T_HOCH && sel > 0) sel--;
-        else if (k == T_RUNTER && sel < (int)NP - 1) sel++;
-        else if (k == T_ENTER || (k & 0xFF) == ' ') { p[sel].v = (BYTE)((p[sel].v + 1) % p[sel].n); geaendert = 1; }
-        else if ((k & 0xFF) == 'e' || (k & 0xFF) == 'E') { zeile(16, " erkenne ..."); erkennen(sel); zeile(16, ""); geaendert = 1; }
-        else if ((k & 0xFF) == 'a' || (k & 0xFF) == 'A') { zeile(16, " erkenne alles ..."); erkennen(-1); zeile(16, ""); geaendert = 1; }
-        else if ((k & 0xFF) == 's' || (k & 0xFF) == 'S') { zeile(16, ini_schreiben(ini) ? " Gespeichert." : " FEHLER beim Speichern."); geaendert = 0; }
-        else if ((k & 0xFF) == 'i' || (k & 0xFF) == 'I') { for (i = 16; i < 20; i++) zeile(i, ""); installieren(); }
+        if (k == T_HOCH && sel > 0) { sel--; if (!sichtbar(sel) && sel > 0) sel--; }
+        else if (k == T_RUNTER && sel < (int)NP - 1) { sel++; if (!sichtbar(sel)) sel++; }
+        else if (k == T_ENTER || k == T_RECHTS || (k & 0xFF) == ' ') { p[sel].v = (BYTE)((p[sel].v + 1) % p[sel].n); geaendert = 1; }
+        else if (k == T_LINKS || k == T_BS) { p[sel].v = (BYTE)((p[sel].v + p[sel].n - 1) % p[sel].n); geaendert = 1; }
+        else if ((k & 0xFF) == 'e' || (k & 0xFF) == 'E') { zeile(18, " erkenne ..."); erkennen(sel); zeile(18, ""); geaendert = 1; }
+        else if ((k & 0xFF) == 'a' || (k & 0xFF) == 'A') { zeile(18, " erkenne alles ..."); erkennen(-1); zeile(18, ""); geaendert = 1; }
+        else if ((k & 0xFF) == 's' || (k & 0xFF) == 'S') { char g[90]; sprintf(g, ini_schreiben(ini) ? " Gespeichert in %s." : " FEHLER beim Speichern in %s.", ini); zeile(18, g); geaendert = 0; }
+        else if ((k & 0xFF) == 'i' || (k & 0xFF) == 'I') { for (i = 18; i < 25; i++) zeile(i, ""); installieren(); }
         else if (k == T_ESC) {
-            if (geaendert || erst) { zeile(16, " Aenderungen speichern (J/N)?"); k = taste() & 0xFF; if (k == 'j' || k == 'J') ini_schreiben(ini); }
+            if (geaendert || erst) { zeile(18, " Aenderungen auf Diskette speichern (J/N)?"); k = taste() & 0xFF; if (k == 'j' || k == 'J') ini_schreiben(ini); }
             break;
         }
     }
