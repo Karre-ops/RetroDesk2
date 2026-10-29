@@ -379,7 +379,7 @@ static BOOL RDCALLBACK sproc(HWND d, WORD msg, WORD p1, DWORD p2)
         FILEDLG f; char b[66];
         hol(d, 21, b, sizeof b);
         f.groesse = sizeof f; f.flags = FD_OPEN | FD_MUSTEXIST; f.titel = StrGet(hi, 12); f.filter = "*.COM|*.COM|*.EXE|*.EXE|"; f.datei = b; f.len = sizeof b;
-        if (FileDialog(d, &f)) setz(d, 21, b);
+        e = FileDialog(d, &f); pr(e ? "Suchen: " : "Suchen: nein ", b); if (e) setz(d, 21, b);
         return TRUE;
     }
     if (seite == 1 && (p1 == 30 || p1 == 31)) { dhcp = (BYTE)DlgChecked(d, 30); adr_felder(d); return TRUE; }

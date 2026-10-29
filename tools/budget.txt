@@ -16,7 +16,7 @@ RDAUSL.MOD       3072    3   S  Auslagern bei Speichermangel nach XMS oder RD2.S
 RDGDIX.MOD       4608    4.5 S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf); 28.10.: 4,5 KB fuer Grafikwahl (Liste/Auswahl aus RDGDI)
 RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
 RDCTLX.MOD      12288   10   S  Dateidialog, TEXT, COMBO, SCROLL (verwerfbar)
-RDUSER.MOD      27648   29   S  Fenster, Menues, Schreibtisch-Anbindung der Shell (24.10.: 26 -> 27 KB fuer WS_DESKTOP, M_SYSMENU; 25.10.: 28 KB fuer Groesse, Minimieren, Alt+Tab, Variante B; 26.10.: 29 KB fuer Maximieren, Parkreihe, drei Titelfelder, Variante B; -oa -ol)
+RDUSER.MOD      27648   31.5 S  Fenster, Menues, Schreibtisch-Anbindung der Shell (29.10.: 31,5 KB fuer 64 statt 40 Fenster, Optionen + Netzwerk + Dateiauswahl; 24.10.: 26 -> 27 KB fuer WS_DESKTOP, M_SYSMENU; 25.10.: 28 KB fuer Groesse, Minimieren, Alt+Tab, Variante B; 26.10.: 29 KB fuer Maximieren, Parkreihe, drei Titelfelder, Variante B; -oa -ol)
 RDSND.MOD        4096    4   S  Sound-API, Treiber, Systemklaenge (Musik in RDMUS.MOD)
 RDMUS.MOD        3072    3   P  Musik-Spieler IMF/DRO, nur waehrend des Abspielens geladen (26.10.)
 CGA.DRV          5120    5   S

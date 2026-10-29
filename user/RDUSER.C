@@ -12,7 +12,7 @@
 #include "RD2.H"
 #include "../gdi/GDII.H"
 
-#define MAXW   40
+#define MAXW   64                                 /* 29.10.2026: 40 reichte nicht fuer Optionen + Netzwerk + Dateiauswahl */
 #define MAXCL  16
 #define NSLOT  6                                  /* gleichzeitig offene Fenster-DCs */
 #define F_PAINTQ 0x01                             /* M_PAINT eingestellt */
