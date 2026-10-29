@@ -58,7 +58,9 @@ WORD RDK KernInfo(SYSINFO FAR *si)
     si->fpu = k_fpu ? 87 : 0;
     kr.ax = 0x3000; rd_int(0x21, &kr); si->dos = (WORD)((kr.ax & 0xFF) << 8) | (kr.ax >> 8);
     rd_int(0x12, &kr); si->kb_konv = kr.ax;
-    si->grafik = k_gfx; si->maus = k_maus; si->bootlw = 1; si->sprache = RD_LANG_DE;
+    si->grafik = k_gfx; si->maus = k_maus; si->sprache = RD_LANG_DE;
+    kr.ax = 0x3305; kr.dx = 0; rd_int(0x21, &kr);   /* Startlaufwerk (DOS 4+), sonst das Laufwerk von RD2 */
+    si->bootlw = (BYTE)((BYTE)kr.dx >= 1 && (BYTE)kr.dx <= 26 ? (BYTE)kr.dx : ((k_home[0] | 0x20) >= 'a' ? (k_home[0] | 0x20) - 'a' + 1 : 1));
     for (i = 0; i < 65 && k_home[i]; i++) si->home[i] = k_home[i];
     return 0;
 }
