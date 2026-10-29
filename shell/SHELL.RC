@@ -40,6 +40,11 @@ MENU 2
     TRENNER
     ITEM "&Versteckte Dateien" 204
     TRENNER
+    ITEM "Nach N&ame"          205 HAKEN
+    ITEM "Nach &Typ"           206
+    ITEM "Nach &Größe"         207
+    ITEM "Nach &Datum"         208
+    TRENNER
     ITEM "&Neu einlesen"       201
   ENDE
   POPUP "&Programme"
@@ -176,6 +181,11 @@ MENU 2
     ITEM "&List"               203
     TRENNER
     ITEM "&Hidden files"       204
+    TRENNER
+    ITEM "By n&ame"            205 HAKEN
+    ITEM "By &type"            206
+    ITEM "By si&ze"            207
+    ITEM "By &date"            208
     TRENNER
     ITEM "&Refresh"            201
   ENDE
