@@ -70,6 +70,7 @@ RDIRC.EXE       12288   20   N  IRC: Verlauf 120 Zeilen, UTF-8/CP437, ZNC-Kennwo
 RDSHELL.EXE     14336   20   P  DOS-Fenster: DIR CD COPY DEL TYPE ... eingebaut, sonst RunDos (Punkt 8)
 RDCALC.EXE      90112   80   L
 RDEDIT.EXE      65536   60   P
+BURGEN.EXE      32768   48   P  Spiel Burgenkampf (wie Ballerburg, 29.10.): Computer/zwei Spieler/Netz (TCP 2626), alle Grafikarten, 8087 optional (Zielen des Computers)
 RDPRN.MOD        6144    8   P  Drucken (und HelpShow -> HILFE.EXE): Druckdialog, Baender (48 Zeilen), LPT direkt/Datei (Punkt 7; RDKX laedt es bei PrnOpen, 27.10.)
 HILFE.EXE        8192   16   P  Hilfeanzeige (F1, Punkt 10): Themen, Verweise, Zurueck; startet ueber HelpShow
 RD2.HLP         16384    0   P  Hilfetext RD2 (deutsch), Format docs/HILFE.md
