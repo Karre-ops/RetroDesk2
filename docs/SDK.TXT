@@ -1,0 +1,115 @@
+RetroDesk 2 - SDK (Diskette 4)
+==============================
+
+Mit dem SDK schreiben Sie eigene Programme fuer RetroDesk 2 (RD2) in C
+(Open Watcom), Turbo Pascal / Free Pascal (siehe \SDK\PASCAL\PASCAL.TXT)
+oder Assembler. Englische Fassung: SDK_EN.TXT.
+
+  \SDK\RD2.H         Typen, Konstanten, Nachrichten, Strukturen
+  \SDK\RD2API.H      alle Funktionen des Kerns und der Module (Nummern fest)
+  \SDK\RD2DRV.H      Schnittstelle fuer Treiber (Grafik, Klang, Netz)
+  \SDK\RD2ORD.H      Kurzform der Funktionsnummern
+  \SDK\RD2START.ASM  Startcode fuer Programme (wasm)
+  \SDK\RD2MOD.ASM    Startcode fuer Module (.MOD) und Treiber (.DRV)
+  \SDK\RD2.LIB       Bibliothek (Open Watcom, Modell Medium)
+  \SDK\RDRC.EXE      Ressourcen-Compiler und Linker (DOS, laeuft auf dem XT)
+  \SDK\BEISPIEL\     HALLO.C und HALLO.RC: Fenster, Menue, Mausklicks
+  \SDK\PASCAL\       Unit RD2.PAS, Beispiele, Anleitung fuer Pascal
+
+
+1. Ein Programm bauen (C, Open Watcom)
+---------------------------------------
+
+  wcc -0 -mm -os -s -zl -bt=dos -i=\SDK HALLO.C
+  wasm -0 \SDK\RD2START.ASM
+  wlink format dos name HALLO file RD2START,HALLO
+        library \SDK\RD2.LIB,clibm.lib option nodefaultlibs
+  RDRC HALLO.RC HALLO.EXE "Hallo"
+
+-0 erzeugt 8086-Code (laeuft auf dem XT), -mm ist das Speichermodell Medium.
+Ohne Ressourcen statt der .RC ein "-":  RDRC - HALLO.EXE "Hallo"
+
+RDRC haengt den RD2-Block (Name, Typ, API-Version, Stapel) und die
+Ressourcen an die EXE. Schalter:
+
+  /T:P|M|D    Programm, Modul, Treiber (Vorgabe P)
+  /S:n        Stapel in Bytes (Vorgabe 4096)
+  /K:n        zusaetzlicher Speicher in KB
+  /V:0xMMmm   Programmversion, /A:0xMMmm Mindestversion von RD2 (0x0100)
+  /F:n        Flags
+  /PAS        Pascal-Programm (siehe PASCAL.TXT)
+
+Ein zweiter Lauf ersetzt den alten Anhang, die EXE wird nicht doppelt laenger.
+Unter DOS gestartet meldet ein RD2-Programm "Dieses Programm benoetigt
+RetroDesk 2." und endet.
+
+
+2. Aufbau eines Programms
+-------------------------
+
+  #include "RD2.H"
+  short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
+  {
+      ... RegisterClass, CreateWindow ...
+      while (GetMessage(&m)) DispatchMessage(&m);
+      return 0;                     /* Exitcode */
+  }
+
+Fensterfunktionen sind  DWORD RDCALLBACK proc(HWND, WORD msg, WORD p1, DWORD p2).
+Was sie nicht selbst behandeln, geben sie an DefWindowProc weiter.
+Wichtige Nachrichten: M_CREATE, M_PAINT (BeginPaint/EndPaint), M_KEY (p1 =
+Taste K_*), M_BUTTONDOWN, M_COMMAND (Menue, Knopf: p1 = id), M_TIMER,
+M_CLOSE, M_DESTROY (dann PostQuit).
+
+
+3. Regeln
+---------
+
+- Alle Funktionen sind far pascal, alle Zeiger FAR. Handles sind 16 Bit,
+  0 heisst "kein" oder Fehler. Den Grund liefert LastError() (RD_ERR_*).
+- Texte sind Codepage 437 und mit 0 abgeschlossen; Laenge -1 = bis zur 0.
+- Kein direkter DOS- oder BIOS-Aufruf, keine eigenen Interrupt-Handler.
+  Dateien: FileOpen, FileRead, FileWrite ...; Bildschirm: GetDC, TextOut ...
+- Aus der C-Bibliothek erlaubt: string.h, ctype.h, math.h, stdlib.h ohne
+  system/exit, sprintf. malloc und free gehen ueber RD2.LIB auf MemFixed.
+  Nicht erlaubt: printf, getch, fopen, Grafik- und Interrupt-Funktionen.
+- RD2 schaltet zwischen Programmen um, wenn sie in ihrem eigenen Code sind.
+  Eingaben bekommt ein Programm aber erst im naechsten GetMessage/PeekMessage.
+  Lange Arbeiten deshalb in Stuecken (M_TIMER) oder mit PeekMessage zwischendurch.
+- Speicher ist knapp (Rechner mit hoechstens 640 KB). Grosse Daten mit MemAlloc (verschiebbar,
+  MemLock vor dem Zugriff, MemUnlock danach).
+- Debug-Ausgaben mit DbgPrint/DbgHex (COM1 oder RD2DBG.TXT).
+
+
+4. Ressourcen (.RC)
+-------------------
+
+Quelltext in Codepage 437, ";" leitet Kommentare ein, Texte in "..." mit
+\t \n \" \\.
+
+  SPRACHE DE|EN|ALLE        gilt fuer die folgenden Ressourcen
+  TEXTE  id "Text" ... ENDE  (StrGet(inst, id), Sprache nach RD2.INI)
+  MENU n
+    POPUP "&Datei"
+      ITEM "&Oeffnen..." 101 [GRAU] [HAKEN]
+      TRENNER
+    ENDE
+  ENDE
+  DIALOG n "Titel" x y b h [Stil...]
+    KLASSE ["Text"] id x y b h [Stil...]
+  ENDE
+  ACCEL n   Taste Umschalt id ... ENDE
+  SYMBOL|BITMAP|CURSOR|SCHRIFT|DATEN n "datei"
+
+Klassen im Dialog: BUTTON CHECK RADIO STATIC EDIT TEXT LIST COMBO SCROLL
+PROGRESS GROUP. Stile: Namen aus RD2.H (WS_*, ES_*), STANDARD = Standardknopf,
+AN = angehakt, GRAU = gesperrt. Dialoge startet DialogRun(inst, n, owner,
+proc, param); MenuSet(fenster, MenuLoad(inst, n)) setzt ein Menue.
+
+
+5. Weitere Quellen
+------------------
+
+Die vollstaendige Beschreibung (Programmformat, Module, Treiber, Speicher,
+Grenzen) steht in docs/SPEC.md im Quelltext von RetroDesk 2:
+https://github.com/Karre-ops/retrodesk2

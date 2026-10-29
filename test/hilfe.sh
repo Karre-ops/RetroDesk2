@@ -19,7 +19,7 @@ waitn() { for i in $(seq 300); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -
 ok() { if waitn "$1" ${3:-1}; then echo "ok     $2"; else echo "FEHLER $2"; F=1; fi; }
 ok "HILFE: bereit" "Hilfe startet"
 ok "HILFE: Thema 0 Inhalt" "Thema 0 Inhalt geladen"
-grep -q "HILFE: Verweise.*000D" $SER && echo "ok     13 Verweise im Inhalt" || { echo "FEHLER Zahl der Verweise"; grep "Verweise" $SER | head -2; F=1; }
+grep -q "HILFE: Verweise.*000E" $SER && echo "ok     14 Verweise im Inhalt (mit Installation, 29.10.)" || { echo "FEHLER Zahl der Verweise"; grep "Verweise" $SER | head -2; F=1; }
 sleep 2; Q "screendump obj/hilfe1.ppm"
 Q "sendkey tab"; sleep 0.5; Q "sendkey ret"
 ok "HILFE: Thema 2 Der Schreibtisch" "Tab + Eingabe folgt dem 2. Verweis"

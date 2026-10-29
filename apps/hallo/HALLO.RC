@@ -1,0 +1,23 @@
+; Ressourcen fuer HALLO.EXE (Beispiel im SDK)
+SPRACHE DE
+TEXTE
+  1 "Hallo"
+  2 "Hallo aus C!"
+  3 "Klicks: "
+ENDE
+MENU 1
+  POPUP "&Datei"
+    ITEM "&Beenden" 100
+  ENDE
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Hello"
+  2 "Hello from C!"
+  3 "Clicks: "
+ENDE
+MENU 1
+  POPUP "&File"
+    ITEM "E&xit" 100
+  ENDE
+ENDE

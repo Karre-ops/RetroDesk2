@@ -46,6 +46,7 @@ DKOPIE.EXE       5120    8   P  Diskette kopieren (wie DISKCOPY, RDDISK.MOD/INT 
 TASKMAN.EXE      4096    8   P  Zubehoer Taskmanager (RD-Menue): Programme mit Speicher, Beenden, frei
 PAPIERK.EXE      6144    8   P  Zubehoer Papierkorb (RD-Menue): X:\PAPIERK\PAPIERK.LST, wiederherstellen/loeschen/leeren, 8 KB Tabelle beim Lauf
 OPTIONEN.EXE     6144    8   P  Zubehoer Optionen (Dialog; beim Lauf 24 KB Puffer fuer CONFIG.SYS/AUTOEXEC.BAT)
+HALLO.EXE        4096    0   T  SDK-Beispiel in C (Quelle auf Diskette 4, test/pascal.sh)
 LEER.EXE         2048    0   T  Testprogramm Phase 1 (faellt spaeter weg)
 UEBER.EXE        2048    0   T  G12-Test: LEER.EXE mit minalloc FFFFh (beim Bauen erzeugt)
 PING.EXE         2048    0   T  Testprogramme Phase 2 (fallen spaeter weg)

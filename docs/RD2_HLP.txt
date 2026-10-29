@@ -14,6 +14,7 @@ Willkommen bei RetroDesk 2. Wählen Sie ein Thema:
 {Netzwerk|10}
 {Disketten und Festplatte|11}
 {Einrichtung (RD2SETUP)|12}
+{Auf die Festplatte installieren|14}
 
 {So benutzen Sie die Hilfe|13}
 @1 Erste Schritte
@@ -77,15 +78,24 @@ Im Programm Netzwerk stellen Sie die Adresse ein (fest oder per DHCP). Danach ge
 Die Netzwerkprogramme liegen auf Diskette 3.
 @11 Disketten und Festplatte
 RetroDesk 2 kommt auf vier Disketten: 1 System (startfähig), 2 Programme, 3 Netz, 4 SDK.
-Für eine neue Festplatte: mit FDISK im Laufwerksmenü partitionieren, neu starten, mit Formatieren formatieren und dann mit der {Einrichtung|12} installieren.
+Für eine neue Festplatte: mit FDISK im Laufwerksmenü partitionieren, neu starten, mit Formatieren formatieren und dann {auf die Festplatte installieren|14}.
 Disketten formatieren Sie über das Laufwerksmenü auf dem {Schreibtisch|2}.
 @12 Einrichtung (RD2SETUP)
 RD2SETUP erkennt die Hardware einmal beim ersten Start und speichert sie in RD2.INI. Sie können es jederzeit erneut starten.
-Pfeile wählen einen Punkt, Eingabe ändert ihn. E erkennt neu, A setzt alles neu, S speichert.
-I installiert RetroDesk 2 auf die Festplatte. Danach fragt die Einrichtung nach den Disketten 2 und 3. Auf Wunsch macht sie die Festplatte mit dem FreeDOS-Kern startfähig.
+Pfeile hoch und runter wählen einen Punkt, Eingabe oder Pfeile links und rechts ändern ihn. Weicht ein Wert von der Erkennung ab, steht dahinter "geändert, erkannt: ...".
+Bei der Maus wählen Sie die Art: seriell an COM1 bis COM4, Mouse Systems, PS/2, Busmaus, InPort, eigener Treiber oder keine. Klang kann auch "keine" sein; die Zeile Sound Blaster gilt nur, wenn Sound Blaster gewählt ist.
+E erkennt den Punkt neu, A alles. S speichert die Werte auf der Diskette.
+I {installiert auf die Festplatte|14}, und zwar mit genau den angezeigten Werten. Vorher speichern ist nicht nötig. T installiert stattdessen im Textmodus (Notweg).
 @13 So benutzen Sie die Hilfe
 Unterstrichene Wörter sind Verweise auf andere Themen.
 Tab und Umschalt+Tab wählen einen Verweis, Eingabe oder ein Mausklick folgt ihm.
 Rückschritt oder die rechte Maustaste geht zum vorigen Thema zurück. I zeigt den {Inhalt|0}.
 Pfeile, Bild auf und Bild ab blättern. Esc schließt die Hilfe.
 F1 öffnet die Hilfe in jedem Programm, das sie anbietet.
+@14 Auf die Festplatte installieren
+Die Installation startet mit I in der {Einrichtung|12} oder über das Menü RD > Installation auf Festplatte, solange RetroDesk 2 von Diskette läuft.
+Geben Sie den Zielordner an (Vorgabe C:\RD2). Fehlende Ordner werden angelegt.
+"Festplatte startfähig machen" überträgt den FreeDOS-Kern, wenn die Platte noch kein System hat. "CONFIG.SYS anpassen" trägt RetroDesk 2 als Shell ein; eine vorhandene CONFIG.SYS wird als CONFIG.RDA gesichert, und jedes Programm aus der AUTOEXEC.BAT wird einzeln abgefragt.
+Der Balken zeigt den Fortschritt über alle Disketten. Wenn eine Meldung danach fragt, legen Sie Diskette 2, 3 und zuletzt wieder Diskette 1 ein. Abbrechen lässt eine Diskette aus.
+Zum Schluss verlässt RetroDesk kurz die Grafik, um die Festplatte startfähig zu machen. Danach Diskette herausnehmen und neu starten.
+Zurück zum {Inhalt|0}.

@@ -1,0 +1,134 @@
+RetroDesk 2 - SDK (disk 4)
+==========================
+
+With the SDK you write your own programs for RetroDesk 2 (RD2) in C
+(Open Watcom), Turbo Pascal / Free Pascal or assembler. German version:
+SDK.TXT.
+
+  \SDK\RD2.H         types, constants, messages, structures
+  \SDK\RD2API.H      all functions of the kernel and modules (fixed numbers)
+  \SDK\RD2DRV.H      driver interface (graphics, sound, network)
+  \SDK\RD2ORD.H      short form of the function numbers
+  \SDK\RD2START.ASM  startup code for programs (wasm)
+  \SDK\RD2MOD.ASM    startup code for modules (.MOD) and drivers (.DRV)
+  \SDK\RD2.LIB       library (Open Watcom, medium model)
+  \SDK\RDRC.EXE      resource compiler and linker (DOS, runs on the XT)
+  \SDK\BEISPIEL\     HALLO.C and HALLO.RC: window, menu, mouse clicks
+  \SDK\PASCAL\       unit RD2.PAS, examples, Pascal guide (German)
+
+
+1. Building a program (C, Open Watcom)
+--------------------------------------
+
+  wcc -0 -mm -os -s -zl -bt=dos -i=\SDK HALLO.C
+  wasm -0 \SDK\RD2START.ASM
+  wlink format dos name HALLO file RD2START,HALLO
+        library \SDK\RD2.LIB,clibm.lib option nodefaultlibs
+  RDRC HALLO.RC HALLO.EXE "Hallo"
+
+-0 generates 8086 code (runs on the XT), -mm is the medium memory model.
+Without resources use "-" instead of the .RC:  RDRC - HALLO.EXE "Hallo"
+
+RDRC appends the RD2 block (name, type, API version, stack) and the
+resources to the EXE. Switches:
+
+  /T:P|M|D    program, module, driver (default P)
+  /S:n        stack in bytes (default 4096)
+  /K:n        additional memory in KB
+  /V:0xMMmm   program version, /A:0xMMmm minimum RD2 version (0x0100)
+  /F:n        flags
+  /PAS        Pascal program (see below)
+
+Running it again replaces the old appendix. Started under plain DOS an RD2
+program prints "Dieses Programm benoetigt RetroDesk 2." and exits.
+
+
+2. Structure of a program
+-------------------------
+
+  #include "RD2.H"
+  short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
+  {
+      ... RegisterClass, CreateWindow ...
+      while (GetMessage(&m)) DispatchMessage(&m);
+      return 0;                     /* exit code */
+  }
+
+Window procedures are  DWORD RDCALLBACK proc(HWND, WORD msg, WORD p1, DWORD p2).
+Pass everything you do not handle to DefWindowProc.
+Important messages: M_CREATE, M_PAINT (BeginPaint/EndPaint), M_KEY (p1 =
+key K_*), M_BUTTONDOWN, M_COMMAND (menu, button: p1 = id), M_TIMER,
+M_CLOSE, M_DESTROY (then PostQuit).
+
+
+3. Rules
+--------
+
+- All functions are far pascal, all pointers FAR. Handles are 16 bit,
+  0 means "none" or error; LastError() gives the reason (RD_ERR_*).
+- Text is code page 437, zero-terminated; length -1 = up to the 0.
+- No direct DOS or BIOS calls, no own interrupt handlers.
+  Files: FileOpen, FileRead, FileWrite ...; screen: GetDC, TextOut ...
+- Allowed from the C library: string.h, ctype.h, math.h, stdlib.h without
+  system/exit, sprintf. malloc and free go to MemFixed through RD2.LIB.
+  Not allowed: printf, getch, fopen, graphics and interrupt functions.
+- RD2 switches between programs while they run in their own code, but a
+  program only receives input in its next GetMessage/PeekMessage. Do long
+  work in pieces (M_TIMER) or call PeekMessage in between.
+- Memory is tight (machines with at most 640 KB). Large data with MemAlloc (movable,
+  MemLock before access, MemUnlock afterwards).
+- Debug output with DbgPrint/DbgHex (COM1 or RD2DBG.TXT).
+
+
+4. Resources (.RC)
+------------------
+
+Source in code page 437, ";" starts a comment, text in "..." with
+\t \n \" \\. Keywords are German.
+
+  SPRACHE DE|EN|ALLE        language of the following resources
+  TEXTE  id "Text" ... ENDE  (StrGet(inst, id), language from RD2.INI)
+  MENU n
+    POPUP "&File"
+      ITEM "&Open..." 101 [GRAU] [HAKEN]    (GRAU = disabled, HAKEN = checked)
+      TRENNER                               (separator)
+    ENDE
+  ENDE
+  DIALOG n "Title" x y w h [style...]
+    CLASS ["Text"] id x y w h [style...]
+  ENDE
+  ACCEL n   key shift id ... ENDE
+  SYMBOL|BITMAP|CURSOR|SCHRIFT|DATEN n "file"   (icon, bitmap, cursor, font, data)
+
+Dialog classes: BUTTON CHECK RADIO STATIC EDIT TEXT LIST COMBO SCROLL
+PROGRESS GROUP. Styles: names from RD2.H (WS_*, ES_*), STANDARD = default
+button, AN = checked, GRAU = disabled. Start a dialog with DialogRun(inst, n,
+owner, proc, param); MenuSet(window, MenuLoad(inst, n)) sets a menu.
+
+
+5. Pascal
+---------
+
+Turbo Pascal 5.5-7.0 and Free Pascal (i8086-msdos, -WmLarge) work with the
+unit RD2 (\SDK\PASCAL\RD2.PAS):
+
+  TPC PHALLO.PAS
+  RDRC - PHALLO.EXE "Hallo Pascal" /PAS
+
+- RD2 must be the first unit in "uses". No Crt, Graph or screen Write.
+- Memory with {$M stack,heapmin,heapmax}.
+- Pointers, strings and records are passed as Pointer: GetClientRect(w, @r);
+  Z('Text') turns a Pascal string into a zero-terminated one.
+- Turbo Pascal 5.5 cannot discard function results: Egal := SetBkMode(...).
+- Window procedures are far (TP: {$F+}) and pascal (FPC: "pascal;") and are
+  always passed through CbProc:  wc.proc := CbProc(@Proc);
+- /PAS puts a small preamble (about 900 bytes) in front of the program that
+  gives the Pascal runtime the DOS start it expects.
+
+
+6. More
+-------
+
+The full description (program format, modules, drivers, memory, limits) is in
+docs/SPEC.md (German) in the RetroDesk 2 sources:
+https://github.com/Karre-ops/retrodesk2
