@@ -4,7 +4,8 @@
 # Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
 RD.EXE          28864 44.4375 S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock); 26.10.: 44,25 KB fuer den Klang-Takt im INT 8 und RunDos-Pause (RDSND)
-RD2SETUP.EXE    33792    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier; +1 KB Sound Blaster 26.10.); +1 KB Mehrdisketten-Installation 27.10.; +1 KB Mausauswahl (12 Arten), Klang keine, Texte 29.10.
+RD2SETUP.EXE    34816    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier; +1 KB Sound Blaster 26.10.); +1 KB Mehrdisketten-Installation 27.10.; +1 KB Mausauswahl (12 Arten), Klang keine, Texte 29.10.; +1 KB I startet die grafische Installation (Installieren=1), T Text-Notweg 29.10.
+INSTALL.EXE     12288    0   S  Grafische Installation auf Festplatte (Variante B, 29.10.): Disketten 1-3 mit Fortschrittsbalken, CONFIG.SYS, RDSYS per RunDos
 RDSYS.EXE       24576    0   S  FreeDOS SYS 3.6 (GPL v2), unveraendert; RD2SETUP: Festplatte startfaehig (24.10.)
 RDSWAP.BIN       1664    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speicher (nicht im Kern)
 RDKEYB.COM       1536    0   S  Tastaturtreiber DE/US (Assembler, resident ca. 0,8 KB), INSTALL= in CONFIG.SYS (27.10.)

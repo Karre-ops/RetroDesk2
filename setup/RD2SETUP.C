@@ -308,6 +308,7 @@ static void erkennen(int i)                      /* -1 = alles */
 
 /* ---- RD2.INI: Schluessel in [System] ersetzen oder anhaengen, Rest bleibt ------- */
 static char buf[6144], neu[6144];
+static int inst_grafisch;                         /* 1: Installieren=1 schreiben, die Shell startet dann INSTALL.EXE */
 static void maus_auswahl(void)                    /* gewaehlte Maus gilt fuer MausHW= und den RDMAUS-Schalter */
 {
     const char *w = p[P_MAUS].wert[p[P_MAUS].v];
@@ -315,7 +316,7 @@ static void maus_auswahl(void)                    /* gewaehlte Maus gilt fuer Ma
 }
 static int ini_schreiben(const char *datei)
 {
-    FILE *f; size_t n = 0, o = 0; char *z, *e; int insys = 0, sysda = 0; BYTE done[NP + 2]; WORD i;
+    FILE *f; size_t n = 0, o = 0; char *z, *e; int insys = 0, sysda = 0; BYTE done[NP + 3]; WORD i;
     char zeile_[80];
     memset(done, 0, sizeof done);
     maus_auswahl();
@@ -324,7 +325,8 @@ static int ini_schreiben(const char *datei)
     buf[n] = 0;
     #define AUS(s) do { size_t l_ = strlen(s); if (o + l_ < sizeof neu) { memcpy(neu + o, s, l_); o += l_; } } while (0)
     #define REST() do { for (i = 0; i < NP; i++) if (!done[i]) { sprintf(zeile_, "%s=%s\r\n", p[i].key, p[i].wert[p[i].v]); AUS(zeile_); done[i] = 1; } \
-                        if (!done[NP]) { sprintf(zeile_, "MausHW=%s\r\n", mauswert); AUS(zeile_); done[NP] = 1; } } while (0)
+                        if (!done[NP]) { sprintf(zeile_, "MausHW=%s\r\n", mauswert); AUS(zeile_); done[NP] = 1; } \
+                        if (!done[NP + 1] && inst_grafisch) { AUS("Installieren=1\r\n"); done[NP + 1] = 1; } } while (0)
     for (z = buf; *z; z = e) {
         char k[24]; int kl = 0;
         for (e = z; *e && *e != '\n'; e++) ;
@@ -336,6 +338,7 @@ static int ini_schreiben(const char *datei)
             while (z + kl < e && z[kl] != '=' && kl < 23) { k[kl] = z[kl]; kl++; }
             k[kl] = 0;
             for (i = 0; i < NP; i++) if (!stricmp(k, p[i].key)) break;
+            if (!stricmp(k, "Installieren")) { if (inst_grafisch && !done[NP + 1]) { AUS("Installieren=1\r\n"); done[NP + 1] = 1; } continue; }
             if (i < NP || !stricmp(k, "MausHW")) {        /* eigene Zeile ersetzen */
                 if (i == NP) { sprintf(zeile_, "MausHW=%s\r\n", mauswert); done[NP] = 1; }
                 else { sprintf(zeile_, "%s=%s\r\n", p[i].key, p[i].wert[p[i].v]); done[i] = 1; }
@@ -562,6 +565,7 @@ static void installieren(void)
 }
 
 /* ---- Liste --------------------------------------------------------------------- */
+static int inst_da(void) { char q[80]; sprintf(q, "%sINSTALL.EXE", quelle); return gibts(q); }
 static int sichtbar(WORD i) { return i != P_SB || !stricmp(p[P_KLANG].wert[p[P_KLANG].v], "SB"); }
 static void zeigen(int sel, int erst)
 {
@@ -585,7 +589,7 @@ static void zeigen(int sel, int erst)
     }
     attr = 0x07;
     zeile(15, " Hoch/runter: waehlen   Enter/links/rechts: aendern   E: neu erkennen   A: alle");
-    zeile(16, " S: auf Diskette speichern   I: auf Festplatte installieren   Esc: Ende");
+    zeile(16, " S: auf Diskette speichern   I: installieren (T: im Textmodus)   Esc: Ende");
     sprintf(z, " Einstellungen: %s", ini); zeile(17, z);
 }
 
@@ -617,6 +621,12 @@ int main(int argc, char **argv)
         else if ((k & 0xFF) == 'e' || (k & 0xFF) == 'E') { zeile(18, " erkenne ..."); erkennen(sel); zeile(18, ""); geaendert = 1; }
         else if ((k & 0xFF) == 'a' || (k & 0xFF) == 'A') { zeile(18, " erkenne alles ..."); erkennen(-1); zeile(18, ""); geaendert = 1; }
         else if ((k & 0xFF) == 's' || (k & 0xFF) == 'S') { char g[90]; sprintf(g, ini_schreiben(ini) ? " Gespeichert in %s." : " FEHLER beim Speichern in %s.", ini); zeile(18, g); geaendert = 0; }
+        else if ((k & 0xFF) == 't' || (k & 0xFF) == 'T') { for (i = 18; i < 25; i++) zeile(i, ""); installieren(); }   /* Notweg: Text */
+        else if (((k & 0xFF) == 'i' || (k & 0xFF) == 'I') && (quelle[0] & 0xDF) <= 'B' && inst_da()) {   /* grafisch in RD2 */
+            inst_grafisch = 1;
+            if (ini_schreiben(ini) == 1) { inst_grafisch = 0; cls(); printf("RD2SETUP: Die Installation startet gleich in RetroDesk.\n"); return 0; }
+            inst_grafisch = 0; zeile(18, " FEHLER beim Speichern (schreibgeschuetzt?). T: im Textmodus installieren.");
+        }
         else if ((k & 0xFF) == 'i' || (k & 0xFF) == 'I') { for (i = 18; i < 25; i++) zeile(i, ""); installieren(); }
         else if (k == T_ESC) {
             if (geaendert || erst) { zeile(18, " Aenderungen auf Diskette speichern (J/N)?"); k = taste() & 0xFF; if (k == 'j' || k == 'J') ini_schreiben(ini); }

@@ -1009,7 +1009,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_PSTART && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
         else if (p1 == CM_PWEG && lsel >= nlw) pdesk(prgn[psy[lsel - nlw]], 0);
         else if (p1 == CM_FDISK) einrichten();
-        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 12) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE", "PAPIERK.EXE", "TASKMAN.EXE", "MAUS.EXE", "SCHONER.EXE" }; char p[80];
+        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 13) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE", "PAPIERK.EXE", "TASKMAN.EXE", "MAUS.EXE", "SCHONER.EXE", "INSTALL.EXE" }; char p[80];
             if (werkzeug(p, zn[p1 - CM_ZUB])) starten(p); }
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
         else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); DbgHex("SHELL: versteckte", verst); alle_neu(); }
@@ -1048,6 +1048,10 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     TimerSet(desk, 1, 1000); uhr(); prgladen(); sta_lesen();
     { char p[80], u[80]; if (werkzeug(p, "RD2.INI")) szeit = (WORD)ProfileGetInt(p, "Schoner", "Zeit", 300);
       if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "Netz", "Zeit", 0) && werkzeug(u, "UHR.EXE")) TaskExec(u, "N", SW_HIDE); }   /* Netzzeit beim Start */
+    { SYSINFO si; char p[80], u[80]; KernInfo(&si);   /* Installation nur, wenn RD2 von Diskette laeuft; RD2SETUP "I" startet sie */
+      MenuEnable(msys, CM_ZUB + 12, (si.home[0] | 0x20) < 'c' && werkzeug(u, "INSTALL.EXE"));
+      if ((si.home[0] | 0x20) < 'c' && werkzeug(p, "RD2.INI") && ProfileGetInt(p, "System", "Installieren", 0) == 1 && werkzeug(u, "INSTALL.EXE"))
+          { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, "", SW_SHOW); } }
     DbgPrint("SHELL: bereit");
     while (GetMessage(&m)) DispatchMessage(&m);
     DbgPrint("SHELL: Ende");

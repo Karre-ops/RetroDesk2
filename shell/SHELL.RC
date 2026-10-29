@@ -16,6 +16,7 @@ MENU 1
     ITEM "&Taskmanager"       12
     ITEM "&Maus..."           13
     ITEM "Bild&schirmschoner..." 14
+    ITEM "Instal&lation auf Festplatte..." 15
     TRENNER
     ITEM "&Beenden..."         2
   ENDE
@@ -154,6 +155,7 @@ MENU 1
     ITEM "&Task manager"      12
     ITEM "&Mouse..."          13
     ITEM "&Screen saver..."   14
+    ITEM "Insta&ll to hard disk..." 15
     TRENNER
     ITEM "E&xit..."            2
   ENDE

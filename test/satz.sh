@@ -15,7 +15,7 @@ timeout 400 qemu-system-i386 -m 1 -display none -no-reboot -drive file=obj/satz1
   -drive file=$HD,format=raw,if=ide,index=0 -boot a -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!
 waitscr "Erster Start" 90 && echo "ok     Diskette 1 startet, Einrichtung erscheint" || { echo "FEHLER keine Einrichtung"; F=1; }
-sleep 1; Q "sendkey i"; sleep 2; Q "sendkey ret"
+sleep 1; Q "sendkey t"; sleep 2; Q "sendkey ret"   # T: Text-Installation (Notweg); grafisch: test/install.sh
 waitscr "startfaehig machen" 120 && Q "sendkey j"
 waitscr "Diskette 2 (RD2 PROG) einlegen" 120 && { echo "ok     fragt nach Diskette 2"; Q "change floppy0 obj/satz2.img"; sleep 2; Q "sendkey ret"; } || { echo "FEHLER keine Frage nach Diskette 2"; F=1; }
 waitscr "Diskette 3 (RD2 NETZ) einlegen" 180 && { echo "ok     fragt nach Diskette 3"; Q "change floppy0 obj/satz3.img"; sleep 2; Q "sendkey ret"; } || { echo "FEHLER keine Frage nach Diskette 3"; F=1; }

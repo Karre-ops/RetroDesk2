@@ -1,0 +1,73 @@
+; Ressourcen fuer INSTALL.EXE (grafische Installation)
+SPRACHE DE
+TEXTE
+  1 "RetroDesk 2 installieren"
+  2 "Die Einstellungen aus der Einrichtung werden Åbernommen."
+  3 "Kopiere "
+  4 "Bitte Diskette 2 (RD2 PROG) in das Startlaufwerk einlegen."
+  5 "Bitte Diskette 3 (RD2 NETZ) in das Startlaufwerk einlegen."
+  6 "Bitte Diskette 1 (RD2SYSTEM) wieder einlegen."
+  7 "Der Zielordner kann nicht angelegt werden."
+  8 "Das Ziel ist das Quellverzeichnis."
+  9 "RD2 als Shell in CONFIG.SYS eintragen? Die alte Fassung wird als CONFIG.RDA gesichert."
+  10 "Aus AUTOEXEC.BAT Åbernehmen?\n"
+  11 "Fertig: "
+  12 " Dateien kopiert, FEHLER beim Kopieren."
+  13 "Zum Schluss wird die Festplatte startfÑhig gemacht (FreeDOS-Kern). RetroDesk verlÑsst dazu kurz die Grafik."
+  14 "RetroDesk 2 ist installiert. Diskette herausnehmen und den Rechner neu starten: RD2 startet dann von der Festplatte."
+  15 "Hinweis: SET- und PATH-Zeilen der AUTOEXEC.BAT gelten mit RD2 als Shell nicht."
+  16 "Bitte einen Ordner auf der Festplatte angeben, z. B. C:\\RD2."
+  17 "Diese Diskette auslassen?"
+  18 "Zu wenig Speicher."
+  19 " CONFIG.SYS: RD2 ist die Shell (alt: CONFIG.RDA)."
+  20 " Dateien kopiert."
+  21 " CONFIG.SYS angelegt."
+  22 " CONFIG.SYS: FEHLER."
+  23 "Schlie·en"
+ENDE
+DIALOG 10 "RetroDesk 2 installieren" 0 0 260 132
+  STATIC   "&Ziel auf der Festplatte:" -1 8 6 200 10
+  EDIT                                21 8 18 244 12
+  CHECK    "Festplatte &startfÑhig machen (FreeDOS-Kern)" 22 8 36 244 10
+  CHECK    "&CONFIG.SYS anpassen (RD2 als Shell)"          23 8 48 244 10
+  PROGRESS                            41 8 64 244 8
+  STATIC   ""                         42 8 76 244 22
+  BUTTON   "&Installieren"             1 60 108 64 14 STANDARD
+  BUTTON   "Abbrechen"                 2 136 108 64 14
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Install RetroDesk 2"
+  2 "The settings from the setup are used."
+  3 "Copying "
+  4 "Please insert disk 2 (RD2 PROG) into the boot drive."
+  5 "Please insert disk 3 (RD2 NETZ) into the boot drive."
+  6 "Please insert disk 1 (RD2SYSTEM) again."
+  7 "The target folder cannot be created."
+  8 "The target is the source folder."
+  9 "Make RD2 the shell in CONFIG.SYS? The old version is saved as CONFIG.RDA."
+  10 "Take over from AUTOEXEC.BAT?\n"
+  11 "Done: "
+  12 " files copied, ERROR while copying."
+  13 "Finally the hard disk is made bootable (FreeDOS kernel). RetroDesk briefly leaves graphics mode."
+  14 "RetroDesk 2 is installed. Remove the disk and restart the computer: RD2 then starts from the hard disk."
+  15 "Note: SET and PATH lines of AUTOEXEC.BAT do not apply with RD2 as the shell."
+  16 "Please enter a folder on the hard disk, e.g. C:\\RD2."
+  17 "Skip this disk?"
+  18 "Not enough memory."
+  19 " CONFIG.SYS: RD2 is the shell (old: CONFIG.RDA)."
+  20 " files copied."
+  21 " CONFIG.SYS created."
+  22 " CONFIG.SYS: ERROR."
+  23 "Close"
+ENDE
+DIALOG 10 "Install RetroDesk 2" 0 0 260 132
+  STATIC   "&Target on the hard disk:" -1 8 6 200 10
+  EDIT                                21 8 18 244 12
+  CHECK    "Make the hard disk &bootable (FreeDOS kernel)" 22 8 36 244 10
+  CHECK    "&Adjust CONFIG.SYS (RD2 as shell)"             23 8 48 244 10
+  PROGRESS                            41 8 64 244 8
+  STATIC   ""                         42 8 76 244 22
+  BUTTON   "&Install"                  1 60 108 64 14 STANDARD
+  BUTTON   "Cancel"                    2 136 108 64 14
+ENDE
