@@ -290,7 +290,8 @@ static void vorschlag(int i)                     /* Wert aus der Erkennung */
     case P_MAUS:   q->v = (BYTE)(q->n - 1); setze(q, mauswert); break;
     case P_KLANG:  q->v = (BYTE)(hw_sb ? 2 : hw_adlib ? 1 : 0); break;
     case P_SB:     sbliste(); q->v = 0; break;
-    case P_XMS:    q->v = (BYTE)(xmskb >= 256 ? 3 : xmskb >= 128 ? 2 : xmskb >= 64 ? 1 : 0); break;
+    case P_XMS:    q->v = (BYTE)(xmskb >= 256 ? 3 : xmskb >= 128 ? 2 : xmskb >= 64 ? 1 : 0);
+                   q->n = (BYTE)(xmskb >= 512 ? 5 : q->v + 1); break;   /* nur anbieten, was da ist */
     case P_NETZ:   q->v = (BYTE)(pkt_int != 0); break;
     }
     q->erk = q->v;

@@ -40,7 +40,8 @@ static void balken(void)
 }
 static BOOL frage(LPCSTR s)                  /* Ja/Nein; Testmodus: Ja */
 {
-    if (test) { DbgPrint("INSTALL: Frage"); DbgPrint(s); return TRUE; }
+    DbgPrint("INSTALL: Frage"); DbgPrint(s);
+    if (test) return TRUE;
     return MsgBox(dl, s, StrGet(hi, 1), MB_YESNO | MB_INFO) == ID_YES;
 }
 static void meldung(WORD n, WORD art) { DbgPrint(StrGet(hi, n)); if (test) return; MsgBox(dl, StrGet(hi, n), StrGet(hi, 1), MB_OK | art); }
