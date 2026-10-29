@@ -98,7 +98,7 @@ DIALOG 20 "Eigenschaften" 0 0 224 112
   BUTTON   "Abbruch"      2 160  72  56 14
 ENDE
 TEXTE
-  1 "RetroDesk 2, API %s"
+  1 "RetroDesk 2.0, API %s"
   2 "RetroDesk 2 beenden?"
   3 "Programm konnte nicht gestartet werden:\n%s"
   4 "Laufwerk %s ist nicht bereit."
@@ -237,7 +237,7 @@ DIALOG 20 "Properties" 0 0 224 112
   BUTTON   "Cancel"      2 160  72  56 14
 ENDE
 TEXTE
-  1 "RetroDesk 2, API %s"
+  1 "RetroDesk 2.0, API %s"
   2 "Exit RetroDesk 2?"
   3 "Could not start program:\n%s"
   4 "Drive %s is not ready."
