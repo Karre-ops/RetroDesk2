@@ -71,8 +71,11 @@ static int kargs(void)
 {
     BYTE __far *p; char *d = kab; WORD psp, i, n; int c = 1;
     kr.ax = 0x6200; rd_int(0x21, &kr); psp = kr.bx;
-    for (p = (BYTE __far *)MK_FP(*(WORD __far *)MK_FP(psp, 0x2C), 0); p[0] | p[1]; p++) ;
-    for (argv[0] = d, p += 4; *p && d < kab + 66; ) *d++ = *p++;
+    argv[0] = d;
+    if ((i = *(WORD __far *)MK_FP(psp, 0x2C)) != 0) {   /* Programmname hinter der Umgebung; die SHELL= von CONFIG.SYS hat */
+        for (p = (BYTE __far *)MK_FP(i, 0), n = 0; (p[0] | p[1]) && n < 0x7FFF; p++, n++) ;   /* bei manchem DOS keine */
+        if (n < 0x7FFF && *(WORD __far *)(p + 2) >= 1) for (p += 4; *p && d < kab + 66; ) *d++ = *p++;
+    }
     *d++ = 0;
     for (p = (BYTE __far *)MK_FP(psp, 0x80), n = *p++, i = 0; c < 9; ) {
         while (i < n && p[i] <= ' ') i++;
@@ -108,6 +111,11 @@ int main(void)
         else if (c == 's') i = -1;                       /* /SETUP: Einrichtung vorher */
         else if (c == 'p') koop |= 2;                    /* /P: Shell (SHELL= in CONFIG.SYS) */
         else if (c == 'w') for (s = argv[a] + 3; *s; s++) k_wseg = (k_wseg << 4) + (*s <= '9' ? *s - '0' : (*s | 0x20) - 'a' + 10);   /* /W:seg vom RunDos-Rest */
+    }
+    if (!k_home[0] && a < argc) {                 /* ohne Programmnamen (SHELL= unter DOS 3/4): Ordner des Programms, */
+        for (i = 0, s = argv[a]; *s && i < 64; s++) k_home[i++] = *s;   /* RD2SETUP schreibt SHELL=C:\RD2\RD.EXE /P C:\RD2\SHELL.EXE */
+        while (i > 0 && k_home[i - 1] != '\\' && k_home[i - 1] != ':') i--;
+        k_home[i] = 0;
     }
     /* Shell: RD laeuft unter dem Rest (Modus 2), der es nach dem Ende wieder startet */
     h = (kr.ax = 0x6200, rd_int(0x21, &kr), kr.bx);
