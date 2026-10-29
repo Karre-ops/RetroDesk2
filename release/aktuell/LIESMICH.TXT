@@ -1,0 +1,4 @@
+RetroDesk 2 Entwicklungsstand 29.10.2026 (nach 2.0, vor 2.0.1, nicht voll getestet)
+Neu: Optionen mit Karteikarten, Grafik sofort mit Rueckfrage, Kern findet den RD2-Ordner auch als SHELL= ohne Programmnamen (Commodore PC10-III).
+Geprueft: test/satz.sh (Boot, Installation auf Platte, Start von C:), test/shell.sh.
+Disketten: RD2_1 System (bootfaehig), RD2_2 Programme, RD2_3 Netz, RD2_4 SDK. RD2_FTP.ZIP = Disketten 1-3 als Ordner RD2 plus RD2INST.BAT.
