@@ -8,7 +8,6 @@ MENU 1
     ITEM "&Notizblock"         4
     ITEM "Re&chner"            5
     ITEM "&Optionen..."        6
-    ITEM "Netz&werk..."        7
     ITEM "&FTP"                8
     ITEM "I&RC"                9
     ITEM "&DOS-Fenster"       10
