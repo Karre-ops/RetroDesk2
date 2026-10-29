@@ -20,10 +20,12 @@ char *k_hpath(const char __far *n)                /* RD2-Verzeichnis + Name, in 
 }
 
 /* ---- Ausgabe: COM1 (immer) und Bildschirm (nur im Kern-Kontext) ---------- */
+static BYTE seraus;                               /* COM1 antwortet nicht: aus (PC10-III, 29.10.2026: je Zeichen ~0,5 s) */
 static void ser(char c)
 {
     WORD n = 0;
-    while (!(inp(0x3FD) & 0x20) && ++n) ;
+    if (seraus) return;
+    while (!(inp(0x3FD) & 0x20)) if (++n == 2000) { seraus = 1; return; }
     outp(0x3F8, c);
 }
 static void con(char c) { kr.ax = 0x0200; kr.dx = (BYTE)c; rd_int(0x21, &kr); }
