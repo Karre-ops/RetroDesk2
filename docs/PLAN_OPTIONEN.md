@@ -1,5 +1,8 @@
 # Plan: RD > Optionen fuer alle Einstellungen (2.0.1)
 
+Stand 29.10.2026: umgesetzt (Karteikarten als je ein Dialog mit Reitern Alt+1..6 wie RDNET, Grafik sofort mit
+Rueckfrage), Tests stehen noch aus (Karsten: erst fertigstellen).
+
 Beschluss Karsten, 29.10.2026: In Optionen laesst sich alles einstellen. Neuer Grafikmodus gilt sofort mit
 Rueckfrage "Behalten?" (ohne Antwort nach 15 s zurueck). Menuepunkte Maus und Bildschirmschoner unter RD
 entfallen und gehen in Optionen auf.

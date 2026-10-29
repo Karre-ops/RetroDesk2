@@ -1051,7 +1051,8 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     { SYSINFO si; char p[80], u[80]; KernInfo(&si);   /* Menuepunkt nur von Diskette; RD2SETUP "I" startet die Installation auch aus einem Festplattenordner */
       MenuEnable(msys, CM_ZUB + 12, (si.home[0] | 0x20) < 'c' && werkzeug(u, "INSTALL.EXE"));
       if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "System", "Installieren", 0) == 1 && werkzeug(u, "INSTALL.EXE"))
-          { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, "", SW_SHOW); } }
+          { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, "", SW_SHOW); }
+      if (werkzeug(p, "RD2.INI") && ProfileGetStr(p, "System", "GrafikAlt", "", u, 4) && werkzeug(u, "OPTIONEN.EXE")) TaskExec(u, "B", SW_SHOW); }   /* neue Grafik: "Behalten?" */
     DbgPrint("SHELL: bereit");
     while (GetMessage(&m)) DispatchMessage(&m);
     DbgPrint("SHELL: Ende");

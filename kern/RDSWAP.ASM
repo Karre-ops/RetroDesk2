@@ -339,6 +339,8 @@ st_exec:
 
 ; Programm S_PATH starten, Fehler/Code merken, auf Wunsch auf eine Taste warten
 st_prog:
+        cmp  byte ptr ds:[S_PATH], 0      ; RD_DOS_NEU: kein Programm, nur RD neu starten
+        je   sp_e
         mov  dx, S_PATH
         call st_exec
         jnc  sp_ok

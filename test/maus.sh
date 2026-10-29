@@ -1,11 +1,12 @@
 #!/bin/bash
-# Mauseinstellungen: MAUS.EXE T schreibt RD2.INI [Maus] Tempo=5 Doppelklick=700 Tasten=1, danach startet RD2 neu.
+# Mauseinstellungen: RD2.INI [Maus] Tempo=5 Doppelklick=700 Tasten=1 (seit 29.10. in Optionen, Karte Maus; hier direkt geschrieben).
 # Mit getauschten Tasten oeffnet QEMU-Taste 1 (links) das Kontextmenue, zwei Klicks mit Taste 2 im Abstand von
 # 600 ms (ueber den alten 500 ms) oeffnen das Laufwerk als Doppelklick. Tempo 5 = doppelt so schnell: halber Weg (6 15 statt 12 31).
 cd "$(dirname "$0")/.."
 IMG=obj/maus.img; SER=obj/maus_com1.txt; SOCK=/tmp/qmon_maus.sock; F=0
-printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\MAUS.EXE T\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_maus.txt
-NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') MAUS.EXE" bash tools/mkdisk.sh $IMG obj/ae_maus.txt >/dev/null 2>&1
+printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_maus.txt
+NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ')" bash tools/mkdisk.sh $IMG obj/ae_maus.txt >/dev/null 2>&1
+printf '[Maus]\r\nTempo=5\r\nDoppelklick=700\r\nTasten=1\r\n' > obj/maus_ini.txt; mcopy -o -i $IMG obj/maus_ini.txt ::/RD2/RD2.INI
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK; touch $SER
 timeout 140 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
@@ -17,7 +18,6 @@ waitn() { for i in $(seq 300); do [ "$(tr -d '\r' < $SER | grep -ac "$1" || true
 diffpx() { python3 -c "
 from PIL import Image, ImageChops
 a=Image.open('$1').convert('L'); b=Image.open('$2').convert('L'); print(sum(1 for v in ImageChops.difference(a,b).tobytes() if v))"; }
-waitn "MAUS: gespeichert" 1 && echo "ok     MAUS.EXE hat gespeichert" || { echo "FEHLER MAUS.EXE"; F=1; }
 if waitn "SHELL: bereit" 1; then
   sleep 3; Q "mouse_move -400 -400" sleep0.3 "mouse_move -400 -400" sleep0.3 "mouse_move -400 -400" sleep0.3 "mouse_move -400 -400" sleep0.5 "mouse_move 18 45" sleep0.8 "screendump obj/maus_vor.ppm" sleep0.3 \
     "mouse_button 1" sleep0.2 "mouse_button 0" sleep1.2 "screendump obj/maus_pop.ppm" sleep0.3 "sendkey esc" sleep1.0

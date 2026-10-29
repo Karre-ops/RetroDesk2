@@ -1,16 +1,12 @@
-/* SCHONER.EXE - Bildschirmschoner. Ohne Befehlszeile: Einstellungen (Art, Wartezeit, Vorschau).
+/* SCHONER.EXE - Bildschirmschoner. Einstellungen (Art, Wartezeit, Vorschau) seit 29.10.2026 in OPTIONEN.EXE.
  * "S": Schoner zeigen (startet die Shell nach RD2.INI [Schoner] Zeit= Sekunden ohne Eingabe, 0 = aus, Standard 300).
  * Art= 0 Sternenfeld, 1 Uhr, 2 Schwarz. Ende bei Taste, Mausklick oder Mausbewegung; die Eingabe geht nicht weiter
  * an die Programme darunter. */
 #include "RD2.H"
 
 #define NS 48
-#define ID_A1 31                                  /* 31..33 Art */
-#define ID_Z1 41                                  /* 41..46 Wartezeit */
-#define ID_VOR 52
-static HINST hi; static char ini[80]; static short W, H, th, art, mx = -1, my, ux, uy, uw;
+static char ini[80]; static short W, H, th, art, mx = -1, my, ux, uy, uw;
 static short sx[NS], sy[NS], sz[NS], px[NS], py[NS]; static WORD zufall = 12345, takt;
-static const short zt[6] = { 0, 60, 120, 300, 600, 900 };
 
 static short rnd(short n) { zufall = zufall * 25173u + 13849u; return (short)((zufall >> 4) % (WORD)n); }
 static void neu(short i) { sx[i] = (short)(rnd(2000) - 1000); sy[i] = (short)(rnd(2000) - 1000); sz[i] = (short)(200 + rnd(800)); px[i] = -1; }
@@ -73,37 +69,13 @@ static void zeigen(HINST inst)
     while (GetMessage(&m)) DispatchMessage(&m);
     ReleaseMouse();
 }
-static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
-{
-    short i, v; char t[8];
-    (void)p2;
-    if (msg == M_INITDIALOG) {
-        v = ProfileGetInt(ini, "Schoner", "Art", 0); DlgCheck(d, ID_A1 + (v < 0 || v > 2 ? 0 : v), 1);
-        v = ProfileGetInt(ini, "Schoner", "Zeit", 300);
-        for (i = 5; i > 0 && zt[i] > v; i--) ;
-        DlgCheck(d, ID_Z1 + i, 1);
-        return FALSE;
-    }
-    if (msg != M_COMMAND) return FALSE;
-    if (p1 == ID_OK || p1 == ID_VOR) {
-        for (i = 0; i < 3; i++) if (DlgChecked(d, ID_A1 + i)) { t[0] = (char)('0' + i); t[1] = 0; ProfileSetStr(ini, "Schoner", "Art", t); }
-        for (i = 0; i < 6; i++) if (DlgChecked(d, ID_Z1 + i)) {
-            short z = zt[i], k = 0; char r[6]; do r[k++] = (char)('0' + z % 10); while (z /= 10);
-            v = 0; while (k) t[v++] = r[--k]; t[v] = 0; ProfileSetStr(ini, "Schoner", "Zeit", t);
-        }
-        if (p1 == ID_VOR) { char f[80]; InstRes(hi, f, sizeof f); TaskExec(f, "S", SW_SHOW); return TRUE; }
-        MsgBox(d, StrGet(hi, 2), StrGet(hi, 1), MB_OK | MB_INFO);
-        DialogEnd(d, ID_OK); return TRUE;
-    }
-    return FALSE;
-}
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
     SYSINFO si; short n;
-    (void)show; hi = inst;
+    (void)show;
     KernInfo(&si); for (n = 0; si.home[n] && n < 66; n++) ini[n] = si.home[n];
     if (n && ini[n - 1] != '\\') ini[n++] = '\\';
     { static const char f[] = "RD2.INI"; short k; for (k = 0; f[k]; k++) ini[n++] = f[k]; ini[n] = 0; }
-    if (cmd && cmd[0] == 'S') zeigen(inst); else DialogRun(inst, 10, 0, dproc, 0);
+    if (cmd && cmd[0] == 'S') zeigen(inst);     /* Einstellungen: RD > Optionen, Karte Schoner */
     return 0;
 }

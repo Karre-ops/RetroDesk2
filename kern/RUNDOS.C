@@ -5,7 +5,8 @@
  * zurueck. Der Rest liegt als RDSWAP.BIN neben RD.EXE und kostet so keinen Kernspeicher.
  * Ohne XMS und ohne Festplatte (Neustart, nur ohne RD_DOS_KEEP): alle Programme enden, RD
  * beendet sich, der Rest startet das Programm und danach RD.EXE /W:seg neu. Ruft dieses RD
- * wieder RunDos, traegt es das Programm in den Block seg ein und endet mit Code 0D5h. */
+ * wieder RunDos, traegt es das Programm in den Block seg ein und endet mit Code 0D5h.
+ * RD_DOS_NEU (Optionen, Grafikwechsel): immer dieser Weg, ohne Programm; RD2 startet nur neu. */
 #include "KERN.H"
 
 void (__far __pascal *k_gdipause)(WORD an);
@@ -63,8 +64,8 @@ WORD RDK RunDos(LPCSTR prog, LPCSTR cmd, WORD flags)
     psp = d21(0x6200, 0, 0, 0), psp = kr.bx;
     top = mem_arena((WORD __far *)a);
     n = (WORD)(((DWORD)(top - psp - 16) + 63) / 64);          /* KB zum Auslagern */
-    if (!(k_xmsent && rd_xms(0x0800, 0, 0) > n)   /* + 1 KB fuer die Vektorkopie */ && (k_home[0] | 0x20) < 'c') {
-        if (flags & RD_DOS_KEEP) { r = RD_ERR_NOTSUP; goto fehl; }  /* zurueck geht nur mit XMS oder Festplatte */
+    if ((flags & RD_DOS_NEU) || (!(k_xmsent && rd_xms(0x0800, 0, 0) > n)   /* + 1 KB fuer die Vektorkopie */ && (k_home[0] | 0x20) < 'c')) {
+        if ((flags & (RD_DOS_KEEP | RD_DOS_NEU)) == RD_DOS_KEEP) { r = RD_ERR_NOTSUP; goto fehl; }  /* zurueck geht nur mit XMS oder Festplatte */
         neu = 1;
         if (k_wseg) { seg = k_wseg; goto rein; }    /* laeuft unter einem Rest: dort eintragen, enden */
     }

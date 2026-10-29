@@ -91,7 +91,6 @@ app apps/dkopie/DKOPIE.C DKOPIE.EXE "Diskette kopieren"
 app apps/install/INSTALL.C INSTALL.EXE "Installation"
 app apps/hallo/HALLO.C HALLO.EXE "Hallo"
 app apps/dpruef/DPRUEF.C DPRUEF.EXE "Datentraeger pruefen"
-app apps/maus/MAUS.C MAUS.EXE "Maus"
 app apps/schoner/SCHONER.C SCHONER.EXE "Bildschirmschoner"
 app apps/edit/RDEDIT.C RDEDIT.EXE "Editor"
 # RDFORMAT: RD2-Oberflaeche + FreeDOS FORMAT 0.92a (GPL v2); FreeDOS-Dateien mit disk/fdshim.h (DOS ueber RDDISK.MOD)

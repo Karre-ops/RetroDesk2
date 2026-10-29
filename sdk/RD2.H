@@ -261,6 +261,7 @@ typedef struct {
 #define RD_DOS_KEEP   0x0001                      /* Zustand sichern und danach weitermachen */
 #define RD_DOS_PAUSE  0x0002                      /* "Taste druecken" nach Programmende */
 #define RD_DOS_GFX    0x0004                      /* Programm stellt Grafik selbst ein */
+#define RD_DOS_NEU    0x0008                      /* prog "": alle Programme enden, RD2 startet mit derselben Befehlszeile neu */
 
 /* Nachrichten */
 #define M_NULL        0x0000

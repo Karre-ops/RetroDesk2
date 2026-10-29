@@ -1,31 +1,319 @@
-; Ressourcen fuer OPTIONEN.EXE
+; Ressourcen fuer OPTIONEN.EXE: Karteikarten 11..16 (je ein Dialog mit Reitern Alt+1..6, wie RDNET)
 SPRACHE DE
 TEXTE
   1 "Optionen"
   2 "CONFIG.SYS konnte nicht geschrieben werden."
   3 "Ohne RD2 fehlt eine Shell (COMMAND.COM). Der Rechner wrde nicht starten, RD2 bleibt eingetragen."
+  4 "Gespeichert."
+  5 " Einiges gilt ab dem n„chsten Start von RD2."
+  6 " Maus-Anschluss bzw. Tastatur gelten ab dem n„chsten Start des PCs."
+  7 "Automatisch"
+  8 "Doppelklick erkannt."
+  9 "Einfacher Klick."
+  11 "RDKEYB ist geladen, die Belegung gilt sofort."
+  12 "Ein anderer Tastaturtreiber (KEYB) ist geladen."
+  13 "Er bestimmt die Belegung, RD2 „ndert sie nicht."
+  14 "RDKEYB ist nicht geladen."
+  15 "Die Belegung gilt ab dem n„chsten Start des PCs."
+  16 "anderer Maustreiber"
+  17 "Programm nicht gefunden."
+  18 "Grafikart fest in der Befehlszeile (/CGA, /VGA ...)."
+  20 "suchen"
+  21 "seriell COM1"
+  22 "seriell COM2"
+  23 "seriell COM3"
+  24 "seriell COM4"
+  25 "Mouse Systems COM1"
+  26 "Mouse Systems COM2"
+  27 "PS/2"
+  28 "Busmaus"
+  29 "InPort 23Ch"
+  30 "InPort 238h"
+  31 "aus"
+  40 "RD2 startet jetzt neu, damit die neue Grafik gilt. Andere offene Programme werden beendet."
+  42 "Zurck zur alten Grafik in "
+  43 " s."
 ENDE
-DIALOG 10 "Optionen" 0 0 210 100
-  CHECK    "System&kl„nge"                    21   8   8 190 10
-  CHECK    "&Start nach dem Booten"           22   8  22 190 10
-  CHECK    "&Netzzeit beim Booten"            23   8  36 190 10
-  STATIC   "Start gilt ab n„chstem Booten." -1 8 50 194 10
-  STATIC   "Zeitserver und Zone: RD > Netzwerk." -1 8 61 194 10
-  BUTTON   "OK"          1  46  78  50 14 STANDARD
-  BUTTON   "Abbruch"     2 114  78  50 14
+DIALOG 11 "Optionen" 0 0 268 150
+  BUTTON   "&1 Grafik" 91 8 4 40 14
+  BUTTON   "&2 Klang" 92 50 4 40 14
+  BUTTON   "&3 Maus" 93 92 4 40 14
+  BUTTON   "&4 Tastatur" 94 134 4 40 14
+  BUTTON   "&5 Schoner" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Abbrechen"  2 204 130 56 14
+  STATIC   "&Grafikart:"  -1  12  28  60 10
+  GROUP    "Profil (bei Automatisch)"  -1   8  44 252 26
+  RADIO    "&automatisch"  102  14  55  70 10
+  RADIO    "&Schnell (1 Bit)"  103  88  55  80 10
+  RADIO    "&Komfort (Farbe)"  104 172  55  84 10
+  STATIC   "Gilt sofort: RD2 startet neu, danach Rckfrage (15 s)."  105  12  78 244 10
+  STATIC   ""  106  12  90 244 10
+  COMBO                  101  76  26 150 70
+ENDE
+DIALOG 12 "Optionen" 0 0 268 150
+  BUTTON   "&1 Grafik" 91 8 4 40 14
+  BUTTON   "&2 Klang" 92 50 4 40 14
+  BUTTON   "&3 Maus" 93 92 4 40 14
+  BUTTON   "&4 Tastatur" 94 134 4 40 14
+  BUTTON   "&5 Schoner" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Abbrechen"  2 204 130 56 14
+  GROUP    "Ger„t"  -1   8  24 252 40
+  RADIO    "&PC-Lautsprecher"  121  14  35  80 10
+  RADIO    "&AdLib"  122 100  35  60 10
+  RADIO    "Sound &Blaster"  123 166  35  86 10
+  RADIO    "&Covox (LPT1)"  124  14  48  80 10
+  RADIO    "k&eine"  125 100  48  60 10
+  CHECK    "System&kl„nge"  126   8  70 120 10
+  STATIC   "Ger„t und Sound Blaster gelten ab dem n„chsten Start von RD2."  -1   8 104 252 10
+  STATIC   "S&B-Einstellung:"  -1   8  86  70 10
+  COMBO                  127  82  84 120 40
+ENDE
+DIALOG 13 "Optionen" 0 0 268 150
+  BUTTON   "&1 Grafik" 91 8 4 40 14
+  BUTTON   "&2 Klang" 92 50 4 40 14
+  BUTTON   "&3 Maus" 93 92 4 40 14
+  BUTTON   "&4 Tastatur" 94 134 4 40 14
+  BUTTON   "&5 Schoner" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Abbrechen"  2 204 130 56 14
+  GROUP    "Geschwindigkeit"  -1   8  22 252 24
+  RADIO    "1"  141  14  32  40 10
+  RADIO    "2"  142  62  32  40 10
+  RADIO    "3"  143 110  32  40 10
+  RADIO    "4"  144 158  32  40 10
+  RADIO    "5"  145 206  32  40 10
+  GROUP    "Doppelklick"  -1   8  48 252 24
+  RADIO    "&kurz"  146  14  58  70 10
+  RADIO    "&mittel"  147  96  58  70 10
+  RADIO    "&lang"  148 178  58  70 10
+  CHECK    "Linke und rechte Taste &tauschen"  149   8  76 200 10
+  BUTTON   "Te&st"  150   8  89  50 14
+  STATIC   "Zweimal schnell klicken."  151  66  92 190 10
+  STATIC   "A&nschluss:"  -1   8 110  50 10
+  COMBO                  153  62 108 120 22
+ENDE
+DIALOG 14 "Optionen" 0 0 268 150
+  BUTTON   "&1 Grafik" 91 8 4 40 14
+  BUTTON   "&2 Klang" 92 50 4 40 14
+  BUTTON   "&3 Maus" 93 92 4 40 14
+  BUTTON   "&4 Tastatur" 94 134 4 40 14
+  BUTTON   "&5 Schoner" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Abbrechen"  2 204 130 56 14
+  GROUP    "Belegung"  -1   8  24 252 26
+  RADIO    "&Deutsch"  161  14  35  80 10
+  RADIO    "&US-Englisch"  162 100  35  90 10
+  STATIC   ""  163   8  58 252 10
+  STATIC   ""  164   8  70 252 10
+ENDE
+DIALOG 15 "Optionen" 0 0 268 150
+  BUTTON   "&1 Grafik" 91 8 4 40 14
+  BUTTON   "&2 Klang" 92 50 4 40 14
+  BUTTON   "&3 Maus" 93 92 4 40 14
+  BUTTON   "&4 Tastatur" 94 134 4 40 14
+  BUTTON   "&5 Schoner" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Abbrechen"  2 204 130 56 14
+  GROUP    "Art"  -1   8  22 252 26
+  RADIO    "S&ternenfeld"  181  14  33  70 10
+  RADIO    "&Uhr"  182  96  33  60 10
+  RADIO    "Sch&warz"  183 178  33  64 10
+  GROUP    "Starten nach"  -1   8  52 252 40
+  RADIO    "&aus"  184  14  63  70 10
+  RADIO    "1 &Minute"  185  96  63  70 10
+  RADIO    "2 M&inuten"  186 178  63  70 10
+  RADIO    "5 Mi&nuten"  187  14  76  70 10
+  RADIO    "1&0 Minuten"  188  96  76  70 10
+  RADIO    "15 Minut&en"  189 178  76  70 10
+  BUTTON   "&Vorschau"  190   8  98  60 14
+ENDE
+DIALOG 16 "Optionen" 0 0 268 150
+  BUTTON   "&1 Grafik" 91 8 4 40 14
+  BUTTON   "&2 Klang" 92 50 4 40 14
+  BUTTON   "&3 Maus" 93 92 4 40 14
+  BUTTON   "&4 Tastatur" 94 134 4 40 14
+  BUTTON   "&5 Schoner" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Abbrechen"  2 204 130 56 14
+  CHECK    "&Start nach dem Booten"  201   8  26 200 10
+  STATIC   "Start gilt ab dem n„chsten Booten."  -1  20  37 236 10
+  CHECK    "&Netzzeit beim Booten"  202   8  50 200 10
+  BUTTON   "Netz&werk..."  204   8  64  80 14
+  BUTTON   "&Hardware erkennen..."  205  96  64 110 14
+  STATIC   "XMS gilt ab dem n„chsten Start von RD2."  -1   8 104 252 10
+  STATIC   "&XMS-Ablage:"  -1   8  88  60 10
+  COMBO                  207  72  86  80 40
+ENDE
+DIALOG 17 "Grafik" 0 0 200 60
+  STATIC   "Neue Grafik behalten?"  -1  12   8 180 10
+  STATIC   ""  172  12  22 180 10
+  BUTTON   "&Ja"  6  36  40  56 14 STANDARD
+  BUTTON   "&Nein"  7 108  40  56 14
 ENDE
 SPRACHE EN
 TEXTE
   1 "Options"
   2 "CONFIG.SYS could not be written."
   3 "Without RD2 there is no shell (COMMAND.COM). The PC would not start, RD2 stays."
+  4 "Saved."
+  5 " Some settings take effect the next time RD2 starts."
+  6 " Mouse port or keyboard take effect the next time the PC starts."
+  7 "Automatic"
+  8 "Double-click detected."
+  9 "Single click."
+  11 "RDKEYB is loaded, the layout applies at once."
+  12 "Another keyboard driver (KEYB) is loaded."
+  13 "It decides the layout, RD2 does not change it."
+  14 "RDKEYB is not loaded."
+  15 "The layout applies the next time the PC starts."
+  16 "other mouse driver"
+  17 "Program not found."
+  18 "Display fixed on the command line (/CGA, /VGA ...)."
+  20 "search"
+  21 "serial COM1"
+  22 "serial COM2"
+  23 "serial COM3"
+  24 "serial COM4"
+  25 "Mouse Systems COM1"
+  26 "Mouse Systems COM2"
+  27 "PS/2"
+  28 "Bus mouse"
+  29 "InPort 23Ch"
+  30 "InPort 238h"
+  31 "off"
+  40 "RD2 restarts now so the new display takes effect. Other open programs will be closed."
+  42 "Back to the old display in "
+  43 " s."
 ENDE
-DIALOG 10 "Options" 0 0 210 100
-  CHECK    "System &sounds"                   21   8   8 190 10
-  CHECK    "Start after &boot"                22   8  22 190 10
-  CHECK    "&Network time at boot"            23   8  36 190 10
-  STATIC   "Start applies from next boot." -1 8 50 194 10
-  STATIC   "Time server and zone: RD > Network." -1 8 61 194 10
-  BUTTON   "OK"          1  46  78  50 14 STANDARD
-  BUTTON   "Cancel"      2 114  78  50 14
+DIALOG 11 "Options" 0 0 268 150
+  BUTTON   "&1 Display" 91 8 4 40 14
+  BUTTON   "&2 Sound" 92 50 4 40 14
+  BUTTON   "&3 Mouse" 93 92 4 40 14
+  BUTTON   "&4 Keyboard" 94 134 4 40 14
+  BUTTON   "&5 Saver" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Cancel"  2 204 130 56 14
+  STATIC   "&Display:"  -1  12  28  60 10
+  GROUP    "Profile (when automatic)"  -1   8  44 252 26
+  RADIO    "&automatic"  102  14  55  70 10
+  RADIO    "&Fast (1 bit)"  103  88  55  80 10
+  RADIO    "&Comfort (colour)"  104 172  55  84 10
+  STATIC   "Applies at once: RD2 restarts, then asks (15 s)."  105  12  78 244 10
+  STATIC   ""  106  12  90 244 10
+  COMBO                  101  76  26 150 70
+ENDE
+DIALOG 12 "Options" 0 0 268 150
+  BUTTON   "&1 Display" 91 8 4 40 14
+  BUTTON   "&2 Sound" 92 50 4 40 14
+  BUTTON   "&3 Mouse" 93 92 4 40 14
+  BUTTON   "&4 Keyboard" 94 134 4 40 14
+  BUTTON   "&5 Saver" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Cancel"  2 204 130 56 14
+  GROUP    "Device"  -1   8  24 252 40
+  RADIO    "&PC speaker"  121  14  35  80 10
+  RADIO    "&AdLib"  122 100  35  60 10
+  RADIO    "Sound &Blaster"  123 166  35  86 10
+  RADIO    "&Covox (LPT1)"  124  14  48  80 10
+  RADIO    "&none"  125 100  48  60 10
+  CHECK    "System &sounds"  126   8  70 120 10
+  STATIC   "Device and Sound Blaster take effect the next time RD2 starts."  -1   8 104 252 10
+  STATIC   "S&B setting:"  -1   8  86  70 10
+  COMBO                  127  82  84 120 40
+ENDE
+DIALOG 13 "Options" 0 0 268 150
+  BUTTON   "&1 Display" 91 8 4 40 14
+  BUTTON   "&2 Sound" 92 50 4 40 14
+  BUTTON   "&3 Mouse" 93 92 4 40 14
+  BUTTON   "&4 Keyboard" 94 134 4 40 14
+  BUTTON   "&5 Saver" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Cancel"  2 204 130 56 14
+  GROUP    "Speed"  -1   8  22 252 24
+  RADIO    "1"  141  14  32  40 10
+  RADIO    "2"  142  62  32  40 10
+  RADIO    "3"  143 110  32  40 10
+  RADIO    "4"  144 158  32  40 10
+  RADIO    "5"  145 206  32  40 10
+  GROUP    "Double-click"  -1   8  48 252 24
+  RADIO    "&short"  146  14  58  70 10
+  RADIO    "&medium"  147  96  58  70 10
+  RADIO    "&long"  148 178  58  70 10
+  CHECK    "Swap left and right &buttons"  149   8  76 200 10
+  BUTTON   "&Test"  150   8  89  50 14
+  STATIC   "Click twice quickly."  151  66  92 190 10
+  STATIC   "P&ort:"  -1   8 110  50 10
+  COMBO                  153  62 108 120 22
+ENDE
+DIALOG 14 "Options" 0 0 268 150
+  BUTTON   "&1 Display" 91 8 4 40 14
+  BUTTON   "&2 Sound" 92 50 4 40 14
+  BUTTON   "&3 Mouse" 93 92 4 40 14
+  BUTTON   "&4 Keyboard" 94 134 4 40 14
+  BUTTON   "&5 Saver" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Cancel"  2 204 130 56 14
+  GROUP    "Layout"  -1   8  24 252 26
+  RADIO    "&German"  161  14  35  80 10
+  RADIO    "&US English"  162 100  35  90 10
+  STATIC   ""  163   8  58 252 10
+  STATIC   ""  164   8  70 252 10
+ENDE
+DIALOG 15 "Options" 0 0 268 150
+  BUTTON   "&1 Display" 91 8 4 40 14
+  BUTTON   "&2 Sound" 92 50 4 40 14
+  BUTTON   "&3 Mouse" 93 92 4 40 14
+  BUTTON   "&4 Keyboard" 94 134 4 40 14
+  BUTTON   "&5 Saver" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Cancel"  2 204 130 56 14
+  GROUP    "Type"  -1   8  22 252 26
+  RADIO    "S&tarfield"  181  14  33  70 10
+  RADIO    "&Clock"  182  96  33  60 10
+  RADIO    "&Black"  183 178  33  64 10
+  GROUP    "Start after"  -1   8  52 252 40
+  RADIO    "&off"  184  14  63  70 10
+  RADIO    "1 &minute"  185  96  63  70 10
+  RADIO    "2 m&inutes"  186 178  63  70 10
+  RADIO    "5 mi&nutes"  187  14  76  70 10
+  RADIO    "1&0 minutes"  188  96  76  70 10
+  RADIO    "15 minut&es"  189 178  76  70 10
+  BUTTON   "&Preview"  190   8  98  60 14
+ENDE
+DIALOG 16 "Options" 0 0 268 150
+  BUTTON   "&1 Display" 91 8 4 40 14
+  BUTTON   "&2 Sound" 92 50 4 40 14
+  BUTTON   "&3 Mouse" 93 92 4 40 14
+  BUTTON   "&4 Keyboard" 94 134 4 40 14
+  BUTTON   "&5 Saver" 95 176 4 40 14
+  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "OK"  1 140 130 56 14 STANDARD
+  BUTTON   "Cancel"  2 204 130 56 14
+  CHECK    "&Start after boot"  201   8  26 200 10
+  STATIC   "Start applies from the next boot."  -1  20  37 236 10
+  CHECK    "&Network time at boot"  202   8  50 200 10
+  BUTTON   "Net&work..."  204   8  64  80 14
+  BUTTON   "&Hardware detection..."  205  96  64 110 14
+  STATIC   "XMS takes effect the next time RD2 starts."  -1   8 104 252 10
+  STATIC   "&XMS buffer:"  -1   8  88  60 10
+  COMBO                  207  72  86  80 40
+ENDE
+DIALOG 17 "Display" 0 0 200 60
+  STATIC   "Keep the new display?"  -1  12   8 180 10
+  STATIC   ""  172  12  22 180 10
+  BUTTON   "&Yes"  6  36  40  56 14 STANDARD
+  BUTTON   "&No"  7 108  40  56 14
 ENDE
