@@ -623,7 +623,7 @@ int main(int argc, char **argv)
         else if ((k & 0xFF) == 'a' || (k & 0xFF) == 'A') { zeile(18, " erkenne alles ..."); erkennen(-1); zeile(18, ""); geaendert = 1; }
         else if ((k & 0xFF) == 's' || (k & 0xFF) == 'S') { char g[90]; sprintf(g, ini_schreiben(ini) ? " Gespeichert in %s." : " FEHLER beim Speichern in %s.", ini); zeile(18, g); geaendert = 0; }
         else if ((k & 0xFF) == 't' || (k & 0xFF) == 'T') { for (i = 18; i < 25; i++) zeile(i, ""); installieren(); }   /* Notweg: Text */
-        else if (((k & 0xFF) == 'i' || (k & 0xFF) == 'I') && (quelle[0] & 0xDF) <= 'B' && inst_da()) {   /* grafisch in RD2 */
+        else if (((k & 0xFF) == 'i' || (k & 0xFF) == 'I') && inst_da()) {   /* grafisch in RD2 (auch aus einem Festplattenordner, z. B. per FTP geladen) */
             inst_grafisch = 1;
             if (ini_schreiben(ini) == 1) { inst_grafisch = 0; cls(); printf("RD2SETUP: Die Installation startet gleich in RetroDesk.\n"); return 0; }
             inst_grafisch = 0; zeile(18, " FEHLER beim Speichern (schreibgeschuetzt?). T: im Textmodus installieren.");

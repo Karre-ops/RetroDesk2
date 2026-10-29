@@ -1048,9 +1048,9 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     TimerSet(desk, 1, 1000); uhr(); prgladen(); sta_lesen();
     { char p[80], u[80]; if (werkzeug(p, "RD2.INI")) szeit = (WORD)ProfileGetInt(p, "Schoner", "Zeit", 300);
       if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "Netz", "Zeit", 0) && werkzeug(u, "UHR.EXE")) TaskExec(u, "N", SW_HIDE); }   /* Netzzeit beim Start */
-    { SYSINFO si; char p[80], u[80]; KernInfo(&si);   /* Installation nur, wenn RD2 von Diskette laeuft; RD2SETUP "I" startet sie */
+    { SYSINFO si; char p[80], u[80]; KernInfo(&si);   /* Menuepunkt nur von Diskette; RD2SETUP "I" startet die Installation auch aus einem Festplattenordner */
       MenuEnable(msys, CM_ZUB + 12, (si.home[0] | 0x20) < 'c' && werkzeug(u, "INSTALL.EXE"));
-      if ((si.home[0] | 0x20) < 'c' && werkzeug(p, "RD2.INI") && ProfileGetInt(p, "System", "Installieren", 0) == 1 && werkzeug(u, "INSTALL.EXE"))
+      if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "System", "Installieren", 0) == 1 && werkzeug(u, "INSTALL.EXE"))
           { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, "", SW_SHOW); } }
     DbgPrint("SHELL: bereit");
     while (GetMessage(&m)) DispatchMessage(&m);
