@@ -6,7 +6,7 @@ RD2_2.IMG  Diskette 2 RD2 PROG (Programme, FDISK, FORMAT, Treiber)       360 KB
 RD2_3.IMG  Diskette 3 RD2 NETZ (Netzwerk, FTP, IRC)                      360 KB
 RD2_4.IMG  Diskette 4 RD2 EXTRA (SDK fuer C und Pascal)                  360 KB
 RD2_FTP.ZIP  Inhalt der Disketten 1 bis 3 in einem Ordner RD2 (8.3-Namen),
-             fuer die Uebertragung per FTP (z. B. mit RetroDesk 1) ohne Disketten
+             fuer die Uebertragung per FTP (z. B. mit RetroDesk 1) ohne Disketten, mit RD2INST.BAT
 SHA256.TXT   Pruefsummen
 
 Installation ueber FTP auf einen Rechner mit DOS 5 und Festplatte
@@ -16,7 +16,11 @@ Installation ueber FTP auf einen Rechner mit DOS 5 und Festplatte
    und dort in RD2NEU umbenennen (oder direkt in C:\RD2NEU ablegen).
    Nicht C:\RD2 nehmen: das ist das Ziel der Installation.
 3. RetroDesk 1 beenden und am DOS-Prompt starten:
+     C:\RD2NEU\RD2INST
+   (anderer Ordner: C:\ORDNER\RD2INST C:\ORDNER). Ohne Batchdatei geht es auch mit
      C:\RD2NEU\RD.EXE C:\RD2NEU\SHELL.EXE
+   Die Batchdatei heisst nicht INSTALL.BAT, weil DOS sonst INSTALL.EXE im selben
+   Ordner zuerst startet.
 4. Beim ersten Start erscheint die Einrichtung (Hardware-Erkennung). Werte pruefen,
    dann I: RetroDesk 2 startet und oeffnet die grafische Installation.
    Ziel C:\RD2 bestaetigen. Es gibt keinen Diskettenwechsel. Die Fragen zur CONFIG.SYS

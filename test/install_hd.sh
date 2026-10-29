@@ -2,6 +2,7 @@
 # Installation aus einem Festplattenordner (Weg ueber RD1-FTP, 29.10.2026): release/2.0/RD2_FTP.ZIP liegt entpackt
 # in C:\RD2NEU (bestehendes DOS mit CONFIG.SYS/AUTOEXEC.BAT), RD2 wird von dort gestartet: Erster Start -> RD2SETUP,
 # "I" -> INSTALL.EXE, Ziel C:\RD2, ohne Diskettenwechsel, Fragen zu CONFIG.SYS, danach Start von C:\RD2.
+# Gestartet ueber C:\RD2NEU\RD2INST.BAT. INI=1: im Ordner liegt schon eine RD2.INI (RD2INST ruft erst RD2SETUP auf).
 cd "$(dirname "$0")/.."
 F=0; S=/tmp/qmon_ihd.sock; SER=obj/com1_ihd.txt; export QMON=$S
 Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
@@ -21,13 +22,14 @@ printf '@ECHO OFF\r\nPATH A:\\\r\nLH C:\\TREIBER\\MOUSE.COM /S50\r\nREM Ende\r\n
 mmd $C ::/TREIBER; mcopy $C test/qemu/CTMOUSE.EXE ::/TREIBER/MOUSE.COM
 printf 'x' > obj/io.tmp; mcopy $C obj/io.tmp ::/IO.SYS
 mmd $C ::/RD2NEU; mcopy $C obj/ihd/RD2/* ::/RD2NEU/
-printf '@echo off\r\nC:\\RD2NEU\\RD.EXE /VGA C:\\RD2NEU\\SHELL.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ihd_boot.txt
+[ "${INI:-0}" = 1 ] && { printf '[System]\r\nGrafik=VGA\r\n' > obj/ihd_ini.tmp; mcopy $C obj/ihd_ini.tmp ::/RD2NEU/RD2.INI; }
+printf '@echo off\r\nCALL C:\\RD2NEU\\RD2INST.BAT\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ihd_boot.txt
 NUR="FREIMEM.EXE" bash tools/mkdisk.sh obj/ihd_a.img obj/ihd_boot.txt >/dev/null 2>&1
 rm -f $S $SER; touch $SER
 timeout 140 qemu-system-i386 -m 1 -display none -no-reboot -drive file=obj/ihd_a.img,format=raw,if=floppy,index=0 \
   -drive file=$HD,format=raw,if=ide,index=0 -boot a -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!
-waitscr "Erster Start" 60 && echo "ok     C:\\RD2NEU startet, Einrichtung erscheint" || { echo "FEHLER keine Einrichtung"; F=1; }
+waitscr "Einrichtung" 60 && echo "ok     RD2INST.BAT startet die Einrichtung (INI=${INI:-0})" || { echo "FEHLER keine Einrichtung"; F=1; }
 sleep 1; Q "sendkey i"
 if waitser "INSTALL: Start" 1 60; then echo "ok     INSTALL.EXE startet, Quelle $(tr -d '\r' < $SER | grep -a -A1 'INSTALL: Start' | tail -1)"; sleep 3; Q "sendkey ret"
 else echo "FEHLER INSTALL.EXE startet nicht"; F=1; fi
