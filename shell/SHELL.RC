@@ -6,6 +6,7 @@ MENU 1
     TRENNER
     ITEM "&Uhr"                3
     ITEM "&Notizblock"         4
+    ITEM "&Editor"            16
     ITEM "Re&chner"            5
     ITEM "&Optionen..."        6
     ITEM "&FTP"                8
@@ -147,6 +148,7 @@ MENU 1
     TRENNER
     ITEM "&Clock"              3
     ITEM "&Notepad"            4
+    ITEM "&Editor"            16
     ITEM "Calc&ulator"         5
     ITEM "&Options..."         6
     ITEM "Net&work..."         7

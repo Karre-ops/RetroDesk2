@@ -60,7 +60,7 @@ static char lw[26], lt[26]; static short nlw, lsel;   /* Laufwerke: Buchstabe, T
 static ORDNER od[MAXO];
 static char buf[200], qv[80], qn[80];            /* Text; Quelle und Ziel beim Kopieren */
 static HWND letzt; static HMENU mlw, mps;
-static char prg[MAXP][68], prgn[MAXP][9]; static BYTE nprg, psy[MAXP], nps;   /* psy: Programme auf dem Schreibtisch */   /* PROGRAMM.LST: Datei, Abschnitt */
+static char prg[MAXP][68], prgn[MAXP][9]; static BYTE nprg, psy[MAXP], nps, pm[MAXP], npm;   /* psy: Programme auf dem Schreibtisch */   /* PROGRAMM.LST: Datei, Abschnitt */
 static char heim[66];                             /* RD2-Verzeichnis ohne \ am Ende, "" = Wurzel */
 static BYTE wl[26];                               /* Wechsel je Laufwerk: 1 = eben gelesen, 2 = Abfrage aus (kein Signal / keine Diskette) */
 static HWND zw; static short zx, zy; static BYTE zieht, liste;   /* liste: Listenansicht in allen Ordnern */   /* Ziehen: Quelle, Startpunkt, 1 = gedrueckt, 2 = zieht */
@@ -667,11 +667,15 @@ static void prgladen(void)                        /* PROGRAMM.LST lesen, Menue P
         if (h) MemFree(h);
         FileClose(f);
     }
-    for (i = 0; i < MAXP; i++) {
-        if (i < nprg) { t[0] = '&'; t[1] = (char)(i < 9 ? '1' + i : 'A' + i - 9); t[2] = ' '; scpy(t + 3, prgn[i], sizeof t - 3); }
-        MenuText(mbar, CM_PRG + i, i < nprg ? t : 0);
+    for (i = k = 0; i < nprg; i++) {              /* Papierkorb steht im RD-Menue (Symbol bleibt) */
+        LPCSTR b = prg[i], q; for (q = b; *q; q++) if (*q == '\\' || *q == ':') b = q + 1;
+        if (gleichi(b, "PAPIERK.EXE")) continue;
+        t[0] = '&'; t[1] = (char)(k < 9 ? '1' + k : 'A' + k - 9); t[2] = ' '; scpy(t + 3, prgn[i], sizeof t - 3);
+        pm[k] = (BYTE)i; MenuText(mbar, CM_PRG + k++, t);
     }
-    MenuText(mbar, CM_PLEER, nprg ? 0 : StrGet(inst, 28));
+    npm = (BYTE)k;
+    for (; k < MAXP; k++) MenuText(mbar, CM_PRG + k, 0);
+    MenuText(mbar, CM_PLEER, 0);                  /* kein Platzhalter */
     if (lsel >= nlw + nps) lsel = nlw + nps - 1;
     if (desk) InvalidateRect(desk, 0, FALSE);
 }
@@ -1049,12 +1053,12 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_PSTART && lsel >= nlw) starten(prg[psy[lsel - nlw]]);
         else if (p1 == CM_PWEG && lsel >= nlw) pdesk(prgn[psy[lsel - nlw]], 0);
         else if (p1 == CM_FDISK) einrichten();
-        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 13) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE", "PAPIERK.EXE", "TASKMAN.EXE", "MAUS.EXE", "SCHONER.EXE", "INSTALL.EXE" }; char p[80];
+        else if (p1 >= CM_ZUB && p1 < CM_ZUB + 14) { static const char *zn[] = { "UHR.EXE", "NOTIZ.EXE", "RECHNER.EXE", "OPTIONEN.EXE", "RDNET.EXE", "RDFTP.EXE", "RDIRC.EXE", "RDSHELL.EXE", "PAPIERK.EXE", "TASKMAN.EXE", "MAUS.EXE", "SCHONER.EXE", "INSTALL.EXE", "RDEDIT.EXE" }; char p[80];
             if (werkzeug(p, zn[p1 - CM_ZUB])) starten(p); }
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
         else if (p1 >= CM_SORT && p1 < CM_SORT + 4) sortwahl((BYTE)(p1 - CM_SORT));
         else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); DbgHex("SHELL: versteckte", verst); alle_neu(); }
-        else if (p1 >= CM_PRG && p1 < CM_PRG + nprg) starten(prg[p1 - CM_PRG]);
+        else if (p1 >= CM_PRG && p1 < CM_PRG + npm) starten(prg[pm[p1 - CM_PRG]]);
         return 0;
     case M_TIMER:
         if (!slauf) uhr();                        /* Uhr in der Menueleiste ruht, solange der Schoner laeuft */
@@ -1091,6 +1095,7 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
       if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "Netz", "Zeit", 0) && werkzeug(u, "UHR.EXE")) TaskExec(u, "N", SW_HIDE); }   /* Netzzeit beim Start */
     { SYSINFO si; char p[80], u[80]; KernInfo(&si);   /* Menuepunkt nur von Diskette; RD2SETUP "I" startet die Installation auch aus einem Festplattenordner */
       MenuEnable(msys, CM_ZUB + 12, (si.home[0] | 0x20) < 'c' && werkzeug(u, "INSTALL.EXE"));
+      MenuEnable(msys, CM_ZUB + 13, werkzeug(u, "RDEDIT.EXE"));     /* Editor liegt auf der Programmdiskette */
       if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "System", "Installieren", 0) == 1 && werkzeug(u, "INSTALL.EXE"))
           { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, "", SW_SHOW); }
       if (werkzeug(p, "RD2.INI") && ProfileGetStr(p, "System", "GrafikAlt", "", u, 4) && werkzeug(u, "OPTIONEN.EXE")) TaskExec(u, "B", SW_SHOW); }   /* neue Grafik: "Behalten?" */

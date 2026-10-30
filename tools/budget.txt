@@ -35,7 +35,7 @@ SYS14.FNT        4096    0   S
 SYS16.FNT        4608    0   S
 DE.LNG           4096    2   S
 EN.LNG           4096    0   S
-SHELL.EXE       40960   30   S  Desktop, Dateimanager (Teile verwerfbar)
+SHELL.EXE       40960   31   S  Desktop, Dateimanager (Teile verwerfbar) (29.10.: 31 KB fuer Sortieren, Programme-Zuordnung, Editor im RD-Menue)
 UHR.EXE          8192   12   P  Zubehoer (4 KB Stapel: Nachladen laeuft darauf), Netzzeit per SNTP (Datumsrechnung mit long: +2,6 KB)
 NOTIZ.EXE       10240   10   P  Zubehoer
 RECHNER.EXE      8192   10   P  Zubehoer, kleiner Rechner (4 KB Stapel wie UHR, Rechenkern Dezimalziffern)

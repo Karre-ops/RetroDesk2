@@ -673,6 +673,7 @@ static void ziehen(WORD i, short mx, short my, int gr)   /* Titel (gr = 0) oder 
     Frame(d, &a);
     for (;;) {
         if (!GetMessage(&m)) { PostQuit(0); break; }
+        if (m.msg == M_DBLCLK) m.msg = M_BUTTONDOWN;   /* schneller zweiter Klick (oder prellende Taste) wie Druecken */
         if (m.msg == M_MOUSEMOVE || m.msg == M_BUTTONUP) {
             Frame(d, &a);
             dx = m.pt.x - mx; dy = m.pt.y - my; a = r;

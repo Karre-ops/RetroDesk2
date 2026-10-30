@@ -210,11 +210,13 @@ static void __far __loadds mhandler(WORD ev, WORD bt, WORD x, WORD y)
     if (ev & 1) moved = 1;
     for (i = 0; i < 3; i++) {                     /* Bits 1/2 links, 3/4 rechts, 5/6 Mitte */
         WORD a = (ev >> (1 + 2 * i)) & 3;
-        if (a && (BYTE)(mqs - mqk) < 16) {
-            volatile MEV *e = &mq[mqs & 15];
-            e->art = (BYTE)((a & 1) ? 2 : 3); e->taste = (BYTE)(i + 1); e->x = (short)x; e->y = (short)y;
-            mqs++;
-        }
+        WORD k;                                   /* a = 3: Druecken und Loslassen in einem Aufruf (kurzer Klick, */
+        for (k = 1; k <= 2; k++)                  /* langsamer Rechner/Treiber): beides melden, erst gedrueckt */
+            if ((a & k) && (BYTE)(mqs - mqk) < 16) {
+                volatile MEV *e = &mq[mqs & 15];
+                e->art = (BYTE)(k + 1); e->taste = (BYTE)(i + 1); e->x = (short)x; e->y = (short)y;
+                mqs++;
+            }
     }
     if (!gbusy && con && (zx != mx - gk.hx || zy != my - gk.hy)) { zweg(); zhin(); }
 }
