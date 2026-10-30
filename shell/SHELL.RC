@@ -12,7 +12,7 @@ MENU 1
     ITEM "&FTP"                8
     ITEM "I&RC"                9
     ITEM "&DOS-Fenster"       10
-    ITEM "&Papierkorb"        11
+    ITEM "&Müll"              11
     ITEM "&Taskmanager"       12
     ITEM "Instal&lation auf Festplatte..." 15
     TRENNER
@@ -139,7 +139,8 @@ TEXTE
   36 "Suchen in %s nach (z. B. *.BAS):"
   37 "%s Treffer in %s"
   38 "Nichts gefunden."
-  39 "%s Eintrag/Eintr„ge in den Papierkorb legen?\n(Ordner werden gel”scht, Umschalt+Entf l”scht sofort.)"
+  39 "%s Eintrag/Eintr„ge in den Müll legen?\n(Ordner werden gel”scht, Umschalt+Entf l”scht sofort.)"
+  40 "Müll"
 ENDE
 SPRACHE EN
 MENU 1
@@ -155,7 +156,7 @@ MENU 1
     ITEM "&FTP"                8
     ITEM "I&RC"                9
     ITEM "&DOS window"        10
-    ITEM "Recycle &bin"       11
+    ITEM "Tras&h"             11
     ITEM "&Task manager"      12
     ITEM "Insta&ll to hard disk..." 15
     TRENNER
@@ -282,7 +283,8 @@ TEXTE
   36 "Search %s for (e.g. *.BAS):"
   37 "%s matches in %s"
   38 "Nothing found."
-  39 "Move %s item(s) to the recycle bin?\n(Folders are deleted, Shift+Del deletes at once.)"
+  39 "Move %s item(s) to the trash?\n(Folders are deleted, Shift+Del deletes at once.)"
+  40 "Trash"
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"
@@ -290,4 +292,5 @@ SYMBOL 2 "HDISK.ICO"
 SYMBOL 3 "ORDNER.ICO"
 SYMBOL 4 "PROG.ICO"
 SYMBOL 5 "DOK.ICO"
-SYMBOL 6 "PAPIERK.ICO"
+SYMBOL 6 "MUELL.ICO"
+SYMBOL 7 "MUELL_V.ICO"

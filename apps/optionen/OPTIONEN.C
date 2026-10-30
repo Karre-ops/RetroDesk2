@@ -267,6 +267,8 @@ static WORD speichern(void)
 {
     char t[8]; WORD e;
     neurd = neupc = gneu = 0; csneu = 0;
+    if ((gsel != gsel0 || prof != prof0) && !test &&   /* Grafik geaendert: Hinweis auf den Neustart, Abbrechen verwirft sie (30.10.2026) */
+        MsgBox(GetActive(), StrGet(hi, 40), StrGet(hi, 1), MB_OKCANCEL | MB_INFO) != ID_OK) { gsel = gsel0; prof = prof0; }
     if (gsel != gsel0 || prof != prof0) {         /* alte Werte fuer "Behalten?" merken */
         char a[16];
         ProfileGetStr(ini, "System", "Grafik", "AUTO", a, sizeof a); ProfileSetStr(ini, "System", "GrafikAlt", a);
@@ -399,9 +401,6 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         break;
     }
     MemUnlock(hm); MemFree(hm);
-    if (gneu) {                                   /* neue Grafik gilt sofort: RD2 neu starten, danach "Behalten?" */
-        if (MsgBox(0, StrGet(hi, 40), StrGet(hi, 1), MB_OKCANCEL | MB_INFO) == ID_OK) neustart();
-        else ProfileSetStr(ini, "System", "GrafikAlt", "");   /* dann ab dem naechsten Start, ohne Rueckfrage */
-    }
+    if (gneu) neustart();                          /* neue Grafik gilt sofort (beim OK bestaetigt): RD2 neu starten, danach "Behalten?" */
     return 0;
 }

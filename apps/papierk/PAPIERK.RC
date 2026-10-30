@@ -1,11 +1,11 @@
 ; Ressourcen fuer PAPIERK.EXE
 SPRACHE DE
 TEXTE
-  1 "Papierkorb"
+  1 "M¸ll"
   2 "Wiederherstellen ging nicht (Ordner fehlt oder Datei gibt es schon)."
   3 "Papierkorb leeren? Die Dateien sind dann endgÅltig weg."
 ENDE
-DIALOG 10 "Papierkorb" 0 0 300 150
+DIALOG 10 "M¸ll" 0 0 300 150
   LIST                  40   8   8 284 104 WS_VSCROLL
   BUTTON   "&Wiederherstellen" 21   8 122  80 14 STANDARD
   BUTTON   "&Lîschen"    22  94 122  60 14
@@ -14,11 +14,11 @@ DIALOG 10 "Papierkorb" 0 0 300 150
 ENDE
 SPRACHE EN
 TEXTE
-  1 "Recycle bin"
+  1 "Trash"
   2 "Could not restore (folder missing or file already exists)."
-  3 "Empty the recycle bin? The files will be gone for good."
+  3 "Empty the trash? The files will be gone for good."
 ENDE
-DIALOG 10 "Recycle bin" 0 0 300 150
+DIALOG 10 "Trash" 0 0 300 150
   LIST                  40   8   8 284 104 WS_VSCROLL
   BUTTON   "&Restore"    21   8 122  80 14 STANDARD
   BUTTON   "&Delete"     22  94 122  60 14

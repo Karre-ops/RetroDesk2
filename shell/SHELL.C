@@ -640,6 +640,7 @@ static int schl(const char FAR *b, WORD n, LPCSTR k)   /* Zeile beginnt mit Schl
     for (; *k; b++, k++, n--) if (!n || (*b | 0x20) != (*k | 0x20)) return 0;
     return 1;
 }
+static short muell(short i);
 static void prgladen(void)                        /* PROGRAMM.LST lesen, Menue Programme fuellen */
 {
     char p[80], t[24], sec[9]; HMEM h; char FAR *b; short f; WORD n = 0, i, k; BYTE ds = 0;
@@ -669,7 +670,7 @@ static void prgladen(void)                        /* PROGRAMM.LST lesen, Menue P
     }
     for (i = k = 0; i < nprg; i++) {              /* Papierkorb steht im RD-Menue (Symbol bleibt) */
         LPCSTR b = prg[i], q; for (q = b; *q; q++) if (*q == '\\' || *q == ':') b = q + 1;
-        if (gleichi(b, "PAPIERK.EXE")) continue;
+        if (muell(i)) continue;
         t[0] = '&'; t[1] = (char)(k < 9 ? '1' + k : 'A' + k - 9); t[2] = ' '; scpy(t + 3, prgn[i], sizeof t - 3);
         pm[k] = (BYTE)i; MenuText(mbar, CM_PRG + k++, t);
     }
@@ -900,11 +901,21 @@ static void lwfeld(short k, RECT *r)              /* Laufwerke, darunter Program
     short nr = (H - mh - 16) / (zh + 6); if (nr < 1) nr = 1;
     r->l = 8 + (k / nr) * 64; r->r = r->l + 56; r->t = 8 + (k % nr) * (zh + 6); r->b = r->t + zh;
 }
+static BYTE mvoll;                                /* Muell hat Eintraege (X:\PAPIERK\PAPIERK.LST auf einer Festplatte) */
+static short muell(short i) { LPCSTR b = prg[i], q; for (q = b; *q; q++) if (*q == '\\' || *q == ':') b = q + 1; return gleichi(b, "PAPIERK.EXE"); }
+static BYTE muellvoll(void)
+{
+    short i; FINDDATA f; char p[24];
+    for (i = 0; i < nlw; i++) if (lt[i] != DT_FLOPPY) { p[0] = lw[i]; scpy(p + 1, ":\\PAPIERK\\PAPIERK.LST", sizeof p - 1); if (!FileFindFirst(p, 0, &f) && f.groesse) return 1; }
+    return 0;
+}
 static void lwmal(HDC d, short k)
 {
     RECT r; char t[3];
     lwfeld(k, &r);
-    if (k >= nlw) { const char *q = prgn[psy[k - nlw]]; IconDraw(d, r.l + (56 - 32) / 2, r.t + 2, inst, (q[0] | 0x20) == 'p' && (q[1] | 0x20) == 'a' && (q[6] | 0x20) == 'k' && !q[7] ? 6 : IC_PROG); schild(d, r.l, r.t + ih + 3, 56, prgn[psy[k - nlw]], k == lsel); return; }
+    if (k >= nlw) { short m = muell(psy[k - nlw]);   /* Muell (PAPIERK.EXE): leer Deckel zu, voll Deckel schief (30.10.2026) */
+        IconDraw(d, r.l + (56 - 32) / 2, r.t + 2, inst, m ? (mvoll ? 7 : 6) : IC_PROG);
+        schild(d, r.l, r.t + ih + 3, 56, m ? StrGet(inst, 40) : prgn[psy[k - nlw]], k == lsel); return; }
     IconDraw(d, r.l + (56 - 32) / 2, r.t + 2, inst, lt[k] == DT_FLOPPY ? IC_FLOPPY : IC_HDISK);
     t[0] = lw[k]; t[1] = ':'; t[2] = 0;
     schild(d, r.l, r.t + ih + 3, 56, t, k == lsel);
@@ -1063,7 +1074,11 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
     case M_TIMER:
         if (!slauf) uhr();                        /* Uhr in der Menueleiste ruht, solange der Schoner laeuft */
         if (szeit && InputIdle() / 1000 >= (DWORD)szeit) { char u[80]; if (!slauf && werkzeug(u, "SCHONER.EXE")) TaskExec(u, "S", SW_SHOW); slauf = 1; } else slauf = 0;   /* Bildschirmschoner: einmal je Ruhephase */
-        if ((tk ^= 1) == 0) for (i = 0; i < MAXO; i++) if (od[i].w) wechsel(od[i].pfad[0]);   /* alle 2 s */
+        if ((tk ^= 1) == 0) {                     /* alle 2 s: Diskettenwechsel, Muell voll/leer */
+            BYTE v = muellvoll();
+            for (i = 0; i < MAXO; i++) if (od[i].w) wechsel(od[i].pfad[0]);
+            if (v != mvoll) { mvoll = v; InvalidateRect(desk, 0, FALSE); }
+        }
         return 0;
     case M_CLOSE: return 0;                       /* der Schreibtisch bleibt */
     }
@@ -1095,7 +1110,7 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     desk = CreateWindow("RDDesk", "RD", WS_DESKTOP | WS_VISIBLE, 0, mh, W, H - mh, 0, 0, inst);
     if (!desk) return 1;
     MenuSet(desk, mbar);
-    TimerSet(desk, 1, 1000); uhr(); prgladen(); sta_lesen();
+    TimerSet(desk, 1, 1000); uhr(); prgladen(); sta_lesen(); mvoll = muellvoll();
     { char p[80], u[80]; if (werkzeug(p, "RD2.INI")) szeit = (WORD)ProfileGetInt(p, "Schoner", "Zeit", 300);
       if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "Netz", "Zeit", 0) && werkzeug(u, "UHR.EXE")) TaskExec(u, "N", SW_HIDE); }   /* Netzzeit beim Start */
     { SYSINFO si; char p[80], u[80]; KernInfo(&si);   /* Menuepunkt nur von Diskette; RD2SETUP "I" startet die Installation auch aus einem Festplattenordner */

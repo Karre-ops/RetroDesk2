@@ -30,7 +30,7 @@ TEXTE
   29 "InPort 23Ch"
   30 "InPort 238h"
   31 "aus"
-  40 "RD2 startet jetzt neu, damit die neue Grafik gilt. Andere offene Programme werden beendet."
+  40 "Die Grafik wurde ge‰ndert. RD2 startet daf¸r jetzt neu, andere offene Programme werden beendet. Abbrechen verwirft die ƒnderung."
   42 "ZurÅck zur alten Grafik in "
   43 " s."
   50 "Schwarz"
@@ -60,11 +60,10 @@ DIALOG 11 "Optionen" 0 0 268 150
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Abbrechen"  2 204 130 56 14
   STATIC   "&Grafikart:"  -1  12  28  60 10
-  GROUP    "Profil (bei Automatisch)"  -1   8  44 252 26
+  GROUP    "Profil"  -1   8  44 252 26
   RADIO    "&automatisch"  102  14  55  70 10
   RADIO    "&Schnell (1 Bit)"  103  88  55  80 10
   RADIO    "&Komfort (Farbe)"  104 172  55  84 10
-  STATIC   "Gilt sofort: RD2 startet neu, danach RÅckfrage (15 s)."  105  12  78 244 10
   STATIC   ""  106  12  90 244 10
   COMBO                  101  76  26 150 70
   STATIC   "&Farbe (CGA):"  -1  12 102 62 10
@@ -209,7 +208,7 @@ TEXTE
   29 "InPort 23Ch"
   30 "InPort 238h"
   31 "off"
-  40 "RD2 restarts now so the new display takes effect. Other open programs will be closed."
+  40 "The display was changed. RD2 restarts now for this, other open programs will be closed. Cancel discards the change."
   42 "Back to the old display in "
   43 " s."
   50 "Black"
@@ -239,11 +238,10 @@ DIALOG 11 "Options" 0 0 268 150
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Cancel"  2 204 130 56 14
   STATIC   "&Display:"  -1  12  28  60 10
-  GROUP    "Profile (when automatic)"  -1   8  44 252 26
+  GROUP    "Profile"  -1   8  44 252 26
   RADIO    "&automatic"  102  14  55  70 10
   RADIO    "&Fast (1 bit)"  103  88  55  80 10
   RADIO    "&Comfort (colour)"  104 172  55  84 10
-  STATIC   "Applies at once: RD2 restarts, then asks (15 s)."  105  12  78 244 10
   STATIC   ""  106  12  90 244 10
   COMBO                  101  76  26 150 70
   STATIC   "CGA c&olour:"  -1  12 102 62 10
