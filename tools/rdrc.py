@@ -74,6 +74,9 @@ def stil(ts, defs):
 def uebersetze(pfad):
     defs = defines()
     zeilen = open(pfad, encoding="cp437").read().split("\n")
+    for i, z in enumerate(zeilen, 1):                     # 30.10.: Umlaute muessen CP437 sein, Latin-1-Bytes ergeben Sigma, hoch-n usw.
+        if re.search(r"[A-Za-z][\u03a3\u207f\u00f7\u2500\u2553\u2584\u2580]|[\u03a3\u207f\u00f7\u2553\u2584\u2580][A-Za-z]|\"\u2500[a-z]", z):
+            sys.exit("%s:%d: Latin-1-Umlaut statt CP437: %s" % (pfad, i, z.strip()[:60]))
     basis = os.path.dirname(os.path.abspath(pfad))
     res, sprache, n = [], 0, 0
     def weiter():

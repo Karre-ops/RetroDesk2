@@ -335,10 +335,10 @@ static void kauf(HWND h, int auf)
     RECT a; POINT pt; HWND l = (HWND)GetWindowData(h, 0); short bh = (short)(zh(h) + 4);
     if (((GetWindowData(h, 2) & 1) != 0) == (auf != 0)) return;
     GetWindowRect(h, &a); pt.x = a.l; pt.y = a.t; ScreenToClient(GetParent(h), &pt);
-    SetWindowData(h, 2, auf ? 1 : 0);
+    if (auf) SetWindowData(h, 2, 1 | (SetWindowData(h, WD_ZORDER, 0) << 16));   /* 30.10.: offen ueber allen Geschwistern, alter Platz im oberen Wort */
     MoveWindow(h, pt.x, pt.y, (short)(a.r - a.l), auf ? (short)GetWindowData(h, 1) : bh, TRUE);
     if (auf) { MoveWindow(l, 0, bh, (short)(a.r - a.l), (short)((short)GetWindowData(h, 1) - bh), FALSE); ShowWindow(l, SW_SHOW); }
-    else ShowWindow(l, SW_HIDE);
+    else { ShowWindow(l, SW_HIDE); SetWindowData(h, WD_ZORDER, GetWindowData(h, 2) >> 16); SetWindowData(h, 2, 0); }   /* Tab-Reihenfolge wie vorher */
     neu(h);
 }
 static DWORD RDEXPORT x_Combo(HWND h, WORD msg, WORD p1, DWORD p2)

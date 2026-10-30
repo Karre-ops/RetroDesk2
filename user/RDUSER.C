@@ -589,6 +589,13 @@ DWORD RDEXPORT u_SetWindowData(HWND h, short n, DWORD v)
     case WD_PROC: alt = (DWORD)w_[i].proc; w_[i].proc = (WNDPROC)v; w_[i].flags &= ~F_INTERN; return alt;
     case WD_ID: alt = w_[i].id; w_[i].id = (WORD)v; return alt;
     case WD_STIL: alt = w_[i].stil; w_[i].stil = v; return alt;
+    case WD_ZORDER: {                             /* 30.10.: aufgeklappte Liste ueber die Geschwister (COMBO) */
+        WORD p = w_[i].parent, a = 0, j, z = v ? idx((HWND)v) : 0;
+        if (!p || (v && (!z || z == i || w_[z].parent != p))) return bad();
+        for (j = w_[p].child; j && j != i; j = w_[j].next) a = j;
+        unlink(i);
+        if (!z) link(i, p); else { w_[i].parent = (BYTE)p; w_[i].next = w_[z].next; w_[z].next = (BYTE)i; }
+        return hw(a); }
     }
     if (n < 0 || n > 3) return bad();
     alt = w_[i].data[n]; w_[i].data[n] = v; return alt;
@@ -703,7 +710,7 @@ DWORD RDEXPORT u_DefWindowProc(HWND h, WORD m, WORD p1, DWORD p2)
     switch (m) {
     case M_NCBUTTONDOWN:
        
-        if (p1 == HT_MENU) { short x = (short)LOWORD(p2); WORD k; for (k = 0; k < bn && !(x >= bx[k] && x < bx[k + 1]); k++) ; if (k < bn) menulauf(top(i), k, 1); }
+        if (p1 == HT_MENU) { short x = (short)LOWORD(p2); WORD k; for (k = 0; k < bn && !(x >= bx[k] && x < bx[k + 1]); k++) ; if (k < bn) menulauf(top(i), k, HIWORD(p2) != 0x7FFF); }
         else if (p1 == HT_VSCROLL || p1 == HT_HSCROLL) sbklick(i, p1 == HT_VSCROLL ? SB_VERT : SB_HORZ, (short)LOWORD(p2), (short)HIWORD(p2));
         else if (p1 == HT_CLOSE) PostMessage(h, M_CLOSE, 0, 0);
         else if (w_[i].flags & F_MIN) u_ShowWindow(h, SW_RESTORE);   /* geparktes Fenster angeklickt */
@@ -1031,13 +1038,13 @@ static WORD klapp(WORD i, BYTE FAR *q, short x, short y, int bar, int *weiter, i
             if (m.pt.x >= r.l && m.pt.x < r.r && m.pt.y >= r.t && m.pt.y < r.b)
                 for (k = 0; k < n; k++) if (m.pt.y < r.t + iy[k + 1]) { if (WAEHLBAR(k)) s2 = k; break; }
             if (s2 != sel) { if (sel >= 0) InvertRect(d, ZEILE(sel)); sel = s2; if (sel >= 0) InvertRect(d, ZEILE(sel)); }
-            if (bar >= 0 && m.pt.y < mh && m.msg != M_BUTTONUP) {   /* anderer Titel */
-                for (k = 0; k < bn && !(m.pt.x >= bx[k] && m.pt.x < bx[k + 1]); k++) ;
+            if (bar != -1 && m.pt.y < mh && m.msg != M_BUTTONUP) {   /* anderer Titel; -2 = "RD" (30.10.: auch per Maus erreichbar) */
+                if (m.pt.x < bx[0]) k = dsk ? -2 : bn; else for (k = 0; k < bn && !(m.pt.x >= bx[k] && m.pt.x < bx[k + 1]); k++) ;
                 if (k < bn && k != bar) { *weiter = k; break; }
                 if (k == bar && m.msg == M_BUTTONDOWN) break;     /* derselbe Titel nochmal: zu */
             }
             if (m.msg == M_BUTTONUP && sel >= 0) { id = ((WORD FAR *)it[sel])[1]; break; }
-            if (m.msg == M_BUTTONDOWN && s2 < 0 && !(m.pt.x >= r.l && m.pt.x < r.r && m.pt.y >= r.t && m.pt.y < r.b) && !(bar >= 0 && m.pt.y < mh)) break;
+            if (m.msg == M_BUTTONDOWN && s2 < 0 && !(m.pt.x >= r.l && m.pt.x < r.r && m.pt.y >= r.t && m.pt.y < r.b) && !(bar != -1 && m.pt.y < mh)) break;
         } else if (m.msg == M_KEY) {
             k = sel;
             if (m.p1 == K_ESC) break;
@@ -1054,7 +1061,11 @@ static WORD klapp(WORD i, BYTE FAR *q, short x, short y, int bar, int *weiter, i
                 }
                 if (s2 < n && k != sel) { if (sel >= 0) InvertRect(d, ZEILE(sel)); sel = k; InvertRect(d, ZEILE(sel)); }
             }
-            if (bar >= 0 && bn && (m.p1 == K_LEFT || m.p1 == K_RIGHT)) { *weiter = m.p1 == K_RIGHT ? (bar + 1) % bn : (bar + bn - 1) % bn; break; }
+            if (bar != -1 && bn && (m.p1 == K_LEFT || m.p1 == K_RIGHT)) {   /* Reihe: RD, Titel 0 .. bn-1 */
+                k = bar == -2 ? (m.p1 == K_RIGHT ? 0 : bn - 1) : bar + (m.p1 == K_RIGHT ? 1 : -1);
+                if (k < 0 || k >= bn) k = dsk ? -2 : (k < 0 ? bn - 1 : 0);
+                if (k != bar) { *weiter = k; break; }
+            }
         } else if (m.msg == M_PAINT) { WORD j = idx(m.w); if (j) w_[j].flags &= ~F_PAINTQ; }   /* spaeter */
         else if (m.msg == M_QUIT) { PostQuit(m.p1); break; }
         else u_DispatchMessage(&m);
@@ -1085,16 +1096,18 @@ static void menulauf(WORD i, int bar, int maus)   /* Menueleiste des Fensters i,
         bar = w; maus = 0;
     }
     if (id) PostMessage(hw(i), M_COMMAND, id, 0);
+    else if (bar == -2 && dsk) PostMessage(hw(dsk), M_SYSMENU, 0, 0);   /* weiter nach links auf "RD" */
 }
 WORD RDEXPORT u_MenuPopup(HWND h, HMENU hm, WORD sub, short x, short y)   /* x, y: Client von h */
 {
-    WORD i = idx(h), id = 0; BYTE FAR *p, FAR *q; POINT pt; int w;
+    WORD i = idx(h), id = 0; BYTE FAR *p, FAR *q; POINT pt; int w = -1;
     if (!i || !(p = mlock(hm))) return bad();
     pt.x = x; pt.y = y; u_ClientToScreen(h, &pt);
     sendi(i, M_MENUOPEN, sub, hm);
     q = ntes(p, sub);
-    if (q && (*(WORD FAR *)q & MF_POPUP)) { q += 4; while (*q++) ; id = klapp(i, q, pt.x, pt.y, -1, &w, 1); }
+    if (q && (*(WORD FAR *)q & MF_POPUP)) { q += 4; while (*q++) ; id = klapp(i, q, pt.x, pt.y, i == dsk && !x && y == -1 ? -2 : -1, &w, 1); }   /* "RD" der Shell: Teil der Leiste */
     munlock(hm);
+    if (w >= 0 && act) PostMessage(hw(act), M_NCBUTTONDOWN, HT_MENU, MAKELONG(bx[w], 0x7FFF));   /* nach rechts auf einen Titel des aktiven Fensters */
     return id;
 }
 WORD RDEXPORT u_KeyState(WORD taste)              /* 0: KS_* der Umschalttasten */

@@ -47,7 +47,7 @@ waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -
 tippe() { local a=() c k; for ((i=0; i<${#1}; i++)); do c=${1:i:1}; case $c in .) k=dot;; *) k=$c;; esac; a+=("sendkey $k" sleep0.15); done; Q "${a[@]}"; }
 lauf() {
   waitn "RDNET: Seite 1" 1 || return; sleep 3
-  Q "screendump obj/rdnet1_vga.ppm" sleep0.3 "sendkey alt-b" sleep0.4 "sendkey alt-4"
+  Q "screendump obj/rdnet1_vga.ppm" sleep0.3 "sendkey alt-n" sleep0.3 "sendkey f4" sleep0.8 "screendump obj/rdnet8_vga.ppm" sleep0.3 "sendkey f4" sleep0.5 "sendkey alt-b" sleep0.4 "sendkey alt-4"
   waitn "RDNET: Seite 4" 1 || return; sleep 2
   Q "sendkey alt-s" sleep0.3; tippe 10.0.2.2; Q "sendkey alt-v" sleep0.3; tippe 10.0.2.2; Q sleep0.5 "screendump obj/rdnet4_vga.ppm" sleep0.3 "sendkey alt-3"
   waitn "RDNET: Seite 3" 1 || return; sleep 2

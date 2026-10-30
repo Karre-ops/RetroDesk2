@@ -1,11 +1,11 @@
 ; Ressourcen fuer PAPIERK.EXE
 SPRACHE DE
 TEXTE
-  1 "M¸ll"
+  1 "MÅll"
   2 "Wiederherstellen ging nicht (Ordner fehlt oder Datei gibt es schon)."
   3 "Papierkorb leeren? Die Dateien sind dann endgÅltig weg."
 ENDE
-DIALOG 10 "M¸ll" 0 0 300 150
+DIALOG 10 "MÅll" 0 0 300 150
   LIST                  40   8   8 284 104 WS_VSCROLL
   BUTTON   "&Wiederherstellen" 21   8 122  80 14 STANDARD
   BUTTON   "&Lîschen"    22  94 122  60 14

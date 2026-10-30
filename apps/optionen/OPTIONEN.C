@@ -176,6 +176,11 @@ static void laden(void)
 {
     char w[20]; WORD i; short v; const char FAR *z;
     gn = GfxList(gl, 16); gsel = 0;
+    for (i = 1; i < gn; i++) {                    /* 30.10.: nach Aufloesung (Pixel), dann Farben, jeweils absteigend */
+        GFXINFO t = gl[i]; WORD j = i;
+        while (j && ((DWORD)gl[j - 1].w * gl[j - 1].h < (DWORD)t.w * t.h || ((DWORD)gl[j - 1].w * gl[j - 1].h == (DWORD)t.w * t.h && gl[j - 1].farben < t.farben))) { gl[j] = gl[j - 1]; j--; }
+        gl[j] = t;
+    }
     for (i = 0; i < gn; i++) if (gl[i].flags & GI_GEWAEHLT) gsel = (BYTE)(i + 1);
     ProfileGetStr(ini, "System", "Profil", "AUTO", w, sizeof w);
     prof = (BYTE)((w[0] | 0x20) == 's' ? 1 : (w[0] | 0x20) == 'k' ? 2 : 0);

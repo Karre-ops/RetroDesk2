@@ -384,6 +384,7 @@ typedef struct {
 #define WD_INST   (-2)
 #define WD_ID     (-3)
 #define WD_STIL   (-4)
+#define WD_ZORDER (-5)   /* nur Setzen, Kindfenster: direkt unter Geschwister v (0 = ganz oben); liefert das Geschwister, das vorher darueber lag */
 #define SB_HORZ 0
 #define SB_VERT 1
 #define SB_LINEUP 0
