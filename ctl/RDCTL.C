@@ -530,7 +530,10 @@ static void mnemo(HWND h, char c)                 /* Alt+Buchstabe bzw. Buchstab
     HWND k[MAXK]; WORD n = kinder(h, k), i, j;
     if (c >= 'a' && c <= 'z') c -= 32;
     for (i = 0; i < n; i++) if ((char)SendMessage(k[i], C_MNEMO, 0, 0) == c && !gesperrt(k[i])) break;
-    if (i == n) return;
+    if (i == n) {                                 /* Alt+Ziffer ohne Kuerzel: Reiter mit ID 90 + Ziffer (z. B. Optionen) */
+        if (c >= '1' && c <= '9') for (i = 0; i < n; i++) if ((WORD)GetWindowData(k[i], WD_ID) == (WORD)(90 + c - '0') && !gesperrt(k[i])) { SendMessage(k[i], C_CLICK, 0, 0); return; }
+        return;
+    }
     if (!fokusbar(k[i])) {                        /* Beschriftung: das naechste Feld */
         for (j = i + 1; j < n && !fokusbar(k[j]); j++) ;
         if (j < n) SetFocus(k[j]);

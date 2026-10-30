@@ -51,12 +51,12 @@ TEXTE
   65 "Weiß"
 ENDE
 DIALOG 11 "Optionen" 0 0 268 150
-  BUTTON   "&1 Grafik" 91 8 4 40 14
-  BUTTON   "&2 Klang" 92 50 4 40 14
-  BUTTON   "&3 Maus" 93 92 4 40 14
-  BUTTON   "&4 Tastatur" 94 134 4 40 14
-  BUTTON   "&5 Schoner" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Grafik" 91 8 4 40 14
+  BUTTON   "Klang" 92 50 4 40 14
+  BUTTON   "Maus" 93 92 4 40 14
+  BUTTON   "Tastatur" 94 134 4 40 14
+  BUTTON   "Schoner" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Abbrechen"  2 204 130 56 14
   STATIC   "&Grafikart:"  -1  12  28  60 10
@@ -72,12 +72,12 @@ DIALOG 11 "Optionen" 0 0 268 150
   COMBO                  108  76 114 90 60
 ENDE
 DIALOG 12 "Optionen" 0 0 268 150
-  BUTTON   "&1 Grafik" 91 8 4 40 14
-  BUTTON   "&2 Klang" 92 50 4 40 14
-  BUTTON   "&3 Maus" 93 92 4 40 14
-  BUTTON   "&4 Tastatur" 94 134 4 40 14
-  BUTTON   "&5 Schoner" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Grafik" 91 8 4 40 14
+  BUTTON   "Klang" 92 50 4 40 14
+  BUTTON   "Maus" 93 92 4 40 14
+  BUTTON   "Tastatur" 94 134 4 40 14
+  BUTTON   "Schoner" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Abbrechen"  2 204 130 56 14
   GROUP    "Ger„t"  -1   8  24 252 40
@@ -92,12 +92,12 @@ DIALOG 12 "Optionen" 0 0 268 150
   COMBO                  127  82  84 120 40
 ENDE
 DIALOG 13 "Optionen" 0 0 268 150
-  BUTTON   "&1 Grafik" 91 8 4 40 14
-  BUTTON   "&2 Klang" 92 50 4 40 14
-  BUTTON   "&3 Maus" 93 92 4 40 14
-  BUTTON   "&4 Tastatur" 94 134 4 40 14
-  BUTTON   "&5 Schoner" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Grafik" 91 8 4 40 14
+  BUTTON   "Klang" 92 50 4 40 14
+  BUTTON   "Maus" 93 92 4 40 14
+  BUTTON   "Tastatur" 94 134 4 40 14
+  BUTTON   "Schoner" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Abbrechen"  2 204 130 56 14
   GROUP    "Geschwindigkeit"  -1   8  22 252 24
@@ -117,12 +117,12 @@ DIALOG 13 "Optionen" 0 0 268 150
   COMBO                  153  62 108 120 22
 ENDE
 DIALOG 14 "Optionen" 0 0 268 150
-  BUTTON   "&1 Grafik" 91 8 4 40 14
-  BUTTON   "&2 Klang" 92 50 4 40 14
-  BUTTON   "&3 Maus" 93 92 4 40 14
-  BUTTON   "&4 Tastatur" 94 134 4 40 14
-  BUTTON   "&5 Schoner" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Grafik" 91 8 4 40 14
+  BUTTON   "Klang" 92 50 4 40 14
+  BUTTON   "Maus" 93 92 4 40 14
+  BUTTON   "Tastatur" 94 134 4 40 14
+  BUTTON   "Schoner" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Abbrechen"  2 204 130 56 14
   GROUP    "Belegung"  -1   8  24 252 26
@@ -132,12 +132,12 @@ DIALOG 14 "Optionen" 0 0 268 150
   STATIC   ""  164   8  70 252 10
 ENDE
 DIALOG 15 "Optionen" 0 0 268 150
-  BUTTON   "&1 Grafik" 91 8 4 40 14
-  BUTTON   "&2 Klang" 92 50 4 40 14
-  BUTTON   "&3 Maus" 93 92 4 40 14
-  BUTTON   "&4 Tastatur" 94 134 4 40 14
-  BUTTON   "&5 Schoner" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Grafik" 91 8 4 40 14
+  BUTTON   "Klang" 92 50 4 40 14
+  BUTTON   "Maus" 93 92 4 40 14
+  BUTTON   "Tastatur" 94 134 4 40 14
+  BUTTON   "Schoner" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Abbrechen"  2 204 130 56 14
   GROUP    "Art"  -1   8  22 252 26
@@ -154,12 +154,12 @@ DIALOG 15 "Optionen" 0 0 268 150
   BUTTON   "&Vorschau"  190   8  98  60 14
 ENDE
 DIALOG 16 "Optionen" 0 0 268 150
-  BUTTON   "&1 Grafik" 91 8 4 40 14
-  BUTTON   "&2 Klang" 92 50 4 40 14
-  BUTTON   "&3 Maus" 93 92 4 40 14
-  BUTTON   "&4 Tastatur" 94 134 4 40 14
-  BUTTON   "&5 Schoner" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Grafik" 91 8 4 40 14
+  BUTTON   "Klang" 92 50 4 40 14
+  BUTTON   "Maus" 93 92 4 40 14
+  BUTTON   "Tastatur" 94 134 4 40 14
+  BUTTON   "Schoner" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Abbrechen"  2 204 130 56 14
   CHECK    "&Start nach dem Booten"  201   8  26 200 10
@@ -229,12 +229,12 @@ TEXTE
   65 "White"
 ENDE
 DIALOG 11 "Options" 0 0 268 150
-  BUTTON   "&1 Display" 91 8 4 40 14
-  BUTTON   "&2 Sound" 92 50 4 40 14
-  BUTTON   "&3 Mouse" 93 92 4 40 14
-  BUTTON   "&4 Keyboard" 94 134 4 40 14
-  BUTTON   "&5 Saver" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Display" 91 8 4 40 14
+  BUTTON   "Sound" 92 50 4 40 14
+  BUTTON   "Mouse" 93 92 4 40 14
+  BUTTON   "Keyboard" 94 134 4 40 14
+  BUTTON   "Saver" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Cancel"  2 204 130 56 14
   STATIC   "&Display:"  -1  12  28  60 10
@@ -250,12 +250,12 @@ DIALOG 11 "Options" 0 0 268 150
   COMBO                  108  76 114 90 60
 ENDE
 DIALOG 12 "Options" 0 0 268 150
-  BUTTON   "&1 Display" 91 8 4 40 14
-  BUTTON   "&2 Sound" 92 50 4 40 14
-  BUTTON   "&3 Mouse" 93 92 4 40 14
-  BUTTON   "&4 Keyboard" 94 134 4 40 14
-  BUTTON   "&5 Saver" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Display" 91 8 4 40 14
+  BUTTON   "Sound" 92 50 4 40 14
+  BUTTON   "Mouse" 93 92 4 40 14
+  BUTTON   "Keyboard" 94 134 4 40 14
+  BUTTON   "Saver" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Cancel"  2 204 130 56 14
   GROUP    "Device"  -1   8  24 252 40
@@ -270,12 +270,12 @@ DIALOG 12 "Options" 0 0 268 150
   COMBO                  127  82  84 120 40
 ENDE
 DIALOG 13 "Options" 0 0 268 150
-  BUTTON   "&1 Display" 91 8 4 40 14
-  BUTTON   "&2 Sound" 92 50 4 40 14
-  BUTTON   "&3 Mouse" 93 92 4 40 14
-  BUTTON   "&4 Keyboard" 94 134 4 40 14
-  BUTTON   "&5 Saver" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Display" 91 8 4 40 14
+  BUTTON   "Sound" 92 50 4 40 14
+  BUTTON   "Mouse" 93 92 4 40 14
+  BUTTON   "Keyboard" 94 134 4 40 14
+  BUTTON   "Saver" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Cancel"  2 204 130 56 14
   GROUP    "Speed"  -1   8  22 252 24
@@ -295,12 +295,12 @@ DIALOG 13 "Options" 0 0 268 150
   COMBO                  153  62 108 120 22
 ENDE
 DIALOG 14 "Options" 0 0 268 150
-  BUTTON   "&1 Display" 91 8 4 40 14
-  BUTTON   "&2 Sound" 92 50 4 40 14
-  BUTTON   "&3 Mouse" 93 92 4 40 14
-  BUTTON   "&4 Keyboard" 94 134 4 40 14
-  BUTTON   "&5 Saver" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Display" 91 8 4 40 14
+  BUTTON   "Sound" 92 50 4 40 14
+  BUTTON   "Mouse" 93 92 4 40 14
+  BUTTON   "Keyboard" 94 134 4 40 14
+  BUTTON   "Saver" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Cancel"  2 204 130 56 14
   GROUP    "Layout"  -1   8  24 252 26
@@ -310,12 +310,12 @@ DIALOG 14 "Options" 0 0 268 150
   STATIC   ""  164   8  70 252 10
 ENDE
 DIALOG 15 "Options" 0 0 268 150
-  BUTTON   "&1 Display" 91 8 4 40 14
-  BUTTON   "&2 Sound" 92 50 4 40 14
-  BUTTON   "&3 Mouse" 93 92 4 40 14
-  BUTTON   "&4 Keyboard" 94 134 4 40 14
-  BUTTON   "&5 Saver" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Display" 91 8 4 40 14
+  BUTTON   "Sound" 92 50 4 40 14
+  BUTTON   "Mouse" 93 92 4 40 14
+  BUTTON   "Keyboard" 94 134 4 40 14
+  BUTTON   "Saver" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Cancel"  2 204 130 56 14
   GROUP    "Type"  -1   8  22 252 26
@@ -332,12 +332,12 @@ DIALOG 15 "Options" 0 0 268 150
   BUTTON   "&Preview"  190   8  98  60 14
 ENDE
 DIALOG 16 "Options" 0 0 268 150
-  BUTTON   "&1 Display" 91 8 4 40 14
-  BUTTON   "&2 Sound" 92 50 4 40 14
-  BUTTON   "&3 Mouse" 93 92 4 40 14
-  BUTTON   "&4 Keyboard" 94 134 4 40 14
-  BUTTON   "&5 Saver" 95 176 4 40 14
-  BUTTON   "&6 System" 96 218 4 40 14
+  BUTTON   "Display" 91 8 4 40 14
+  BUTTON   "Sound" 92 50 4 40 14
+  BUTTON   "Mouse" 93 92 4 40 14
+  BUTTON   "Keyboard" 94 134 4 40 14
+  BUTTON   "Saver" 95 176 4 40 14
+  BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Cancel"  2 204 130 56 14
   CHECK    "&Start after boot"  201   8  26 200 10
