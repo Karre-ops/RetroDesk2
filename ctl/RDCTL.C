@@ -467,6 +467,8 @@ DWORD RDEXPORT c_List(HWND h, WORD msg, WORD p1, DWORD p2)
         case K_END: lwahl(h, n ? n - 1 : 0); break;
         case K_PGUP: lwahl(h, sel == 0xFFFF || sel < (WORD)z ? 0 : sel - z); break;
         case K_PGDN: lwahl(h, sel == 0xFFFF ? 0 : sel + z); break;
+        default:                                  /* F-Tasten, Leertaste, Strg+Buchstabe, Einfg/Entf: an den Dialog (RDFTP) */
+            if ((p1 >= 0x100 || p1 <= ' ') && GetParent(h) && TYP(GetParent(h)) == T_DLG) SendMessage(GetParent(h), M_KEY, p1, p2);
         }
         return 0;
     case M_CHAR:                                  /* Buchstabe: naechster Eintrag damit */

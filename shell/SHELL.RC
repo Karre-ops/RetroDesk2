@@ -9,7 +9,7 @@ MENU 1
     ITEM "&Editor"            16
     ITEM "Re&chner"            5
     ITEM "&Optionen..."        6
-    ITEM "&FTP"                8
+    ITEM "&Dateimanager"       8
     ITEM "I&RC"                9
     ITEM "&DOS-Fenster"       10
     ITEM "&MÅll"              11
@@ -153,7 +153,7 @@ MENU 1
     ITEM "Calc&ulator"         5
     ITEM "&Options..."         6
     ITEM "Net&work..."         7
-    ITEM "&FTP"                8
+    ITEM "&File manager"       8
     ITEM "I&RC"                9
     ITEM "&DOS window"        10
     ITEM "Tras&h"             11

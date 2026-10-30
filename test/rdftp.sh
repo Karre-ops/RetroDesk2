@@ -2,6 +2,8 @@
 # Punkt 8: RDFTP.EXE (FTP als zweites Dateifenster) mit NE2000 in QEMU, nur Tastatur, Host-FTP-Server test/ftpserver.py.
 # VGA: Alt+V verbinden (retro/geheim), [pub] oeffnen, GROSS.BIN (20000) laden, ".." zurueck, langen Namen laden
 # (als EINSEHRL.TXT), links HOCH.TXT (5000) hochladen, rechts LIESMICH.TXT loeschen, Ordner "neu" anlegen, Esc.
+# CGA (30.10.2026): ohne Netz F7 Ordner, Mehrfachauswahl + F5 Platte zu Platte, Umschalt+F10 Neue Textdatei, dann
+# verbinden und zwei markierte Serverdateien mit F5 laden.
 # Pfeile ueber den Ziffernblock (kp_2, kp_7): QEMU verdoppelt graue E0-Tasten, weil der Kern-INT-9 Port 60h liest
 # (in QEMU zerstoerend, auf echter Hardware nicht). CGA: verbinden, Bild. Pruefung: Dateien auf beiden Seiten gleich, Bilder.
 cd "$(dirname "$0")/.."
@@ -60,8 +62,21 @@ lauf() {
   Q "screendump obj/rdftp3_vga.ppm" sleep0.3 "sendkey esc"
   waitn "RDFTP: Ende" 1 || return
   waitn "RDFTP: bereit" 2 || return; sleep 3
+  # zweiseitig ohne Netz: F7 Ordner SUB, rechts hinein, links zwei Dateien markieren (Leertaste), F5 kopiert beide
+  Q "sendkey f7"; sleep 1.5; Q "sendkey s" sleep0.15 "sendkey u" sleep0.15 "sendkey b" sleep0.3 "sendkey ret"
+  waitn "RDFTP: rlokal" 3 || return; sleep 1
+  Q "sendkey tab" sleep0.4 "sendkey kp_2" sleep0.4 "sendkey ret"
+  waitn "RDFTP: rlokal" 4 || return; sleep 1
+  Q "sendkey tab" sleep0.4 "sendkey kp_2" sleep0.4 "sendkey kp_2" sleep0.4 "sendkey spc" sleep0.8 "sendkey spc" sleep0.8 "sendkey f5"
+  waitn "RDFTP: rlokal" 5 || return; sleep 1
+  # Umschalt+F10: Menue, T = Neue Textdatei LIES
+  Q "sendkey shift-f10"; sleep 1.2; Q "sendkey t"; sleep 1.5; Q "sendkey l" sleep0.15 "sendkey i" sleep0.15 "sendkey e" sleep0.15 "sendkey s" sleep0.3 "sendkey ret"
+  waitn "RDFTP: links 7" 1 || return; sleep 1
   Q "sendkey alt-v"
   waitn "RDFTP: rechts" 7 || return; sleep 2
+  # Server: zwei Dateien markieren, F5 laedt beide nacheinander
+  Q "sendkey kp_2" sleep0.4 "sendkey kp_2" sleep0.4 "sendkey spc" sleep0.8 "sendkey spc" sleep0.8 "sendkey f5"
+  waitn "RDFTP: geladen" 4 || return; sleep 2
   Q "screendump obj/rdftp4_cga.ppm" sleep0.3 "sendkey esc"
 }
 lauf
@@ -77,6 +92,10 @@ ok "Langer Name als EINSEHRL.TXT gleich" "cmp -s obj/rdftp_aus/EINSEHRL.TXT 'obj
 ok "HOCH.TXT hochgeladen, 5000 Bytes gleich" "cmp -s obj/ftproot/HOCH.TXT obj/rdftp_t1/HOCH.TXT"
 ok "LIESMICH.TXT geloescht" "[ ! -e obj/ftproot/LIESMICH.TXT ]"
 ok "Ordner neu angelegt" "[ -d obj/ftproot/neu ]"
+T1=$(mdir -b -i $IMG ::/T1 2>/dev/null | tr -d '\r'); SUB=$(mdir -b -i $IMG ::/T1/SUB 2>/dev/null | tr -d '\r')
+ok "zweiseitig: F7 Ordner SUB, zwei markierte Dateien mit F5 nach SUB kopiert" "grep -q EINSEHRL.TXT <<< \"\$SUB\" && grep -q GROSS.BIN <<< \"\$SUB\" && [ \$(grep -c 'RDFTP: kopiert' <<< \"\$S\") -eq 2 ]"
+ok "Rechtsklickmenue (Umschalt+F10): Neue Textdatei LIES.TXT" "grep -q LIES.TXT <<< \"\$T1\""
+ok "Server: zwei markierte Dateien nacheinander geladen" "[ \$(grep -c 'RDFTP: geladen' <<< \"\$S\") -eq 4 ]"
 ok "Speicher zurueck (2 Laeufe)" "[ \$(grep -c 'Speicher vollstaendig zurueck' <<< \"\$S\") -ge 2 ]"
 [ -f test/ref/rdftp1_vga.png ] && python3 test/bildvergleich.py obj/rdftp1_vga.ppm test/ref/rdftp1_vga.png obj/rdftp2_vga.ppm test/ref/rdftp2_vga.png obj/rdftp3_vga.ppm test/ref/rdftp3_vga.png obj/rdftp4_cga.ppm test/ref/rdftp4_cga.png
 exit 0
