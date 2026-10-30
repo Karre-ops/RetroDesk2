@@ -98,7 +98,9 @@ WORD vbe(WORD ax, WORD cx, void *p);              /* ES:DI = ds:p */
 #pragma aux vbe = "push ds" "pop es" "push bp" "int 10h" "pop bp" parm [ax] [cx] [di] value [ax] modify [bx dx si es]
 WORD vmode(WORD bx);
 #pragma aux vmode = "mov ax,4F02h" "push bp" "int 10h" "pop bp" parm [bx] value [ax] modify [cx dx si di es]
-static BYTE vb[256];
+#if defined(SVGA16)
+static BYTE vb[256];                              /* VBE-Infoblock */
+#endif
 #endif
 static WORD RDEXPORT d_init(WORD param)
 {
@@ -224,50 +226,47 @@ static void put1(WORD x, WORD y, WORD w, WORD h, const BYTE FAR *s, WORD st, WOR
     }
     m0();
 }
-/* 4 Bit gepackt <-> Ebenen ueber Tabellen (30.10.2026, statt Punkt fuer Punkt):
-   pl/ph: Quellbyte (2 Punkte) -> je Ebene 2 Bits an Bit 7/6 (pl: Ebene 0 im unteren, 1 im oberen Byte; ph: 2/3);
-   4 Quellbytes = 8 Punkte: pl[s0] | pl[s1] >> 2 | pl[s2] >> 4 | pl[s3] >> 6 (die Bytes laufen nicht ineinander).
-   sx/sy: Ebenenbyte -> Punkte 0-3 bzw. 4-7 als Halbbytes (Bit 0 je Halbbyte), << e fuer Ebene e. */
-static WORD pl[256], sx[256];                     /* sy[b] = sx[(b << 4) & 0xF0], ph[b] = pl[(b >> 2) & 0x33] (30.10.: 1 KB weniger) */
-#define SY(b) sx[(BYTE)((b) << 4)]
-#define PH(b) pl[((b) >> 2) & 0x33]
-static BYTE tabok;
-static void tabellen(void)
+/* 4 Bit gepackt <-> Ebenen ohne Tabellen (30.10.2026): Assembler schiebt Bit fuer Bit durch (8 Befehle je Punkt).
+   pk8: 4 Quellbytes (8 Punkte, linker im oberen Halbbyte) -> 4 Ebenenbytes nach o[0..3] (Ebene 0..3).
+   up8: 4 Ebenenbytes i[0..3] -> 4 Bytes mit 8 Punkten (Halbbytes) nach o[0..3]. */
+void pk8(const BYTE FAR *q, BYTE *o);
+#pragma aux pk8 = "mov cx,4" "l: mov al,es:[si]" "inc si" \
+    "shl al,1" "rcl dh,1" "shl al,1" "rcl dl,1" "shl al,1" "rcl bh,1" "shl al,1" "rcl bl,1" \
+    "shl al,1" "rcl dh,1" "shl al,1" "rcl dl,1" "shl al,1" "rcl bh,1" "shl al,1" "rcl bl,1" "loop l" \
+    "mov [di],bl" "mov [di+1],bh" "mov [di+2],dl" "mov [di+3],dh" parm [es si] [di] modify [ax bx cx dx si]
+void up8(const BYTE *i, BYTE *o);
+#pragma aux up8 = "mov bl,[si]" "mov bh,[si+1]" "mov dl,[si+2]" "mov dh,[si+3]" "mov cx,4" \
+    "l: shl dh,1" "rcl al,1" "shl dl,1" "rcl al,1" "shl bh,1" "rcl al,1" "shl bl,1" "rcl al,1" \
+    "shl dh,1" "rcl al,1" "shl dl,1" "rcl al,1" "shl bh,1" "rcl al,1" "shl bl,1" "rcl al,1" "mov [di],al" "inc di" "loop l" \
+    parm [si] [di] modify [ax bx cx dx di]
+static BYTE eb[4][W / 8 + 2], mk[W / 8 + 2];
+static BYTE q4[5], o4[4];
+/* Zeile s (w Punkte, unten = ab dem unteren Halbbyte) in Ebenenbytes eb, auf Bitlage sh geschoben; liefert Bytezahl */
+static WORD zeile4(const BYTE FAR *s, WORD w, WORD unten, WORD sh)
 {
-    WORD i, k;
-    for (i = 0; i < 256; i++) {
-        WORD a = i >> 4, b = i & 15, x = 0, y = 0;
-        pl[i] = (WORD)((a & 1) << 7 | (b & 1) << 6 | (a & 2) << 14 | (b & 2) << 13);
-        for (k = 0; k < 4; k++) if (i & (0x80 >> k)) x |= 1 << (12 - 4 * k);
-        sx[i] = x; (void)y;
+    WORD i, e, g, ng = (w + 7) >> 3, nb = (sh + w + 7) >> 3;
+    for (g = 0; g < ng; g++, s += 4) {
+        if (unten) { for (i = 0; i < 4; i++) q4[i] = (BYTE)(s[i] << 4 | s[i + 1] >> 4); pk8((const BYTE FAR *)q4, o4); }
+        else pk8(s, o4);
+        for (e = 0; e < NPL; e++) eb[e][g] = o4[e];
     }
-    tabok = 1;
+    if (sh) for (e = 0; e < NPL; e++) {           /* an Ort und Stelle von hinten schieben */
+        BYTE *z = eb[e];
+        z[ng] = 0;
+        for (i = nb - 1; i > 0; i--) z[i] = (BYTE)(z[i - 1] << (8 - sh) | z[i] >> sh);
+        z[0] >>= sh;
+    }
+    return nb;
 }
-static BYTE eb[4][W / 8 + 2];
 static void put4(WORD x, WORD y, WORD w, WORD h, const BYTE FAR *s, WORD st, WORD rop, WORD unten)
 {
-    WORD r, i, e, g, ng = (w + 7) >> 3, sh = x & 7, nb = (sh + w + 7) >> 3;
+    WORD r, i, e, sh = x & 7, nb = (sh + w + 7) >> 3;
     BYTE lm = (BYTE)(0xFF >> sh), rm = (BYTE)(0xFF << (7 - ((x + w - 1) & 7)));
-    if (!tabok) tabellen();
     if (nb == 1) lm &= rm;
     GC(5, 0); GC(1, 0); GC(3, fn[rop < 4 ? rop : 0]);
     for (r = 0; r < h; r++, s += st) {
         BYTE __far *p = VP(x, y + r);
-        for (g = 0; g < ng; g++) {                /* 8 Punkte -> ein Byte je Ebene */
-            const BYTE FAR *q = s + 4 * g; BYTE c0, c1, c2, c3; WORD v;
-            if (unten) { c0 = (BYTE)(q[0] << 4 | q[1] >> 4); c1 = (BYTE)(q[1] << 4 | q[2] >> 4); c2 = (BYTE)(q[2] << 4 | q[3] >> 4); c3 = (BYTE)(q[3] << 4 | q[4] >> 4); }
-            else { c0 = q[0]; c1 = q[1]; c2 = q[2]; c3 = q[3]; }
-            v = pl[c0] | pl[c1] >> 2 | pl[c2] >> 4 | pl[c3] >> 6; eb[0][g] = (BYTE)v; eb[1][g] = (BYTE)(v >> 8);
-#if NPL == 4
-            v = PH(c0) | PH(c1) >> 2 | PH(c2) >> 4 | PH(c3) >> 6; eb[2][g] = (BYTE)v; eb[3][g] = (BYTE)(v >> 8);
-#endif
-        }
-        if (sh) for (e = 0; e < NPL; e++) {       /* auf die Lage im Schirmbyte schieben (an Ort und Stelle, von hinten) */
-            BYTE *z = eb[e];
-            z[ng] = 0;
-            for (i = nb - 1; i > 0; i--) z[i] = (BYTE)(z[i - 1] << (8 - sh) | z[i] >> sh);
-            z[0] >>= sh;
-        }
+        zeile4(s, w, unten, sh);
         if (rop == ROP_COPY || rop >= 4) {        /* Raender mit Bitmaske (Latch), Mitte je Ebene am Stueck */
             volatile BYTE l;
             GC(8, lm); l = p[0];
@@ -289,6 +288,29 @@ static void put4(WORD x, WORD y, WORD w, WORD h, const BYTE FAR *s, WORD st, WOR
     }
     m0();
 }
+/* Farbiges Symbol: Maske als Bitmaske der Karte, nur dort die Ebenen schreiben (kein Hintergrund holen) */
+static void RDEXPORT d_symput(short x, short y, short w, short h, const BYTE FAR *s, WORD sbpr, WORD unten, const BYTE FAR *m, WORD mbpr, WORD mbit)
+{
+    WORD r, i, e, sh = x & 7, nb, nm = ((WORD)w + 7) >> 3;
+    if (w <= 0 || h <= 0) return;
+    GC(5, 0); GC(1, 0); GC(3, 0);
+    for (r = 0; r < (WORD)h; r++, s += sbpr, m += mbpr) {
+        BYTE __far *p = VP(x, y + r);
+        nb = zeile4(s, w, unten, sh);
+        for (i = 0; i < nm; i++) mk[i] = (BYTE)(mbit ? m[i] << mbit | m[i + 1] >> (8 - mbit) : m[i]);   /* Maske ab Bit 0 */
+        if (w & 7) mk[nm - 1] &= (BYTE)(0xFF << (8 - (w & 7)));
+        mk[nm] = 0;
+        if (sh) { for (i = nb - 1; i > 0; i--) mk[i] = (BYTE)(mk[i - 1] << (8 - sh) | mk[i] >> sh); mk[0] >>= sh; }
+        for (i = 0; i < nb; i++) {
+            volatile BYTE l;
+            if (!mk[i]) continue;
+            GC(8, mk[i]); l = p[i];
+            for (e = 0; e < NPL; e++) { MAPMASK(1 << e); p[i] = eb[e][i]; }
+            (void)l;
+        }
+    }
+    m0();
+}
 static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *src, WORD srcbytes,
                            WORD srcbpp, WORD rop, WORD fg, WORD bg)
 {
@@ -297,27 +319,22 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
     else if (rop == ROP_NOT) d_box(x, y, x + w - 1, y + h - 1, PLM, 0, ROP_XOR);
     else put1(x, y, w, h, src, srcbytes, rop, (BYTE)fg, (BYTE)bg);
 }
-/* get: Geraeteformat (4 Bit gepackt), w Punkte ab x: je Ebene die Zeile am Stueck lesen, dann Tabellen */
+/* get: Geraeteformat (4 Bit gepackt), w Punkte ab x: je Ebene die Zeile am Stueck lesen, dann up8 */
 static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WORD dstbytes)
 {
-    WORD r, i, e, sh = x & 7, nb = (sh + w + 7) >> 3, ng = (w + 7) >> 3, n = (w + 1) >> 1;
-    if (!tabok) tabellen();
+    WORD r, i, e, k, sh = x & 7, nb = (sh + w + 7) >> 3, ng = (w + 7) >> 3, n = (w + 1) >> 1;
     for (r = 0; r < (WORD)h; r++, dst += dstbytes) {
         BYTE __far *p = VP(x, y + r);
-        for (e = 0; e < NPL; e++) {
+        for (e = 0; e < 4; e++) {
             BYTE *z = eb[e];
+            if (e >= NPL) { for (i = 0; i <= ng; i++) z[i] = 0; continue; }
             GC(4, e); _fmemcpy(z, p, nb); z[nb] = 0;
             if (sh) for (i = 0; i < ng; i++) z[i] = (BYTE)(z[i] << sh | z[i + 1] >> (8 - sh));
         }
         for (i = 0; i < ng; i++) {
-            WORD a = sx[eb[0][i]] | sx[eb[1][i]] << 1, b = SY(eb[0][i]) | SY(eb[1][i]) << 1, k = 4 * i;
-#if NPL == 4
-            a |= sx[eb[2][i]] << 2 | sx[eb[3][i]] << 3; b |= SY(eb[2][i]) << 2 | SY(eb[3][i]) << 3;
-#endif
-            dst[k] = (BYTE)(a >> 8);
-            if (k + 1 < n) dst[k + 1] = (BYTE)a;
-            if (k + 2 < n) dst[k + 2] = (BYTE)(b >> 8);
-            if (k + 3 < n) dst[k + 3] = (BYTE)b;
+            q4[0] = eb[0][i]; q4[1] = eb[1][i]; q4[2] = eb[2][i]; q4[3] = eb[3][i];
+            up8(q4, o4);
+            for (k = 0; k < 4 && 4 * i + k < n; k++) dst[4 * i + k] = o4[k];
         }
         if (w & 1) dst[n - 1] &= 0xF0;
     }
@@ -475,7 +492,7 @@ static GFXDRVR tab = { { {
     d_modes, d_setmode, d_textmode,
     d_span, d_pixel, d_getpixel, d_put, d_get,
     0, 0, d_copy, d_glyphs, d_palette, d_cursor, d_cursorhide, 0, d_box }, d_farbe, d_rgb },
-    d_rohgr, d_rohget, d_rohput
+    d_rohgr, d_rohget, d_rohput, d_symput
 };
 FARPROC RDEXPORT DrvTab(void) { return (FARPROC)(void FAR *)&tab; }
 static struct { WORD n; FARPROC f[1]; } ex = { 1, { (FARPROC)DrvTab } };

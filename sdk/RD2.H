@@ -189,6 +189,7 @@ typedef struct {
 #define GFX_VGAMONO 3
 #define GFX_EGA 4
 #define BMP_ROH 0x80                              /* BmpCreate: Hintergrund roh (nur BitBlt Schirm <-> Bitmap an dieselbe Stelle) */
+#define BMP_MASKE 0x200                           /* BmpCreate 4/8 Bit | BMP_MASKE: Maske (1 Bit) hinter den Punkten, BitBlt setzt nur deckende Punkte (Symbole); faellt weg, wenn der Treiber es nicht kann */
 #define GFX_VGA16 5
 #define GFX_VESA 6
 #define GFX_EGA320 7                              /* 320x200 16 Farben (EGA/VGA Modus 0Dh), schmale Schrift SYSK.FNT */

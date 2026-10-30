@@ -566,14 +566,15 @@ HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
 {
     WORD bpr; HMEM m; BMPH FAR *bh;
     if (bpp == BMP_ROH && !(gm.bpp > 1 && drv && ((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVR))) bpp = 0;   /* Treiber ohne roh: Geraeteformat */
+    if ((bpp & BMP_MASKE) && !(gm.bpp > 1 && drv && ((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVR) && ((GFXDRVR FAR *)drv)->symput)) bpp &= ~BMP_MASKE;
     if (!bpp) bpp = gm.bpp;                       /* 0 = Geraeteformat des Schirms */
     if (bpp == BMP_ROH) bpr = ((GFXDRVR FAR *)drv)->rohgr(7, (short)w);   /* roh: Bildspeicher unveraendert (Menue-Hintergrund) */
     else {
-        if (bpp != 4 && bpp != 8) bpp = 1;        /* 4/8 Bit: nur BitBlt mit dem Schirm, kein Zeichnen hinein */
-        bpr = (w * bpp + 7) >> 3;                 /* w <= MAXBW, kein Ueberlauf */
+        if ((bpp & 0xFF) != 4 && (bpp & 0xFF) != 8) bpp = 1;   /* 4/8 Bit: nur BitBlt mit dem Schirm, kein Zeichnen hinein */
+        bpr = (w * (bpp & 0xFF) + 7) >> 3;        /* w <= MAXBW, kein Ueberlauf */
     }
     if (!w || !h || w > MAXBW || (DWORD)bpr * h > 65000UL) { SetLastError(RD_ERR_FULL); return 0; }
-    m = MemAlloc((DWORD)bpr * h + sizeof(BMPH), MEM_MOVABLE | MEM_ZEROINIT);
+    m = MemAlloc((DWORD)bpr * h + ((bpp & BMP_MASKE) ? (DWORD)((w + 7) >> 3) * h : 0) + sizeof(BMPH), MEM_MOVABLE | MEM_ZEROINIT);
     if (!m) return 0;
     bh = (BMPH FAR *)MemLock(m);
     bh->w = w; bh->h = h; bh->bpp = bpp; bh->bpr = bpr;
@@ -627,6 +628,12 @@ static int b4blt(DCX *dd, short x, short y, short w, short h, DCX *sd, short sx,
                 if (q.l >= q.r || q.t >= q.b) continue;
                 o = (WORD)(q.l - x + sx); ex(q.l, q.t, q.r, q.b);
                 if (bh->bpp == BMP_ROH) { ((GFXDRVR FAR *)drv)->rohput(q.l, q.t, (short)(q.r - q.l), (short)(q.b - q.t), z + (WORD)(q.t - y + sy) * bpr, bpr, (short)(x - sx), (short)bh->w); continue; }
+                if (bh->bpp & BMP_MASKE) {            /* Symbol: nur deckende Punkte (Maske hinter den Punkten) */
+                    WORD mbp = (bh->w + 7) >> 3, r0 = (WORD)(q.t - y + sy), v = (bh->bpp & 0xFF) == 4;
+                    ((GFXDRVR FAR *)drv)->symput(q.l, q.t, (short)(q.r - q.l), (short)(q.b - q.t), z + r0 * bpr + (o >> v), bpr, v & o,
+                                                 z + bpr * bh->h + r0 * mbp + (o >> 3), mbp, o & 7);
+                    continue;
+                }
                 drv->put(q.l, q.t, (short)(q.r - q.l), (short)(q.b - q.t), z + (WORD)(q.t - y + sy) * bpr + (o >> (bh->bpp == 4)), bpr, bh->bpp | ((o & 1) << 8), ROP_COPY, 0, 0);
             }
             unsel();

@@ -231,7 +231,7 @@ static BYTE gfarbe(const BYTE FAR *c, WORD wuerfel)
 }
 static WORD rdbmake(const BYTE FAR *p, WORD len, WORD cga, HBMP FAR *weiss, HBMP FAR *schwarz, WORD bunt)
 {
-    const RDBH FAR *k = 0, FAR *x; const BYTE FAR *q = p, FAR *pal, FAR *z, FAR *mk; WORD n, y, c, sb, db, v, b; BYTE FAR *w, FAR *s;
+    const RDBH FAR *k = 0, FAR *x; const BYTE FAR *q = p, FAR *pal, FAR *z, FAR *mk; WORD n, y, c, sb, db, v, b, im; BYTE FAR *w, FAR *s;
     while (len >= sizeof(RDBH)) {
         x = (const RDBH FAR *)q;
         if (x->sig[0] != 'R' || x->sig[3] != '1' || !x->w || !x->h || (x->bpp != 1 && x->bpp != 4 && x->bpp != 8)) break;
@@ -244,10 +244,14 @@ static WORD rdbmake(const BYTE FAR *p, WORD len, WORD cga, HBMP FAR *weiss, HBMP
     pal = (const BYTE FAR *)(k + 1); z = pal + (k->bpp > 1 ? 3 << k->bpp : 0);
     sb = (WORD)(((DWORD)k->w * k->bpp + 7) >> 3); mk = z + sb * k->h; db = (k->w + 7) >> 3;
     if (k->bpp == 1 || !schwarz) bunt = 0;       /* bunt: Bit pro Punkt des Schirms (4/8), weiss = Geraeteformat, schwarz = Maske */
-    *weiss = BmpCreate(k->w, k->h, bunt ? bunt : 1);
-    if (schwarz) *schwarz = BmpCreate(k->w, k->h, 1);
-    if (!*weiss || (schwarz && !*schwarz)) { if (*weiss) BmpFree(*weiss); if (schwarz && *schwarz) BmpFree(*schwarz); return 0; }
-    w = (BYTE FAR *)MemLock(*weiss) + 8; s = schwarz ? (BYTE FAR *)MemLock(*schwarz) + 8 : 0;
+    *weiss = BmpCreate(k->w, k->h, bunt ? bunt | BMP_MASKE : 1);   /* bunt: Maske hinter den Punkten, wenn der Treiber sie kann */
+    w = *weiss ? (BYTE FAR *)MemLock(*weiss) : 0;
+    im = bunt && w && (((WORD FAR *)w)[2] & BMP_MASKE);   /* im: Maske steckt im Bild */
+    if (w) MemUnlock(*weiss);
+    if (schwarz) *schwarz = im ? 0 : BmpCreate(k->w, k->h, 1);
+    if (!*weiss || (schwarz && !im && !*schwarz)) { if (*weiss) BmpFree(*weiss); if (schwarz && *schwarz) BmpFree(*schwarz); return 0; }
+    w = (BYTE FAR *)MemLock(*weiss) + 8;
+    s = im ? w + ((k->w * bunt + 7) >> 3) * k->h : schwarz ? (BYTE FAR *)MemLock(*schwarz) + 8 : 0;
     for (y = 0; y < k->h; y++, z += sb, mk += db, w += bunt ? (k->w * bunt + 7) >> 3 : db, s += schwarz ? db : 0)
         for (c = 0; c < k->w; c++) {
             if (k->bpp == 1) v = (z[c >> 3] >> (7 - (c & 7))) & 1;
@@ -263,7 +267,7 @@ static WORD rdbmake(const BYTE FAR *p, WORD len, WORD cga, HBMP FAR *weiss, HBMP
             } else if (!schwarz) { if (v || !b) w[c >> 3] |= (BYTE)(0x80 >> (c & 7)); }   /* durchsichtig = hell */
             else if (b) { if (v) w[c >> 3] |= (BYTE)(0x80 >> (c & 7)); else s[c >> 3] |= (BYTE)(0x80 >> (c & 7)); }
         }
-    MemUnlock(*weiss); if (schwarz) MemUnlock(*schwarz);
+    MemUnlock(*weiss); if (schwarz && *schwarz) MemUnlock(*schwarz);
     return 1;
 }
 static WORD fromres(HINST i, WORD typ, WORD id, WORD cga, HBMP FAR *a, HBMP FAR *b)
@@ -322,11 +326,15 @@ static void RDEXPORT x_IconDraw(HDC dc, short x, short y, HINST i, WORD id)
         if (ic[k].w && ic[k].i == i && ic[k].id == id && ic[k].cga == cga && MemSize(ic[k].w)) break;
     if (k == 8) {
         k = icn++ & 7;
-        if (ic[k].w) { BmpFree(ic[k].w); BmpFree(ic[k].s); ic[k].w = 0; }
+        if (ic[k].w) { BmpFree(ic[k].w); if (ic[k].s) BmpFree(ic[k].s); ic[k].w = 0; ic[k].s = 0; }
         if (!farbsym(i, id, bpp, &ic[k].w, &ic[k].s) && !fromres(i, RT_ICON, id, cga, &ic[k].w, &ic[k].s)) { ic[k].w = 0; return; }
         ic[k].i = i; ic[k].id = id; ic[k].cga = cga;
     }
     bh = (WORD FAR *)MemLock(ic[k].w); bw = bh[0]; bhh = bh[1]; fb = bh[2]; MemUnlock(ic[k].w);   /* Kopf: w, h, bpp, bpr */
+    if (fb > 1 && (fb & BMP_MASKE)) {             /* farbig mit Maske im Bild: der Treiber setzt nur deckende Punkte */
+        if ((s = BmpDC(ic[k].w)) != 0) { BitBlt(dc, x, y, bw, bhh, s, 0, 0, ROP_COPY); DCFree(s); }
+        return;
+    }
     if (fb > 1) {                                 /* farbig: zeichnet RDGDIX (Nr. 5), Bild im Geraeteformat + Maske */
         HMOD gx = ModLoad("RDGDIX.MOD"); FARPROC f;   /* je Aufruf laden und freigeben (wie RDPRN) */
         if (!gx) return;

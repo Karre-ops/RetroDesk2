@@ -317,12 +317,36 @@ static void RDEXPORT d_rohput(short qx, short qy, short qw, short qh, const BYTE
     }
 }
 
+/* Farbiges Symbol: Werte wie put (4 Bit), Maske ueber e1 auf 2 Bit je Punkt, nur dort schreiben */
+static BYTE mq[NB + 2];
+static void RDEXPORT d_symput(short x, short y, short w, short h, const BYTE FAR *src, WORD sbpr, WORD unten, const BYTE FAR *m, WORD mbpr, WORD mbit)
+{
+    short r; WORD i, nb, na, sh = x & 3, k = ((WORD)w + 7) >> 3;
+    if (w <= 0 || h <= 0) return;
+    for (r = 0; r < h; r++, src += sbpr, m += mbpr) {
+        nb = randmaske(x, w); na = (w + 3) >> 2;
+        if (!unten) { const BYTE FAR *q = src; for (i = 0; i < na; i++, q += 2) ab[i] = (BYTE)(n2h[q[0]] | n2[q[1]]); }
+        else for (i = 0; i < na; i++) {
+            BYTE a = (BYTE)(src[2 * i] << 4 | src[2 * i + 1] >> 4), b = (BYTE)(src[2 * i + 1] << 4 | src[2 * i + 2] >> 4);
+            ab[i] = (BYTE)(n2h[a] << 0 | n2[b]);
+        }
+        ab[na] = 0; lege(ab, nb, sh, vb);
+        for (i = 0; i < k; i++) {                 /* Maskenbits ab mbit -> je Punkt 2 Bit */
+            BYTE b = (BYTE)(mbit ? m[i] << mbit | m[i + 1] >> (8 - mbit) : m[i]); WORD e = e1[b];
+            ab[2 * i] = (BYTE)(e >> 8); ab[2 * i + 1] = (BYTE)e;
+        }
+        ab[2 * k] = 0; lege(ab, nb, sh, mq);
+        for (i = 0; i < nb; i++) mb[i] &= mq[i];
+        mschr(VP(x, y + r), vb, mb, nb);
+    }
+}
+
 static GFXDRVR tab = { { {
     { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVR), "CGA 320x200 4", d_init, d_done },
     d_modes, d_setmode, d_textmode,
     d_span, d_pixel, d_getpixel, d_put, d_get,
     0, 0, d_copy, 0, d_palette, d_cursor, d_cursorhide, 0, d_box }, d_farbe, d_rgb },
-    d_rohgr, d_rohget, d_rohput
+    d_rohgr, d_rohget, d_rohput, d_symput
 };
 FARPROC RDEXPORT DrvTab(void) { return (FARPROC)(void FAR *)&tab; }
 static struct { WORD n; FARPROC f[1]; } ex = { 1, { (FARPROC)DrvTab } };

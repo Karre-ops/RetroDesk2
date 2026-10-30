@@ -86,6 +86,10 @@ typedef struct {
     WORD  (RDAPI *rohgr)(short x, short w);
     void  (RDAPI *rohget)(short x, short y, short w, short h, BYTE FAR *z, WORD bpr);
     void  (RDAPI *rohput)(short qx, short qy, short qw, short qh, const BYTE FAR *z, WORD bpr, short x0, short w0);
+    /* Farbiges Symbol mit Maske (30.10.2026): nur Punkte mit gesetztem Maskenbit schreiben. s = Zeile 0 ab dem
+       ersten Punkt (unten: erster Punkt im unteren Halbbyte, nur 4 Bit), m = Maskenzeile 0, erstes Bit mbit (0 = Bit 7).
+       Darf 0 sein (dann setzt RDGDIX die Punkte ueber BitBlt ein). */
+    void  (RDAPI *symput)(short x, short y, short w, short h, const BYTE FAR *s, WORD sbpr, WORD unten, const BYTE FAR *m, WORD mbpr, WORD mbit);
 } GFXDRVR;
 
 /* ---- Sound --------------------------------------------------------------- */
