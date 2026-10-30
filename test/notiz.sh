@@ -13,7 +13,7 @@ A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\NOTIZ.EXE T A:\NEU.TXT
 A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\NOTIZ.EXE T A:\VOLL.TXT
 A:\FDAPM.COM POWEROFF
 AE
-bash tools/mkdisk.sh $IMG obj/ae_notiz.txt
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_notiz.txt   # 30.10.: 360 KB voll, LANG.TXT und VOLL.TXT passten nicht mehr
 python3 -c "
 open('/tmp/LANG.TXT','w',newline='').write(''.join('Zeile %d: RetroDesk 2 Notizblock\r\n' % i for i in range(1, 101)))
 open('/tmp/VOLL.TXT','w',newline='').write('a\r\n' * 79)"

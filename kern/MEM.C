@@ -263,6 +263,7 @@ void mem_owner_free(WORD owner)
 DWORD mem_free_bytes(int groesster)
 {
     WORD i; DWORD n = 0;
+    profile_flush();                              /* INI-Zwischenspeicher (16 KB) zaehlt als frei (30.10.2026) */
     for (i = 0; i < nblk; i++)
         if (blk[i].flags & B_FREE) {
             if (groesster) { if (blk[i].paras > n) n = blk[i].paras; }
@@ -362,9 +363,7 @@ DWORD RDK MemSize(HMEM h)  { HND *x = hp(h); return x ? x->size : 0; }
 WORD  RDK MemFlags(HMEM h) { HND *x = hp(h); return x ? ((x->flags & ~(HU | HA)) | (x->seg || (x->flags & HA) ? 0 : 0x4000u) | x->lock) : 0; }
 DWORD RDK MemAvail(WORD art)
 {
-    if (art == MEMA_KONV) return mem_free_bytes(0);
-    if (art == MEMA_GROESSTER) return mem_free_bytes(1);
-    return 0;                                     /* EMS/EXT folgen */
+    return art > MEMA_GROESSTER ? 0 : mem_free_bytes(art);   /* MEMA_KONV 0, MEMA_GROESSTER 1; EMS/EXT folgen */
 }
 DWORD RDK MemCompact(DWORD wunsch)
 {

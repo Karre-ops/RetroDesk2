@@ -166,7 +166,7 @@ int main(void)
         mem_sw = (DWORD (__far __pascal *)(WORD, WORD, WORD))k_modraw(ausm, 2);
         if (!mem_sw || !mem_sw(3, FP_SEG((void __far *)&mem_swi), (WORD)&mem_swi)) { mem_sw = 0; ModFree(ausm); ausm = 0; }
     }
-    profile_flush(); vor = mem_free_bytes(0);
+    vor = mem_free_bytes(0);                      /* schreibt den INI-Zwischenspeicher vorher */
     kxm = k_sysmod("RDKX.MOD", 0, 0, kx);                 /* Zeit, Sprache, Ressourcen, Texte (verwerfbar) */
     gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
     if (!gdi) k_hex("RD: ohne RDGDI", k_lasterr, 1);
