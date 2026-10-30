@@ -10,7 +10,7 @@ A:\\RDMAUS.COM
 A:\\RD2\\RD.EXE /$K A:\\RD2\\INPTEST.EXE
 A:\\FDAPM.COM POWEROFF
 AE
-bash tools/mkdisk.sh $IMG obj/ae_inp.txt
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_inp.txt
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/inp_*.ppm
 timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

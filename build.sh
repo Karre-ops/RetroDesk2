@@ -10,7 +10,7 @@ W="wasm -q -0"
 $W -fo=obj/rd2start.obj sdk/RD2START.ASM
 $W -fo=obj/rd2mod.obj   sdk/RD2MOD.ASM
 rm -f obj/lib_*.obj $O/RD2.LIB
-for a in sdk/lib/F*.ASM; do b=$(basename $a .ASM); case $b in F340|F341) continue;; esac; $W -fo=obj/lib_$b.obj $a; done   # F340/F341: Joystick in C (JOY.C)
+for a in sdk/lib/F*.ASM; do b=$(basename $a .ASM); case $b in F12F|F130) continue;; esac; $W -fo=obj/lib_$b.obj $a; done   # F12F/F130 (JoyRead/JoyCalibrate): Joystick in C (JOY.C)
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_WAV.obj sdk/WAV.C   # Hilfen in C (laufen im Programm)
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_JOY.obj sdk/JOY.C   # Joystick (Gameport 201h, PIT)
 wlib -q -n $O/RD2.LIB obj/lib_*.obj
@@ -28,7 +28,8 @@ wlink option quiet system dos name $O/RD.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj
 # Programme: Medium, ohne Watcom-Startcode
 app() {   # $1 Quelle  $2 EXE  $3 Anzeigename
   wcc -0 -mm $APPFLAGS -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/$2.obj $1
-  wlink option quiet format dos name $O/$2 file obj/rd2start.obj,obj/$2.obj$APPOBJ library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs${APPSTACK:+,stack=$APPSTACK},map=obj/$2.map >/dev/null
+  local st=obj/rd2start.obj; if [ -n "$APPSTACK" ]; then st=obj/rd2start_$APPSTACK.obj; $W -dSTK=$APPSTACK -fo=$st sdk/RD2START.ASM; fi   # eigene Stackgroesse (stacktop richtig)
+  wlink option quiet format dos name $O/$2 file $st,obj/$2.obj$APPOBJ library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,map=obj/$2.map >/dev/null
   if [ -f "${1%.C}.RC" ]; then python3 tools/rdrc.py "${1%.C}.RC" obj/$2.res >/dev/null || exit 1; python3 tools/rd2link.py $O/$2 "$3" --res obj/$2.res >/dev/null; else python3 tools/rd2link.py $O/$2 "$3" >/dev/null; fi
 }
 cp apps/test/RESTEST.RDB $O/   # fuer BmpLoadFile im RESTEST
@@ -84,7 +85,8 @@ wlink option quiet format dos name $O/RDTCP.MOD file obj/rd2mod.obj,obj/RDTCP.MO
 mv $O/RDTCP.MOD.exe $O/RDTCP.MOD 2>/dev/null || true
 python3 tools/rd2link.py $O/RDTCP.MOD "TCP/IP" --type M --flags 0 >/dev/null
 for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST JOYTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT; do app apps/test/$t.C $t.EXE "$t"; done
-app shell/SHELL.C SHELL.EXE "Shell"
+modul shell/SHELLX.C SHELLX.MOD "Shell-Zusatz" 0x0080 M "-ml -r -oa -ol"   # Info, Laufwerksinfo, Eigenschaften, Suchen (verwerfbar)
+APPSTACK=3072 app shell/SHELL.C SHELL.EXE "Shell"   # Stack 3 KB (gemessen hoechstens etwa 2,5 KB, 30.10.)
 app apps/hilfe/HILFE.C HILFE.EXE "Hilfe"   # F1: HelpShow -> RDKX -> RDPRN.MOD Nr. 6 -> HILFE.EXE
 iconv -f UTF-8 -t CP437 docs/RD2_HLP.txt > $O/RD2.HLP
 app apps/uhr/UHR.C UHR.EXE "Uhr"   # voller Stapel: GetDC laedt Treiber und Module auf dem Stapel des Programms

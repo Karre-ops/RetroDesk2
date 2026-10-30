@@ -5,7 +5,7 @@
 cd "$(dirname "$0")/.."
 IMG=obj/mleiste.img; SER=obj/mleiste_com1.txt; SOCK=/tmp/qmon_mleiste.sock
 printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_mleiste.txt
-bash tools/mkdisk.sh $IMG obj/ae_mleiste.txt >/dev/null
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_mleiste.txt >/dev/null
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/mleiste?.ppm; touch $SER
 timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

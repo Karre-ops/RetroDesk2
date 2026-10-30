@@ -54,7 +54,6 @@ extern void (__far __pascal * volatile k_sndtick)(void);   /* KASM: RDSND-Takt i
 extern void (__far __pascal *k_sndpause)(WORD an);
 extern void (__far __pascal *k_netpause)(WORD an);
 void k_pausen(WORD an);
-#define RDO_NETHAKEN 0x3BF                        /* kein Aufruf: Zeiger auf k_netpause fuer RDTCP.MOD */  /* RDSND: 0 still und Treiber aus, 1 wieder an (RunDos), 2 Abfrage (input_poll) */
 #define CARRY (kr.flags & 1)
 
 /* ---- RD.C ------------------------------------------------------------------- */

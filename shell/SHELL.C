@@ -86,6 +86,12 @@ static int endung(LPCSTR n, LPCSTR e)             /* e gross, 3 Zeichen */
     while (*n && *n != '.') n++;
     return *n == '.' && (n[1] & 0xDF) == e[0] && (n[2] & 0xDF) == e[1] && (n[3] & 0xDF) == e[2] && !n[4];
 }
+static void dbgh(const char *t, DWORD v)             /* Testmeldung "SHELL: t" (ohne Wert: dbg) */
+{
+    char b[40]; scpy(b, "SHELL: ", sizeof b); scat(b, t, sizeof b);
+    if (v == 0xFFFFFFFFUL) DbgPrint(b); else DbgHex(b, v);
+}
+#define dbg(t) dbgh(t, 0xFFFFFFFFUL)
 static ORDNER *ord(HWND w) { short i; for (i = 0; i < MAXO; i++) if (od[i].w == w) return &od[i]; return 0; }
 static WORD symbol(const EINTRAG FAR *e)
 {
@@ -167,7 +173,7 @@ static void sortwahl(BYTE a)                      /* alle Ordnerfenster neu ordn
 {
     short i; EINTRAG FAR *e;
     sortart = a; for (i = 0; i < 4; i++) MenuCheck(mbar, CM_SORT + i, i == a);
-    DbgHex("SHELL: Sortierung", a);
+    dbgh("Sortierung", a);
     for (i = 0; i < MAXO; i++) if (od[i].w && od[i].h && (e = (EINTRAG FAR *)MemLock(od[i].h)) != 0) {
         sortieren(e, od[i].n);
         if (od[i].n) { DbgPrint(e[0].name); DbgPrint(e[od[i].n - 1].name); }
@@ -214,7 +220,7 @@ static WORD werkzeug(char *p, LPCSTR n);
 static void starten(LPCSTR p)
 {
     BYTE dos;
-    DbgPrint("SHELL: Start"); DbgPrint(p);
+    dbg("Start"); DbgPrint(p);
     {   static const char tx[] = "TXT\0INI\0DOC\0NFO\0DIZ\0LOG\0";   /* Textdateien: RDEDIT (Programmdiskette), sonst Notizblock */
         char n[80]; WORD i;
         for (i = 0; i < sizeof tx - 1; i += 4) if (endung(p, tx + i) && ((werkzeug(n, "RDEDIT.EXE") && TaskExec(n, p, SW_SHOW)) || (werkzeug(n, "NOTIZ.EXE") && TaskExec(n, p, SW_SHOW)))) return; }
@@ -227,8 +233,8 @@ static void starten(LPCSTR p)
         WORD f = LastError();
         zahl(t, MemAvail(MEMA_KONV) >> 10);
         fmt(buf, StrGet(inst, f == RD_ERR_NOMEM ? 20 : 3), p, t);
-        DbgHex("SHELL: Startfehler", f);
-        if (f == RD_ERR_NOMEM) DbgPrint("SHELL: zu wenig Speicher");
+        dbgh("Startfehler", f);
+        if (f == RD_ERR_NOMEM) dbg("zu wenig Speicher");
         MsgBox(0, buf, "RD", MB_OK | MB_ERROR);
     }
 }
@@ -296,7 +302,7 @@ static int sicher(LPCSTR p, WORD attr, WORD frage)   /* 1 = weitermachen */
     LPCSTR n, s;
     if (!wichtig(p, attr)) return 1;
     for (n = p, s = p; *s; s++) if (*s == '\\') n = s + 1;
-    DbgPrint("SHELL: Systemwarnung");
+    dbg("Systemwarnung");
     fmt(buf, StrGet(inst, 15), n, 0); scat(buf, StrGet(inst, frage), sizeof buf);
     return MsgBox(GetActive(), buf, "RD", MB_YESNO | MB_WARN | MB_DEFNO) == ID_YES;
 }
@@ -306,7 +312,7 @@ static int esc(void)
 {
     MSG m;
     while (PeekMessage(&m, 1)) {
-        if (m.msg == M_KEY && m.p1 == K_ESC) { DbgPrint("SHELL: Abbruch (Esc)"); return 1; }
+        if (m.msg == M_KEY && m.p1 == K_ESC) { dbg("Abbruch (Esc)"); return 1; }
         if ((m.msg & 0xFF00) != M_KEY && m.msg != M_COMMAND && (m.msg < M_MOUSEMOVE || m.msg > M_DBLCLK)) DispatchMessage(&m);
     }
     return 0;
@@ -461,125 +467,43 @@ static void umbenennen(ORDNER *o)
     if (!InputBox(GetActive(), StrGet(inst, 8), "RD", n, sizeof n) || !n[0]) return;
     scpy(qn, o->pfad, sizeof qn); scat(qn, n, sizeof qn);
     if ((r = FileRename(qv, qn)) != 0) fehler(n, r);
-    DbgPrint("SHELL: umbenannt");
+    dbg("umbenannt");
     alle_neu();
 }
 /* ---- Datei-Eigenschaften: Name, Groesse, Datum/Zeit, Attribute (Schreibgeschuetzt, Versteckt, System, Archiv) ---- */
-static char ez[3][48]; static WORD eat;
-static BOOL RDCALLBACK eproc(HWND d, WORD msg, WORD p1, DWORD p2)
+/* Selten gebrauchte Teile (Info, Laufwerksinfo, Eigenschaften, Suchen) liegen in SHELLX.MOD (verwerfbar):
+   bei Bedarf laden, eine Funktion rufen, gleich wieder freigeben (spart RAM in SHELL.EXE) */
+typedef WORD (RDAPI *SHXF)(HINST, LPSTR, LPSTR, WORD);
+static WORD shx(WORD nr, LPSTR a, LPSTR b, WORD w)
 {
-    WORD i;
-    (void)p2;
-    if (msg == M_INITDIALOG) {
-        for (i = 0; i < 3; i++) DlgSetText(d, (WORD)(41 + i), ez[i]);
-        for (i = 0; i < 4; i++) DlgCheck(d, (WORD)(31 + i), (eat & (i == 3 ? FA_ARCH : 1 << i)) != 0);
-    }
-    if (msg == M_COMMAND && p1 == ID_OK)
-        for (eat &= FA_DIR, i = 0; i < 4; i++) if (DlgChecked(d, (WORD)(31 + i))) eat |= i == 3 ? FA_ARCH : 1 << i;
-    return FALSE;
+    HMOD m = ModLoad("SHELLX.MOD"); SHXF f; WORD r = 0xFFFF;
+    if (!m || !(f = (SHXF)ModProc(m, nr))) fehler("SHELLX.MOD", LastError());
+    else r = f(inst, a, b, w);
+    if (m) ModFree(m);
+    return r;
 }
-static void z2(char *p, WORD v) { p[0] = (char)('0' + v / 10 % 10); p[1] = (char)('0' + v % 10); }
 static void eigenschaften(ORDNER *o)
 {
-    EINTRAG FAR *e; FINDDATA fd; char *p; WORD at, r;
+    EINTRAG FAR *e; WORD r;
     if (o->sel < 0 || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
     scpy(buf, e[o->sel].name, 13); MemUnlock(o->h);
     if (buf[0] == '.') return;
     scpy(qv, o->pfad, sizeof qv); scat(qv, buf, sizeof qv);
-    if (FileFindFirst(qv, FA_RDONLY | FA_HIDDEN | FA_SYSTEM | FA_DIR | FA_ARCH, &fd)) { fehler(buf, LastError()); return; }
-    scpy(ez[0], StrGet(inst, 32), sizeof ez[0]); scat(ez[0], qv, sizeof ez[0]);
-    scpy(ez[1], StrGet(inst, 33), sizeof ez[1]);
-    if (fd.attr & FA_DIR) scat(ez[1], StrGet(inst, 31), sizeof ez[1]);
-    else { p = ez[1]; while (*p) p++; p = zahl(p, fd.groesse); scpy(p, " Bytes", 8); }
-    scpy(ez[2], StrGet(inst, 34), sizeof ez[2]); p = ez[2]; while (*p) p++;
-    z2(p, fd.datum & 31); p[2] = '.'; z2(p + 3, (fd.datum >> 5) & 15); p[5] = '.'; p = zahl(p + 6, 1980 + (fd.datum >> 9));
-    *p++ = ' '; z2(p, fd.zeit >> 11); p[2] = ':'; z2(p + 3, (fd.zeit >> 5) & 63); p[5] = 0;
-    eat = at = fd.attr;
-    DbgPrint("SHELL: Eigenschaften"); DbgPrint(ez[1]); DbgPrint(ez[2]);
-    if (DialogRun(inst, 20, GetActive(), eproc, 0) != ID_OK || eat == at) return;
-    if ((at & FA_SYSTEM) && !sicher(qv, at, 19)) return;
-    if ((r = FileAttr(qv, (WORD)(eat & ~FA_DIR), 1)) == 0xFFFF) {   /* liefert sonst die Attribute */ MsgBox(GetActive(), StrGet(inst, 35), "RD", MB_OK | MB_WARN); DbgHex("SHELL: Attribut Fehler", r); return; }
-    DbgHex("SHELL: Attribute", eat);
+    if ((r = shx(3, qv, 0, 0)) == 0xFFFF) return;
+    if ((r & 0xF000) == 0xF000) { fehler(buf, r & 0xFFF); return; }
+    if ((r & (FA_SYSTEM << 8)) && !sicher(qv, r >> 8, 19)) return;
+    if (FileAttr(qv, (WORD)(r & 0xFF & ~FA_DIR), 1) == 0xFFFF) {   /* liefert sonst die Attribute */ MsgBox(GetActive(), StrGet(inst, 35), "RD", MB_OK | MB_WARN); dbg("Attribut Fehler"); return; }
+    dbgh("Attribute", r & 0xFF);
     alle_neu();
 }
 static ORDNER *ordner_auf(char l, LPCSTR pfad, RECT *wr);
-/* ---- Dateien suchen: Muster mit * und ? (8.3), ab einem Ordner durch alle Unterordner (8 Ebenen), 100 Treffer ---- */
-#define SMAX 100
-#define SLEN 66
-static HMEM sh; static WORD sn; static short ssel; static char sm[13], sp[SLEN + 14];
-static BYTE teil(const char *n, const char *m, WORD k)   /* Namens- oder Endungsteil, hoechstens k Zeichen */
+static char sm[13];                               /* letztes Suchmuster */
+static void suchen(LPCSTR ab)                     /* ab: Ordner mit \ am Ende; Suche in SHELLX.MOD */
 {
-    WORD i;
-    for (i = 0; i < k; i++) {
-        if (*m == '*') return 1;
-        if (!*m) return (BYTE)!*n;
-        if (*m == '?') { if (*n) n++; m++; continue; }
-        if (!*n || (*n & 0xDF) != (*m & 0xDF)) return 0;
-        n++; m++;
-    }
-    return 1;
-}
-static BYTE passt(const char *n)                  /* n gegen sm (beide NAME.EXT) */
-{
-    char a[13], b[13], *q; const char *e1, *e2;
-    scpy(a, n, 13); scpy(b, sm, 13);
-    q = a; while (*q && *q != '.') q++; e1 = *q ? q + 1 : q; *q = 0;
-    q = b; while (*q && *q != '.') q++; e2 = *q ? q + 1 : "*"; if (!*q && b[0] == '*') e2 = "*"; else if (!*q) e2 = ""; *q = 0;
-    return teil(a, b, 8) && teil(e1, e2, 3);
-}
-static void durch(WORD l, WORD tief)              /* sp[0..l) = Ordner mit \ am Ende */
-{
-    FINDDATA f; char FAR *t; WORD k;
-    sp[l] = 0; scat(sp, "*.*", sizeof sp);
-    if (FileFindFirst(sp, FA_DIR | FA_HIDDEN | FA_SYSTEM | FA_RDONLY | FA_ARCH, &f)) return;
-    do {
-        if (f.name[0] == '.' || sn >= SMAX) continue;
-        sp[l] = 0;
-        if (passt(f.name) && (t = (char FAR *)MemLock(sh)) != 0) {
-            t += sn * SLEN; for (k = 0; k < l && k < SLEN - 13; k++) t[k] = sp[k];
-            for (t += k, k = 0; f.name[k]; k++) t[k] = f.name[k];
-            t[k] = (char)((f.attr & FA_DIR) ? '\\' : 0); t[k + (t[k] != 0)] = 0;
-            MemUnlock(sh); sn++;
-        }
-        if ((f.attr & FA_DIR) && tief < 8 && l + 13 < SLEN) {
-            sp[l] = 0; scat(sp, f.name, sizeof sp); k = (WORD)slen(sp); sp[k++] = '\\'; sp[k] = 0;
-            durch(k, (WORD)(tief + 1));
-            sp[l] = 0; scat(sp, "*.*", sizeof sp);   /* DTA gehoert f, Suche geht weiter */
-        }
-    } while (!FileFindNext(&f));
-}
-static BOOL RDCALLBACK sproc(HWND d, WORD msg, WORD p1, DWORD p2)
-{
-    HWND l = DlgItem(d, 40); char FAR *t; WORD i;
-    if (msg == M_INITDIALOG) {
-        DlgSetText(d, 41, buf);
-        if ((t = (char FAR *)MemLock(sh)) != 0) { for (i = 0; i < sn; i++) SendMessage(l, L_ADD, 0, (DWORD)(LPCSTR)(t + i * SLEN)); MemUnlock(sh); }
-        if (sn) SendMessage(l, L_SETSEL, 0, 0);
-        SetFocus(l);
-    }
-    if (msg == M_COMMAND && p1 == 40 && HIWORD(p2) == N_DBLCLK) { ssel = (short)SendMessage(l, L_GETSEL, 0, 0); DialogEnd(d, ID_OK); return TRUE; }
-    if (msg == M_COMMAND && p1 == ID_OK) ssel = (short)SendMessage(l, L_GETSEL, 0, 0);
-    return FALSE;
-}
-static void suchen(LPCSTR ab)                     /* ab: Ordner mit \ am Ende */
-{
-    char z[8], *q; char FAR *t; WORD i;
-    scpy(sp, ab, sizeof sp); fmt(buf, StrGet(inst, 36), sp, 0);
-    if (!sm[0]) scpy(sm, "*.*", sizeof sm);
-    if (!InputBox(GetActive(), buf, "RD", sm, sizeof sm) || !sm[0]) return;
-    for (q = sm; *q; q++) if (*q >= 'a' && *q <= 'z') *q = (char)(*q - 32);
-    if (!sh && !(sh = MemAlloc((DWORD)SMAX * SLEN, MEM_MOVABLE))) { fehler(sm, RD_ERR_NOMEM); return; }
-    sn = 0; ssel = -1; CursorBusy(TRUE); durch((WORD)slen(sp), 0); CursorBusy(FALSE);
-    zahl(z, sn); scpy(qv, ab, sizeof qv); fmt(buf, StrGet(inst, 37), z, qv);
-    DbgPrint("SHELL: Suche"); DbgPrint(buf);
-    if (!sn) { MsgBox(GetActive(), StrGet(inst, 38), "RD", MB_OK | MB_INFO); return; }
-    if ((t = (char FAR *)MemLock(sh)) != 0) { DbgPrint((LPCSTR)t); MemUnlock(sh); }
-    if (DialogRun(inst, 21, GetActive(), sproc, 0) != ID_OK || ssel < 0 || ssel >= (short)sn) return;
-    if (!(t = (char FAR *)MemLock(sh))) return;
-    t += ssel * SLEN; for (i = 0; t[i] && i < sizeof qv - 1; i++) qv[i] = t[i]; qv[i] = 0; MemUnlock(sh);
-    if (i && qv[i - 1] == '\\') qv[--i] = 0;     /* Ordner-Treffer: den Ordner selbst nicht, sondern den darueber */
-    while (i && qv[i - 1] != '\\') i--; qv[i] = 0;
-    ordner_auf(qv[0], qv, 0);
+    WORD r;
+    scpy(qv, ab, sizeof qv);
+    if ((r = shx(4, qv, sm, 0)) == 1) ordner_auf(qv[0], qv, 0);
+    else if ((r & 0xF000) == 0xF000 && r != 0xFFFF) fehler(sm, r & 0xFFF);
 }
 static void neuer_ordner(ORDNER *o)
 {
@@ -588,7 +512,7 @@ static void neuer_ordner(ORDNER *o)
     if (!InputBox(GetActive(), StrGet(inst, 9), "RD", n, sizeof n) || !n[0]) return;
     scpy(qn, o->pfad, sizeof qn); scat(qn, n, sizeof qn);
     if ((r = DirMake(qn)) != 0) fehler(n, r);
-    DbgPrint("SHELL: Ordner angelegt");
+    dbg("Ordner angelegt");
     alle_neu();
 }
 static short treffer(ORDNER *o, short px, short py)   /* Eintrag unter Client-Punkt, -1 = keiner */
@@ -717,7 +641,7 @@ static void ansicht(BYTE l)                       /* fuer alle Ordnerfenster */
 {
     short i; RECT r;
     liste = l; MenuCheck(mbar, CM_SYMB, !l); MenuCheck(mbar, CM_LISTE, l);
-    DbgHex("SHELL: Ansicht", l);
+    dbgh("Ansicht", l);
     for (i = 0; i < MAXO; i++) if (od[i].w) { GetClientRect(od[i].w, &r); masse(&od[i], r.r, r.b); sichtbar(&od[i]); InvalidateRect(od[i].w, 0, TRUE); }
 }
 static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
@@ -725,7 +649,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
     ORDNER *o = ord(w); PAINT ps; HDC d; RECT r; EINTRAG FAR *e; short i, x, y;
     if (!o) return DefWindowProc(w, msg, p1, p2);
     switch (msg) {
-    case M_SIZE: DbgHex("SHELL: Groesse", p2); if (p1 != SIZE_MIN) masse(o, (short)LOWORD(p2), (short)HIWORD(p2)); return 0;
+    case M_SIZE: dbgh("Groesse", p2); if (p1 != SIZE_MIN) masse(o, (short)LOWORD(p2), (short)HIWORD(p2)); return 0;
     case M_PAINT:
         d = BeginPaint(w, &ps); GetClientRect(w, &r);
         SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &ps.neu);   /* nur der ungueltige Teil */
@@ -832,7 +756,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_NEU) { wl[o->pfad[0] - 'A'] = 1; einlesen(o); }   /* gibt die Wechselabfrage wieder frei */
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
         else if (p1 >= CM_SORT && p1 < CM_SORT + 4) sortwahl((BYTE)(p1 - CM_SORT));
-        else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); DbgHex("SHELL: versteckte", verst); alle_neu(); }
+        else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); dbgh("versteckte", verst); alle_neu(); }
         else if (p1 == CM_KOPIE) kopieren(o, 0, 0);
         else if (p1 == CM_VERSCH) kopieren(o, 1, 0);
         else if (p1 == CM_UMBEN) umbenennen(o);
@@ -845,7 +769,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else PostMessage(desk, M_COMMAND, p1, 0);   /* RD-Befehle */
         return 0;
     case M_ACTIVATE:
-        if (p1) { DbgPrint("SHELL: aktiv"); DbgPrint(o->pfad); wechsel(o->pfad[0]); }
+        if (p1) { dbg("aktiv"); DbgPrint(o->pfad); wechsel(o->pfad[0]); }
         if (!p1) letzt = w;                       /* fuer das Kopierziel */
         return DefWindowProc(w, msg, p1, p2);
     case M_DESTROY:
@@ -892,7 +816,7 @@ static void sta_schreiben(void)
         z.n++;
     }
     werkzeug(p, "RD2.STA");
-    if (!FileSaveSafe(p, &z, 10 + (DWORD)z.n * sizeof(STAO))) DbgPrint("SHELL: Zustand gesichert");
+    if (!FileSaveSafe(p, &z, 10 + (DWORD)z.n * sizeof(STAO))) dbg("Zustand gesichert");
 }
 static void sta_lesen(void)
 {
@@ -913,7 +837,7 @@ static void sta_lesen(void)
         if (i == z.akt) a = o->w;
     }
     if (a) SetActive(a);
-    DbgPrint("SHELL: Zustand geladen");
+    dbg("Zustand geladen");
 }
 
 /* ---- Schreibtisch ----------------------------------------------------------------------- */
@@ -969,44 +893,8 @@ static void formatieren(void)                     /* Laufwerksmenue: Formatieren
     c[0] = lw[lsel]; c[1] = ':'; c[2] = 0;
     if (!TaskExec(p, c, SW_SHOW)) { fmt(buf, StrGet(inst, 3), p, 0); MsgBox(0, buf, "RD", MB_OK | MB_ERROR); }
 }
-static void lwinfo(void)
-{
-    DRIVEINFO di; char a[48], g[12], f[12], *p; WORD e;
-    a[0] = lw[lsel]; a[1] = ':'; a[2] = 0;
-    CursorBusy(TRUE); e = DriveInfo((WORD)(lw[lsel] - 'A' + 1), &di); CursorBusy(FALSE);
-    if (e) { fmt(buf, StrGet(inst, 4), a, 0); MsgBox(GetActive(), buf, "RD", MB_OK | MB_WARN); return; }
-    p = zahl(g, di.gesamt >> 10); scpy(p, " KB", 4);
-    p = zahl(f, di.frei >> 10); scpy(p, " KB", 4);
-    if (di.label[0]) { scat(a, " ", sizeof a); scat(a, di.label, sizeof a); }
-    fmt(buf, StrGet(inst, 13), a, g); scat(buf, f, sizeof buf);
-    MsgBox(GetActive(), buf, StrGet(inst, 14), MB_OK | MB_INFO);
-    DbgPrint("SHELL: Laufwerksinfo");
-}
-static LPCSTR nte(LPCSTR t, WORD i) { while (i-- && *t) while (*t++); return t; }   /* i-tes Wort aus "a\0b\0" */
-static void zk(char *p, WORD v) { p = zahl(p, v / 10); *p++ = ','; zahl(p, v % 10); }   /* 0,1-Einheiten */
-static void info(void)                            /* wie RD1: Prozessor, Takt, Speicher, DOS, Grafik, Sound */
-{
-    static const char cpu[] = "8088\0" "8086\0" "NEC V20\0" "80186\0" "80286\0" "80386\0" "80486\0" "Pentium\0";
-    static const char gfx[] = "?\0" "CGA\0" "Hercules\0" "VGA mono\0" "EGA\0" "VGA\0" "VESA\0" "EGA 320\0" "EGA mono\0" "EGA 4\0" "VGA 4\0" "EGA 200\0" "VESA 16\0" "MCGA\0" "VESA 800\0" "VESA 1024\0" "CGA 4\0";
-    SYSINFO si; char t[12], *p; WORD a = KernVersion();
-    KernInfo(&si);
-    p = zahl(t, a >> 8); *p++ = '.'; zahl(p, a & 0xFF);
-    fmt(buf, StrGet(inst, 1), t, 0);                                        /* RetroDesk 2, API x.y */
-    scat(buf, StrGet(inst, 21), sizeof buf); scat(buf, nte(cpu, si.cpu), sizeof buf);
-    if (si.mhz10) { scat(buf, ", ca. ", sizeof buf); zk(t, si.mhz10); scat(buf, t, sizeof buf); scat(buf, " MHz", sizeof buf); }
-    scat(buf, StrGet(inst, 22), sizeof buf);                                 /* Koprozessor */
-    if (si.fpu && si.cpu >= CPU_486) scat(buf, StrGet(inst, 30), sizeof buf);   /* 486DX und spaeter: eingebaut */
-    else if (si.fpu) { zahl(t, si.fpu == 87 ? 8087 : 80000u + si.fpu); scat(buf, t, sizeof buf); } else scat(buf, StrGet(inst, 26), sizeof buf);
-    scat(buf, StrGet(inst, 23), sizeof buf); zahl(t, si.kb_konv); scat(buf, t, sizeof buf);   /* Speicher */
-    scat(buf, StrGet(inst, 24), sizeof buf); zahl(t, (WORD)(MemAvail(MEMA_KONV) >> 10)); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf);
-    if (si.kb_ext) { scat(buf, " + XMS ", sizeof buf); zahl(t, si.kb_ext); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf); }
-    scat(buf, "\nDOS ", sizeof buf); p = zahl(t, si.dos >> 8); *p++ = '.'; zahl(p, si.dos & 0xFF); scat(buf, t, sizeof buf);
-    scat(buf, StrGet(inst, 25), sizeof buf); scat(buf, nte(gfx, si.grafik <= GFX_CGA4 ? si.grafik : 0), sizeof buf);   /* Grafik */
-    scat(buf, " ", sizeof buf); zahl(t, W); scat(buf, t, sizeof buf); scat(buf, "x", sizeof buf); zahl(t, H); scat(buf, t, sizeof buf);
-    scat(buf, StrGet(inst, 27), sizeof buf);                                 /* Sound */
-    scat(buf, si.sound & (SC_OPL2 | SC_OPL3) ? "AdLib" : si.sound & SC_SPEAKER ? "PC-Speaker" : StrGet(inst, 26), sizeof buf);
-    { char u[24]; scpy(u, StrGet(inst, 5), sizeof u); MsgBox(GetActive(), buf, u, MB_OK | MB_INFO); }
-}
+static void lwinfo(void) { shx(2, 0, 0, (WORD)lw[lsel]); }
+static void info(void) { short wh[2]; wh[0] = W; wh[1] = H; shx(1, (LPSTR)wh, 0, 0); }   /* Prozessor, Takt, Speicher, DOS, Grafik, Sound */
 static void uhr(void)                             /* HH:MM rechts in der Menueleiste, jede Sekunde */
 {
     RDTIME t; char z[8]; HDC d; RECT r; short w;
@@ -1027,8 +915,8 @@ static void wechsel(char l)
     DRIVEINFO di; short i, k = l - 'A'; WORD f = 0;
     if (k < 0 || k > 25 || wl[k] == 2 || DriveInfo((WORD)(k + 1) | DI_NURTYP, &di) || di.typ != DT_FLOPPY) return;
     if (!(di.flags & DI_CHANGE)) { wl[k] = 0; return; }
-    if (wl[k]) { wl[k] = 2; DbgPrint("SHELL: kein Wechselsignal"); return; }
-    DbgPrint("SHELL: Diskettenwechsel");
+    if (wl[k]) { wl[k] = 2; dbg("kein Wechselsignal"); return; }
+    dbg("Diskettenwechsel");
     for (i = 0; i < MAXO; i++) if (od[i].w && od[i].pfad[0] == l) { od[i].pfad[3] = 0; f |= einlesen(&od[i]); }
     wl[k] = f ? 2 : 1;                            /* keine Diskette (Abbruch): bis "Neu einlesen" ruhen */
 }
@@ -1087,7 +975,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
             if (werkzeug(p, zn[p1 - CM_ZUB])) starten(p); }
         else if (p1 == CM_SYMB || p1 == CM_LISTE) ansicht(p1 == CM_LISTE);
         else if (p1 >= CM_SORT && p1 < CM_SORT + 4) sortwahl((BYTE)(p1 - CM_SORT));
-        else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); DbgHex("SHELL: versteckte", verst); alle_neu(); }
+        else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); dbgh("versteckte", verst); alle_neu(); }
         else if (p1 >= CM_PRG && p1 < CM_PRG + npm) starten(prg[pm[p1 - CM_PRG]]);
         return 0;
     case M_TIMER:
@@ -1138,8 +1026,8 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
       if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "System", "Installieren", 0) == 1 && werkzeug(u, "INSTALL.EXE"))
           { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, "", SW_SHOW); }
       if (werkzeug(p, "RD2.INI") && ProfileGetStr(p, "System", "GrafikAlt", "", u, 4) && werkzeug(u, "OPTIONEN.EXE")) TaskExec(u, "B", SW_SHOW); }   /* neue Grafik: "Behalten?" */
-    DbgPrint("SHELL: bereit");
+    dbg("bereit");
     while (GetMessage(&m)) DispatchMessage(&m);
-    DbgPrint("SHELL: Ende");
+    dbg("Ende");
     return 0;
 }

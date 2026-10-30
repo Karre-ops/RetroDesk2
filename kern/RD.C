@@ -168,16 +168,16 @@ int main(void)
     }
     vor = mem_free_bytes(0);                      /* schreibt den INI-Zwischenspeicher vorher */
     kxm = k_sysmod("RDKX.MOD", 0, 0, kx);                 /* Zeit, Sprache, Ressourcen, Texte (verwerfbar) */
-    gdi = k_sysmod("RDGDI.MOD", 0x100, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
+    gdi = k_sysmod("RDGDI.MOD", RDO_GetCaps, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
     if (!gdi) k_hex("RD: ohne RDGDI", k_lasterr, 1);
     if (gdi) k_mausget = (WORD (__far __pascal *)(WORD __far *))k_modraw(gdi, 0x3C + 5);
     if (gdi) k_gdipause = (void (__far __pascal *)(WORD))k_modraw(gdi, 0x3C + 6);
-    if (gdi && (user = k_sysmod("RDUSER.MOD", 0x200, 0x42, ux)) != 0) {   /* Oberflaeche: Fenster, Eingabe */
+    if (gdi && (user = k_sysmod("RDUSER.MOD", RDO_RegisterClass, 0x42, ux)) != 0) {   /* Oberflaeche: Fenster, Eingabe */
         ((void (__far __pascal *)(void __far *, void __far *, void __far *))k_modraw(user, 0x45))(k_modraw(gdi, 0x3C + 7), k_modraw(gdi, 0x3C + 8), k_modraw(gdi, 0x3C + 1));
         k_wnd = (DWORD (__far __pascal *)(WORD, HWND, WORD, WORD, DWORD))k_modraw(user, 0x44);
-        ctl = k_sysmod("RDCTL.MOD", 0x2C0, 0x20, 0);      /* Steuerelemente, Dialoge (verwerfbar) */
+        ctl = k_sysmod("RDCTL.MOD", RDO_DialogRun, 0x20, 0);      /* Steuerelemente, Dialoge (verwerfbar) */
     }
-    if ((snd = k_sysmod("RDSND.MOD", 0x300, 0x0C, 0)) != 0) {   /* Klang (fehlt es: Snd* liefern RD_ERR_NOTSUP) */
+    if ((snd = k_sysmod("RDSND.MOD", RDO_SndCaps, 0x0C, 0)) != 0) {   /* Klang (fehlt es: Snd* liefern RD_ERR_NOTSUP) */
         k_sndpause = (void (__far __pascal *)(WORD))k_modraw(snd, 0x0F);
         k_sndtick = (void (__far __pascal *)(void))k_modraw(snd, 0x0E);
     }

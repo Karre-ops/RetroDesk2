@@ -9,7 +9,7 @@ A:\\RD2\\RD.EXE /CGA A:\\RD2\\ZEIGTEST.EXE
 A:\\RD2\\RD.EXE /VGA A:\\RD2\\ZEIGTEST.EXE
 A:\\FDAPM.COM POWEROFF
 AE
-bash tools/mkdisk.sh $IMG obj/ae_zeig.txt
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_zeig.txt
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/zeig_*.ppm
 timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

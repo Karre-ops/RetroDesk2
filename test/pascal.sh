@@ -52,7 +52,7 @@ wait $QP
 S=$(tr -d '\r' < $SER)
 z() { echo "$S" | grep -c "$1"; }
 pr() { if [ "$1" = 1 ]; then echo "ok     $2"; else echo "FEHLER $2"; F=1; fi; }
-pr "$( [ $(z 'PASCAL: Param1=eins') = 2 ] && [ $(z 'PASCAL: Heap 0x00003039') = 2 ] && [ $(z 'PASCAL: Kern-API 0x00000100') = 2 ] && echo 1)" "PTEST (TP, FPC): Kern-API, Befehlszeile, ParamStr, Heap"
+pr "$( [ $(z 'PASCAL: Param1=eins') = 2 ] && [ $(z 'PASCAL: Heap 0x00003039') = 2 ] && [ $(z 'PASCAL: Kern-API 0x00000200') = 2 ] && echo 1)" "PTEST (TP, FPC): Kern-API, Befehlszeile, ParamStr, Heap"
 pr "$( [ $(z 'Task beendet: 0x0001002A') = 2 ] && echo 1)" "PTEST (TP, FPC): Exitcode 42 ueber Halt"
 pr "$( [ $(z 'PHALLO: Paint 2') = 2 ] && echo 1)" "PHALLO (TP, FPC): Fenster, Zeichnen, zwei Klicks gezaehlt"
 pr "$( [ $(z 'Task beendet: 0x00010002') -ge 2 ] && echo 1)" "PHALLO (TP, FPC): Esc schliesst, Exitcode 2"

@@ -16,12 +16,15 @@ def argbytes(args):
         n += 4 if ("*" in a or a.split()[0] in FOUR or (a.startswith("const") and a.split()[1] in FOUR)) else 2
     return n
 fns = []
+MAX = int(re.search(r"RDO_MAX = (0x[0-9A-Fa-f]+)", open(os.path.join(D, "sdk", "RD2ORD.H")).read())[1], 16)
 for line in open(os.path.join(D, "sdk", "RD2API.H"), encoding="latin-1"):
     m = rx.match(line)
     if m: fns.append((int(m[1], 16), m[3], argbytes(m[4])))
 hdr = "; ERZEUGT von tools/mkapi.py aus sdk/RD2API.H - nicht von Hand aendern\n.8086\n"
 # Je Funktion ein eigenes Stueck (sdk/lib/*.ASM), damit RD2.LIB nur Benutztes einbindet.
 L = os.path.join(D, "sdk", "lib"); os.makedirs(L, exist_ok=True)
+for f in os.listdir(L):                                  # alte Stuecke weg (Nummern koennen sich aendern, API 2.0)
+    if f.startswith("F") and f.endswith(".ASM"): os.remove(os.path.join(L, f))
 for x in os.listdir(L): os.remove(os.path.join(L, x))
 for n, name, ab in fns:
     with open(os.path.join(L, f"F{n:03X}.ASM"), "w") as f:
@@ -40,8 +43,8 @@ with open(os.path.join(D, "kern", "NOTSUP.ASM"), "w") as f:
     f.write("nstab label word\n")
     for n, _, ab in fns: f.write(f"  dw {n*4}, ns{ab}\n")
     f.write(f"nsend label word\npublic _rd_nsinit\n_rd_nsinit proc near\n  push di\n  push si\n  push es\n  push ds\n  pop es\n")
-    f.write("  mov di, offset DGROUP:_rd_api\n  mov cx, 1024\n  cld\nns_l0:\n  mov ax, offset ns0\n  stosw\n  mov ax, cs\n  stosw\n  loop ns_l0\n")
+    f.write(f"  mov di, offset DGROUP:_rd_api\n  mov cx, {MAX}\n  cld\nns_l0:\n  mov ax, offset ns0\n  stosw\n  mov ax, cs\n  stosw\n  loop ns_l0\n")
     f.write("  mov si, offset nstab\nns_l1:\n  cmp si, offset nsend\n  jae ns_l2\n  mov bx, cs:[si]\n  mov ax, cs:[si+2]\n")
     f.write("  mov word ptr _rd_api[bx], ax\n  mov word ptr _rd_api[bx+2], cs\n  add si, 4\n  jmp ns_l1\nns_l2:\n  pop es\n  pop si\n  pop di\n  ret\n_rd_nsinit endp\n")
-    f.write("NOTSUP_TEXT ends\n_BSS segment word public 'BSS'\npublic _rd_api\n_rd_api dd 1024 dup(?)\n_BSS ends\nend\n")
+    f.write(f"NOTSUP_TEXT ends\n_BSS segment word public 'BSS'\npublic _rd_api\n_rd_api dd {MAX} dup(?)\n_BSS ends\nend\n")
 print(f"{len(fns)} Funktionen -> sdk/lib/*.ASM, kern/NOTSUP.ASM")

@@ -3,9 +3,7 @@
 Mit --list wird die Funktionstabelle ausgegeben (fuer SPEC/Handbuch)."""
 import re, sys, os
 p = os.path.join(os.path.dirname(__file__), "..", "sdk", "RD2API.H")
-G = [(0x000,0x07F,"Kern"),(0x080,0x0BF,"Speicher"),(0x0C0,0x0FF,"Datei"),(0x100,0x17F,"Grafik"),
-     (0x200,0x2BF,"Oberflaeche"),(0x2C0,0x2FF,"Dialoge"),(0x300,0x33F,"Sound"),(0x340,0x37F,"Eingabe"),
-     (0x380,0x3BF,"Netz"),(0x3C0,0x3DF,"Drucker"),(0x3E0,0x3FF,"Seriell")]
+G = [(0x000,0x036,"Kern"),(0x037,0x049,"Speicher"),(0x04A,0x063,"Datei"),(0x064,0x0A8,"Grafik"),(0x0A9,0x0F2,"Oberflaeche"),(0x0F3,0x11A,"Dialoge"),(0x11B,0x12E,"Sound"),(0x12F,0x138,"Eingabe"),(0x139,0x14B,"Netz"),(0x14C,0x157,"Drucker"),(0x158,0x15F,"Seriell")]
 rx = re.compile(r'^RDF\((0x[0-9A-Fa-f]+),\s*([^,]+),\s*(\w+),\s*\((.*)\)\)')
 nums, names, err, rows = {}, {}, 0, []
 for ln, line in enumerate(open(p, encoding="latin-1"), 1):

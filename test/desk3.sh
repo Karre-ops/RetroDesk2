@@ -7,7 +7,7 @@
 cd "$(dirname "$0")/.."
 IMG=obj/desk3.img; SER=obj/desk3_com1.txt; SOCK=/tmp/qmon_desk3.sock
 printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_desk3.txt
-bash tools/mkdisk.sh $IMG obj/ae_desk3.txt >/dev/null
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_desk3.txt >/dev/null
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/desk3_zug.ppm obj/desk3_lw.ppm; touch $SER
 timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

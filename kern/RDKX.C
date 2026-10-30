@@ -10,6 +10,7 @@
  * Ressourcen von Modulen gehen noch nicht (HINST von Modulen und Tasks sind noch nicht getrennt).
  */
 #include "RD2.H"
+#include "RD2ORD.H"
 
 #pragma pack(push, 1)
 typedef struct { WORD typ, nr, lang, flags; DWORD off, len; } RESDIR;
@@ -354,9 +355,9 @@ static void RDEXPORT k_ende(void) { }
 extern FARPROC FAR *_rd2api;
 static WORD RDEXPORT k_NetStart(HWND w)
 {
-    FARPROC f = _rd2api[0x381];
-    if (!ModLoad("RDTCP.MOD") || _rd2api[0x381] == f) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
-    return ((WORD (RDAPI *)(HWND))_rd2api[0x381])(w);
+    FARPROC f = _rd2api[RDO_NetStart];
+    if (!ModLoad("RDTCP.MOD") || _rd2api[RDO_NetStart] == f) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
+    return ((WORD (RDAPI *)(HWND))_rd2api[RDO_NetStart])(w);
 }
 /* ---- Drucken: RDPRN.MOD je Aufruf laden (haelt sich selbst von PrnOpen bis PrnClose/PrnAbort) ---- */
 static WORD prn(WORD nr, HWND w, PRNJOB FAR *j)    /* RDPRN-Exporte nehmen alle (HWND bzw. HDC, PRNJOB FAR *) */

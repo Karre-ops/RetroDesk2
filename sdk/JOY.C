@@ -1,4 +1,4 @@
-/* JOY.C - JoyRead/JoyCalibrate (API 0x340/0x341) in RD2.LIB: laufen im Programm, Kern und Module wachsen nicht.
+/* JOY.C - JoyRead/JoyCalibrate (API 0x12F/0x130) in RD2.LIB: laufen im Programm, Kern und Module wachsen nicht.
  * Gameport 201h: Schreiben startet die vier Monoflops, Bit 0..3 fallen nach der Zeit ab, die der Widerstand der
  * Achse bestimmt (bis ca. 1,1 ms). Gemessen wird mit dem Zeitgeber (PIT Kanal 0), damit die Werte auf XT und
  * Pentium gleich sind. Tasten: Bit 4..7, 0 = gedrueckt.

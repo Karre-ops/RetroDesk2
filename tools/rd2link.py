@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""rd2link.py EXE Name [--api 0x0100] [--flags 0] [--stack 4096] [--kb 0] [--ver 0x0100] [--type P|M|D]
+"""rd2link.py EXE Name [--api 0x0200] [--flags 0] [--stack 4096] [--kb 0] [--ver 0x0100] [--type P|M|D]
 Haengt den RD2-Block und den 16-Byte-Abschluss an eine MZ-EXE (SPEC.md Abschnitt 2).
 Ein vorhandener Anhang wird ersetzt. Ressourcen kommen spaeter mit RDRC dazu."""
 import sys, struct, argparse
 a = argparse.ArgumentParser()
 a.add_argument("exe"); a.add_argument("name")
-for o, d in (("api", "0x0100"), ("flags", "0"), ("stack", "4096"), ("kb", "0"), ("ver", "0x0100")):
+for o, d in (("api", "0x0200"), ("flags", "0"), ("stack", "4096"), ("kb", "0"), ("ver", "0x0100")):
     a.add_argument("--" + o, default=d)
 a.add_argument("--type", default="P", choices="PMD")
 a.add_argument("--res", default=None, help=".RES von rdrc.py")

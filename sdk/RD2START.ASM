@@ -21,9 +21,12 @@ CONST2 ends
 _BSS   segment word public 'BSS'
 bss_anf label byte                  ; erstes Objekt: Anfang von _BSS
 _BSS   ends
+ifndef STK
+STK equ 4096
+endif
 STACK  segment para stack 'STACK'
 bss_end label byte                  ; _BSS endet vor STACK
-       db 4096 dup(?)
+       db STK dup(?)                ; Stackgroesse: wasm -dSTK=3072 (build.sh APPSTACK), sonst 4 KB
 stacktop label byte
 STACK  ends
 

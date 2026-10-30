@@ -7,7 +7,7 @@
 cd "$(dirname "$0")/.."
 IMG=obj/fen.img; SER=obj/fen_com1.txt; SOCK=/tmp/qmon_fen.sock
 printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_fen.txt
-bash tools/mkdisk.sh $IMG obj/ae_fen.txt >/dev/null
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_fen.txt >/dev/null
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/fen_*.ppm; touch $SER
 timeout 400 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

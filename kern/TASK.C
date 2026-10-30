@@ -232,7 +232,7 @@ WORD k_imgload(const char *path, const char *typen, WORD *seg, WORD *paras)
     if (!*t) return RD_ERR_FORMAT;
     for (i = 0; i < sizeof k_rb; i++) sum += ((BYTE *)&k_rb)[i];
     if (sum != tr.sum) return RD_ERR_FORMAT;
-    if (k_rb.api > RD2_API_VERSION) return RD_ERR_VERSION;
+    if (k_rb.api > RD2_API_VERSION || (k_rb.api >> 8) != RD2_API_MAJOR) return RD_ERR_VERSION;   /* API 1.x: alte Nummern */
     img = (DWORD)k_mz.cp * 512 - (k_mz.cblp ? 512 - k_mz.cblp : 0) - (DWORD)k_mz.cparhdr * 16;
     if (img > 0x9FFF0UL) return RD_ERR_FORMAT;
     *paras = (WORD)((img + 15) >> 4) + k_mz.minalloc;

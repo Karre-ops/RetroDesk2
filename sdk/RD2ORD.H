@@ -5,6 +5,7 @@ enum {
 #define RDF(n, ret, name, args) RDO_##name = n,
 #include "RD2API.H"
 #undef RDF
-    RDO_MAX = 0x400
+    RDO_NETHAKEN = 0x143,   /* kein Aufruf: Zeiger auf k_netpause fuer RDTCP.MOD */
+    RDO_MAX = 0x160
 };
 #endif

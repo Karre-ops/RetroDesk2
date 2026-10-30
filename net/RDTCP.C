@@ -3,7 +3,7 @@
  * UDP, DHCP, DNS. Alle API-Funktionen kehren sofort zurueck, Ergebnisse kommen als Nachricht
  * (M_NETSTATE, M_NETRESOLVED, M_NETCONNECT, M_NETDATA, M_NETCLOSED, M_NETACCEPT).
  * Geladen von RDKX beim ersten NetStart; RdModInit traegt die Exporte in die API-Tabelle ein und
- * haengt sich ueber rd_api[0x3BF] in den Kern: 2 = Pakete bearbeiten (input_poll), 0 = Paketreiber
+ * haengt sich ueber rd_api[RDO_NETHAKEN] in den Kern: 2 = Pakete bearbeiten (input_poll), 0 = Paketreiber
  * frei (RunDos, Ende von RD), 1 = wieder an. Je Verbindung 4 KB Empfang, 2 KB Senden (MemAlloc, fest).
  * IP-Adressen als DWORD: erstes Byte der Adresse im niedrigsten Byte (wie im Paket).
  * Einstellungen in RD2.INI [Netz]: DHCP=1, IP=, Maske=, Gateway=, DNS=, Paket=0x60 (0 = suchen),
@@ -14,6 +14,7 @@
 #include <conio.h>
 #include <string.h>
 #include "RD2.H"
+#include "RD2ORD.H"
 
 #define NSLOT 4
 #define SLOT  1518
@@ -782,8 +783,8 @@ static struct { WORD n; FARPROC f[12]; } ext = { 12, {
 void FAR * RDAPI RdModInit(void)
 {
     WORD i;
-    for (i = 0; i < 10; i++) { alt[i] = _rd2api[0x380 + i]; _rd2api[0x380 + i] = ext.f[1 + i]; }   /* API 0x380..0x389 */
-    haken = (void (__far __pascal * FAR *)(WORD))_rd2api[0x3BF];
+    for (i = 0; i < 10; i++) { alt[i] = _rd2api[RDO_NetCaps + i]; _rd2api[RDO_NetCaps + i] = ext.f[1 + i]; }   /* API NetCaps.. (10 Stueck) */
+    haken = (void (__far __pascal * FAR *)(WORD))_rd2api[RDO_NETHAKEN];
     if (haken) *haken = n_Haken;
     return &ext;
 }
