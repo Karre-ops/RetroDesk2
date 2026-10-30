@@ -33,6 +33,22 @@ TEXTE
   40 "RD2 startet jetzt neu, damit die neue Grafik gilt. Andere offene Programme werden beendet."
   42 "ZurÅck zur alten Grafik in "
   43 " s."
+  50 "Schwarz"
+  51 "Blau"
+  52 "Gr¸n"
+  53 "T¸rkis"
+  54 "Rot"
+  55 "Lila"
+  56 "Braun"
+  57 "Hellgrau"
+  58 "Dunkelgrau"
+  59 "Hellblau"
+  60 "Hellgr¸n"
+  61 "Hellt¸rkis"
+  62 "Hellrot"
+  63 "Rosa"
+  64 "Gelb"
+  65 "Weiﬂ"
 ENDE
 DIALOG 11 "Optionen" 0 0 268 150
   BUTTON   "&1 Grafik" 91 8 4 40 14
@@ -51,6 +67,10 @@ DIALOG 11 "Optionen" 0 0 268 150
   STATIC   "Gilt sofort: RD2 startet neu, danach RÅckfrage (15 s)."  105  12  78 244 10
   STATIC   ""  106  12  90 244 10
   COMBO                  101  76  26 150 70
+  STATIC   "&Farbe (CGA):"  -1  12 102 62 10
+  COMBO                  107  76 100 90 60
+  STATIC   "Schreib&tisch:"  -1  12 116 62 10
+  COMBO                  108  76 114 90 60
 ENDE
 DIALOG 12 "Optionen" 0 0 268 150
   BUTTON   "&1 Grafik" 91 8 4 40 14
@@ -192,6 +212,22 @@ TEXTE
   40 "RD2 restarts now so the new display takes effect. Other open programs will be closed."
   42 "Back to the old display in "
   43 " s."
+  50 "Black"
+  51 "Blue"
+  52 "Green"
+  53 "Cyan"
+  54 "Red"
+  55 "Magenta"
+  56 "Brown"
+  57 "Light grey"
+  58 "Dark grey"
+  59 "Light blue"
+  60 "Light green"
+  61 "Light cyan"
+  62 "Light red"
+  63 "Pink"
+  64 "Yellow"
+  65 "White"
 ENDE
 DIALOG 11 "Options" 0 0 268 150
   BUTTON   "&1 Display" 91 8 4 40 14
@@ -210,6 +246,10 @@ DIALOG 11 "Options" 0 0 268 150
   STATIC   "Applies at once: RD2 restarts, then asks (15 s)."  105  12  78 244 10
   STATIC   ""  106  12  90 244 10
   COMBO                  101  76  26 150 70
+  STATIC   "CGA c&olour:"  -1  12 102 62 10
+  COMBO                  107  76 100 90 60
+  STATIC   "&Desktop:"  -1  12 116 62 10
+  COMBO                  108  76 114 90 60
 ENDE
 DIALOG 12 "Options" 0 0 268 150
   BUTTON   "&1 Display" 91 8 4 40 14

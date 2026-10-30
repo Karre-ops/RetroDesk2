@@ -171,6 +171,7 @@ static void tastatur(void)
 }
 
 /* ---- Werte laden ---------------------------------------------------------------------------------- */
+static BYTE cgaf, deskf, farb0;                   /* [Farben] CGA= (Vordergrund Modus 6), Schreibtisch= (Farbmodi), 29./30.10.2026 */
 static void laden(void)
 {
     char w[20]; WORD i; short v; const char FAR *z;
@@ -201,6 +202,7 @@ static void laden(void)
     netz = (BYTE)(ProfileGetInt(ini, "Netz", "Zeit", 0) != 0);
     v = ProfileGetInt(ini, "System", "XMS", 256);
     for (xms = 4; xms > 0 && xw[xms] > v; xms--) ;
+    cgaf = (BYTE)(ProfileGetInt(ini, "Farben", "CGA", 15) & 15); deskf = (BYTE)(ProfileGetInt(ini, "Farben", "Schreibtisch", 3) & 15); farb0 = (BYTE)(cgaf | deskf << 4);
     mw0 = (BYTE)(tempo | dk << 3 | tausch << 5); gsel0 = gsel; prof0 = prof; snd0 = snd; sb0 = sb; mhw0 = mhw; tast0 = tast; szeit0 = szeit; start0 = start; xms0 = xms;
 }
 
@@ -215,6 +217,8 @@ static void fuellen(HWND d)
         for (i = 0; i < gn; i++) ladd(d, 101, gl[i].name);
         lsel(d, 101, gsel); DlgCheck(d, (WORD)(102 + prof), 1);
         if (si.grafik) DlgSetText(d, 106, StrGet(hi, 18));
+        for (i = 0; i < 16; i++) { scpy(t, StrGet(hi, (WORD)(50 + i)), sizeof t); ladd(d, 107, t); ladd(d, 108, t); }
+        lsel(d, 107, cgaf); lsel(d, 108, deskf);
         break;
     case 1:
         DlgCheck(d, (WORD)(121 + snd), 1); DlgCheck(d, 126, sysk);
@@ -248,7 +252,7 @@ static void fuellen(HWND d)
 static void holen(HWND d)
 {
     switch (seite) {
-    case 0: gsel = lget(d, 101); prof = radio(d, 102, 3); break;
+    case 0: gsel = lget(d, 101); prof = radio(d, 102, 3); cgaf = (BYTE)lget(d, 107); deskf = (BYTE)lget(d, 108); break;
     case 1: snd = radio(d, 121, 5); sysk = (BYTE)DlgChecked(d, 126); sb = lget(d, 127); break;
     case 2: tempo = radio(d, 141, 5); dk = radio(d, 146, 3); tausch = (BYTE)DlgChecked(d, 149); if (rdm) mhw = lget(d, 153); break;
     case 3: if (kbart != 2) tast = radio(d, 161, 2); break;
@@ -270,6 +274,7 @@ static WORD speichern(void)
         GfxSelect(gsel ? gl[gsel - 1].typ : 0); gneu = 1;
         ProfileSetStr(ini, "System", "Profil", prof == 1 ? "SCHNELL" : prof == 2 ? "KOMFORT" : "AUTO");
     }
+    if ((BYTE)(cgaf | deskf << 4) != farb0) { setze("Farben", "CGA", cgaf); setze("Farben", "Schreibtisch", deskf); neurd = 1; }   /* gilt nach dem Neustart von RD2 */
     ProfileSetStr(ini, "System", "Sound", sndw[snd]);
     if (sb < 5) ProfileSetStr(ini, "System", "SB", sbw[sb]);
     if (snd != snd0 || sb != sb0) neurd = 1;

@@ -1077,7 +1077,12 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     inst = i;
     { SYSINFO si; KernInfo(&si); scpy(heim, si.home, sizeof heim); k = slen(heim); if (k && heim[k - 1] == '\\') heim[--k] = 0; if (k <= 2) heim[0] = 0; }
     d = GetDC(0); W = GetCaps(d, CAPS_W); H = GetCaps(d, CAPS_H); th = GetCaps(d, CAPS_TEXTH);
-    if (GetCaps(d, CAPS_FARBEN) > 2) dvorn = dhint = RGB(0, 128, 128);
+    if (GetCaps(d, CAPS_FARBEN) > 2) {             /* Schreibtischfarbe: RD2.INI [Farben] Schreibtisch= 0..15 (Optionen), sonst tuerkis */
+        static const COLOR f16[16] = { RGB(0,0,0), RGB(0,0,170), RGB(0,170,0), RGB(0,170,170), RGB(170,0,0), RGB(170,0,170), RGB(170,85,0), RGB(170,170,170),
+            RGB(85,85,85), RGB(85,85,255), RGB(85,255,85), RGB(85,255,255), RGB(255,85,85), RGB(255,85,255), RGB(255,255,85), RGB(255,255,255) };
+        char p[80]; short f = werkzeug(p, "RD2.INI") ? ProfileGetInt(p, "Farben", "Schreibtisch", -1) : -1;
+        dvorn = dhint = f >= 0 && f < 16 ? f16[f] : RGB(0, 128, 128);
+    }
     ReleaseDC(0, d);
     mh = th + 4; ih = H <= 200 ? 16 : 32; zh = ih + th + 6;
     for (k = 1; k <= 26; k++)                     /* nur Typ, keine Diskette anfassen */

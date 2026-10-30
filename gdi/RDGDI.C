@@ -730,6 +730,7 @@ static GFXMODE pm;
 static char wahl[8], prof[10];
 
 /* Treiber i laden und Hardware pruefen. setzen = 1: Modus einschalten und behalten. */
+static WORD cgamod(void);
 static WORD probe(WORD i, GFXMODE *m, int setzen)
 {
     GFXDRV FAR *t; FARPROC f; HMOD h;
@@ -739,7 +740,7 @@ static WORD probe(WORD i, GFXMODE *m, int setzen)
     if (!t || t->h.typ != DRV_GFX || t->h.groesse < sizeof(GFXDRV) || !t->cursor || !t->box || t->h.init(0)) { ModFree(h); return RD_ERR_NOTSUP; }
     t->modes((GFXMODE FAR *)m, 1);
     if (!setzen) { t->h.done(); ModFree(h); return 0; }
-    t->setmode(0);
+    t->setmode(kand[i].typ == GFX_CGA ? cgamod() : 0);
     drv = t; drvmod = h; gfxtyp = kand[i].typ; kclip = 1;
     return 0;
 }
@@ -1153,11 +1154,12 @@ HDC RDEXPORT g_GetDC(HWND w)
 void RDEXPORT g_ReleaseDC(HWND w, HDC h) { (void)w; g_DCFree(h); }
 
 /* RunDos: 0 = Textmodus und Maus aus, 1 = Grafik und Maus wieder an (Bild zeichnen die Programme neu) */
+static WORD cgamod(void) { return (WORD)((0x10 | (ProfileGetInt("RD2.INI", "Farben", "CGA", 15) & 15)) << 8); }   /* CGA: Farbe an setmode */
 static BYTE pause_;
 void RDEXPORT g_Pause(WORD an)
 {
     if (!an && drv && !pause_) { mausaus(); drv->textmode(); pause_ = 1; }
-    else if (an && pause_) { drv->setmode(0); mausan(); pause_ = 0; }
+    else if (an && pause_) { drv->setmode(gfxtyp == GFX_CGA ? cgamod() : 0); mausan(); pause_ = 0; }
 }
 /* Abschluss: Kern ruft das beim Beenden von RD */
 void RDEXPORT g_Ende(void)

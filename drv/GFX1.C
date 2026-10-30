@@ -43,6 +43,10 @@ static BYTE altmodus;
    Treiber laufen aber mit dem Stack des Aufrufers (-zu) */
 WORD int10(WORD ax);
 #pragma aux int10 = "push bp" "int 10h" "pop bp" parm [ax] value [ax] modify [bx cx dx si di es]
+#if defined(CGA)
+WORD int10bx(WORD ax, WORD bx);
+#pragma aux int10bx = "push bp" "int 10h" "pop bp" parm [ax] [bx] value [ax] modify [bx cx dx si di es]
+#endif
 WORD equip(void);
 #pragma aux equip = "int 11h" value [ax]
 static BYTE bios_mode(void) { return (BYTE)(int10(0x0F00) & 0x7F); }
@@ -114,6 +118,12 @@ static WORD RDEXPORT d_setmode(WORD nr)
     bios_set(0x11);
 #else
     bios_set(0x06);
+    if (nr & 0x1000) {                            /* Vordergrundfarbe (RD2.INI [Farben] CGA=, RDGDI): CGA-Register 3D9h, */
+        static const BYTE ega[16] = { 0, 1, 2, 3, 4, 5, 0x14, 7, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F };
+        BYTE c = (BYTE)((nr >> 8) & 15);          /* EGA/VGA im CGA-Modus: Palettenregister 1 ueber das BIOS */
+        outp(0x3D9, c);
+        if ((BYTE)int10(0x1A00) == 0x1A) int10bx(0x1000, (WORD)ega[c] << 8 | 1);
+    }
 #endif
     return 0;
 }
