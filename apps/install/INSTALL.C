@@ -13,12 +13,12 @@
 #define ID_CFG    23
 #define ID_BALKEN 41
 #define ID_TEXT   42
-#define PUF 8192
+#define PUF 32768U                                /* 30.10.: 32 KB statt 8 KB, weniger Umdrehungen je KB auf der Diskette; sonst 16/8 KB */
 #define TEIL 1000                                 /* Balken: je Diskette 1000 Schritte */
 
 static HINST hi; static BYTE test; static HWND dl;
 static char quelle[80], ziel[64], pfad[96], z2[96];
-static char FAR *pu; static HMEM hpu;
+static char FAR *pu; static HMEM hpu; static WORD puf;
 static DWORD gesamt, fertig; static WORD dnr, ndat, nfehl, verloren;
 static char buf[6144], neu[6144], pathz[128];
 
@@ -31,12 +31,13 @@ static char *cat(char *d, const char FAR *s) { char *e = d + strlen(d); while (*
 static char *cpy(char *d, const char FAR *s) { *d = 0; return cat(d, s); }
 static char *zahl(char *d, DWORD v) { char t[12]; int i = 11; t[i] = 0; do t[--i] = (char)('0' + v % 10); while (v /= 10); return cat(d, t + i); }
 static int gibts(const char *p) { FINDDATA fd; return !FileFindFirst(p, FA_HIDDEN | FA_SYSTEM | FA_RDONLY, &fd); }
-static void text(LPCSTR s) { DlgSetText(dl, ID_TEXT, s); if (test) DbgPrint(s); }
+static void text(LPCSTR s) { DlgSetText(dl, ID_TEXT, s); UpdateWindow(DlgItem(dl, ID_TEXT)); if (test) DbgPrint(s); }   /* sofort zeichnen: beim Kopieren laeuft keine Nachrichtenschleife */
 static void textn(WORD n) { text(StrGet(hi, n)); }
 static void balken(void)
 {
     DWORD p = (DWORD)dnr * TEIL + (gesamt ? fertig * TEIL / gesamt : 0);
-    SendMessage(DlgItem(dl, ID_BALKEN), C_SETPOS, 0, p);
+    HWND b = DlgItem(dl, ID_BALKEN);
+    SendMessage(b, C_SETPOS, 0, p); UpdateWindow(b);
 }
 static BOOL frage(LPCSTR s)                  /* Ja/Nein; Testmodus: Ja */
 {
@@ -67,7 +68,7 @@ static BOOL kopieren(const char *von, const char *nach, DWORD gr)
     short a, b; WORD n; BOOL ok = TRUE;
     if ((a = FileOpen(von, FO_READ)) < 0) return FALSE;
     if ((b = FileCreate(nach, 0)) < 0) { FileClose(a); return FALSE; }
-    while ((n = FileRead(a, pu, PUF)) != 0 && n != 0xFFFF) {
+    while ((n = FileRead(a, pu, puf)) != 0 && n != 0xFFFF) {
         if (FileWrite(b, pu, n) != n) { ok = FALSE; break; }
         fertig += n; if (fertig > gesamt) fertig = gesamt; balken();
     }
@@ -337,7 +338,8 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     KernInfo(&si);
     for (i = 0; si.home[i] && i < 66; i++) quelle[i] = si.home[i];
     quelle[i] = 0; if (i && quelle[i - 1] != '\\') cat(quelle, "\\");
-    if (!(hpu = MemAlloc(PUF, 0)) || !(pu = (char FAR *)MemLock(hpu))) { MsgBox(0, StrGet(inst, 18), StrGet(inst, 1), MB_OK | MB_ERROR); return 1; }
+    for (puf = PUF; puf >= 8192 && !(hpu = MemAlloc(puf, 0)); puf >>= 1) ;
+    if (!hpu || !(pu = (char FAR *)MemLock(hpu))) { MsgBox(0, StrGet(inst, 18), StrGet(inst, 1), MB_OK | MB_ERROR); return 1; }
     DbgPrint("INSTALL: Start"); DbgPrint(quelle);
     DialogRun(inst, 10, 0, dproc, 0);
     MemUnlock(hpu); MemFree(hpu);
