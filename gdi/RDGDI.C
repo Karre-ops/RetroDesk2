@@ -725,10 +725,18 @@ static const KAND kand[] = {
     { "VGAM.DRV",  "VGA", GFX_VGAMONO },
     { "CGA.DRV",   "CGA", GFX_CGA },
     { "EGA320.DRV", "EGA320", GFX_EGA320 },     /* nur von Hand (30.10.2026) */
+    { "EGAM.DRV",  "EGAM", GFX_EGAMONO },       /* ab hier ebenfalls nur von Hand */
+    { "EGA4.DRV",  "EGA4", GFX_EGA4 },
+    { "VGA4.DRV",  "VGA4", GFX_VGA4 },
+    { "EGA200.DRV", "EGA200", GFX_EGA200 },
+    { "SVGA16.DRV", "SVGA16", GFX_SVGA16 },
+    { "MCGA.DRV",  "MCGA", GFX_MCGA },
+    { "VESA800.DRV", "VESA800", GFX_VESA800 },
+    { "VESA1024.DRV", "VESA1024", GFX_VESA1024 },
 };
 #define NK (sizeof kand / sizeof kand[0])
 static GFXMODE pm;
-static char wahl[8], prof[10];
+static char wahl[12], prof[10];                  /* wahl: laengster Name VESA1024 */
 
 /* Treiber i laden und Hardware pruefen. setzen = 1: Modus einschalten und behalten. */
 static WORD cgamod(void);

@@ -15,6 +15,30 @@
 #  define MODUS 0x12
 #  define NAME "VGA 640x480 16"
 #  define ASPY 100
+#elif defined(VGA4)                               /* 4 Farben: nur Ebenen 0 und 1 (halb so viel beim Kopieren/Retten) */
+#  define H 480
+#  define MODUS 0x12
+#  define NAME "VGA 640x480 4"
+#  define ASPY 100
+#  define NPL 2
+#elif defined(EGA4)
+#  define H 350
+#  define MODUS 0x10
+#  define NAME "EGA 640x350 4"
+#  define ASPY 137
+#  define NPL 2
+#elif defined(EGA200)                             /* 640x200 16 Farben (Modus 0Eh, geht mit 64 KB) */
+#  define H 200
+#  define MODUS 0x0E
+#  define NAME "EGA 640x200 16"
+#  define ASPY 240
+#elif defined(SVGA16)                             /* VESA 800x600 16 Farben (Modus 102h, 60000 Bytes je Ebene) */
+#  define H 600
+#  define MODUS 0x102
+#  define NAME "VESA 800x600 16"
+#  define ASPY 100
+#  define W 800
+#  define BPR 100
 #elif defined(EGA320)
 #  define H 200
 #  define MODUS 0x0D
@@ -34,6 +58,10 @@
 #  define W 640
 #  define BPR 80
 #endif
+#ifndef NPL
+#  define NPL 4
+#endif
+#define PLM ((1 << NPL) - 1)                      /* Ebenenmaske, zugleich "weiss" fuer Umkehren */
 #define VP(x, y) ((BYTE __far *)MK_FP(0xA000, (WORD)(y) * BPR + ((WORD)(x) >> 3)))
 #pragma intrinsic(inp, outp, outpw)
 
@@ -57,22 +85,32 @@ void w3n(BYTE __far *p, WORD n, BYTE v);
 #pragma aux w3n = "jcxz e" "l: mov ah,es:[di]" "stosb" "loop l" "e:" parm [es di] [cx] [al] modify [ah cx di]
 static void m3(BYTE farbe, WORD rop)              /* Schreibmodus 3 mit Farbe und Verknuepfung */
 {
-    if (rop == ROP_NOT) farbe = 0x0F;
-    GC(5, 3); GC(0, farbe); GC(1, 0x0F); GC(3, fn[rop < 6 ? rop : 0]); GC(8, 0xFF); MAPMASK(0x0F);
+    if (rop == ROP_NOT) farbe = PLM;
+    GC(5, 3); GC(0, farbe); GC(1, 0x0F); GC(3, fn[rop < 6 ? rop : 0]); GC(8, 0xFF); MAPMASK(PLM);
 }
-static void m0(void) { GC(5, 0); GC(1, 0); GC(3, 0); GC(8, 0xFF); MAPMASK(0x0F); }   /* Grundzustand */
+static void m0(void) { GC(5, 0); GC(1, 0); GC(3, 0); GC(8, 0xFF); MAPMASK(PLM); }   /* Grundzustand */
 
+#if defined(SVGA16)
+WORD vbe(WORD ax, WORD cx, void *p);              /* ES:DI = ds:p */
+#pragma aux vbe = "push ds" "pop es" "push bp" "int 10h" "pop bp" parm [ax] [cx] [di] value [ax] modify [bx dx si es]
+WORD vmode(WORD bx);
+#pragma aux vmode = "mov ax,4F02h" "push bp" "int 10h" "pop bp" parm [bx] value [ax] modify [cx dx si di es]
+static BYTE vb[256];
+#endif
 static WORD RDEXPORT d_init(WORD param)
 {
     (void)param;
     altmodus = (BYTE)(int10(0x0F00) & 0x7F);
-#if defined(VGA16)
+#if defined(VGA16) || defined(VGA4)
     if ((BYTE)int10(0x1A00) != 0x1A) return RD_ERR_NOTSUP;
+#elif defined(SVGA16)
+    if (vbe(0x4F00, 0, vb) != 0x004F || vb[0] != 'V' || vb[1] != 'E') return RD_ERR_NOTSUP;
+    if (vbe(0x4F01, MODUS, vb) != 0x004F || !(vb[0] & 1)) return RD_ERR_NOTSUP;   /* Modus 102h unterstuetzt */
 #else
     {   /* EGA oder VGA: INT 10h 12h/BL=10h liefert in BL die Speichergroesse (0..3 = 64..256 KB), ohne EGA bleibt BL 10h */
         WORD m = egamem() & 0xFF;
-#if defined(EGA320)
-        if (m == 0x10) return RD_ERR_NOTSUP;      /* Modus 0Dh (320x200, 32 KB) geht schon mit 64 KB */
+#if defined(EGA320) || defined(EGA200)
+        if (m == 0x10) return RD_ERR_NOTSUP;      /* Modus 0Dh/0Eh geht schon mit 64 KB */
 #else
         if (m == 0x10 || m == 0) return RD_ERR_NOTSUP;   /* keine EGA oder nur 64 KB (Modus 10h braucht 128 KB) */
 #endif
@@ -84,21 +122,33 @@ static WORD RDEXPORT d_init(WORD param)
 static void RDEXPORT d_done(void) { }
 static WORD RDEXPORT d_modes(GFXMODE FAR *m, WORD max)
 {
-    if (max) { m->w = W; m->h = H; m->bpp = 4; m->farben = 16; m->aspx = 100; m->aspy = ASPY; m->zeilenbytes = W / 2; m->flags = GD_PALETTE; }
+    if (max) { m->w = W; m->h = H; m->bpp = 4; m->farben = 1 << NPL; m->aspx = 100; m->aspy = ASPY; m->zeilenbytes = W / 2; m->flags = GD_PALETTE; }
     return 1;
 }
+#if NPL == 2
+/* 4 Farben: 0 schwarz, 1 tuerkis (Schreibtisch, Titel, Auswahl), 2 hellgrau, 3 weiss; Palettenregister im EGA-Format */
+static const COLOR f4[4] = { RGB(0, 0, 0), RGB(0, 170, 170), RGB(170, 170, 170), RGB(255, 255, 255) };
+#endif
 static WORD RDEXPORT d_setmode(WORD nr)
 {
-#if defined(VGA16)
+#if defined(VGA16) || defined(SVGA16) || NPL == 2
     WORD i;
 #endif
     (void)nr;
+#if defined(SVGA16)
+    if (vmode(MODUS) != 0x004F) return RD_ERR_NOTSUP;
+#else
     int10(MODUS);
-#if defined(VGA16)
+#endif
+#if defined(VGA16) || defined(SVGA16)
     for (i = 0; i < 16; i++) int10b(0x1000, (WORD)(i | (i << 8)));   /* Attribut i -> DAC i (Standardfarben in DAC 0..15 setzt palette) */
     {   static const BYTE dac[16][3] = { {0,0,0},{0,0,42},{0,42,0},{0,42,42},{42,0,0},{42,0,42},{42,21,0},{42,42,42},
                                          {21,21,21},{21,21,63},{21,63,21},{21,63,63},{63,21,21},{63,21,63},{63,63,21},{63,63,63} };
         outp(0x3C8, 0); for (i = 0; i < 16; i++) { outp(0x3C9, dac[i][0]); outp(0x3C9, dac[i][1]); outp(0x3C9, dac[i][2]); } }
+#endif
+#if NPL == 2
+    {   static const BYTE ega[4] = { 0x00, 0x03, 0x07, 0x3F };   /* EGA-Farbwerte; VGA: Standard-DAC enthaelt dieselben 64 Farben */
+        for (i = 0; i < 4; i++) int10b(0x1000, (WORD)(i | (ega[i] << 8))); }
 #endif
     m0();
     return 0;
@@ -135,7 +185,7 @@ static void RDEXPORT d_pixel(short x, short y, WORD farbe, WORD rop)
 static WORD RDEXPORT d_getpixel(short x, short y)
 {
     BYTE __far *p = VP(x, y); BYTE m = (BYTE)(0x80 >> (x & 7)); WORD c = 0, e;
-    for (e = 0; e < 4; e++) { GC(4, e); if (*p & m) c |= 1 << e; }
+    for (e = 0; e < NPL; e++) { GC(4, e); if (*p & m) c |= 1 << e; }
     return c;
 }
 
@@ -189,7 +239,7 @@ static void put4(WORD x, WORD y, WORD w, WORD h, const BYTE FAR *s, WORD st, WOR
             if (!i) m &= lm;
             if (i == nb - 1) m &= rm;
             GC(8, m); l = p[i];                   /* Latch fuer die Bits ausserhalb der Maske */
-            for (e = 0; e < 4; e++) { MAPMASK(1 << e); p[i] = eb[e][i]; }
+            for (e = 0; e < NPL; e++) { MAPMASK(1 << e); p[i] = eb[e][i]; }
             (void)l;
         }
     }
@@ -200,7 +250,7 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
 {
     if (w <= 0 || h <= 0) return;
     if ((srcbpp & 0xFF) == 4) put4(x, y, w, h, src, srcbytes, rop, srcbpp >> 8 & 1);
-    else if (rop == ROP_NOT) d_box(x, y, x + w - 1, y + h - 1, 0x0F, 0, ROP_XOR);
+    else if (rop == ROP_NOT) d_box(x, y, x + w - 1, y + h - 1, PLM, 0, ROP_XOR);
     else put1(x, y, w, h, src, srcbytes, rop, (BYTE)fg, (BYTE)bg);
 }
 /* get: Geraeteformat (4 Bit gepackt), w Punkte ab x */
@@ -209,7 +259,7 @@ static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WO
     WORD r, i, e, nb = ((x & 7) + w + 7) >> 3;
     for (r = 0; r < (WORD)h; r++, dst += dstbytes) {
         BYTE __far *p = VP(x, y + r);
-        for (e = 0; e < 4; e++) { GC(4, e); for (i = 0; i < nb; i++) eb[e][i] = p[i]; }
+        for (e = 0; e < NPL; e++) { GC(4, e); for (i = 0; i < nb; i++) eb[e][i] = p[i]; }
         for (i = 0; i < (WORD)w; i++) {
             WORD k = (x & 7) + i; BYTE m = (BYTE)(0x80 >> (k & 7)), c = 0; k >>= 3;
             if (eb[0][k] & m) c |= 1;
@@ -254,7 +304,7 @@ static void RDEXPORT d_glyphs(short x, short y, const WORD FAR *offs, WORD seg, 
             m3((BYTE)bg, ROP_COPY);
             for (r = 0; r < h; r++) { BYTE __far *q = p + r * BPR; w3(q, (BYTE)(0xFF >> sh)); if (sh) w3(q + 1, (BYTE)(0xFF << (8 - sh))); }
         }
-        m3((BYTE)(rop == ROP_XOR ? 0x0F : fg), rop == ROP_XOR ? ROP_XOR : ROP_COPY);
+        m3((BYTE)(rop == ROP_XOR ? PLM : fg), rop == ROP_XOR ? ROP_XOR : ROP_COPY);
         for (r = 0; r < h; r++) {
             BYTE b = g[r]; BYTE __far *q = p + r * BPR;
             if (!b) continue;
@@ -285,7 +335,7 @@ static void crest(void)
     WORD r, k, e;
     if (!c_on) return;
     GC(5, 0); GC(1, 0); GC(3, 0); GC(8, 0xFF);
-    for (e = 0; e < 4; e++) {
+    for (e = 0; e < NPL; e++) {
         MAPMASK(1 << e);
         for (r = 0; r < c_h; r++) { BYTE __far *p = VP(c_x, c_y + r); for (k = 0; k < c_nb; k++) p[k] = csv[e][r][k]; }
     }
@@ -299,7 +349,7 @@ static void RDEXPORT d_cursor(short x, short y, const BYTE FAR *mb)
     c_x = (WORD)x; c_y = (WORD)y;
     c_h = (BYTE)(H - y < 16 ? H - y : 16);
     c_nb = (BYTE)(BPR - ((WORD)x >> 3) < 3 ? BPR - ((WORD)x >> 3) : 3);
-    for (e = 0; e < 4; e++) { GC(4, e); for (r = 0; r < c_h; r++) { BYTE __far *p = VP(x, y + r); for (k = 0; k < c_nb; k++) csv[e][r][k] = p[k]; } }
+    for (e = 0; e < NPL; e++) { GC(4, e); for (r = 0; r < c_h; r++) { BYTE __far *p = VP(x, y + r); for (k = 0; k < c_nb; k++) csv[e][r][k] = p[k]; } }
     GC(4, 0);
     for (r = 0; r < c_h; r++) {
         BYTE __far *p = VP(x, y + r);
@@ -307,13 +357,24 @@ static void RDEXPORT d_cursor(short x, short y, const BYTE FAR *mb)
         DWORD o = ((DWORD)mb[32 + 2 * r] << 16 | (DWORD)mb[33 + 2 * r] << 8) >> sh;          /* XOR 1 -> umkehren */
         m3(0, ROP_COPY);
         for (k = 0; k < c_nb; k++) { BYTE m = (BYTE)(a >> (16 - 8 * k)); if (m) w3(p + k, m); }
-        m3(0x0F, ROP_XOR);
+        m3(PLM, ROP_XOR);
         for (k = 0; k < c_nb; k++) { BYTE m = (BYTE)(o >> (16 - 8 * k)); if (m) w3(p + k, m); }
     }
     m0(); c_on = 1;
 }
 
 /* ---- Farben: RGB <-> Index der Standardpalette (CGA/EGA/VGA: 6 = braun) -------------------- */
+#if NPL == 2
+static WORD RDEXPORT d_farbe(COLOR c)              /* 4 Farben: Grau nach Helligkeit, Buntes -> tuerkis (dunkel -> schwarz) */
+{
+    BYTE r = (BYTE)c, g = (BYTE)(c >> 8), b = (BYTE)(c >> 16), mx = r > g ? r : g, mn = r < g ? r : g; WORD l = (r * 3 + g * 6 + b) / 10;
+    if (b > mx) mx = b;
+    if (b < mn) mn = b;
+    if (mx - mn > 64 && mx > 96) return 1;
+    return l < 64 ? 0 : l < 200 ? 2 : 3;
+}
+static COLOR RDEXPORT d_rgb(WORD i) { return f4[i & 3]; }
+#else
 static WORD RDEXPORT d_farbe(COLOR c)
 {
     BYTE r = (BYTE)c, g = (BYTE)(c >> 8), b = (BYTE)(c >> 16), m;
@@ -328,6 +389,8 @@ static COLOR RDEXPORT d_rgb(WORD i)
     if ((i & 15) == 6) g = 85;
     return RGB(r, g, b);
 }
+
+#endif
 
 static GFXDRVF tab = { {
     { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVF), NAME, d_init, d_done },

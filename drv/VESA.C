@@ -13,9 +13,35 @@
 #include <string.h>
 #include "RD2DRV.H"
 
-#define W 640
-#define H 480
-#define MODUS 0x101
+#if defined(MCGA)                                 /* 320x200 256 Farben (Modus 13h, MCGA/VGA, ohne VBE und ohne Baenke) */
+#  define W 320
+#  define H 200
+#  define ASPY 120
+#elif defined(V800)
+#  define W 800
+#  define H 600
+#  define MODUS 0x103
+#elif defined(V1024)
+#  define W 1024
+#  define H 768
+#  define MODUS 0x105
+#else
+#  define W 640
+#  define H 480
+#  define MODUS 0x101
+#endif
+#ifndef ASPY
+#  define ASPY 100
+#endif
+#if defined(MCGA)
+#  define NAME "MCGA 320x200 256"
+#elif defined(V800)
+#  define NAME "VESA 800x600 256"
+#elif defined(V1024)
+#  define NAME "VESA 1024x768 256"
+#else
+#  define NAME "VESA 640x480 256"
+#endif
 #pragma intrinsic(inp, outp)
 
 static BYTE altmodus, bank = 0xFF, schritt = 1;    /* schritt: Fensterschritte je 64 KB */
@@ -57,6 +83,10 @@ static WORD RDEXPORT d_init(WORD param)
     (void)param;
     altmodus = (BYTE)(int10(0x0F00) & 0x7F);
     if (altmodus > 3 && altmodus != 7) altmodus = 3;
+#if defined(MCGA)
+    if ((BYTE)int10(0x1A00) != 0x1A) return RD_ERR_NOTSUP;   /* VGA oder MCGA */
+    return 0;
+#else
     if (vbe(0x4F00, 0, vb) != 0x004F || memcmp(vb, "VESA", 4)) return RD_ERR_NOTSUP;
     if (vbe(0x4F01, MODUS, vb) != 0x004F || !(vb[0] & 1)) return RD_ERR_NOTSUP;   /* Modus unterstuetzt */
     {   WORD g = *(WORD *)(vb + 4);               /* Fensterschritt in KB */
@@ -66,11 +96,12 @@ static WORD RDEXPORT d_init(WORD param)
         if (*(WORD *)(vb + 16)) bpl = *(WORD *)(vb + 16); /* Bytes je Zeile */
     }
     return 0;
+#endif
 }
 static void RDEXPORT d_done(void) { }
 static WORD RDEXPORT d_modes(GFXMODE FAR *m, WORD max)
 {
-    if (max) { m->w = W; m->h = H; m->bpp = 8; m->farben = 256; m->aspx = 100; m->aspy = 100; m->zeilenbytes = W; m->flags = GD_PALETTE; }
+    if (max) { m->w = W; m->h = H; m->bpp = 8; m->farben = 256; m->aspx = 100; m->aspy = ASPY; m->zeilenbytes = W; m->flags = GD_PALETTE; }
     return 1;
 }
 static void RDEXPORT d_palette(WORD first, WORD n, const COLOR FAR *c);
@@ -79,13 +110,21 @@ static WORD RDEXPORT d_setmode(WORD nr)
 {
     WORD i;
     (void)nr;
+#if defined(MCGA)
+    int10(0x13); bank = 0;                        /* 64000 Bytes: ein Fenster, nie umschalten */
+#else
     if (vmode(MODUS) != 0x004F) return RD_ERR_NOTSUP;
     bank = 0xFF;
+#endif
     outp(0x3C8, 0);
     for (i = 0; i < 256; i++) { COLOR v = d_rgb(i); outp(0x3C9, (BYTE)v >> 2); outp(0x3C9, (BYTE)(v >> 8) >> 2); outp(0x3C9, (BYTE)(v >> 16) >> 2); }
     return 0;
 }
+#if defined(MCGA)
+static void RDEXPORT d_textmode(void) { int10(altmodus); }
+#else
 static void RDEXPORT d_textmode(void) { int10(altmodus); bank = 0xFF; }
+#endif
 
 /* ---- Fuellen ---------------------------------------------------------------- */
 #define NURFG 0x80
@@ -231,7 +270,7 @@ static COLOR RDEXPORT d_rgb(WORD i)
 }
 
 static GFXDRVF tab = { {
-    { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVF), "VESA 640x480 256", d_init, d_done },
+    { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVF), NAME, d_init, d_done },
     d_modes, d_setmode, d_textmode,
     d_span, d_pixel, d_getpixel, d_put, d_get,
     0, 0, d_copy, d_glyphs, d_palette, d_cursor, d_cursorhide, 0, d_box }, d_farbe, d_rgb

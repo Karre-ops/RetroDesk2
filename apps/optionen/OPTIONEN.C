@@ -28,7 +28,7 @@ static HMEM hm; static char FAR *ein, FAR *aus, FAR *ae; static WORD nein, nae; 
 static SYSINFO si;
 
 /* Werte aller Karten (0 = erste Auswahl), *0 = Stand beim Oeffnen */
-static GFXINFO gl[8]; static WORD gn; static BYTE gsel, gsel0, prof, prof0;
+static GFXINFO gl[16]; static WORD gn; static BYTE gsel, gsel0, prof, prof0;
 static BYTE snd, snd0, sb, sb0, sysk; static char sbeig[16];
 static BYTE tempo, dk, tausch, mw0, mhw, mhw0, rdm; static DWORD letzt;
 static BYTE tast, tast0, kbart; static BYTE FAR *kbm;    /* kbart 0 kein Treiber, 1 RDKEYB, 2 fremd */
@@ -175,7 +175,7 @@ static BYTE cgaf, deskf, farb0;                   /* [Farben] CGA= (Vordergrund 
 static void laden(void)
 {
     char w[20]; WORD i; short v; const char FAR *z;
-    gn = GfxList(gl, 8); gsel = 0;
+    gn = GfxList(gl, 16); gsel = 0;
     for (i = 0; i < gn; i++) if (gl[i].flags & GI_GEWAEHLT) gsel = (BYTE)(i + 1);
     ProfileGetStr(ini, "System", "Profil", "AUTO", w, sizeof w);
     prof = (BYTE)((w[0] | 0x20) == 's' ? 1 : (w[0] | 0x20) == 'k' ? 2 : 0);
@@ -214,7 +214,18 @@ static void fuellen(HWND d)
     switch (seite) {
     case 0:
         scpy(t, StrGet(hi, 7), sizeof t); ladd(d, 101, t);
-        for (i = 0; i < gn; i++) ladd(d, 101, gl[i].name);
+        for (i = 0; i < gn; i++) {                /* "VGA 640x480, 16 Farben" */
+            char z[40], n[8]; WORD v, k;
+            scpy(z, gl[i].name, sizeof z);
+            for (k = 0; k < 3; k++) {
+                char *q = n + 7; v = k == 0 ? gl[i].w : k == 1 ? gl[i].h : gl[i].farben; *q = 0;
+                do *--q = (char)('0' + v % 10); while (v /= 10);
+                if (k == 2 && gl[i].farben == 2) break;
+                scat(z, k == 0 ? " " : k == 1 ? "x" : ", ", sizeof z); scat(z, q, sizeof z);
+            }
+            scat(z, StrGet(hi, (WORD)(gl[i].farben == 2 ? 67 : 66)), sizeof z);
+            ladd(d, 101, z);
+        }
         lsel(d, 101, gsel); DlgCheck(d, (WORD)(102 + prof), 1);
         if (si.grafik) DlgSetText(d, 106, StrGet(hi, 18));
         for (i = 0; i < 16; i++) { scpy(t, StrGet(hi, (WORD)(50 + i)), sizeof t); ladd(d, 107, t); ladd(d, 108, t); }

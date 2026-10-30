@@ -191,6 +191,14 @@ typedef struct {
 #define GFX_VGA16 5
 #define GFX_VESA 6
 #define GFX_EGA320 7                              /* 320x200 16 Farben (EGA/VGA Modus 0Dh), schmale Schrift SYSK.FNT */
+#define GFX_EGAMONO 8                             /* EGA 640x350 1 Bit (Modus 10h) */
+#define GFX_EGA4 9                                /* EGA 640x350 4 Farben (2 Ebenen) */
+#define GFX_VGA4 10                               /* VGA 640x480 4 Farben (2 Ebenen) */
+#define GFX_EGA200 11                             /* EGA 640x200 16 Farben (Modus 0Eh, 64 KB) */
+#define GFX_SVGA16 12                             /* VESA 800x600 16 Farben (Modus 102h) */
+#define GFX_MCGA 13                               /* MCGA/VGA 320x200 256 Farben (Modus 13h) */
+#define GFX_VESA800 14                            /* VESA 800x600 256 Farben (Modus 103h) */
+#define GFX_VESA1024 15                           /* VESA 1024x768 256 Farben (Modus 105h) */
 
 /* GfxList: eine Zeile je moeglicher Grafikart (Menue "Grafik") */
 typedef struct {

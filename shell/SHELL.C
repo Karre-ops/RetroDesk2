@@ -968,7 +968,7 @@ static void zk(char *p, WORD v) { p = zahl(p, v / 10); *p++ = ','; zahl(p, v % 1
 static void info(void)                            /* wie RD1: Prozessor, Takt, Speicher, DOS, Grafik, Sound */
 {
     static const char cpu[] = "8088\0" "8086\0" "NEC V20\0" "80186\0" "80286\0" "80386\0" "80486\0" "Pentium\0";
-    static const char gfx[] = "?\0" "CGA\0" "Hercules\0" "VGA mono\0" "EGA\0" "VGA\0" "VESA\0" "EGA 320\0";
+    static const char gfx[] = "?\0" "CGA\0" "Hercules\0" "VGA mono\0" "EGA\0" "VGA\0" "VESA\0" "EGA 320\0" "EGA mono\0" "EGA 4\0" "VGA 4\0" "EGA 200\0" "VESA 16\0" "MCGA\0" "VESA 800\0" "VESA 1024\0";
     SYSINFO si; char t[12], *p; WORD a = KernVersion();
     KernInfo(&si);
     p = zahl(t, a >> 8); *p++ = '.'; zahl(p, a & 0xFF);
@@ -982,7 +982,7 @@ static void info(void)                            /* wie RD1: Prozessor, Takt, S
     scat(buf, StrGet(inst, 24), sizeof buf); zahl(t, (WORD)(MemAvail(MEMA_KONV) >> 10)); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf);
     if (si.kb_ext) { scat(buf, " + XMS ", sizeof buf); zahl(t, si.kb_ext); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf); }
     scat(buf, "\nDOS ", sizeof buf); p = zahl(t, si.dos >> 8); *p++ = '.'; zahl(p, si.dos & 0xFF); scat(buf, t, sizeof buf);
-    scat(buf, StrGet(inst, 25), sizeof buf); scat(buf, nte(gfx, si.grafik <= GFX_EGA320 ? si.grafik : 0), sizeof buf);   /* Grafik */
+    scat(buf, StrGet(inst, 25), sizeof buf); scat(buf, nte(gfx, si.grafik <= GFX_VESA1024 ? si.grafik : 0), sizeof buf);   /* Grafik */
     scat(buf, " ", sizeof buf); zahl(t, W); scat(buf, t, sizeof buf); scat(buf, "x", sizeof buf); zahl(t, H); scat(buf, t, sizeof buf);
     scat(buf, StrGet(inst, 27), sizeof buf);                                 /* Sound */
     scat(buf, si.sound & (SC_OPL2 | SC_OPL3) ? "AdLib" : si.sound & SC_SPEAKER ? "PC-Speaker" : StrGet(inst, 26), sizeof buf);

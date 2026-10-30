@@ -49,6 +49,8 @@ TEXTE
   63 "Rosa"
   64 "Gelb"
   65 "Weiﬂ"
+  66 " Farben"
+  67 ", S/W"
 ENDE
 DIALOG 11 "Optionen" 0 0 268 150
   BUTTON   "Grafik" 91 8 4 40 14
@@ -227,6 +229,8 @@ TEXTE
   63 "Pink"
   64 "Yellow"
   65 "White"
+  66 " colours"
+  67 ", mono"
 ENDE
 DIALOG 11 "Options" 0 0 268 150
   BUTTON   "Display" 91 8 4 40 14

@@ -7,6 +7,9 @@
 #include <string.h>
 #include "RD2DRV.H"
 
+#if defined(EGAM)                                 /* EGA 640x350 mono (Modus 10h, alle Ebenen gleich): wie VGAM */
+#  define VGAM
+#endif
 #if defined(CGA)
 #  define W 640
 #  define H 200
@@ -25,12 +28,18 @@
 #  define ASPY 155
 #elif defined(VGAM)
 #  define W 640
-#  define H 480
 #  define BPR 80
 #  define VSEG 0xA000
 #  define ROW(y) ((WORD)(y) * 80)
-#  define NAME "VGA 640x480 mono"
-#  define ASPY 100
+#  if defined(EGAM)
+#    define H 350
+#    define NAME "EGA 640x350 mono"
+#    define ASPY 137
+#  else
+#    define H 480
+#    define NAME "VGA 640x480 mono"
+#    define ASPY 100
+#  endif
 #else
 #  error CGA, HGC oder VGAM angeben
 #endif
@@ -43,6 +52,10 @@ static BYTE altmodus;
    Treiber laufen aber mit dem Stack des Aufrufers (-zu) */
 WORD int10(WORD ax);
 #pragma aux int10 = "push bp" "int 10h" "pop bp" parm [ax] value [ax] modify [bx cx dx si di es]
+#if defined(EGAM)
+WORD egamem(void);
+#pragma aux egamem = "mov ah,12h" "mov bl,10h" "push bp" "int 10h" "pop bp" value [bx] modify [ax cx dx si di es]
+#endif
 #if defined(CGA)
 WORD int10bx(WORD ax, WORD bx);
 #pragma aux int10bx = "push bp" "int 10h" "pop bp" parm [ax] [bx] value [ax] modify [bx cx dx si di es]
@@ -80,7 +93,9 @@ static WORD RDEXPORT d_init(WORD param)
     }
     return RD_ERR_NOTSUP;
 #else
-#if defined(VGAM)
+#if defined(EGAM)
+    {   WORD m = egamem() & 0xFF; if (m == 0x10 || m == 0) return RD_ERR_NOTSUP; }   /* EGA/VGA mit 128 KB (Modus 10h) */
+#elif defined(VGAM)
     if ((BYTE)int10(0x1A00) != 0x1A) return RD_ERR_NOTSUP;
 #else
     /* CGA: VGA/MCGA kann Modus 6 immer; sonst Farbkarte laut BIOS und ein 6845 auf 3D4h
@@ -114,6 +129,8 @@ static WORD RDEXPORT d_setmode(WORD nr)
 #if defined(HGC)
     hgc(1);
     _fmemset(MK_FP(VSEG, 0), 0, 0x8000U);
+#elif defined(EGAM)
+    bios_set(0x10);                               /* Schreibmaske aller Ebenen bleibt an: 0 schwarz, 15 weiss; gelesen wird Ebene 0 */
 #elif defined(VGAM)
     bios_set(0x11);
 #else
