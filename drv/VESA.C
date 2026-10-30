@@ -128,20 +128,52 @@ static void RDEXPORT d_textmode(void) { int10(altmodus); bank = 0xFF; }
 
 /* ---- Fuellen ---------------------------------------------------------------- */
 #define NURFG 0x80
+static BYTE kz[W + 8];                             /* Zeilenpuffer (Muster, 1-Bit-Quellen, Rollen) */
+/* n Bytes aus q an Schirm x,y: Stuecke bis zum Bankende */
+static void schreib(WORD x, WORD y, const BYTE *q, WORD n)
+{
+    BYTE __far *p = va(x, y);
+    while (n) { DWORD r = REST(p); WORD k = n > r ? (WORD)r : n; _fmemcpy(p, q, k); q += k; x += k; n -= k; if (n) p = va(x, y); }
+}
+/* Verknuepfen n Bytes ab x,y mit v (XOR/OR/AND), wortweise in Assembler */
+void vxor(BYTE __far *p, WORD n, WORD v);
+#pragma aux vxor = "shr cx,1" "jnc w" "xor es:[di],al" "inc di" "w: jcxz e" "l: xor es:[di],ax" "add di,2" "loop l" "e:" parm [es di] [cx] [ax] modify [cx di]
+void vor(BYTE __far *p, WORD n, WORD v);
+#pragma aux vor = "shr cx,1" "jnc w" "or es:[di],al" "inc di" "w: jcxz e" "l: or es:[di],ax" "add di,2" "loop l" "e:" parm [es di] [cx] [ax] modify [cx di]
+void vand(BYTE __far *p, WORD n, WORD v);
+#pragma aux vand = "shr cx,1" "jnc w" "and es:[di],al" "inc di" "w: jcxz e" "l: and es:[di],ax" "add di,2" "loop l" "e:" parm [es di] [cx] [ax] modify [cx di]
+static void verkn(WORD x, WORD y, WORD n, BYTE c, WORD rop)
+{
+    BYTE __far *p = va(x, y); WORD v = (WORD)(c | (WORD)c << 8);
+    while (n) {
+        DWORD r = REST(p); WORD k = n > r ? (WORD)r : n;
+        if (rop == ROP_XOR) vxor(p, k, v); else if (rop == ROP_OR) vor(p, k, v); else vand(p, k, v);
+        x += k; n -= k; if (n) p = va(x, y);
+    }
+}
 static void zeile(WORD y, WORD x0, WORD x1, BYTE fg, BYTE bg, BYTE mu, WORD rop)   /* mu: Musterzeile, 0xFF = voll */
 {
-    BYTE __far *p = va(x0, y); WORD x = x0; int beide = rop == ROP_COPY || rop == ROP_MASK;
+    BYTE __far *p; WORD x = x0, n = x1 - x0 + 1, k; int beide = rop == ROP_COPY || rop == ROP_MASK;
     if (rop == NURFG) beide = 0;                  /* Text deckungslos: nur gesetzte Punkte */
+    if (rop == ROP_NOT) { verkn(x0, y, n, 0x0F, ROP_XOR); return; }   /* umkehren: Index XOR 0Fh */
     if (rop == ROP_MASK || rop == NURFG) rop = ROP_COPY;
     if (mu == 0xFF && rop == ROP_COPY) {           /* voll: Stuecke bis zum Bankende */
+        p = va(x0, y);
         while (x <= x1) {
-            DWORD r = REST(p); WORD n = x1 - x + 1;
-            if (n > r) n = (WORD)r;
-            _fmemset(p, fg, n); x += n;
+            DWORD r = REST(p); WORD m = x1 - x + 1;
+            if (m > r) m = (WORD)r;
+            _fmemset(p, fg, m); x += m;
             if (x <= x1) p = va(x, y);
         }
         return;
     }
+    if (mu == 0xFF) { verkn(x0, y, n, fg, rop); return; }
+    if (beide && rop == ROP_COPY) {                /* Muster deckend: 8 Punkte bauen, verdoppeln, am Stueck schreiben */
+        for (k = 0; k < 8; k++) kz[k] = (mu & (0x80 >> ((x0 + k) & 7))) ? fg : bg;
+        for (k = 8; k < n; k <<= 1) memcpy(kz + k, kz, n - k < k ? n - k : k);
+        schreib(x0, y, kz, n); return;
+    }
+    p = va(x0, y);
     for (; x <= x1; x++) {
         if (mu & (0x80 >> (x & 7))) setz(p, fg, rop); else if (beide) setz(p, bg, ROP_COPY);
         if (!FP_OFF(++p) && x < x1) p = va(x + 1, y);
@@ -165,7 +197,19 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
     if (rop == ROP_NOT) { d_box(x, y, x + w - 1, y + h - 1, 0x0F, 0, ROP_XOR); return; }
     for (r = 0; r < (WORD)h; r++, src += srcbytes) {
         BYTE __far *p = va(x, y + r);
-        if ((srcbpp & 0xFF) == 8 && (rop == ROP_COPY || rop == ROP_MASK) && REST(p) >= (WORD)w) { _fmemcpy(p, src, w); continue; }
+        if ((srcbpp & 0xFF) == 8 && (rop == ROP_COPY || rop == ROP_MASK)) { if (REST(p) >= (WORD)w) _fmemcpy(p, src, w); else { _fmemcpy(kz, src, w); schreib(x, y + r, kz, w); } continue; }
+        if ((srcbpp & 0xFF) == 1 && rop == ROP_COPY) {   /* 1 Bit deckend: Zeile im Puffer bauen, am Stueck */
+            for (i = 0; i < (WORD)w; i++) kz[i] = (src[i >> 3] & (0x80 >> (i & 7))) ? (BYTE)fg : (BYTE)bg;
+            schreib(x, y + r, kz, w); continue;
+        }
+        if ((srcbpp & 0xFF) == 1 && rop == ROP_MASK) {   /* 1 Bit Maske (Text): leere Quellbytes ueberspringen */
+            for (i = 0; i < (WORD)w; i += 8) {
+                BYTE b = src[i >> 3], k;
+                if (!b) continue;
+                for (k = 0; k < 8 && i + k < (WORD)w; k++) if (b & (0x80 >> k)) *va(x + i + k, y + r) = (BYTE)fg;
+            }
+            continue;
+        }
         for (i = 0; i < (WORD)w; i++) {
             if ((srcbpp & 0xFF) == 8) setz(p, src[i], rop == ROP_MASK ? ROP_COPY : rop);
             else if (src[i >> 3] & (0x80 >> (i & 7))) setz(p, (BYTE)fg, rop == ROP_MASK ? ROP_COPY : rop);
@@ -184,7 +228,6 @@ static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WO
     }
 }
 /* Schirm -> Schirm (Rollen) zeilenweise ueber einen Puffer */
-static BYTE kz[W];
 static void RDEXPORT d_copy(short sx, short sy, short w, short h, short dx, short dy)
 {
     short r, st = 1, y0 = 0;

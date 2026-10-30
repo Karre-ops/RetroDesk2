@@ -1002,9 +1002,13 @@ static void spalten(void)
         pop  si
     }
 }
+/* Schmale Schrift (bis 8 Punkte je Zeichen): ein Zeichen in alle Zeilen von t (Abstand nb) einodern, um sh verschoben */
+void gl1(BYTE *t, const BYTE FAR *z, WORD h, BYTE sh, WORD nb);
+#pragma aux gl1 = "l: mov ah,es:[si]" "inc si" "or ah,ah" "jz n" "xor al,al" "shr ax,cl" "or [di],ah" "or [di+1],al" "n: add di,bx" "dec dx" "jnz l" \
+    parm [di] [es si] [dx] [cl] [bx] modify [ax dx si di]
 static void tzeile(short x, short y, LPCSTR s, WORD n)
 {
-    WORD tw = 0, i, r, k, nb, rop = cd->rop, fg = txtb, bg = bkb, fett = (fstil & FS_BOLD) ? 1 : 0, schnell;
+    WORD tw = 0, i, r, k, nb, rop = cd->rop, fg = txtb, bg = bkb, fett = (fstil & FS_BOLD) ? 1 : 0, schnell, breit = 0;
     const BYTE FAR *fd = fdat;
     if (n > MAXBW / 8) n = MAXBW / 8;
     schnell = !(fstil & (FS_BOLD | FS_ITALIC)) && fp[10] && fbr[0] == 8;
@@ -1018,6 +1022,7 @@ static void tzeile(short x, short y, LPCSTR s, WORD n)
             WORD g = gidx((BYTE)s[i]), w = fbr[g];
             if (tw + w + fett > MAXBW - 16) break;
             go[i] = fof[g]; gw[i] = (BYTE)w; tw += w + fett;
+            if (w > 8) breit = 1;                 /* breite Zeichen: nicht der schmale Weg */
         }
         n = i;
         if (fstil & FS_ITALIC) tw += (fh - 1) / 4;
@@ -1045,6 +1050,18 @@ static void tzeile(short x, short y, LPCSTR s, WORD n)
             spalten();
             crows((short)(y + r), x, (short)tw, (short)k, tb, nb, rop, (BYTE)fg, (BYTE)bg);
         }
+        return;
+    }
+    if (!schnell && !breit && !fett && !(fstil & FS_ITALIC) && (WORD)fh * nb <= sizeof tb) {   /* schmale Schrift: Zeichen fuer Zeichen ueber alle Zeilen (30.10.2026) */
+        WORD px = 0;
+        memset(tb, 0, fh * nb);
+        for (i = 0; i < n; i++) { gl1(tb + (px >> 3), fd + go[i], fh, (BYTE)(px & 7), nb); px += gw[i]; }
+        if (fstil & FS_UNDER) {
+            BYTE *t = tb + (fober + 1 < fh ? fober + 1 : fh - 1) * nb;
+            for (k = 0; k < (tw >> 3); k++) t[k] = 0xFF;
+            if (tw & 7) t[k] |= (BYTE)(0xFF << (8 - (tw & 7)));
+        }
+        crows(y, x, (short)tw, (short)fh, tb, nb, rop, (BYTE)fg, (BYTE)bg);
         return;
     }
     for (r = 0; r < fh; r++) {

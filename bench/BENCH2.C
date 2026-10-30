@@ -4,7 +4,7 @@
 #include "RD2.H"
 
 static volatile DWORD __far *bt = (volatile DWORD __far *)0x0040006CL;
-static HDC dc, bdc;
+static HDC dc, bdc, gdc;
 static short W, H;
 static RECT r, ri, rr;
 static MSG m;
@@ -29,6 +29,7 @@ static void a_pat(void)    { SetBrush(dc, C_BLACK, PAT_GRAY50); FillRect(dc, &r)
 static void a_inv(void)    { InvertRect(dc, &ri); }
 static void a_rect(void)   { Frame(dc, &rr); }
 static void a_blk(void)    { BitBlt(bdc, 0, 0, 208, 150, dc, 8, 20, ROP_COPY); BitBlt(dc, 8, 20, 208, 150, bdc, 0, 0, ROP_COPY); }
+static void a_gblk(void)   { BitBlt(gdc, 0, 0, 208, 150, dc, 8, 20, ROP_COPY); BitBlt(dc, 8, 20, 208, 150, gdc, 0, 0, ROP_COPY); }   /* Geraeteformat wie Menue-Hintergrund */
 static volatile unsigned rz;
 static void a_calc(void)   { unsigned i; for (i = 0; i < 1000; i++) rz += i; }
 static void a_inp(void)    { PeekMessage(&m, 0); }
@@ -46,7 +47,7 @@ static void a_leer(void)   { TickCount(); }
 
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
-    HBMP bm;
+    HBMP bm, gm;
     (void)inst; (void)cmd; (void)show;
     dc = GetDC(0);
     if (!dc) { DbgHex("BENCH2: kein Schirm", LastError()); return 1; }
@@ -66,6 +67,8 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     miss("BENCH2: Rechteck 200x100 invertieren", a_inv);
     miss("BENCH2: Rahmen 200x100", a_rect);
     miss("BENCH2: Block 208x150 sichern+zurueck", a_blk);
+    gm = BmpCreate(208, 150, 0); gdc = gm ? BmpDC(gm) : 0;   /* 0 = Geraeteformat (30.10.2026) */
+    if (gdc) { miss("BENCH2: Block 208x150 Geraeteformat", a_gblk); DCFree(gdc); BmpFree(gm); }
     miss("BENCH2: Rechenschleife 1000",  a_calc);
     miss("BENCH2: Eingabe abfragen", a_inp);
     miss("BENCH2: leerer API-Aufruf", a_leer);

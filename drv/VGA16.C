@@ -8,6 +8,7 @@
  * bleiben dabei unberuehrt; Verknuepfung (UND/ODER/XOR) macht die Karte (Register 3). */
 #include <i86.h>
 #include <conio.h>
+#include <string.h>
 #include "RD2DRV.H"
 
 #if defined(VGA16)
@@ -63,7 +64,7 @@
 #endif
 #define PLM ((1 << NPL) - 1)                      /* Ebenenmaske, zugleich "weiss" fuer Umkehren */
 #define VP(x, y) ((BYTE __far *)MK_FP(0xA000, (WORD)(y) * BPR + ((WORD)(x) >> 3)))
-#pragma intrinsic(inp, outp, outpw)
+#pragma intrinsic(inp, outp, outpw, _fmemcpy, _fmemset)
 
 static BYTE altmodus;
 WORD int10(WORD ax);
@@ -83,8 +84,10 @@ void w3(BYTE __far *p, BYTE v);
 #pragma aux w3 = "mov ah,es:[di]" "mov es:[di],al" parm [es di] [al] modify [ah]
 void w3n(BYTE __far *p, WORD n, BYTE v);
 #pragma aux w3n = "jcxz e" "l: mov ah,es:[di]" "stosb" "loop l" "e:" parm [es di] [cx] [al] modify [ah cx di]
+static BYTE kopie;                                /* m3 mit ROP_COPY: volle Bytes brauchen keinen Latch */
 static void m3(BYTE farbe, WORD rop)              /* Schreibmodus 3 mit Farbe und Verknuepfung */
 {
+    kopie = (BYTE)(rop == ROP_COPY || rop == ROP_MASK);
     if (rop == ROP_NOT) farbe = PLM;
     GC(5, 3); GC(0, farbe); GC(1, 0x0F); GC(3, fn[rop < 6 ? rop : 0]); GC(8, 0xFF); MAPMASK(PLM);
 }
@@ -165,19 +168,21 @@ static void zeile(WORD y, WORD x0, WORD x1, BYTE v)   /* Schreibmodus 3 ist gese
     BYTE lm = (BYTE)(0xFF >> (x0 & 7)), rm = (BYTE)(0xFF << (7 - (x1 & 7)));
     if (b0 == b1) { w3(p, (BYTE)(v & lm & rm)); return; }
     w3(p++, (BYTE)(v & lm));
-    w3n(p, b1 - b0 - 1, v); p += b1 - b0 - 1;
+    if (v == 0xFF && kopie) _fmemset(p, 0xFF, b1 - b0 - 1);   /* Maske voll: Latch egal, rep stosb */
+    else w3n(p, b1 - b0 - 1, v);
+    p += b1 - b0 - 1;
     w3(p, (BYTE)(v & rm));
 }
 static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, const BYTE FAR *mu, WORD rop)
 {
     short y;
     if (!mu) { m3((BYTE)farbe, rop); for (y = y0; y <= y1; y++) zeile(y, x0, x1, 0xFF); m0(); return; }
-    m3((BYTE)farbe, rop);                         /* gesetzte Musterbits in Farbe */
-    for (y = y0; y <= y1; y++) zeile(y, x0, x1, mu[y & 7]);
-    if (rop == ROP_COPY || rop == ROP_MASK) {     /* die anderen in Hintergrundfarbe */
+    if (rop == ROP_COPY || rop == ROP_MASK) {     /* erst alles in Hintergrundfarbe (volle Bytes, schnell) */
         m3((BYTE)(farbe >> 8), rop);
-        for (y = y0; y <= y1; y++) zeile(y, x0, x1, (BYTE)~mu[y & 7]);
+        for (y = y0; y <= y1; y++) zeile(y, x0, x1, 0xFF);
     }
+    m3((BYTE)farbe, rop);                         /* dann die gesetzten Musterbits in Farbe */
+    for (y = y0; y <= y1; y++) if (mu[y & 7]) zeile(y, x0, x1, mu[y & 7]);
     m0();
 }
 static void RDEXPORT d_span(short y, short x0, short x1, WORD farbe, const BYTE FAR *mu, WORD rop) { d_box(x0, y, x1, y, farbe, mu, rop); }
@@ -219,29 +224,69 @@ static void put1(WORD x, WORD y, WORD w, WORD h, const BYTE FAR *s, WORD st, WOR
     }
     m0();
 }
-/* 4 Bit gepackt: je Zeile 8 Punkte -> 4 Ebenenbytes, Schreibmodus 0 mit Bitmaske und Ebenenmaske */
-static BYTE eb[4][W / 8 + 2];
+/* 4 Bit gepackt <-> Ebenen ueber Tabellen (30.10.2026, statt Punkt fuer Punkt):
+   pl/ph: Quellbyte (2 Punkte) -> je Ebene 2 Bits an Bit 7/6 (pl: Ebene 0 im unteren, 1 im oberen Byte; ph: 2/3);
+   4 Quellbytes = 8 Punkte: pl[s0] | pl[s1] >> 2 | pl[s2] >> 4 | pl[s3] >> 6 (die Bytes laufen nicht ineinander).
+   sx/sy: Ebenenbyte -> Punkte 0-3 bzw. 4-7 als Halbbytes (Bit 0 je Halbbyte), << e fuer Ebene e. */
+static WORD pl[256], sx[256], sy[256];
+#if NPL == 4
+static WORD ph[256];
+#endif
+static BYTE tabok;
+static void tabellen(void)
+{
+    WORD i, k;
+    for (i = 0; i < 256; i++) {
+        WORD a = i >> 4, b = i & 15, x = 0, y = 0;
+        pl[i] = (WORD)((a & 1) << 7 | (b & 1) << 6 | (a & 2) << 14 | (b & 2) << 13);
+#if NPL == 4
+        ph[i] = (WORD)((a & 4) << 5 | (b & 4) << 4 | (a & 8) << 12 | (b & 8) << 11);
+#endif
+        for (k = 0; k < 4; k++) { if (i & (0x80 >> k)) x |= 1 << (12 - 4 * k); if (i & (0x08 >> k)) y |= 1 << (12 - 4 * k); }
+        sx[i] = x; sy[i] = y;
+    }
+    tabok = 1;
+}
+static BYTE eb[4][W / 8 + 2], ab[4][W / 8 + 2];
 static void put4(WORD x, WORD y, WORD w, WORD h, const BYTE FAR *s, WORD st, WORD rop, WORD unten)
 {
-    WORD r, i, e, nb = ((x & 7) + w + 7) >> 3;
-    BYTE lm = (BYTE)(0xFF >> (x & 7)), rm = (BYTE)(0xFF << (7 - ((x + w - 1) & 7)));
+    WORD r, i, e, g, ng = (w + 7) >> 3, sh = x & 7, nb = (sh + w + 7) >> 3;
+    BYTE lm = (BYTE)(0xFF >> sh), rm = (BYTE)(0xFF << (7 - ((x + w - 1) & 7)));
+    if (!tabok) tabellen();
+    if (nb == 1) lm &= rm;
     GC(5, 0); GC(1, 0); GC(3, fn[rop < 4 ? rop : 0]);
     for (r = 0; r < h; r++, s += st) {
         BYTE __far *p = VP(x, y + r);
-        for (i = 0; i < nb; i++) eb[0][i] = eb[1][i] = eb[2][i] = eb[3][i] = 0;
-        for (i = 0; i < w; i++) {                 /* Punkt i -> Bit an Schirmspalte x + i */
-            WORD q = i + unten; BYTE c = (BYTE)((q & 1) ? s[q >> 1] & 0x0F : s[q >> 1] >> 4);
-            WORD k = ((x & 7) + i); BYTE m = (BYTE)(0x80 >> (k & 7));
-            if (c & 1) eb[0][k >> 3] |= m;
-            if (c & 2) eb[1][k >> 3] |= m;
-            if (c & 4) eb[2][k >> 3] |= m;
-            if (c & 8) eb[3][k >> 3] |= m;
+        for (g = 0; g < ng; g++) {                /* 8 Punkte -> ein Byte je Ebene */
+            const BYTE FAR *q = s + 4 * g; BYTE c0, c1, c2, c3; WORD v;
+            if (unten) { c0 = (BYTE)(q[0] << 4 | q[1] >> 4); c1 = (BYTE)(q[1] << 4 | q[2] >> 4); c2 = (BYTE)(q[2] << 4 | q[3] >> 4); c3 = (BYTE)(q[3] << 4 | q[4] >> 4); }
+            else { c0 = q[0]; c1 = q[1]; c2 = q[2]; c3 = q[3]; }
+            v = pl[c0] | pl[c1] >> 2 | pl[c2] >> 4 | pl[c3] >> 6; ab[0][g] = (BYTE)v; ab[1][g] = (BYTE)(v >> 8);
+#if NPL == 4
+            v = ph[c0] | ph[c1] >> 2 | ph[c2] >> 4 | ph[c3] >> 6; ab[2][g] = (BYTE)v; ab[3][g] = (BYTE)(v >> 8);
+#endif
         }
-        for (i = 0; i < nb; i++) {
+        for (e = 0; e < NPL; e++) {               /* auf die Lage im Schirmbyte schieben */
+            BYTE *a = ab[e], *z = eb[e];
+            if (!sh) { for (i = 0; i < nb; i++) z[i] = a[i]; continue; }
+            a[ng] = 0; z[0] = (BYTE)(a[0] >> sh);
+            for (i = 1; i < nb; i++) z[i] = (BYTE)(a[i - 1] << (8 - sh) | a[i] >> sh);
+        }
+        if (rop == ROP_COPY || rop >= 4) {        /* Raender mit Bitmaske (Latch), Mitte je Ebene am Stueck */
+            volatile BYTE l;
+            GC(8, lm); l = p[0];
+            for (e = 0; e < NPL; e++) { MAPMASK(1 << e); p[0] = eb[e][0]; }
+            if (nb > 1) {
+                GC(8, rm); l = p[nb - 1];
+                for (e = 0; e < NPL; e++) { MAPMASK(1 << e); p[nb - 1] = eb[e][nb - 1]; }
+                if (nb > 2) { GC(8, 0xFF); for (e = 0; e < NPL; e++) { MAPMASK(1 << e); _fmemcpy(p + 1, eb[e] + 1, nb - 2); } }
+            }
+            (void)l;
+        } else for (i = 0; i < nb; i++) {         /* Verknuepfung: jedes Byte ueber den Latch */
             BYTE m = 0xFF; volatile BYTE l;
             if (!i) m &= lm;
             if (i == nb - 1) m &= rm;
-            GC(8, m); l = p[i];                   /* Latch fuer die Bits ausserhalb der Maske */
+            GC(8, m); l = p[i];
             for (e = 0; e < NPL; e++) { MAPMASK(1 << e); p[i] = eb[e][i]; }
             (void)l;
         }
@@ -256,21 +301,29 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
     else if (rop == ROP_NOT) d_box(x, y, x + w - 1, y + h - 1, PLM, 0, ROP_XOR);
     else put1(x, y, w, h, src, srcbytes, rop, (BYTE)fg, (BYTE)bg);
 }
-/* get: Geraeteformat (4 Bit gepackt), w Punkte ab x */
+/* get: Geraeteformat (4 Bit gepackt), w Punkte ab x: je Ebene die Zeile am Stueck lesen, dann Tabellen */
 static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WORD dstbytes)
 {
-    WORD r, i, e, nb = ((x & 7) + w + 7) >> 3;
+    WORD r, i, e, sh = x & 7, nb = (sh + w + 7) >> 3, ng = (w + 7) >> 3, n = (w + 1) >> 1;
+    if (!tabok) tabellen();
     for (r = 0; r < (WORD)h; r++, dst += dstbytes) {
         BYTE __far *p = VP(x, y + r);
-        for (e = 0; e < NPL; e++) { GC(4, e); for (i = 0; i < nb; i++) eb[e][i] = p[i]; }
-        for (i = 0; i < (WORD)w; i++) {
-            WORD k = (x & 7) + i; BYTE m = (BYTE)(0x80 >> (k & 7)), c = 0; k >>= 3;
-            if (eb[0][k] & m) c |= 1;
-            if (eb[1][k] & m) c |= 2;
-            if (eb[2][k] & m) c |= 4;
-            if (eb[3][k] & m) c |= 8;
-            if (i & 1) dst[i >> 1] = (BYTE)((dst[i >> 1] & 0xF0) | c); else dst[i >> 1] = (BYTE)(c << 4);
+        for (e = 0; e < NPL; e++) {
+            BYTE *z = eb[e];
+            GC(4, e); _fmemcpy(z, p, nb); z[nb] = 0;
+            if (sh) for (i = 0; i < ng; i++) z[i] = (BYTE)(z[i] << sh | z[i + 1] >> (8 - sh));
         }
+        for (i = 0; i < ng; i++) {
+            WORD a = sx[eb[0][i]] | sx[eb[1][i]] << 1, b = sy[eb[0][i]] | sy[eb[1][i]] << 1, k = 4 * i;
+#if NPL == 4
+            a |= sx[eb[2][i]] << 2 | sx[eb[3][i]] << 3; b |= sy[eb[2][i]] << 2 | sy[eb[3][i]] << 3;
+#endif
+            dst[k] = (BYTE)(a >> 8);
+            if (k + 1 < n) dst[k + 1] = (BYTE)a;
+            if (k + 2 < n) dst[k + 2] = (BYTE)(b >> 8);
+            if (k + 3 < n) dst[k + 3] = (BYTE)b;
+        }
+        if (w & 1) dst[n - 1] &= 0xF0;
     }
     GC(4, 0);
 }
