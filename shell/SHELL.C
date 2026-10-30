@@ -579,7 +579,6 @@ static void suchen(LPCSTR ab)                     /* ab: Ordner mit \ am Ende */
     t += ssel * SLEN; for (i = 0; t[i] && i < sizeof qv - 1; i++) qv[i] = t[i]; qv[i] = 0; MemUnlock(sh);
     if (i && qv[i - 1] == '\\') qv[--i] = 0;     /* Ordner-Treffer: den Ordner selbst nicht, sondern den darueber */
     while (i && qv[i - 1] != '\\') i--; qv[i] = 0;
-    DbgPrint("SHELL: Suche oeffnet"); DbgPrint(qv);
     ordner_auf(qv[0], qv, 0);
 }
 static void neuer_ordner(ORDNER *o)
@@ -601,13 +600,13 @@ static short treffer(ORDNER *o, short px, short py)   /* Eintrag unter Client-Pu
 static short lwbei(short x, short y);
 static void fallen(ORDNER *o, short x, short y, WORD ks)   /* Ziehen beendet bei Client-Punkt der Quelle */
 {
-    POINT p; HWND t; ORDNER *z; char ziel[68]; short i; EINTRAG FAR *e; int weg;
+    POINT p; HWND t; ORDNER *z; char ziel[68]; short i, k = -1; EINTRAG FAR *e; int weg;
     p.x = x; p.y = y; ClientToScreen(o->w, &p);
     if ((t = WindowFromPoint(p.x, p.y)) == 0) return;
-    ziel[0] = 0;
-    if ((z = ord(t)) != 0) {
+    ziel[0] = 0; z = ord(t); ScreenToClient(t, &p);
+    if (z && p.y < LB) k = p.x / (ZB / 3);        /* Laufwerksleiste: Wurzel des Laufwerks */
+    else if (z) {
         scpy(ziel, z->pfad, sizeof ziel);
-        ScreenToClient(t, &p);
         if ((i = treffer(z, p.x, p.y)) >= 0 && z->h && (e = (EINTRAG FAR *)MemLock(z->h)) != 0) {
             if ((e[i].attr & FA_DIR) && !(z == o && (i == o->sel || e[i].mark))) {
                 if (e[i].name[0] == '.') { char *q = ziel + slen(ziel) - 1; while (q > ziel + 2 && q[-1] != '\\') q--; *q = 0; }
@@ -615,10 +614,8 @@ static void fallen(ORDNER *o, short x, short y, WORD ks)   /* Ziehen beendet bei
             }
             MemUnlock(z->h);
         }
-    } else if (t == desk) {
-        ScreenToClient(t, &p);
-        if ((i = lwbei(p.x, p.y)) >= 0) { ziel[0] = lw[i]; ziel[1] = ':'; ziel[2] = '\\'; ziel[3] = 0; }
-    }
+    } else if (t == desk) k = lwbei(p.x, p.y);
+    if (k >= 0 && k < nlw) { ziel[0] = lw[k]; ziel[1] = ':'; ziel[2] = '\\'; ziel[3] = 0; }
     if (!ziel[0]) return;
     weg = (ziel[0] | 0x20) == (o->pfad[0] | 0x20);
     if (ks & KS_CTRL) weg = 0; else if (ks & KS_SHIFT) weg = 1;
@@ -775,7 +772,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
     case M_MOUSEMOVE:
         if (zieht == 1 && zw == w) {
             x = (short)LOWORD(p2) - zx; y = (short)HIWORD(p2) - zy;
-            if (x > 4 || x < -4 || y > 4 || y < -4) { zieht = 2; CursorSet(0, CUR_HAND); DbgPrint("SHELL: zieht"); }
+            if (x > 4 || x < -4 || y > 4 || y < -4) { zieht = 2; CursorSet(0, CUR_HAND); }
         }
         return 0;
     case M_BUTTONUP:
@@ -963,7 +960,6 @@ static void einrichten(void)                      /* Laufwerksmenue: Festplatte 
 {
     char p[80];
     if (!werkzeug(p, "RDFDISK.EXE")) return;
-    DbgPrint("SHELL: Festplatte einrichten");
     if (!TaskExec(p, "", SW_SHOW)) { fmt(buf, StrGet(inst, 3), p, 0); MsgBox(0, buf, "RD", MB_OK | MB_ERROR); }
 }
 static void formatieren(void)                     /* Laufwerksmenue: Formatieren */
@@ -971,7 +967,6 @@ static void formatieren(void)                     /* Laufwerksmenue: Formatieren
     char p[80], c[8];
     if (!rdformat(p)) return;
     c[0] = lw[lsel]; c[1] = ':'; c[2] = 0;
-    DbgPrint("SHELL: Formatieren"); DbgPrint(c);
     if (!TaskExec(p, c, SW_SHOW)) { fmt(buf, StrGet(inst, 3), p, 0); MsgBox(0, buf, "RD", MB_OK | MB_ERROR); }
 }
 static void lwinfo(void)
