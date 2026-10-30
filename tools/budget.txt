@@ -21,18 +21,18 @@ RDSND.MOD        4096    4   S  Sound-API, Treiber, Systemklaenge (Musik in RDMU
 RDMUS.MOD        3072    3   P  Musik-Spieler IMF/DRO, nur waehrend des Abspielens geladen (26.10.)
 CGA.DRV          5120    5   S
 HGC.DRV          5120    5   S
-VGA16.DRV        6656    9   P  (30.10.: 9 KB Speicher fuer Bloecke ueber Tabellen) VGA 640x480 16 Farben, Modus 12h (Punkt 9, 27.10.)
-EGA.DRV          6656    9   P  (30.10.: 9 KB Speicher fuer Bloecke ueber Tabellen) EGA 640x350 16 Farben, Modus 10h (Punkt 9, 27.10.)
-EGA320.DRV       6656    9   P  (30.10.: 9 KB Speicher fuer Bloecke ueber Tabellen) 320x200 16 Farben, Modus 0Dh, nur von Hand (30.10.)
+VGA16.DRV        6656    7.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) VGA 640x480 16 Farben, Modus 12h (Punkt 9, 27.10.)
+EGA.DRV          6656    7.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) EGA 640x350 16 Farben, Modus 10h (Punkt 9, 27.10.)
+EGA320.DRV       6656    7.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) 320x200 16 Farben, Modus 0Dh, nur von Hand (30.10.)
 EGAM.DRV         5120    5   P  EGA 640x350 1 Bit, Modus 10h (30.10.)
-EGA4.DRV        6656    9   P  (30.10.: 9 KB Speicher fuer Bloecke ueber Tabellen) EGA 640x350 4 Farben, 2 Ebenen (30.10.)
-VGA4.DRV        6656    9   P  (30.10.: 9 KB Speicher fuer Bloecke ueber Tabellen) VGA 640x480 4 Farben, 2 Ebenen (30.10.)
-EGA200.DRV      6656    9   P  (30.10.: 9 KB Speicher fuer Bloecke ueber Tabellen) EGA 640x200 16 Farben, Modus 0Eh (30.10.)
-SVGA16.DRV      6656    9.5   P  (30.10.: Tabellen) VESA 800x600 16 Farben, Modus 102h (30.10.)
+EGA4.DRV        6656    7.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) EGA 640x350 4 Farben, 2 Ebenen (30.10.)
+VGA4.DRV        6656    7.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) VGA 640x480 4 Farben, 2 Ebenen (30.10.)
+EGA200.DRV      6656    7.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) EGA 640x200 16 Farben, Modus 0Eh (30.10.)
+SVGA16.DRV      6656    8   P  (30.10.: 8 KB) VESA 800x600 16 Farben, Modus 102h (30.10.)
 MCGA.DRV        6144    6   P  MCGA/VGA 320x200 256 Farben, Modus 13h (30.10.)
 VESA800.DRV     6144    7   P  VESA 800x600 256 Farben, Modus 103h (30.10.)
 VESA1024.DRV    6144    7   P  VESA 1024x768 256 Farben, Modus 105h (30.10.)
-CGA4.DRV        5632    7.5 P  CGA 320x200 4 Farben, Modus 4, byteweise mit Tabellen und Assembler-Schleifen, 1,7 KB Tabellen (30.10.)
+CGA4.DRV        6144    6.5 P  (30.10.: ohne Tabellen) CGA 320x200 4 Farben, Modus 4, byteweise mit Tabellen und Assembler-Schleifen, 1,7 KB Tabellen (30.10.)
 VESA.DRV         6144    6   P  VESA 640x480 256 Farben, Modus 101h, Bankumschaltung (Punkt 9, 27.10.)
 FARBSYM.DAT      4096    0   P  farbige Symbole (16 Farben, Maske) fuer SHELL, nur bei buntem Schirm; fehlt sie: S/W
 VGAM.DRV         5120    5   S
@@ -81,7 +81,6 @@ RDIRC.EXE       12288   20   N  IRC: Verlauf 120 Zeilen, UTF-8/CP437, ZNC-Kennwo
 RDSHELL.EXE     14336   20   P  DOS-Fenster: DIR CD COPY DEL TYPE ... eingebaut, sonst RunDos (Punkt 8)
 RDCALC.EXE      90112   80   L
 RDEDIT.EXE      65536   60   P
-BURGEN.EXE      32768   48   P  Spiel Burgenkampf (wie Ballerburg, 29.10.): Computer/zwei Spieler/Netz (TCP 2626), alle Grafikarten, 8087 optional (Zielen des Computers)
 RDPRN.MOD        6144    8   P  Drucken (und HelpShow -> HILFE.EXE): Druckdialog, Baender (48 Zeilen), LPT direkt/Datei (Punkt 7; RDKX laedt es bei PrnOpen, 27.10.)
 HILFE.EXE        8192   16   P  Hilfeanzeige (F1, Punkt 10): Themen, Verweise, Zurueck; startet ueber HelpShow
 RD2.HLP         16384    0   P  Hilfetext RD2 (deutsch), Format docs/HILFE.md

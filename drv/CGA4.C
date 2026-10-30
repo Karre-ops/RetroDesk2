@@ -20,11 +20,15 @@
 #pragma intrinsic(inp, outp, _fmemset, _fmemcpy, memset)
 
 static BYTE altmodus;
-static WORD zo[H];                                /* Zeilenanfang im Bildspeicher */
-static WORD e1[256];                              /* 8 Punkte 1 Bit -> 16 Bit (je Punkt 11), links oben */
-static BYTE n2[256], n2h[256];                    /* n2h = n2 << 4;  2 Punkte 4 Bit (Halbbytes) -> 4 Bit (2 x 2 Bit) */
-static WORD g2[256];                              /* 4 Punkte 2 Bit -> 4 Halbbytes (2 Bytes, links zuerst) */
-#define VP(x, y) ((BYTE __far *)MK_FP(0xB800, zo[y] + ((WORD)(x) >> 2)))
+/* 30.10.2026: ohne grosse Tabellen (1,9 KB weniger), nur e4 mit 16 Bytes; der Rest wird gerechnet */
+static BYTE e4[16];                               /* 4 Punkte 1 Bit -> 8 Bit (je Punkt 11) */
+#define E1(b)  ((WORD)e4[(BYTE)(b) >> 4] << 8 | e4[(b) & 15])        /* 8 Punkte 1 Bit -> 16 Bit, links oben */
+#define N2(i)  ((BYTE)((((i) >> 2) & 0x0C) | ((i) & 3)))           /* 2 Punkte 4 Bit (Halbbytes) -> 4 Bit (2 x 2 Bit) */
+#define N2H(i) ((BYTE)(N2(i) << 4))
+#define G1(n)  ((BYTE)((((n) & 0x0C) << 2) | ((n) & 3)))           /* 2 Punkte 2 Bit -> 2 Halbbytes */
+#define G2(a)  ((WORD)G1((BYTE)(a) >> 4) << 8 | G1((a) & 15))       /* 4 Punkte 2 Bit -> 4 Halbbytes (2 Bytes, links zuerst) */
+#define ZO(y)  ((WORD)(((WORD)(y) >> 1) * BPR + (((y) & 1) << 13)))
+#define VP(x, y) ((BYTE __far *)MK_FP(0xB800, ZO(y) + ((WORD)(x) >> 2)))
 #define FP4(c) ((BYTE)(((c) & 3) * 0x55))         /* Farbe in alle 4 Punkte eines Bytes */
 
 WORD int10(WORD ax);
@@ -99,15 +103,7 @@ static WORD RDEXPORT d_init(WORD param)
         outp(0x3D5, alt);
     }
     if (altmodus > 3 && altmodus != 7) altmodus = 3;
-    for (i = 0; i < H; i++) zo[i] = (WORD)((i >> 1) * BPR + ((i & 1) << 13));
-    for (i = 0; i < 256; i++) {
-        WORD v = 0, g = 0;
-        for (k = 0; k < 8; k++) if (i & (0x80 >> k)) v |= 0xC000 >> (2 * k);
-        e1[i] = v;
-        n2[i] = (BYTE)(((i >> 4) & 3) << 2 | (i & 3)); n2h[i] = (BYTE)(n2[i] << 4);
-        for (k = 0; k < 4; k++) g |= (WORD)((i >> (6 - 2 * k)) & 3) << (12 - 4 * k);
-        g2[i] = g;
-    }
+    for (i = 0; i < 16; i++) { BYTE v = 0; for (k = 0; k < 4; k++) if (i & (8 >> k)) v |= (BYTE)(0xC0 >> (2 * k)); e4[i] = v; }
     return 0;
 }
 static void RDEXPORT d_done(void) { }
@@ -139,7 +135,7 @@ static void RDEXPORT d_box(short x0, short y0, short x1, short y1, WORD farbe, c
     for (y = y0; y <= y1; y++) {
         BYTE __far *p = VP(x0, y); BYTE v0 = f, v1 = f;
         if (mu) {                                 /* Muster: gerade/ungerade Schirmbytes haben je einen Wert */
-            WORD m = e1[mu[y & 7]]; BYTE sh = (BYTE)(m >> 8), sl = (BYTE)m;
+            WORD m = E1(mu[y & 7]); BYTE sh = (BYTE)(m >> 8), sl = (BYTE)m;
             v0 = (BYTE)((f & sh) | (g & ~sh)); v1 = (BYTE)((f & sl) | (g & ~sl));
             if (b0 & 1) { BYTE t = v0; v0 = v1; v1 = t; }   /* v0 = Wert des ersten Bytes */
         }
@@ -187,10 +183,10 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
         if ((srcbpp & 0xFF) == 4) {               /* 4 Bit: Werte 0..3, zwei Quellbytes -> ein 2-Bit-Byte */
             WORD u = srcbpp >> 8 & 1;
             na = (w + 3) >> 2;
-            if (!u) { const BYTE FAR *q = src; for (i = 0; i < na; i++, q += 2) ab[i] = (BYTE)(n2h[q[0]] | n2[q[1]]); }
+            if (!u) { const BYTE FAR *q = src; for (i = 0; i < na; i++, q += 2) ab[i] = (BYTE)(N2H(q[0]) | N2(q[1])); }
             else for (i = 0; i < na; i++) {       /* ab dem unteren Halbbyte: um einen Punkt versetzt */
                 BYTE a = (BYTE)(src[2 * i] << 4 | src[2 * i + 1] >> 4), b = (BYTE)(src[2 * i + 1] << 4 | src[2 * i + 2] >> 4);
-                ab[i] = (BYTE)(n2[a] << 4 | n2[b]);
+                ab[i] = (BYTE)(N2(a) << 4 | N2(b));
             }
             ab[na] = 0;
             if (rop == ROP_COPY || rop == ROP_MASK) {   /* Raender maskiert, Mitte direkt */
@@ -204,7 +200,7 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
             schreib(VP(x, y + r), nb, rop);
         } else {                                  /* 1 Bit: gesetzt in fg; MASK nur gesetzt, sonst geloescht in bg */
             WORD k = (w + 7) >> 3;
-            for (i = 0; i < k; i++) { WORD e = e1[src[i]]; ab[2 * i] = (BYTE)(e >> 8); ab[2 * i + 1] = (BYTE)e; }
+            for (i = 0; i < k; i++) { WORD e = E1(src[i]); ab[2 * i] = (BYTE)(e >> 8); ab[2 * i + 1] = (BYTE)e; }
             ab[2 * k] = 0;
             lege(ab, nb, sh, vb);                 /* vb = Punktmaske */
             if (rop == ROP_MASK) {
@@ -225,7 +221,7 @@ static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WO
         const BYTE __far *p = VP(x, y + r);
         _fmemcpy(vb, p, nb); vb[nb] = 0;
         for (i = 0; i < nb; i++) {                /* ausrichten: Punkt x zuerst */
-            BYTE a = s ? (BYTE)(vb[i] << s | vb[i + 1] >> (8 - s)) : vb[i]; WORD gg = g2[a];
+            BYTE a = s ? (BYTE)(vb[i] << s | vb[i + 1] >> (8 - s)) : vb[i]; WORD gg = G2(a);
             if (2 * i < n) dst[2 * i] = (BYTE)(gg >> 8);
             if (2 * i + 1 < n) dst[2 * i + 1] = (BYTE)gg;
         }
@@ -273,7 +269,7 @@ static void RDEXPORT d_cursor(short x, short y, const BYTE FAR *mb2)
     c_nb = (BYTE)(BPR - ((WORD)x >> 2) < 5 ? BPR - ((WORD)x >> 2) : 5);
     for (r = 0; r < c_h; r++) {
         BYTE __far *p = VP(x, y + r);
-        WORD a = e1[(BYTE)~mb2[2 * r]], b = e1[(BYTE)~mb2[2 * r + 1]], o = e1[mb2[32 + 2 * r]], q = e1[mb2[33 + 2 * r]];
+        WORD a = E1((BYTE)~mb2[2 * r]), b = E1((BYTE)~mb2[2 * r + 1]), o = E1(mb2[32 + 2 * r]), q = E1(mb2[33 + 2 * r]);
         for (k = 0; k < c_nb; k++) csv[r][k] = p[k];
         t[0] = (BYTE)(a >> 8); t[1] = (BYTE)a; t[2] = (BYTE)(b >> 8); t[3] = (BYTE)b; t[4] = 0; lege(t, 5, sh, a5);
         t[0] = (BYTE)(o >> 8); t[1] = (BYTE)o; t[2] = (BYTE)(q >> 8); t[3] = (BYTE)q; t[4] = 0; lege(t, 5, sh, o5);
@@ -325,14 +321,14 @@ static void RDEXPORT d_symput(short x, short y, short w, short h, const BYTE FAR
     if (w <= 0 || h <= 0) return;
     for (r = 0; r < h; r++, src += sbpr, m += mbpr) {
         nb = randmaske(x, w); na = (w + 3) >> 2;
-        if (!unten) { const BYTE FAR *q = src; for (i = 0; i < na; i++, q += 2) ab[i] = (BYTE)(n2h[q[0]] | n2[q[1]]); }
+        if (!unten) { const BYTE FAR *q = src; for (i = 0; i < na; i++, q += 2) ab[i] = (BYTE)(N2H(q[0]) | N2(q[1])); }
         else for (i = 0; i < na; i++) {
             BYTE a = (BYTE)(src[2 * i] << 4 | src[2 * i + 1] >> 4), b = (BYTE)(src[2 * i + 1] << 4 | src[2 * i + 2] >> 4);
-            ab[i] = (BYTE)(n2h[a] << 0 | n2[b]);
+            ab[i] = (BYTE)(N2H(a) << 0 | N2(b));
         }
         ab[na] = 0; lege(ab, nb, sh, vb);
         for (i = 0; i < k; i++) {                 /* Maskenbits ab mbit -> je Punkt 2 Bit */
-            BYTE b = (BYTE)(mbit ? m[i] << mbit | m[i + 1] >> (8 - mbit) : m[i]); WORD e = e1[b];
+            BYTE b = (BYTE)(mbit ? m[i] << mbit | m[i + 1] >> (8 - mbit) : m[i]); WORD e = E1(b);
             ab[2 * i] = (BYTE)(e >> 8); ab[2 * i + 1] = (BYTE)e;
         }
         ab[2 * k] = 0; lege(ab, nb, sh, mq);

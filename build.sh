@@ -103,9 +103,6 @@ app apps/hallo/HALLO.C HALLO.EXE "Hallo"
 app apps/dpruef/DPRUEF.C DPRUEF.EXE "Datentraeger pruefen"
 app apps/schoner/SCHONER.C SCHONER.EXE "Bildschirmschoner"
 app apps/edit/RDEDIT.C RDEDIT.EXE "Editor"
-# Spiele: BURGEN.EXE (Burgenkampf, wie Ballerburg); KIFPU.C mit 8087-Befehlen, nur aufgerufen wenn ein 8087 da ist
-wcc -0 -mm -fpi87 -os -s -zq -w4 -bt=dos -zl -fo=obj/kifpu.obj apps/burgen/KIFPU.C
-APPOBJ=,obj/kifpu.obj APPSTACK=6144 app apps/burgen/BURGEN.C BURGEN.EXE "Burgenkampf"
 # RDFORMAT: RD2-Oberflaeche + FreeDOS FORMAT 0.92a (GPL v2); FreeDOS-Dateien mit disk/fdshim.h (DOS ueber RDDISK.MOD)
 FDF="createfs floppy hdisk main savefs bcread prf userint driveio getopt init recordbc uformat msghlpr"
 for f in $FDF; do wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=disk/fdshim.h -dRD2 -dNOCATS -i=disk/fdformat -fo=obj/fdf_$f.obj disk/fdformat/$f.c || exit 1; done
