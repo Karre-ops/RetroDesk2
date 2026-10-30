@@ -5,16 +5,19 @@ RD2_1.IMG  Diskette 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern, RD2, Setup)  360 KB
 RD2_2.IMG  Diskette 2 RD2 PROG (Programme, FDISK, FORMAT, Treiber)       360 KB
 RD2_3.IMG  Diskette 3 RD2 NETZ (Netzwerk, FTP, IRC)                      360 KB
 RD2_4.IMG  Diskette 4 RD2 EXTRA (SDK fuer C und Pascal)                  360 KB
-RD2_FTP.ZIP  Inhalt der Disketten 1 bis 3 in einem Ordner RD2 (8.3-Namen),
-             fuer die Uebertragung per FTP (z. B. mit RetroDesk 1) ohne Disketten, mit RD2INST.BAT
+RD2_HDD.ZIP  Universalpaket: Inhalt ALLER Disketten 1 bis 4 in einem Ordner RD2
+             (8.3-Namen, SDK als Unterordner RD2\SDK) mit RD2INST.BAT. Fuer jeden Weg
+             auf die Festplatte: FTP (z. B. RetroDesk 1), Netzlaufwerk, ZIP-Diskette,
+             Festplatte aus einem anderen PC, Kopie von den vier Disketten.
 SHA256.TXT   Pruefsummen
 
-Installation ueber FTP auf einen Rechner mit DOS 5 und Festplatte
-------------------------------------------------------------------
-1. RD2_FTP.ZIP am PC entpacken und den Ordner RD2 auf den FTP-Server legen.
-2. Am Retro-PC in RetroDesk 1: Netzwerk > FTP, den Ordner RD2 nach C:\ kopieren
-   und dort in RD2NEU umbenennen (oder direkt in C:\RD2NEU ablegen).
-   Nicht C:\RD2 nehmen: das ist das Ziel der Installation.
+Installation von der Festplatte (Universalpaket) auf einen Rechner mit DOS 5
+------------------------------------------------------------------------------
+1. RD2_HDD.ZIP am PC entpacken. Den Ordner RD2 samt Unterordner SDK auf den
+   Retro-PC bringen, z. B. per FTP mit RetroDesk 1 (Netzwerk > FTP), und dort als
+   C:\RD2NEU ablegen. Nicht C:\RD2 nehmen: das ist das Ziel der Installation.
+   Von den Disketten geht es auch: alles aus A:\RD2 von Diskette 1 bis 3 nach
+   C:\RD2NEU, dazu den Ordner SDK von Diskette 4 nach C:\RD2NEU\SDK.
 3. RetroDesk 1 beenden und am DOS-Prompt starten:
      C:\RD2NEU\RD2INST
    (anderer Ordner: C:\ORDNER\RD2INST C:\ORDNER). Ohne Batchdatei geht es auch mit
@@ -23,7 +26,8 @@ Installation ueber FTP auf einen Rechner mit DOS 5 und Festplatte
    Ordner zuerst startet.
 4. Beim ersten Start erscheint die Einrichtung (Hardware-Erkennung). Werte pruefen,
    dann I: RetroDesk 2 startet und oeffnet die grafische Installation.
-   Ziel C:\RD2 bestaetigen. Es gibt keinen Diskettenwechsel. Die Fragen zur CONFIG.SYS
+   Ziel C:\RD2 bestaetigen. Es gibt keinen Diskettenwechsel; das SDK kommt mit
+   nach C:\RD2\SDK. Die Fragen zur CONFIG.SYS
    beantworten (RD2 als Shell, Treiber aus der AUTOEXEC.BAT einzeln uebernehmen).
    Die alte CONFIG.SYS wird als CONFIG.RDA gesichert, AUTOEXEC.BAT bleibt unveraendert.
 5. Neu starten. RD2 startet von C:\RD2. C:\RD2NEU kann danach geloescht werden.

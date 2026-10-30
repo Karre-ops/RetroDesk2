@@ -22,7 +22,7 @@ static char FAR *pu; static HMEM hpu;
 static DWORD gesamt, fertig; static WORD dnr, ndat, nfehl, verloren;
 static char buf[6144], neu[6144], pathz[128];
 
-static const char *const muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", "*.COM", 0 };
+static const char *const muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", "*.COM", "*.TXT", "COPYING", 0 };
 static const char *const nicht[] = { "REM", "ECHO", "SET", "PATH", "PROMPT", "CLS", "GOTO", "IF", "CALL", "PAUSE", "FOR",
                                      "SHIFT", "VER", "CD", "CHDIR", "COMMAND", "WIN", "DOSSHELL", "EXIT", 0 };
 
@@ -92,6 +92,23 @@ static void diskette(void)                        /* alle RD2-Dateien aus quelle
             } while (!FileFindNext(&fd));
         }
     fertig = gesamt; balken();
+}
+/* Universalpaket (alles in einem Festplattenordner): Unterordner samt Inhalt, z. B. SDK von Diskette 4.
+   q und z (pfad, z2) enden mit '\', werden erweitert und am Ende wieder hergestellt */
+static void baum(char *q, char *z)
+{
+    FINDDATA fd; WORD lq = strlen(q), lz = strlen(z);
+    z[lz - 1] = 0; DirMake(z); z[lz - 1] = '\\';
+    cat(q, "*.*");
+    if (!FileFindFirst(q, FA_DIR, &fd)) do {
+        q[lq] = 0;
+        if (fd.name[0] == '.') continue;
+        cat(q, fd.name); cat(z, fd.name);
+        if (fd.attr & FA_DIR) { cat(q, "\\"); cat(z, "\\"); baum(q, z); }
+        else if (kopieren(q, z, fd.groesse)) ndat++; else { nfehl++; DbgPrint("INSTALL: Fehler"); DbgPrint(fd.name); }
+        q[lq] = 0; z[lz] = 0;
+    } while (!FileFindNext(&fd));
+    q[lq] = 0;
 }
 static BOOL einlegen(const char *marke, WORD txt) /* Diskette mit der Datei marke in quelle; FALSE = auslassen */
 {
@@ -245,7 +262,11 @@ static void installieren(void)
     CursorBusy(TRUE);
     ndat = nfehl = 0; dnr = 0;
     diskette();                                   /* Diskette 1 (oder alles, wenn die Quelle eine Festplatte ist) */
-    if ((quelle[0] & 0xDF) <= 'B') {
+    if ((quelle[0] & 0xDF) > 'B') {               /* Festplattenordner: SDK (Diskette 4) mit, falls vorhanden */
+        cpy(pfad, quelle); cat(pfad, "SDK");
+        if (FileAttr(pfad, 0, 0) != 0xFFFF) { DbgPrint("INSTALL: SDK"); text("SDK"); cat(pfad, "\\"); cpy(z2, ziel); cat(z2, "SDK\\"); baum(pfad, z2); }
+    }
+    else {
         static const char *const mk[] = { "RDFDISK.EXE", "RDNET.EXE" };
         for (n = 0; n < 2; n++) {
             dnr = n + 1; balken();

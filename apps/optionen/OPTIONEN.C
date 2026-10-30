@@ -34,7 +34,7 @@ static BYTE tempo, dk, tausch, mw0, mhw, mhw0, rdm; static DWORD letzt;
 static BYTE tast, tast0, kbart; static BYTE FAR *kbm;    /* kbart 0 kein Treiber, 1 RDKEYB, 2 fremd */
 static BYTE sart, szeit, szeit0, start, start0, netz, xms, xms0;
 
-static const char *const sndw[] = { "SPEAKER", "ADLIB", "SB", "COVOX", "AUS" };
+static const char *const sndw[] = { "SPEAKER", "ADLIB", "SB", "COVOX" };   /* Minimum PC-Lautsprecher, altes AUS -> SPEAKER */
 static const char *const sbw[] = { "A220 I5 D1", "A220 I7 D1", "A240 I5 D1", "A240 I7 D1", "A220 I10 D1" };
 static const char *const sbt[] = { "220h, IRQ 5, DMA 1", "220h, IRQ 7, DMA 1", "240h, IRQ 5, DMA 1", "240h, IRQ 7, DMA 1", "220h, IRQ 10, DMA 1" };
 static const char *const mschalter[] = { "", "/S1", "/S2", "/S3", "/S4", "/M1", "/M2", "/P", "/B", "/I1", "/I2" };
@@ -180,8 +180,8 @@ static void laden(void)
     ProfileGetStr(ini, "System", "Profil", "AUTO", w, sizeof w);
     prof = (BYTE)((w[0] | 0x20) == 's' ? 1 : (w[0] | 0x20) == 'k' ? 2 : 0);
     ProfileGetStr(ini, "System", "Sound", "SPEAKER", w, sizeof w);
-    for (snd = 0; snd < 5 && !gleich(w, sndw[snd]); snd++) ;
-    if (snd == 5) snd = 0;
+    for (snd = 0; snd < 4 && !gleich(w, sndw[snd]); snd++) ;
+    if (snd == 4) snd = 0;
     ProfileGetStr(ini, "System", "SB", "A220 I5 D1", sbeig, sizeof sbeig);
     for (sb = 0; sb < 5 && !gleich(sbeig, sbw[sb]); sb++) ;
     sysk = (BYTE)(ProfileGetInt(ini, "System", "Systemklang", 1) != 0);
@@ -207,7 +207,7 @@ static void laden(void)
 }
 
 /* ---- Karten fuellen und lesen --------------------------------------------------------------------- */
-static void klang_en(HWND d) { BYTE i = radio(d, 121, 5); en(d, 127, (BYTE)(i == 2)); }
+static void klang_en(HWND d) { BYTE i = radio(d, 121, 4); en(d, 127, (BYTE)(i == 2)); }
 static void fuellen(HWND d)
 {
     WORD i; char t[24];
@@ -264,7 +264,7 @@ static void holen(HWND d)
 {
     switch (seite) {
     case 0: gsel = lget(d, 101); prof = radio(d, 102, 3); cgaf = (BYTE)lget(d, 107); deskf = (BYTE)lget(d, 108); break;
-    case 1: snd = radio(d, 121, 5); sysk = (BYTE)DlgChecked(d, 126); sb = lget(d, 127); break;
+    case 1: snd = radio(d, 121, 4); sysk = (BYTE)DlgChecked(d, 126); sb = lget(d, 127); break;
     case 2: tempo = radio(d, 141, 5); dk = radio(d, 146, 3); tausch = (BYTE)DlgChecked(d, 149); if (rdm) mhw = lget(d, 153); break;
     case 3: if (kbart != 2) tast = radio(d, 161, 2); break;
     case 4: sart = radio(d, 181, 3); szeit = radio(d, 184, 6); break;
@@ -346,7 +346,7 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
         }
         DialogEnd(d, ID_OK); return TRUE;
     }
-    if (seite == 1 && p1 >= 121 && p1 <= 125) { klang_en(d); return FALSE; }
+    if (seite == 1 && p1 >= 121 && p1 <= 124) { klang_en(d); return FALSE; }
     if (seite == 2 && p1 == 150) {                /* Doppelklick-Test mit der gewaehlten Zeit */
         DWORD n = TickCount(), g = (DWORD)dz[radio(d, 146, 3)];
         DlgSetText(d, 151, StrGet(hi, (WORD)(letzt && n - letzt < g ? 8 : 9)));

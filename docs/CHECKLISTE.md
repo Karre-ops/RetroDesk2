@@ -23,7 +23,7 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Grafik CGA 640x200, VGA 640x480, Hercules 720x348 | da | Treiber in Assembler, Bildvergleiche |
 | Farbe (Profil Komfort, 386+): VGA16 640x480 16 Farben, EGA 640x350 16 Farben, VESA 256 Farben | da | erledigt 27.10. | Voller Testsatz 27.10. grün (44 Tests). 27.10. Teil 3: VESA.DRV (Modus 101h, 640x480, 256 Farben, Bankumschaltung INT 10h 4F05h, Palette 16 Standardfarben + Würfel 6x6x6 + 24 Grau), Geräteformat 8 Bit in RDGDI (Hintergrund retten), nur von Hand wählbar (Menü Grafik, RD2SETUP), Diskette 2. Offen: farbige Symbole (Kern macht noch alles S/W). 27.10. Teil 4: farbige Symbole (FARBSYM.DAT auf Diskette 2, 16/256 Farben mit Maske, Zeichnen in RDGDIX, S/W bleibt Rückfall); Fehler behoben: Symbole kamen auf VGA als 32x16 (CGA-Fassung). |
 | Schriften 8x8, 8x14, 8x16 mit Umlauten | da | SYS8/14/16.FNT |
-| Startparameter /CGA /VGA /HGC /SPK /NOSND | teils 30.10. | RD.EXE kennt /CGA /HGC /VGA (Mono), /NOMAUS, /SETUP, /P, /K, /D (nur der erste Buchstabe zählt); /CGA und /VGA laufen in fast allen Tests, /HGC in bench.sh und gdi_dosbox.sh. /SPK und /NOSND aus RD1 gibt es nicht: Klang wählt man in Optionen (RD2.INI [Klang]). Offen: Entscheidung Karsten, ob /NOSND nötig ist (RD.EXE hat nur 2 Bytes Luft) |
+| Startparameter /CGA /VGA /HGC /SPK /NOSND | da 30.10. | RD.EXE kennt /CGA /HGC /VGA (Mono), /NOMAUS, /SETUP, /P, /K, /D (nur der erste Buchstabe zählt); /CGA und /VGA laufen in fast allen Tests, /HGC in bench.sh und gdi_dosbox.sh. /SPK und /NOSND entfallen (Karsten 30.10.): kein Ohne-Klang-Betrieb, Minimum ist der PC-Lautsprecher. RD2SETUP und Optionen bieten "keine" nicht mehr an, altes Sound=AUS gilt als SPEAKER. |
 | Deutsch und Englisch | da | DE.LNG, EN.LNG, Ressourcen je Sprache |
 
 ### Dateimanager
@@ -133,3 +133,9 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 9. Farbe (Profil Komfort): VGA16.DRV (Modus 12h, Assembler), EGA 640x350 (16 Farben), danach VESA 256 Farben mit Bankumschaltung; Farben in RDGDI/RDUSER (Palette, Systemfarben). (aufgenommen 26.10., erledigt 27.10.: dazu farbige Symbole FARBSYM.DAT)
 10. Hilfe (erledigt), Joystick (erledigt), SDK-Rest, Diskettensatz, Test am PC10-III, Release 2.0.
 | Optionen mit Karteikarten | umgesetzt 29.10., in QEMU getestet 30.10. | OPTIONEN.EXE: Karten Grafik, Klang, Maus, Tastatur, Schoner, System (Alt+1..6, wie RDNET). Grafik gilt sofort: RD2 startet neu (RunDos RD_DOS_NEU), danach "Behalten?" mit 15 s (Shell startet OPTIONEN B, solange [System] GrafikAlt= gesetzt ist). Plan: docs/PLAN_OPTIONEN.md. 30.10.: test/optionen.sh auf Karten umgestellt, SHOT-Referenzen erneuert, voller Satz (68 Tests) grün. Offen: test/grafikwahl.sh, DOSBox, Test am PC10-III. |
+
+## Universalpaket (30.10.2026)
+
+| Funktion | RD2 | Bemerkung |
+|---|---|---|
+| Installation aus einem Festplattenordner per RD2INST.BAT | da 30.10. | release/2.0/RD2_HDD.ZIP (ersetzt RD2_FTP.ZIP): alle vier Disketten in einem Ordner RD2, SDK als RD2\SDK. INSTALL.EXE kopiert bei Quelle Festplatte auch *.TXT, COPYING und den Ordner SDK samt Unterordnern. test/install_hd.sh prüft SDK-Dateien und LIZENZ.TXT auf C:\RD2. |

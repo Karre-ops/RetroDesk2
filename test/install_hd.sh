@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installation aus einem Festplattenordner (Weg ueber RD1-FTP, 29.10.2026): release/2.0/RD2_FTP.ZIP liegt entpackt
+# Installation aus einem Festplattenordner (Weg ueber RD1-FTP, 29.10.2026): release/2.0/RD2_HDD.ZIP liegt entpackt
 # in C:\RD2NEU (bestehendes DOS mit CONFIG.SYS/AUTOEXEC.BAT), RD2 wird von dort gestartet: Erster Start -> RD2SETUP,
 # "I" -> INSTALL.EXE, Ziel C:\RD2, ohne Diskettenwechsel, Fragen zu CONFIG.SYS, danach Start von C:\RD2.
 # Gestartet ueber C:\RD2NEU\RD2INST.BAT. INI=1: im Ordner liegt schon eine RD2.INI (RD2INST ruft erst RD2SETUP auf).
@@ -10,10 +10,10 @@ T() { timeout 10 python3 test/qemu/qmon.py text 2>/dev/null; }
 waitscr() { for i in $(seq ${2:-30}); do T | grep -q "$1" && return 0; sleep 1; done; return 1; }
 waitser() { for i in $(seq ${3:-60}); do [ "$(tr -d '\r' < $SER | grep -c "$1")" -ge "${2:-1}" ] && return 0; sleep 1; done; return 1; }
 for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
-[ -f release/2.0/RD2_FTP.ZIP ] || { echo "FEHLER release/2.0/RD2_FTP.ZIP fehlt"; exit 1; }
+[ -f release/2.0/RD2_HDD.ZIP ] || { echo "FEHLER release/2.0/RD2_HDD.ZIP fehlt"; exit 1; }
 python3 - <<'PY'
 import zipfile, shutil, os
-shutil.rmtree('obj/ihd', True); os.makedirs('obj/ihd'); zipfile.ZipFile('release/2.0/RD2_FTP.ZIP').extractall('obj/ihd')
+shutil.rmtree('obj/ihd', True); os.makedirs('obj/ihd'); zipfile.ZipFile('release/2.0/RD2_HDD.ZIP').extractall('obj/ihd')
 PY
 HD=obj/ihd_hd.img; bash tools/mkhd.sh $HD >/dev/null; dd if=test/daten/mbr_rdfdisk.bin of=$HD conv=notrunc 2>/dev/null
 C="-i $HD@@32256"
@@ -21,7 +21,7 @@ printf 'FILES=20\r\nSHELL=C:\\COMMAND.COM C:\\ /P\r\n' > obj/ihd_cs.tmp; mcopy $
 printf '@ECHO OFF\r\nPATH A:\\\r\nLH C:\\TREIBER\\MOUSE.COM /S50\r\nREM Ende\r\n' > obj/ihd_ae.tmp; mcopy $C obj/ihd_ae.tmp ::/AUTOEXEC.BAT
 mmd $C ::/TREIBER; mcopy $C test/qemu/CTMOUSE.EXE ::/TREIBER/MOUSE.COM
 printf 'x' > obj/io.tmp; mcopy $C obj/io.tmp ::/IO.SYS
-mmd $C ::/RD2NEU; mcopy $C obj/ihd/RD2/* ::/RD2NEU/
+mmd $C ::/RD2NEU; mcopy -s $C obj/ihd/RD2/* ::/RD2NEU/
 [ "${INI:-0}" = 1 ] && { printf '[System]\r\nGrafik=VGA\r\n' > obj/ihd_ini.tmp; mcopy $C obj/ihd_ini.tmp ::/RD2NEU/RD2.INI; }
 printf '@echo off\r\nCALL C:\\RD2NEU\\RD2INST.BAT\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ihd_boot.txt
 NUR="FREIMEM.EXE" bash tools/mkdisk.sh obj/ihd_a.img obj/ihd_boot.txt >/dev/null 2>&1
@@ -41,8 +41,11 @@ grep -aq "Diskette 2 (RD2" <(tr -d '\r' < $SER) && { echo "FEHLER fragt nach Dis
 waitser "INSTALL: Fehler" 1 60; grep -aq "INSTALL: Fehler 0x00000000" <(tr -d '\r' < $SER) && echo "ok     Kopieren ohne Fehler" || { echo "FEHLER beim Kopieren"; F=1; }
 waitser "ist installiert" 1 60 && { echo "ok     fertig"; sleep 1; Q "sendkey ret"; } || { echo "FEHLER keine Fertigmeldung"; F=1; }
 sleep 2; Q quit; wait $QP 2>/dev/null
-n=$(mdir -b $C ::/RD2 2>/dev/null | wc -l); m=$(ls obj/ihd/RD2 | wc -l)
+n=$(mdir -b $C ::/RD2 2>/dev/null | wc -l); m=$(ls -p obj/ihd/RD2 | grep -vc /)
 [ "$n" -ge $((m - 3)) ] && echo "ok     C:\\RD2: $n Dateien (Paket $m)" || { echo "FEHLER C:\\RD2 hat $n Dateien (Paket $m)"; F=1; }
+for f in SDK/RD2.H SDK/RD2.LIB SDK/BEISPIEL/HALLO.C LIZENZ.TXT; do
+  mtype $C ::/RD2/$f 2>/dev/null | cmp -s - obj/ihd/RD2/$f && echo "ok     C:\\RD2\\$f" || { echo "FEHLER C:\\RD2\\$f fehlt oder anders"; F=1; }
+done
 mtype $C ::/CONFIG.SYS | tr -d '\r' > obj/ihd_cfg.txt
 grep -qi "SHELL=C:\\\\RD2\\\\RD.EXE" obj/ihd_cfg.txt && echo "ok     CONFIG.SYS: SHELL=C:\\RD2\\RD.EXE" || { echo "FEHLER CONFIG.SYS"; cat obj/ihd_cfg.txt; F=1; }
 grep -qi "RD2NEU" obj/ihd_cfg.txt && { echo "FEHLER CONFIG.SYS zeigt auf C:\\RD2NEU"; F=1; }

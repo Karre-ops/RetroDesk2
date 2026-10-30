@@ -27,7 +27,7 @@ Q() { python3 obj/qmon_optionen.py "$@"; }
 waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -ge "$2" ] 2>/dev/null && return 0; sleep 0.2; done; return 1; }
 lauf() {
   waitn "OPTIONEN: bereit" 1 || { echo "FEHLER: Optionen 1 startet nicht"; return; }; sleep 3
-  Q "sendkey alt-2" sleep0.8 "sendkey alt-k" sleep0.3 "sendkey alt-6" sleep0.8 "sendkey alt-s" sleep0.6 "screendump obj/optionen1_vga.ppm" sleep0.3 "sendkey ret"   # Karten seit 29.10.: Alt+2 Klang, Alt+6 System
+  Q "sendkey alt-2" sleep0.8 "sendkey alt-k" sleep0.5 "screendump obj/optionen3_vga.ppm" sleep0.3 "sendkey alt-6" sleep0.8 "sendkey alt-s" sleep0.6 "screendump obj/optionen1_vga.ppm" sleep0.3 "sendkey ret"   # Karten seit 29.10.: Alt+2 Klang, Alt+6 System
   waitn "OPTIONEN: gespeichert" 1 || echo "FEHLER: Lauf 1 speichert nicht"
   waitn "OPTIONEN: bereit" 2 || { echo "FEHLER: Optionen 2 startet nicht"; return; }; sleep 3
   Q "sendkey ctrl" sleep0.4 "sendkey alt-6" sleep0.8 "sendkey alt-s" sleep0.4 "sendkey ret"
@@ -48,5 +48,5 @@ pr "T1 nach Aus und An wie vorher" "$(md5sum < obj/opt/t1_neu.sys)" "$(md5sum < 
 pr "T2 abgelehnt, unveraendert" "$(md5sum < obj/opt/t2_neu.sys)" "$(md5sum < obj/opt/T2/CONFIG.SYS)"
 pr "Rueckgaben: Aus 0, An 0, ohne Shell 3" "$(tr -d '\r' < $SER | grep 'OPTIONEN: gespeichert, Fehler' | cut -c31- | tr '\n' ' ')" "0x00000000 0x00000000 0x00000003 "
 pr "RD2.INI Systemklaenge aus" "$(mtype -i $IMG ::/RD2/RD2.INI 2>/dev/null | tr -d '\r' | grep -i '^Systemklang=')" "Systemklang=0"
-[ -f test/ref/optionen1_vga.png ] && python3 test/bildvergleich.py obj/optionen1_vga.ppm test/ref/optionen1_vga.png obj/optionen2_cga.ppm test/ref/optionen2_cga.png
+[ -f test/ref/optionen1_vga.png ] && python3 test/bildvergleich.py obj/optionen1_vga.ppm test/ref/optionen1_vga.png obj/optionen2_cga.ppm test/ref/optionen2_cga.png obj/optionen3_vga.ppm test/ref/optionen3_vga.png
 exit 0

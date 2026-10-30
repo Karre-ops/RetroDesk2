@@ -263,7 +263,7 @@ static PUNKT p[] = {
                               { "seriell COM1", "seriell COM2", "seriell COM3", "seriell COM4", "Mouse Systems COM1",
                                 "Mouse Systems COM2", "PS/2", "Busmaus", "InPort 23Ch", "InPort 238h",
                                 "eigener Treiber", "keine" }, 12, 11, 11 },
-    { "Klang",      "Sound",  { "SPEAKER", "ADLIB", "SB", "COVOX", "AUS" }, { "PC-Lautsprecher", "AdLib (388h)", "Sound Blaster", "Covox (LPT1)", "keine" }, 5, 0, 0 },
+    { "Klang",      "Sound",  { "SPEAKER", "ADLIB", "SB", "COVOX" }, { "PC-Lautsprecher", "AdLib (388h)", "Sound Blaster", "Covox (LPT1)" }, 4, 0, 0 }   /* Minimum PC-Lautsprecher (30.10.) */,
     { "Sound Blaster", "SB",  { 0 }, { 0 }, 0, 0, 0 },
     { "XMS-Ablage", "XMS",    { "0", "64", "128", "256", "512" }, { "aus", "64 KB", "128 KB", "256 KB", "512 KB" }, 5, 0, 0 },
     { "Netz",       "Netz",   { "KEIN", "PAKET" }, { "keins", "Paketreiber" }, 2, 0, 0 },

@@ -1,5 +1,5 @@
 /* RDSND.C - Klang-Modul (API 300h-30Bh): Treiber laden, Pieptoene, Systemklaenge, Noten.
- * Treiber nach RD2.INI [System] Sound= (SPEAKER, ADLIB, SB mit SB=A220 I5 D1, COVOX mit Covox=1 fuer LPT1, AUS), sonst Lautsprecher.
+ * Treiber nach RD2.INI [System] Sound= (SPEAKER, ADLIB, SB mit SB=A220 I5 D1, COVOX mit Covox=1 fuer LPT1), sonst Lautsprecher (Minimum, auch fuer altes AUS).
  * [System] Systemklang=0 schaltet SndBeep und SndSystem stumm (Optionen), Noten bleiben.
  * Toene enden ueber den Kern-Takt (INT 8, 72,8 Hz, Export 14): nichts wartet, Programme laufen weiter.
  * Musik: IMF und DRO ueber OPL-Register (AdLib, spaeter SB) mit RDMUS.MOD, das nur zum Abspielen geladen wird. Das Ende meldet
@@ -52,7 +52,6 @@ static void init(void)                            /* beim ersten Aufruf (laedt a
     ini[i] = 0; { const char *r = "RD2.INI"; while (*r) ini[i++] = *r++; ini[i] = 0; }
     ProfileGetStr(ini, "System", "Sound", "SPEAKER", w, sizeof w);
     sys = ProfileGetInt(ini, "System", "Systemklang", 1) != 0;
-    if (gleich(w, "AUS")) return;
     if (gleich(w, "SB")) {                        /* SB=A220 I5 D1 wie BLASTER (RD2SETUP) */
         static char b[24]; char *p = b, c; WORD v, ba;   /* im Datensegment: Stapel ist SS != DS */
         ProfileGetStr(ini, "System", "SB", "A220 I5 D1", b, sizeof b);

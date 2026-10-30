@@ -87,7 +87,6 @@ DIALOG 12 "Optionen" 0 0 268 150
   RADIO    "&AdLib"  122 100  35  60 10
   RADIO    "Sound &Blaster"  123 166  35  86 10
   RADIO    "&Covox (LPT1)"  124  14  48  80 10
-  RADIO    "k&eine"  125 100  48  60 10
   CHECK    "System&kl„nge"  126   8  70 120 10
   STATIC   "Ger„t und Sound Blaster gelten ab dem n„chsten Start von RD2."  -1   8 104 252 10
   STATIC   "S&B-Einstellung:"  -1   8  86  70 10
@@ -267,7 +266,6 @@ DIALOG 12 "Options" 0 0 268 150
   RADIO    "&AdLib"  122 100  35  60 10
   RADIO    "Sound &Blaster"  123 166  35  86 10
   RADIO    "&Covox (LPT1)"  124  14  48  80 10
-  RADIO    "&none"  125 100  48  60 10
   CHECK    "System &sounds"  126   8  70 120 10
   STATIC   "Device and Sound Blaster take effect the next time RD2 starts."  -1   8 104 252 10
   STATIC   "S&B setting:"  -1   8  86  70 10
