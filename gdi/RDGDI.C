@@ -733,6 +733,7 @@ static const KAND kand[] = {
     { "MCGA.DRV",  "MCGA", GFX_MCGA },
     { "VESA800.DRV", "VESA800", GFX_VESA800 },
     { "VESA1024.DRV", "VESA1024", GFX_VESA1024 },
+    { "CGA4.DRV",  "CGA4", GFX_CGA4 },
 };
 #define NK (sizeof kand / sizeof kand[0])
 static GFXMODE pm;

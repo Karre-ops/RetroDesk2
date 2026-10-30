@@ -199,6 +199,7 @@ typedef struct {
 #define GFX_MCGA 13                               /* MCGA/VGA 320x200 256 Farben (Modus 13h) */
 #define GFX_VESA800 14                            /* VESA 800x600 256 Farben (Modus 103h) */
 #define GFX_VESA1024 15                           /* VESA 1024x768 256 Farben (Modus 105h) */
+#define GFX_CGA4 16                               /* CGA 320x200 4 Farben (Modus 4) */
 
 /* GfxList: eine Zeile je moeglicher Grafikart (Menue "Grafik") */
 typedef struct {

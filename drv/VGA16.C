@@ -140,6 +140,9 @@ static WORD RDEXPORT d_setmode(WORD nr)
 #else
     int10(MODUS);
 #endif
+#if defined(SVGA16)
+    int10b(0x1000, 0x0F12);                       /* Farbebenen 0-3 einschalten (manches VBE-BIOS laesst sie aus) */
+#endif
 #if defined(VGA16) || defined(SVGA16)
     for (i = 0; i < 16; i++) int10b(0x1000, (WORD)(i | (i << 8)));   /* Attribut i -> DAC i (Standardfarben in DAC 0..15 setzt palette) */
     {   static const BYTE dac[16][3] = { {0,0,0},{0,0,42},{0,42,0},{0,42,42},{42,0,0},{42,0,42},{42,21,0},{42,42,42},

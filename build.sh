@@ -67,6 +67,7 @@ modul drv/VGA16.C SVGA16.DRV "VESA 800x600 16 Farben" 0 D -dSVGA16
 modul drv/VESA.C MCGA.DRV "MCGA 256 Farben" 0 D -dMCGA
 modul drv/VESA.C VESA800.DRV "VESA 800x600 256" 0 D "-3 -dV800"
 modul drv/VESA.C VESA1024.DRV "VESA 1024x768 256" 0 D "-3 -dV1024"
+modul drv/CGA4.C CGA4.DRV "CGA 4 Farben" 0 D
 modul snd/RDSND.C RDSND.MOD "Klang" 0 M
 modul snd/RDMUS.C RDMUS.MOD "Musik" 0 M
 modul drv/SND.C SPEAKER.DRV "PC-Lautsprecher" 0 D -dSPK
