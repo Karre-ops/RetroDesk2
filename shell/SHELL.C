@@ -299,6 +299,17 @@ static int sicher(LPCSTR p, WORD attr, WORD frage)   /* 1 = weitermachen */
     fmt(buf, StrGet(inst, 15), n, 0); scat(buf, StrGet(inst, frage), sizeof buf);
     return MsgBox(GetActive(), buf, "RD", MB_YESNO | MB_WARN | MB_DEFNO) == ID_YES;
 }
+/* Esc waehrend Kopieren/Verschieben: 1 = abbrechen. Andere Eingaben (Tasten, Maus, Befehle) verfallen, damit
+   kein zweites Kopieren mitten in diesem startet; Zeichnen, Zeitgeber usw. laufen weiter */
+static int esc(void)
+{
+    MSG m;
+    while (PeekMessage(&m, 1)) {
+        if (m.msg == M_KEY && m.p1 == K_ESC) { DbgPrint("SHELL: Abbruch (Esc)"); return 1; }
+        if ((m.msg & 0xFF00) != M_KEY && m.msg != M_COMMAND && (m.msg < M_MOUSEMOVE || m.msg > M_DBLCLK)) DispatchMessage(&m);
+    }
+    return 0;
+}
 /* qv nach qn kopieren (Datei oder ganzer Ordner), bei weg danach Quelle loeschen. 0 = ok, 1 = Abbruch */
 static WORD kop(BYTE attr, int weg)
 {
@@ -331,7 +342,10 @@ static WORD kop(BYTE attr, int weg)
     if ((b = FileCreate(qn, 0)) < 0) { e = LastError(); FileClose(a); MemFree(hb); return e; }
     p = (BYTE FAR *)MemLock(hb);
     SetLastError(0);                              /* FileRead liefert auch bei Lesefehler 0: danach pruefen */
-    while ((n = FileRead(a, p, 4096)) > 0) if (FileWrite(b, p, n) != n) { e = RD_ERR_FULL; break; }
+    while ((n = FileRead(a, p, 4096)) > 0) {
+        if (FileWrite(b, p, n) != n) { e = RD_ERR_FULL; break; }
+        if (esc()) { e = 1; break; }              /* halbe Kopie wird unten geloescht, Quelle bleibt */
+    }
     if (!e && LastError()) e = LastError();       /* Lesefehler: Kopie verwerfen, Quelle behalten */
     MemUnlock(hb); MemFree(hb);
     FileClose(a);

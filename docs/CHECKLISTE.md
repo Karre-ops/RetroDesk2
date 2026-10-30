@@ -21,9 +21,9 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Tastatur: F10, Alt+Buchstabe, Pfeile, Eingabe, Esc, Tab in Dialogen | da | test/menu.sh, dlg.sh |
 | Bedienung nur mit Maus oder nur mit Tastatur | da | |
 | Grafik CGA 640x200, VGA 640x480, Hercules 720x348 | da | Treiber in Assembler, Bildvergleiche |
-| Farbe (Profil Komfort, 386+): VGA16 640x480 16 Farben, EGA 640x350 16 Farben, VESA 256 Farben | fehlt | erledigt 27.10. | Voller Testsatz 27.10. grün (44 Tests). 27.10. Teil 3: VESA.DRV (Modus 101h, 640x480, 256 Farben, Bankumschaltung INT 10h 4F05h, Palette 16 Standardfarben + Würfel 6x6x6 + 24 Grau), Geräteformat 8 Bit in RDGDI (Hintergrund retten), nur von Hand wählbar (Menü Grafik, RD2SETUP), Diskette 2. Offen: farbige Symbole (Kern macht noch alles S/W). 27.10. Teil 4: farbige Symbole (FARBSYM.DAT auf Diskette 2, 16/256 Farben mit Maske, Zeichnen in RDGDIX, S/W bleibt Rückfall); Fehler behoben: Symbole kamen auf VGA als 32x16 (CGA-Fassung). |
+| Farbe (Profil Komfort, 386+): VGA16 640x480 16 Farben, EGA 640x350 16 Farben, VESA 256 Farben | da | erledigt 27.10. | Voller Testsatz 27.10. grün (44 Tests). 27.10. Teil 3: VESA.DRV (Modus 101h, 640x480, 256 Farben, Bankumschaltung INT 10h 4F05h, Palette 16 Standardfarben + Würfel 6x6x6 + 24 Grau), Geräteformat 8 Bit in RDGDI (Hintergrund retten), nur von Hand wählbar (Menü Grafik, RD2SETUP), Diskette 2. Offen: farbige Symbole (Kern macht noch alles S/W). 27.10. Teil 4: farbige Symbole (FARBSYM.DAT auf Diskette 2, 16/256 Farben mit Maske, Zeichnen in RDGDIX, S/W bleibt Rückfall); Fehler behoben: Symbole kamen auf VGA als 32x16 (CGA-Fassung). |
 | Schriften 8x8, 8x14, 8x16 mit Umlauten | da | SYS8/14/16.FNT |
-| Startparameter /CGA /VGA /HGC /SPK /NOSND | prüfen | Grafikwahl nach Hardware ist da |
+| Startparameter /CGA /VGA /HGC /SPK /NOSND | teils 30.10. | RD.EXE kennt /CGA /HGC /VGA (Mono), /NOMAUS, /SETUP, /P, /K, /D (nur der erste Buchstabe zählt); /CGA und /VGA laufen in fast allen Tests, /HGC in bench.sh und gdi_dosbox.sh. /SPK und /NOSND aus RD1 gibt es nicht: Klang wählt man in Optionen (RD2.INI [Klang]). Offen: Entscheidung Karsten, ob /NOSND nötig ist (RD.EXE hat nur 2 Bytes Luft) |
 | Deutsch und Englisch | da | DE.LNG, EN.LNG, Ressourcen je Sprache |
 
 ### Dateimanager
@@ -36,8 +36,8 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 | Halb kopierte Dateien werden entfernt | da | Audit K1 |
 | Mehrfachauswahl | erledigt 25.10. | Strg+Klick, Umschalt+Klick, Umschalt+Pfeil, Leertaste, Einfg |
 | Ziehen und Ablegen (gleiches Laufwerk verschiebt, anderes kopiert, Strg/Umschalt) | da | prüfen: Umschalt erzwingt Verschieben |
-| Rechtsklickmenü (Umschalt+F10) | teils | Rechtsklick da, Umschalt+F10 prüfen |
-| Esc bricht Kopieren ab | prüfen | |
+| Rechtsklickmenü (Umschalt+F10) | da 30.10. | Rechtsklick und Umschalt+F10 (Menü Datei an der Auswahl), test/kopabbr.sh Bild kopabbr_menu |
+| Esc bricht Kopieren ab | da 30.10. | SHELL prüft nach jedem 4-KB-Block auf Esc (andere Eingaben verfallen während des Kopierens), halbe Kopie wird gelöscht, Quelle bleibt. test/kopabbr.sh (2,88-MB-Testdiskette, 1 MB Datei) |
 | Laufwerk: Eigenschaften (Typ, Größe, frei, Cluster, Name, Seriennummer, Dateisystem) | da | |
 | Laufwerk: Formatieren (180 KB bis 2,88 MB, Schnell, Name) | da | RDFORMAT; Größenauswahl gegen RD1 prüfen |
 | Warnung bei Systemdateien | da | neu in RD2 |
@@ -132,4 +132,4 @@ nicht eindeutig, wird beim Abarbeiten geklärt.
 8. Netz: RDTCP, RDNET, Netzzeit, FTP, IRC, DOS-Shell-Fenster. (erledigt 26.10.)
 9. Farbe (Profil Komfort): VGA16.DRV (Modus 12h, Assembler), EGA 640x350 (16 Farben), danach VESA 256 Farben mit Bankumschaltung; Farben in RDGDI/RDUSER (Palette, Systemfarben). (aufgenommen 26.10., erledigt 27.10.: dazu farbige Symbole FARBSYM.DAT)
 10. Hilfe (erledigt), Joystick (erledigt), SDK-Rest, Diskettensatz, Test am PC10-III, Release 2.0.
-| Optionen mit Karteikarten | umgesetzt 29.10., ungetestet | OPTIONEN.EXE: Karten Grafik, Klang, Maus, Tastatur, Schoner, System (Alt+1..6, wie RDNET). Grafik gilt sofort: RD2 startet neu (RunDos RD_DOS_NEU), danach "Behalten?" mit 15 s (Shell startet OPTIONEN B, solange [System] GrafikAlt= gesetzt ist). Plan: docs/PLAN_OPTIONEN.md. Offen: test/optionen.sh auf Karten umstellen, test/grafikwahl.sh, SHOT-Referenzen (Menü RD kürzer), voller Satz und DOSBox vor 2.0.1. |
+| Optionen mit Karteikarten | umgesetzt 29.10., in QEMU getestet 30.10. | OPTIONEN.EXE: Karten Grafik, Klang, Maus, Tastatur, Schoner, System (Alt+1..6, wie RDNET). Grafik gilt sofort: RD2 startet neu (RunDos RD_DOS_NEU), danach "Behalten?" mit 15 s (Shell startet OPTIONEN B, solange [System] GrafikAlt= gesetzt ist). Plan: docs/PLAN_OPTIONEN.md. 30.10.: test/optionen.sh auf Karten umgestellt, SHOT-Referenzen erneuert, voller Satz (68 Tests) grün. Offen: test/grafikwahl.sh, DOSBox, Test am PC10-III. |
