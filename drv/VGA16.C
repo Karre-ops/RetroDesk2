@@ -15,16 +15,25 @@
 #  define MODUS 0x12
 #  define NAME "VGA 640x480 16"
 #  define ASPY 100
+#elif defined(EGA320)
+#  define H 200
+#  define MODUS 0x0D
+#  define NAME "EGA 320x200 16"
+#  define ASPY 120
+#  define W 320
+#  define BPR 40
 #elif defined(EGA)
 #  define H 350
 #  define MODUS 0x10
 #  define NAME "EGA 640x350 16"
 #  define ASPY 137
 #else
-#  error VGA16 oder EGA angeben
+#  error VGA16, EGA oder EGA320 angeben
 #endif
-#define W 640
-#define BPR 80
+#ifndef W
+#  define W 640
+#  define BPR 80
+#endif
 #define VP(x, y) ((BYTE __far *)MK_FP(0xA000, (WORD)(y) * BPR + ((WORD)(x) >> 3)))
 #pragma intrinsic(inp, outp, outpw)
 
@@ -62,7 +71,11 @@ static WORD RDEXPORT d_init(WORD param)
 #else
     {   /* EGA oder VGA: INT 10h 12h/BL=10h liefert in BL die Speichergroesse (0..3 = 64..256 KB), ohne EGA bleibt BL 10h */
         WORD m = egamem() & 0xFF;
+#if defined(EGA320)
+        if (m == 0x10) return RD_ERR_NOTSUP;      /* Modus 0Dh (320x200, 32 KB) geht schon mit 64 KB */
+#else
         if (m == 0x10 || m == 0) return RD_ERR_NOTSUP;   /* keine EGA oder nur 64 KB (Modus 10h braucht 128 KB) */
+#endif
     }
 #endif
     if (altmodus > 3 && altmodus != 7) altmodus = 3;

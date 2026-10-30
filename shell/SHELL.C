@@ -49,7 +49,7 @@ static WORD szeit; static BYTE slauf;                /* RD2.INI [Schoner] Zeit= 
 #define CM_SORT   205                             /* 205..208: sortieren nach Name, Typ, Groesse, Datum */
 #define MAXE      240                             /* Eintraege je Ordner */
 #define MAXO      6                               /* Ordnerfenster */
-#define ZB        100                             /* Zellenbreite */
+static short ZB = 100;                            /* Zellenbreite (320 Punkte breit: 60) */
 
 typedef struct { char name[13]; BYTE attr, mark; WORD dat; DWORD gr; } EINTRAG;
 typedef struct { HWND w; char pfad[68]; HMEM h; short n, sel, oben, spalten, zeilen; } ORDNER;
@@ -968,7 +968,7 @@ static void zk(char *p, WORD v) { p = zahl(p, v / 10); *p++ = ','; zahl(p, v % 1
 static void info(void)                            /* wie RD1: Prozessor, Takt, Speicher, DOS, Grafik, Sound */
 {
     static const char cpu[] = "8088\0" "8086\0" "NEC V20\0" "80186\0" "80286\0" "80386\0" "80486\0" "Pentium\0";
-    static const char gfx[] = "?\0" "CGA\0" "Hercules\0" "VGA mono\0" "EGA\0" "VGA\0" "VESA\0";
+    static const char gfx[] = "?\0" "CGA\0" "Hercules\0" "VGA mono\0" "EGA\0" "VGA\0" "VESA\0" "EGA 320\0";
     SYSINFO si; char t[12], *p; WORD a = KernVersion();
     KernInfo(&si);
     p = zahl(t, a >> 8); *p++ = '.'; zahl(p, a & 0xFF);
@@ -982,7 +982,7 @@ static void info(void)                            /* wie RD1: Prozessor, Takt, S
     scat(buf, StrGet(inst, 24), sizeof buf); zahl(t, (WORD)(MemAvail(MEMA_KONV) >> 10)); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf);
     if (si.kb_ext) { scat(buf, " + XMS ", sizeof buf); zahl(t, si.kb_ext); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf); }
     scat(buf, "\nDOS ", sizeof buf); p = zahl(t, si.dos >> 8); *p++ = '.'; zahl(p, si.dos & 0xFF); scat(buf, t, sizeof buf);
-    scat(buf, StrGet(inst, 25), sizeof buf); scat(buf, nte(gfx, si.grafik <= GFX_VESA ? si.grafik : 0), sizeof buf);   /* Grafik */
+    scat(buf, StrGet(inst, 25), sizeof buf); scat(buf, nte(gfx, si.grafik <= GFX_EGA320 ? si.grafik : 0), sizeof buf);   /* Grafik */
     scat(buf, " ", sizeof buf); zahl(t, W); scat(buf, t, sizeof buf); scat(buf, "x", sizeof buf); zahl(t, H); scat(buf, t, sizeof buf);
     scat(buf, StrGet(inst, 27), sizeof buf);                                 /* Sound */
     scat(buf, si.sound & (SC_OPL2 | SC_OPL3) ? "AdLib" : si.sound & SC_SPEAKER ? "PC-Speaker" : StrGet(inst, 26), sizeof buf);
@@ -1091,7 +1091,7 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     (void)cmd; (void)show;
     inst = i;
     { SYSINFO si; KernInfo(&si); scpy(heim, si.home, sizeof heim); k = slen(heim); if (k && heim[k - 1] == '\\') heim[--k] = 0; if (k <= 2) heim[0] = 0; }
-    d = GetDC(0); W = GetCaps(d, CAPS_W); H = GetCaps(d, CAPS_H); th = GetCaps(d, CAPS_TEXTH);
+    d = GetDC(0); W = GetCaps(d, CAPS_W); H = GetCaps(d, CAPS_H); th = GetCaps(d, CAPS_TEXTH); if (W <= 320) ZB = 60;
     if (GetCaps(d, CAPS_FARBEN) > 2) {             /* Schreibtischfarbe: RD2.INI [Farben] Schreibtisch= 0..15 (Optionen), sonst tuerkis */
         static const COLOR f16[16] = { RGB(0,0,0), RGB(0,0,170), RGB(0,170,0), RGB(0,170,170), RGB(170,0,0), RGB(170,0,170), RGB(170,85,0), RGB(170,170,170),
             RGB(85,85,85), RGB(85,85,255), RGB(85,255,85), RGB(85,255,255), RGB(255,85,85), RGB(255,85,255), RGB(255,255,85), RGB(255,255,255) };

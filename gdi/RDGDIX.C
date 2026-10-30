@@ -161,7 +161,7 @@ static void RDEXPORT x_IconColor(HDC dc, short x, short y, HBMP b, HBMP m)
     MemUnlock(b); MemUnlock(m);
 }
 /* Grafikwahl (Menue Grafik): Namen in der Reihenfolge der Kandidaten von RDGDI (kand[]) */
-static const char *const gnam[] = { "VGA 16 Farben", "EGA 16 Farben", "VESA 256 Farben", "Hercules", "VGA mono", "CGA" };
+static const char *const gnam[] = { "VGA 16 Farben", "EGA 16 Farben", "VESA 256 Farben", "Hercules", "VGA mono", "CGA", "320x200 16 Farben" };
 static WORD RDEXPORT x_GfxList(GI FAR *g, GFXINFO FAR *l, WORD max)
 {
     WORD i, n = 0, std = 0, t, f, k; GFXMODE m; const char *q; GFXINFO FAR *e;

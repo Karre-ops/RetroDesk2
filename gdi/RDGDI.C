@@ -724,6 +724,7 @@ static const KAND kand[] = {
     { "HGC.DRV",   "HGC", GFX_HGC },
     { "VGAM.DRV",  "VGA", GFX_VGAMONO },
     { "CGA.DRV",   "CGA", GFX_CGA },
+    { "EGA320.DRV", "EGA320", GFX_EGA320 },     /* nur von Hand (30.10.2026) */
 };
 #define NK (sizeof kand / sizeof kand[0])
 static GFXMODE pm;
@@ -873,6 +874,7 @@ void RDEXPORT g_FontFree(HFONT f)
 }
 static HFONT sysfont(void)
 {
+    if (!sysf && gm.w <= 320) sysf = g_FontLoad("SYSK.FNT", 0, 0);   /* 320 Punkte breit: schmale Schrift */
     if (!sysf && !(sysf = g_FontLoad("SYS", syshoehe(), 0)) && !(sysf = g_FontLoad("SYS", 14, 0))) sysf = g_FontLoad("SYS", 8, 0);
     return sysf;
 }

@@ -190,6 +190,7 @@ typedef struct {
 #define GFX_EGA 4
 #define GFX_VGA16 5
 #define GFX_VESA 6
+#define GFX_EGA320 7                              /* 320x200 16 Farben (EGA/VGA Modus 0Dh), schmale Schrift SYSK.FNT */
 
 /* GfxList: eine Zeile je moeglicher Grafikart (Menue "Grafik") */
 typedef struct {

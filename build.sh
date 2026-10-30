@@ -55,6 +55,7 @@ modul drv/GFX1.C CGA.DRV "CGA" 0 D -dCGA
 modul drv/GFX1.C HGC.DRV "Hercules" 0 D -dHGC
 modul drv/VGA16.C VGA16.DRV "VGA 16 Farben" 0 D -dVGA16
 modul drv/VGA16.C EGA.DRV "EGA 16 Farben" 0 D -dEGA
+modul drv/VGA16.C EGA320.DRV "EGA 320x200 16 Farben" 0 D -dEGA320
 modul drv/VESA.C VESA.DRV "VESA 256 Farben" 0 D -3
 python3 tools/mkfarbsym.py $O/FARBSYM.DAT SHELL:1:shell/farbe/FLOPPY.TXT SHELL:2:shell/farbe/HDISK.TXT SHELL:3:shell/farbe/ORDNER.TXT SHELL:4:shell/farbe/PROG.TXT SHELL:5:shell/farbe/DOK.TXT >/dev/null || exit 1   # farbige Symbole (Diskette 2)
 modul drv/GFX1.C VGAM.DRV "VGA mono" 0 D "-dVGAM -oa"   # -oa: 11 Bytes, haelt VGAM.DRV bei 4 KB (ein Cluster auf der Systemdiskette)
@@ -129,6 +130,7 @@ python3 tools/mkpas.py $O/RD2.PAS 2>/dev/null || echo "FEHLER RD2.PAS"   # Unit 
 # RDRC.EXE: Ressourcen-Compiler und Linker fuer das SDK (DOS-Fassung von rdrc.py + rd2link.py)
 nasm -f bin -o obj/RD2PAS.BIN sdk/RD2PAS.ASM && python3 -c "d=open('obj/RD2PAS.BIN','rb').read(); open('obj/rd2pas.h','w').write('static const unsigned char rd2pas[%d] = {' % len(d) + ','.join(str(b) for b in d) + '};\\n')" && python3 tools/mkrdrcdef.py obj/rdrcdef.h && wcl -0 -ms -os -s -zq -w4 -bt=dos -i=obj -fe=$O/RDRC.EXE -fo=obj/rdrc.obj tools/RDRC.C >/dev/null || echo "FEHLER RDRC"
 python3 tools/mkfont.py $O >/dev/null
+python3 tools/mkschmal.py $O                  # SYSK.FNT: schmale Schrift fuer 320 Punkte Breite
 # Einrichtung: normales DOS-Programm (Small, Watcom-Bibliothek), laeuft ohne RetroDesk
 $W -fpi87 -fo=obj/setasm.obj setup/SETASM.ASM
 # RDSYS.EXE: FreeDOS SYS (GPL v2) unveraendert als eigenes DOS-Programm, RD2SETUP ruft es mit /UPDATE (Festplatte startfaehig)

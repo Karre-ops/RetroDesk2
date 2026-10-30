@@ -23,6 +23,7 @@ CGA.DRV          5120    5   S
 HGC.DRV          5120    5   S
 VGA16.DRV        6144    6   P  VGA 640x480 16 Farben, Modus 12h (Punkt 9, 27.10.)
 EGA.DRV          6144    6   P  EGA 640x350 16 Farben, Modus 10h (Punkt 9, 27.10.)
+EGA320.DRV       6144    6   P  320x200 16 Farben, Modus 0Dh, nur von Hand (30.10.)
 VESA.DRV         6144    6   P  VESA 640x480 256 Farben, Modus 101h, Bankumschaltung (Punkt 9, 27.10.)
 FARBSYM.DAT      4096    0   P  farbige Symbole (16 Farben, Maske) fuer SHELL, nur bei buntem Schirm; fehlt sie: S/W
 VGAM.DRV         5120    5   S
@@ -31,6 +32,7 @@ ADLIB.DRV        2048    2   P
 COVOX.DRV        2048    2   P  Covox Speech Thing und Kompatible am Druckerport, Samples ueber den Zeitgeber (26.10.)
 SB.DRV           3072    3   P  Sound Blaster 1.x bis AWE und Kompatible: FM (OPL2/OPL3) und 8-Bit-PCM per DMA (26.10.)
 SYS8.FNT         2560    0   S  wird bei Bedarf geladen, nur die aktive Schrift belegt Speicher
+SYSK.FNT         3072    0   P  schmale Systemschrift (verschieden breit, Hoehe 9) fuer 320x200 (30.10.)
 SYS14.FNT        4096    0   S
 SYS16.FNT        4608    0   S
 DE.LNG           4096    2   S
