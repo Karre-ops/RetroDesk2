@@ -77,6 +77,16 @@ typedef struct {
     WORD  (RDAPI *farbe)(COLOR c);
     COLOR (RDAPI *rgb)(WORD index);
 } GFXDRVF;
+/* Hintergrund roh retten (ab 30.10.2026, optional, h.groesse = sizeof(GFXDRVR)): Bildspeicher unveraendert
+   kopieren (Ebenen bzw. Schirmbytes), nur fuer Menue-Hintergruende (BmpCreate mit BMP_ROH), nie bemalt.
+   rohgr: Bytes je Zeile fuer w Punkte ab x. rohget: Rechteck ganz (liegt im Schirm). rohput: Teil qx..qx+qw-1
+   eines bei x0 mit Breite w0 geretteten Blocks an dieselbe Stelle zurueck; z = Anfang der Zeile qy. */
+typedef struct {
+    GFXDRVF f;
+    WORD  (RDAPI *rohgr)(short x, short w);
+    void  (RDAPI *rohget)(short x, short y, short w, short h, BYTE FAR *z, WORD bpr);
+    void  (RDAPI *rohput)(short qx, short qy, short qw, short qh, const BYTE FAR *z, WORD bpr, short x0, short w0);
+} GFXDRVR;
 
 /* ---- Sound --------------------------------------------------------------- */
 typedef struct {

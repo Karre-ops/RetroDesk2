@@ -228,10 +228,9 @@ static void put1(WORD x, WORD y, WORD w, WORD h, const BYTE FAR *s, WORD st, WOR
    pl/ph: Quellbyte (2 Punkte) -> je Ebene 2 Bits an Bit 7/6 (pl: Ebene 0 im unteren, 1 im oberen Byte; ph: 2/3);
    4 Quellbytes = 8 Punkte: pl[s0] | pl[s1] >> 2 | pl[s2] >> 4 | pl[s3] >> 6 (die Bytes laufen nicht ineinander).
    sx/sy: Ebenenbyte -> Punkte 0-3 bzw. 4-7 als Halbbytes (Bit 0 je Halbbyte), << e fuer Ebene e. */
-static WORD pl[256], sx[256], sy[256];
-#if NPL == 4
-static WORD ph[256];
-#endif
+static WORD pl[256], sx[256];                     /* sy[b] = sx[(b << 4) & 0xF0], ph[b] = pl[(b >> 2) & 0x33] (30.10.: 1 KB weniger) */
+#define SY(b) sx[(BYTE)((b) << 4)]
+#define PH(b) pl[((b) >> 2) & 0x33]
 static BYTE tabok;
 static void tabellen(void)
 {
@@ -239,15 +238,12 @@ static void tabellen(void)
     for (i = 0; i < 256; i++) {
         WORD a = i >> 4, b = i & 15, x = 0, y = 0;
         pl[i] = (WORD)((a & 1) << 7 | (b & 1) << 6 | (a & 2) << 14 | (b & 2) << 13);
-#if NPL == 4
-        ph[i] = (WORD)((a & 4) << 5 | (b & 4) << 4 | (a & 8) << 12 | (b & 8) << 11);
-#endif
-        for (k = 0; k < 4; k++) { if (i & (0x80 >> k)) x |= 1 << (12 - 4 * k); if (i & (0x08 >> k)) y |= 1 << (12 - 4 * k); }
-        sx[i] = x; sy[i] = y;
+        for (k = 0; k < 4; k++) if (i & (0x80 >> k)) x |= 1 << (12 - 4 * k);
+        sx[i] = x; (void)y;
     }
     tabok = 1;
 }
-static BYTE eb[4][W / 8 + 2], ab[4][W / 8 + 2];
+static BYTE eb[4][W / 8 + 2];
 static void put4(WORD x, WORD y, WORD w, WORD h, const BYTE FAR *s, WORD st, WORD rop, WORD unten)
 {
     WORD r, i, e, g, ng = (w + 7) >> 3, sh = x & 7, nb = (sh + w + 7) >> 3;
@@ -261,16 +257,16 @@ static void put4(WORD x, WORD y, WORD w, WORD h, const BYTE FAR *s, WORD st, WOR
             const BYTE FAR *q = s + 4 * g; BYTE c0, c1, c2, c3; WORD v;
             if (unten) { c0 = (BYTE)(q[0] << 4 | q[1] >> 4); c1 = (BYTE)(q[1] << 4 | q[2] >> 4); c2 = (BYTE)(q[2] << 4 | q[3] >> 4); c3 = (BYTE)(q[3] << 4 | q[4] >> 4); }
             else { c0 = q[0]; c1 = q[1]; c2 = q[2]; c3 = q[3]; }
-            v = pl[c0] | pl[c1] >> 2 | pl[c2] >> 4 | pl[c3] >> 6; ab[0][g] = (BYTE)v; ab[1][g] = (BYTE)(v >> 8);
+            v = pl[c0] | pl[c1] >> 2 | pl[c2] >> 4 | pl[c3] >> 6; eb[0][g] = (BYTE)v; eb[1][g] = (BYTE)(v >> 8);
 #if NPL == 4
-            v = ph[c0] | ph[c1] >> 2 | ph[c2] >> 4 | ph[c3] >> 6; ab[2][g] = (BYTE)v; ab[3][g] = (BYTE)(v >> 8);
+            v = PH(c0) | PH(c1) >> 2 | PH(c2) >> 4 | PH(c3) >> 6; eb[2][g] = (BYTE)v; eb[3][g] = (BYTE)(v >> 8);
 #endif
         }
-        for (e = 0; e < NPL; e++) {               /* auf die Lage im Schirmbyte schieben */
-            BYTE *a = ab[e], *z = eb[e];
-            if (!sh) { for (i = 0; i < nb; i++) z[i] = a[i]; continue; }
-            a[ng] = 0; z[0] = (BYTE)(a[0] >> sh);
-            for (i = 1; i < nb; i++) z[i] = (BYTE)(a[i - 1] << (8 - sh) | a[i] >> sh);
+        if (sh) for (e = 0; e < NPL; e++) {       /* auf die Lage im Schirmbyte schieben (an Ort und Stelle, von hinten) */
+            BYTE *z = eb[e];
+            z[ng] = 0;
+            for (i = nb - 1; i > 0; i--) z[i] = (BYTE)(z[i - 1] << (8 - sh) | z[i] >> sh);
+            z[0] >>= sh;
         }
         if (rop == ROP_COPY || rop >= 4) {        /* Raender mit Bitmaske (Latch), Mitte je Ebene am Stueck */
             volatile BYTE l;
@@ -314,9 +310,9 @@ static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WO
             if (sh) for (i = 0; i < ng; i++) z[i] = (BYTE)(z[i] << sh | z[i + 1] >> (8 - sh));
         }
         for (i = 0; i < ng; i++) {
-            WORD a = sx[eb[0][i]] | sx[eb[1][i]] << 1, b = sy[eb[0][i]] | sy[eb[1][i]] << 1, k = 4 * i;
+            WORD a = sx[eb[0][i]] | sx[eb[1][i]] << 1, b = SY(eb[0][i]) | SY(eb[1][i]) << 1, k = 4 * i;
 #if NPL == 4
-            a |= sx[eb[2][i]] << 2 | sx[eb[3][i]] << 3; b |= sy[eb[2][i]] << 2 | sy[eb[3][i]] << 3;
+            a |= sx[eb[2][i]] << 2 | sx[eb[3][i]] << 3; b |= SY(eb[2][i]) << 2 | SY(eb[3][i]) << 3;
 #endif
             dst[k] = (BYTE)(a >> 8);
             if (k + 1 < n) dst[k + 1] = (BYTE)a;
@@ -448,11 +444,38 @@ static COLOR RDEXPORT d_rgb(WORD i)
 
 #endif
 
-static GFXDRVF tab = { {
-    { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVF), NAME, d_init, d_done },
+/* ---- Hintergrund roh: je Zeile die Ebenen hintereinander (je ps Bytes), Raender mit Bitmaske ---- */
+static WORD RDEXPORT d_rohgr(short x, short w) { return (WORD)((((x & 7) + w + 7) >> 3) * NPL); }
+static void RDEXPORT d_rohget(short x, short y, short w, short h, BYTE FAR *z, WORD bpr)
+{
+    WORD r, e, ps = ((x & 7) + w + 7) >> 3;
+    for (r = 0; r < (WORD)h; r++, z += bpr) { BYTE __far *p = VP(x, y + r); for (e = 0; e < NPL; e++) { GC(4, e); _fmemcpy(z + e * ps, p, ps); } }
+    GC(4, 0);
+}
+static void RDEXPORT d_rohput(short qx, short qy, short qw, short qh, const BYTE FAR *z, WORD bpr, short x0, short w0)
+{
+    WORD r, e, ps = ((x0 & 7) + w0 + 7) >> 3, c = ((WORD)qx >> 3) - ((WORD)x0 >> 3), nb = ((qx & 7) + qw + 7) >> 3;
+    BYTE lm = (BYTE)(0xFF >> (qx & 7)), rm = (BYTE)(0xFF << (7 - ((qx + qw - 1) & 7)));
+    if (nb == 1) lm &= rm;
+    GC(5, 0); GC(1, 0); GC(3, 0);
+    for (r = 0; r < (WORD)qh; r++, z += bpr) {
+        BYTE __far *p = VP(qx, qy + r); const BYTE FAR *q = z + c; volatile BYTE l;
+        GC(8, lm); l = p[0]; for (e = 0; e < NPL; e++) { MAPMASK(1 << e); p[0] = q[e * ps]; }
+        if (nb > 1) {
+            GC(8, rm); l = p[nb - 1]; for (e = 0; e < NPL; e++) { MAPMASK(1 << e); p[nb - 1] = q[e * ps + nb - 1]; }
+            if (nb > 2) { GC(8, 0xFF); for (e = 0; e < NPL; e++) { MAPMASK(1 << e); _fmemcpy(p + 1, q + e * ps + 1, nb - 2); } }
+        }
+        (void)l;
+    }
+    m0();
+}
+
+static GFXDRVR tab = { { {
+    { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVR), NAME, d_init, d_done },
     d_modes, d_setmode, d_textmode,
     d_span, d_pixel, d_getpixel, d_put, d_get,
-    0, 0, d_copy, d_glyphs, d_palette, d_cursor, d_cursorhide, 0, d_box }, d_farbe, d_rgb
+    0, 0, d_copy, d_glyphs, d_palette, d_cursor, d_cursorhide, 0, d_box }, d_farbe, d_rgb },
+    d_rohgr, d_rohget, d_rohput
 };
 FARPROC RDEXPORT DrvTab(void) { return (FARPROC)(void FAR *)&tab; }
 static struct { WORD n; FARPROC f[1]; } ex = { 1, { (FARPROC)DrvTab } };

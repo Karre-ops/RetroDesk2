@@ -188,6 +188,7 @@ typedef struct {
 #define GFX_HGC 2
 #define GFX_VGAMONO 3
 #define GFX_EGA 4
+#define BMP_ROH 0x80                              /* BmpCreate: Hintergrund roh (nur BitBlt Schirm <-> Bitmap an dieselbe Stelle) */
 #define GFX_VGA16 5
 #define GFX_VESA 6
 #define GFX_EGA320 7                              /* 320x200 16 Farben (EGA/VGA Modus 0Dh), schmale Schrift SYSK.FNT */

@@ -565,9 +565,13 @@ WORD RDEXPORT g_GfxSelect(WORD typ)                                   { GX_SEL f
 HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
 {
     WORD bpr; HMEM m; BMPH FAR *bh;
-    if (!bpp) bpp = gm.bpp;                       /* 0 = Geraeteformat des Schirms (Hintergrund retten) */
-    if (bpp != 4 && bpp != 8) bpp = 1;            /* 4/8 Bit: nur BitBlt mit dem Schirm, kein Zeichnen hinein */
-    bpr = (w * bpp + 7) >> 3;                     /* w <= MAXBW, kein Ueberlauf */
+    if (bpp == BMP_ROH && !(gm.bpp > 1 && drv && ((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVR))) bpp = 0;   /* Treiber ohne roh: Geraeteformat */
+    if (!bpp) bpp = gm.bpp;                       /* 0 = Geraeteformat des Schirms */
+    if (bpp == BMP_ROH) bpr = ((GFXDRVR FAR *)drv)->rohgr(7, (short)w);   /* roh: Bildspeicher unveraendert (Menue-Hintergrund) */
+    else {
+        if (bpp != 4 && bpp != 8) bpp = 1;        /* 4/8 Bit: nur BitBlt mit dem Schirm, kein Zeichnen hinein */
+        bpr = (w * bpp + 7) >> 3;                 /* w <= MAXBW, kein Ueberlauf */
+    }
     if (!w || !h || w > MAXBW || (DWORD)bpr * h > 65000UL) { SetLastError(RD_ERR_FULL); return 0; }
     m = MemAlloc((DWORD)bpr * h + sizeof(BMPH), MEM_MOVABLE | MEM_ZEROINIT);
     if (!m) return 0;
@@ -622,11 +626,12 @@ static int b4blt(DCX *dd, short x, short y, short w, short h, DCX *sd, short sx,
                 q.l = x; q.t = y; q.r = (short)(x + w); q.b = (short)(y + h); isect(&q, &ec[i]);
                 if (q.l >= q.r || q.t >= q.b) continue;
                 o = (WORD)(q.l - x + sx); ex(q.l, q.t, q.r, q.b);
+                if (bh->bpp == BMP_ROH) { ((GFXDRVR FAR *)drv)->rohput(q.l, q.t, (short)(q.r - q.l), (short)(q.b - q.t), z + (WORD)(q.t - y + sy) * bpr, bpr, (short)(x - sx), (short)bh->w); continue; }
                 drv->put(q.l, q.t, (short)(q.r - q.l), (short)(q.b - q.t), z + (WORD)(q.t - y + sy) * bpr + (o >> (bh->bpp == 4)), bpr, bh->bpp | ((o & 1) << 8), ROP_COPY, 0, 0);
             }
             unsel();
         }
-    } else if (!sd->typ && !x && !y) { cd = 0; gbusy = 1; zweg(); drv->get(sx, sy, w, h, z, bpr); unsel(); }   /* Schirm -> Bitmap */
+    } else if (!sd->typ && !x && !y) { cd = 0; gbusy = 1; zweg(); if (bh->bpp == BMP_ROH) ((GFXDRVR FAR *)drv)->rohget(sx, sy, w, h, z, bpr); else drv->get(sx, sy, w, h, z, bpr); unsel(); }   /* Schirm -> Bitmap */
     MemUnlock(b->bmp);
     return 1;
 }

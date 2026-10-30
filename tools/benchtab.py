@@ -10,7 +10,7 @@ INFO = {'CGA': ('CGA 640x200 mono', 640, 200), 'CGA4': ('CGA 320x200 4', 320, 20
         'VESA1024': ('VESA 1024x768 256 (386)', 1024, 768), 'SVGA16': ('VESA 800x600 16', 800, 600)}
 AUF = [('Text 20 Zeichen, x=13', 'Text durchs.'), ('Text deckend, x=13', 'Text deckend'), ('Schirm fuellen', 'Schirm fuellen'),
        ('Muster 50% voll', 'Muster'), ('Rechteck 200x100 invertieren', 'Invert 200x100'), ('Rahmen 200x100', 'Rahmen'),
-       ('Block 208x150 sichern+zurueck', 'Block 1 Bit'), ('Block 208x150 Geraeteformat', 'Block Geraet')]
+       ('Block 208x150 sichern+zurueck', 'Block 1 Bit'), ('Block 208x150 Geraeteformat', 'Block Geraet'), ('Block 208x150 roh', 'Block roh')]
 def lies(g):
     p = os.path.join(D, g + '.txt'); r = {}; last = None
     if not os.path.exists(p): return r

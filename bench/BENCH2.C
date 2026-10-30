@@ -69,6 +69,8 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     miss("BENCH2: Block 208x150 sichern+zurueck", a_blk);
     gm = BmpCreate(208, 150, 0); gdc = gm ? BmpDC(gm) : 0;   /* 0 = Geraeteformat (30.10.2026) */
     if (gdc) { miss("BENCH2: Block 208x150 Geraeteformat", a_gblk); DCFree(gdc); BmpFree(gm); }
+    gm = BmpCreate(208, 150, BMP_ROH); gdc = gm ? BmpDC(gm) : 0;   /* roh wie Menue-Hintergrund */
+    if (gdc) { miss("BENCH2: Block 208x150 roh", a_gblk); DCFree(gdc); BmpFree(gm); }
     miss("BENCH2: Rechenschleife 1000",  a_calc);
     miss("BENCH2: Eingabe abfragen", a_inp);
     miss("BENCH2: leerer API-Aufruf", a_leer);

@@ -297,11 +297,32 @@ static COLOR RDEXPORT d_rgb(WORD i)
     return f[i & 3];
 }
 
-static GFXDRVF tab = { {
-    { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVF), "CGA 320x200 4", d_init, d_done },
+/* ---- Hintergrund roh: Schirmbytes unveraendert, Raender maskiert ---- */
+static WORD RDEXPORT d_rohgr(short x, short w) { return (WORD)(((x & 3) + w + 3) >> 2); }
+static void RDEXPORT d_rohget(short x, short y, short w, short h, BYTE FAR *z, WORD bpr)
+{
+    WORD r, nb = ((x & 3) + w + 3) >> 2;
+    for (r = 0; r < (WORD)h; r++, z += bpr) _fmemcpy(z, VP(x, y + r), nb);
+}
+static void RDEXPORT d_rohput(short qx, short qy, short qw, short qh, const BYTE FAR *z, WORD bpr, short x0, short w0)
+{
+    WORD r, c = ((WORD)qx >> 2) - ((WORD)x0 >> 2), nb = ((qx & 3) + qw + 3) >> 2;
+    BYTE lm = (BYTE)(0xFF >> ((qx & 3) << 1)), rm = (BYTE)(0xFF << ((3 - ((qx + qw - 1) & 3)) << 1));
+    (void)w0;
+    if (nb == 1) lm &= rm;
+    for (r = 0; r < (WORD)qh; r++, z += bpr) {
+        BYTE __far *p = VP(qx, qy + r); const BYTE FAR *q = z + c;
+        *p = (BYTE)((*p & ~lm) | (q[0] & lm));
+        if (nb > 1) { p[nb - 1] = (BYTE)((p[nb - 1] & ~rm) | (q[nb - 1] & rm)); if (nb > 2) _fmemcpy(p + 1, q + 1, nb - 2); }
+    }
+}
+
+static GFXDRVR tab = { { {
+    { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVR), "CGA 320x200 4", d_init, d_done },
     d_modes, d_setmode, d_textmode,
     d_span, d_pixel, d_getpixel, d_put, d_get,
-    0, 0, d_copy, 0, d_palette, d_cursor, d_cursorhide, 0, d_box }, d_farbe, d_rgb
+    0, 0, d_copy, 0, d_palette, d_cursor, d_cursorhide, 0, d_box }, d_farbe, d_rgb },
+    d_rohgr, d_rohget, d_rohput
 };
 FARPROC RDEXPORT DrvTab(void) { return (FARPROC)(void FAR *)&tab; }
 static struct { WORD n; FARPROC f[1]; } ex = { 1, { (FARPROC)DrvTab } };

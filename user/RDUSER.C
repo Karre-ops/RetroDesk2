@@ -1001,7 +1001,7 @@ static WORD klapp(WORD i, BYTE FAR *q, short x, short y, int bar, int *weiter, i
     if (r.r > sw) off(&r, sw - r.r, 0);
     if (r.b > sh) off(&r, 0, sh - r.b);
     if (r.l < 0) off(&r, (short)-r.l, 0);
-    if ((bm = BmpCreate(r.r - r.l, r.b - r.t, 0)) != 0 && (bd = BmpDC(bm)) != 0)   /* Hintergrund retten (Geraeteformat) */
+    if ((bm = BmpCreate(r.r - r.l, r.b - r.t, BMP_ROH)) != 0 && (bd = BmpDC(bm)) != 0)   /* Hintergrund retten (roh, sonst Geraeteformat) */
         BitBlt(bd, 0, 0, r.r - r.l, r.b - r.t, d, r.l, r.t, ROP_COPY);
     SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &r); SetPen(d, C_BLACK); Frame(d, &r);
     SetBkMode(d, BK_TRANSPARENT); SetTextColor(d, C_BLACK);
