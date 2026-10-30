@@ -49,6 +49,7 @@ static WORD szeit; static BYTE slauf;                /* RD2.INI [Schoner] Zeit= 
 #define CM_SORT   205                             /* 205..208: sortieren nach Name, Typ, Groesse, Datum */
 #define MAXE      240                             /* Eintraege je Ordner */
 #define MAXO      6                               /* Ordnerfenster */
+#define LB (th + 4)                               /* Laufwerksleiste oben im Ordnerfenster */
 static short ZB = 100;                            /* Zellenbreite (320 Punkte breit: 60) */
 
 typedef struct { char name[13]; BYTE attr, mark; WORD dat; DWORD gr; } EINTRAG;
@@ -111,7 +112,7 @@ static void rollen(ORDNER *o)
 static void masse(ORDNER *o, short b, short h)
 {
     o->spalten = liste ? 1 : b / ZB; if (o->spalten < 1) o->spalten = 1;
-    o->zeilen = h / (liste ? th + 2 : zh); if (o->zeilen < 1) o->zeilen = 1;
+    o->zeilen = (h - LB) / (liste ? th + 2 : zh); if (o->zeilen < 1) o->zeilen = 1;
     rollen(o);
 }
 static BYTE verst;                                /* versteckte/System-Dateien zeigen (RD2.STA liste Bit 1) */
@@ -258,8 +259,8 @@ static void hoch(ORDNER *o)
 }
 static void zellrect(ORDNER *o, short i, RECT *r)  /* Client-Rechteck des Eintrags i */
 {
-    if (liste) { RECT c; GetClientRect(o->w, &c); r->l = 0; r->r = c.r; r->t = (i - o->oben) * (th + 2); r->b = r->t + th + 2; }
-    else { r->l = (i % o->spalten) * ZB; r->r = r->l + ZB; r->t = (i / o->spalten - o->oben) * zh; r->b = r->t + zh; }
+    if (liste) { RECT c; GetClientRect(o->w, &c); r->l = 0; r->r = c.r; r->t = (i - o->oben) * (th + 2) + LB; r->b = r->t + th + 2; }
+    else { r->l = (i % o->spalten) * ZB; r->r = r->l + ZB; r->t = (i / o->spalten - o->oben) * zh + LB; r->b = r->t + zh; }
 }
 static void zelle_neu(ORDNER *o, short i) { RECT r; zellrect(o, i, &r); InvalidateRect(o->w, &r, FALSE); }
 static void neusel(ORDNER *o, short s)
@@ -593,7 +594,8 @@ static void neuer_ordner(ORDNER *o)
 }
 static short treffer(ORDNER *o, short px, short py)   /* Eintrag unter Client-Punkt, -1 = keiner */
 {
-    short x = liste ? 0 : px / ZB, i = (o->oben + py / (liste ? th + 2 : zh)) * o->spalten + x;
+    short x = liste ? 0 : px / ZB, i;
+    py -= LB; i = (o->oben + py / (liste ? th + 2 : zh)) * o->spalten + x;
     return px >= 0 && py >= 0 && x < o->spalten && i < o->n ? i : -1;
 }
 static short lwbei(short x, short y);
@@ -730,11 +732,14 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
     case M_PAINT:
         d = BeginPaint(w, &ps); GetClientRect(w, &r);
         SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, &ps.neu);   /* nur der ungueltige Teil */
+        if (ps.neu.t < LB) { char t[3]; RECT q; t[1] = ':'; t[2] = 0;   /* Laufwerksleiste, aktuelles invers */
+            for (i = 0; i < nlw; i++) { t[0] = lw[i]; schild(d, (short)(i * (ZB / 3)), 2, ZB / 3, t, lw[i] == o->pfad[0]); }
+            q = r; q.t = LB - 1; q.b = LB; SetBrush(d, C_BLACK, PAT_SOLID); FillRect(d, &q); }
         if (o->h && (e = (EINTRAG FAR *)MemLock(o->h)) != 0) {
             for (i = o->oben * o->spalten; i < o->n; i++) {
-                if (liste) { y = (i - o->oben) * (th + 2); if (y >= r.b || y >= ps.neu.b) break; if (y + th + 2 <= ps.neu.t) continue; zeile(d, y, r.r, &e[i], i == o->sel);
+                if (liste) { y = (i - o->oben) * (th + 2) + LB; if (y >= r.b || y >= ps.neu.b) break; if (y + th + 2 <= ps.neu.t) continue; zeile(d, y, r.r, &e[i], i == o->sel);
                              if ((e[i].attr & (FA_HIDDEN | FA_SYSTEM)) && i != o->sel) grau_ueber(d, 0, y, r.r, (short)(y + th + 2)); continue; }
-                x = (i % o->spalten) * ZB; y = (i / o->spalten - o->oben) * zh;
+                x = (i % o->spalten) * ZB; y = (i / o->spalten - o->oben) * zh + LB;
                 if (y >= r.b || y >= ps.neu.b) break;
                 if (y + zh <= ps.neu.t || x >= ps.neu.r || x + ZB <= ps.neu.l) continue;   /* ausserhalb: nicht zeichnen */
                 IconDraw(d, x + (ZB - 32) / 2, y + 2, inst, symbol(&e[i]));
@@ -746,6 +751,11 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         }
         EndPaint(w, &ps); return 0;
     case M_BUTTONDOWN: case M_DBLCLK:
+        if ((short)HIWORD(p2) < LB) {             /* Laufwerksleiste: Ordner wechseln, Ansicht bleibt */
+            i = (short)LOWORD(p2) / (ZB / 3);
+            if (msg == M_BUTTONDOWN && i < nlw) { o->pfad[0] = lw[i]; o->pfad[1] = ':'; o->pfad[2] = '\\'; o->pfad[3] = 0; einlesen(o); }
+            return 0;
+        }
         if ((i = treffer(o, (short)LOWORD(p2), (short)HIWORD(p2))) >= 0) {
             if (msg == M_BUTTONDOWN && (p1 & 0xFF) == 1 && !((p1 >> 8) & KS_CTRL) && o->h && (e = (EINTRAG FAR *)MemLock(o->h)) != 0) {
                 if (!e[i].mark) { short k, n = 0; for (k = 0; k < o->n; k++) { n |= e[k].mark; e[k].mark = 0; } if (n) InvalidateRect(w, 0, FALSE); }
