@@ -321,6 +321,7 @@ typedef struct {
 #define N_SELECT  2
 #define N_DBLCLK  3
 #define N_ENTER   4
+#define N_RCLICK  5                               /* LIST: rechte Maustaste (Eintrag schon gewaehlt) */
 /* Nachrichten an Steuerelemente (DlgSetText usw. benutzen sie) */
 #define C_SETTEXT  0x0340                         /* p2 = Text */
 #define C_GETTEXT  0x0341                         /* p1 = Puffergroesse, p2 = Puffer; liefert Laenge */

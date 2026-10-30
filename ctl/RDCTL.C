@@ -485,7 +485,7 @@ DWORD RDEXPORT c_List(HWND h, WORD msg, WORD p1, DWORD p2)
         SetFocus(h);
         { HDC d = GetDC(h); short hh = d ? th_(d) : 8; if (d) ReleaseDC(h, d);
           i = (WORD)(top + ((short)HIWORD(p2) - 1) / hh); }
-        if (i < n) { lwahl(h, i); if (msg == M_DBLCLK) melde(h, N_DBLCLK); }
+        if (i < n) { lwahl(h, i); if (msg == M_DBLCLK) melde(h, N_DBLCLK); else if ((p1 & 0xFF) == 2) melde(h, N_RCLICK); }
         return 0;
     }
     return DefWindowProc(h, msg, p1, p2);
@@ -617,7 +617,7 @@ static short lauf(HINST inst, const BYTE FAR *v, HWND owner, DLGPROC proc, DWORD
     st = *(const DWORD FAR *)v; q = (const short FAR *)(v + 4);
     x = q[0]; y = q[1]; w = (short)(q[2] * cw / 4); hh = (short)(q[3] * ch / 8); n = (WORD)q[4];
     titel = (LPCSTR)(v + 14);
-    dlg = CreateWindow("RDDIALOG", titel, (st & ~(WS_VISIBLE | WS_SIZE | WS_MIN)) | WS_TITLE | WS_BORDER | WS_CLOSE | WS_POPUP, 0, 0, w, hh, 0, 0, inst);
+    dlg = CreateWindow("RDDIALOG", titel, (st & ~WS_VISIBLE) | WS_TITLE | WS_BORDER | WS_CLOSE | WS_POPUP, 0, 0, w, hh, 0, 0, inst);
     if (!dlg) return -1;
     SetWindowData(dlg, 0, (DWORD)proc); SetWindowData(dlg, 1, param);
     GetWindowRect(dlg, &a); GetClientRect(dlg, &r);

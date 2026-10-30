@@ -25,11 +25,25 @@ TEXTE
   22 "Server nicht gefunden: "
   23 "Der Server hat die Verbindung beendet."
   24 "Getrennt."
+  25 "Name der neuen Textdatei:"
 ENDE
-DIALOG 10 "FTP" 0 0 316 158
+MENU 1
+  POPUP "FTP"
+    ITEM "&Kopieren\tF5"          51
+    ITEM "&L”schen\tEntf"         52
+    TRENNER
+    ITEM "Neuer &Ordner\tF7"      53
+    ITEM "Neue &Textdatei"        54
+    TRENNER
+    ITEM "&Alle markieren\tStrg+A" 56
+    ITEM "Neu &lesen\tStrg+R"     55
+  ENDE
+ENDE
+DIALOG 10 "FTP" 0 0 316 158 WS_MIN WS_SIZE
   STATIC   ""            30   4   2 150 10
   STATIC   ""            31 162   2 150 10
-  LIST                   40   4  13 150 110 WS_VSCROLL
+  STATIC   ""            33   4  13 150 11
+  LIST                   40   4  25 150  98 WS_VSCROLL
   LIST                   41 162  13 150 110 WS_VSCROLL
   STATIC   ""            32   4 127 308 10
   BUTTON   "&Verbinden"   50   4 140  60 14
@@ -64,11 +78,25 @@ TEXTE
   22 "Server not found: "
   23 "The server closed the connection."
   24 "Disconnected."
+  25 "Name of the new text file:"
 ENDE
-DIALOG 10 "FTP" 0 0 316 158
+MENU 1
+  POPUP "FTP"
+    ITEM "&Copy\tF5"              51
+    ITEM "&Delete\tDel"           52
+    TRENNER
+    ITEM "New &folder\tF7"        53
+    ITEM "New &text file"         54
+    TRENNER
+    ITEM "Select &all\tCtrl+A"    56
+    ITEM "&Refresh\tCtrl+R"       55
+  ENDE
+ENDE
+DIALOG 10 "FTP" 0 0 316 158 WS_MIN WS_SIZE
   STATIC   ""            30   4   2 150 10
   STATIC   ""            31 162   2 150 10
-  LIST                   40   4  13 150 110 WS_VSCROLL
+  STATIC   ""            33   4  13 150 11
+  LIST                   40   4  25 150  98 WS_VSCROLL
   LIST                   41 162  13 150 110 WS_VSCROLL
   STATIC   ""            32   4 127 308 10
   BUTTON   "&Connect"   50   4 140  60 14
