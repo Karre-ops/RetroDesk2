@@ -10,7 +10,7 @@ A:\RD2\RD.EXE /VGA A:\RD2\RECHNER.EXE T
 A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RECHNER.EXE T
 A:\FDAPM.COM POWEROFF
 AE
-bash tools/mkdisk.sh $IMG obj/ae_rechner.txt
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_rechner.txt
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/rechner?_*.ppm
 timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
