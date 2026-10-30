@@ -1,0 +1,103 @@
+; Ressourcen fuer RDZIP.EXE
+SPRACHE DE
+TEXTE
+  1 "ZIP"
+  10 " Dateien, "
+  11 " Bytes, gepackt "
+  12 " Bytes"
+  20 "Datei nicht gefunden: "
+  21 "Kein ZIP-Archiv oder Archiv beschÑdigt."
+  22 "Zu viele EintrÑge (hîchstens 256)."
+  30 "Entpacke "
+  31 "VerschlÅsselt (nicht unterstÅtzt): "
+  32 "Packart nicht unterstÅtzt: "
+  33 " gibt es schon. öberschreiben?"
+  34 "Kann nicht anlegen: "
+  35 "PrÅfe "
+  36 "Schreiben fehlgeschlagen (DatentrÑger voll?): "
+  37 "Daten fehlerhaft (CRC): "
+  38 "Entpacken nach:"
+  39 "Zu wenig Speicher."
+  40 "Abgebrochen."
+  41 " Dateien in Ordnung"
+  42 " Dateien entpackt"
+  43 " Fehler"
+  44 "Packe "
+  50 "Neues Archiv"
+  51 "Archiv ôffnen"
+  52 "ZIP-Archive|*.ZIP|Alle|*.*|"
+  53 "Ordner dazupacken:"
+  54 "Datei dazupacken"
+  55 "Alle|*.*|"
+  56 "Packen in Archiv:"
+  57 " Dateien in "
+ENDE
+MENU 1
+  POPUP "&Archiv"
+    ITEM "&Neu...\tStrg+N"          101
+    ITEM "ô&ffnen...\tStrg+O"       102
+    TRENNER
+    ITEM "&Beenden"                 109
+  ENDE
+  POPUP "&Dateien"
+    ITEM "&Entpacken...\tF5"        112
+    ITEM "&Alle entpacken..."       111
+    ITEM "&PrÅfen"                  115
+    TRENNER
+    ITEM "Datei &dazupacken..."     113
+    ITEM "&Ordner dazupacken..."    114
+    TRENNER
+    ITEM "Alle &markieren\tStrg+A"  116
+  ENDE
+ENDE
+SPRACHE EN
+TEXTE
+  1 "ZIP"
+  10 " files, "
+  11 " bytes, packed "
+  12 " bytes"
+  20 "File not found: "
+  21 "Not a ZIP archive or archive damaged."
+  22 "Too many entries (at most 256)."
+  30 "Extracting "
+  31 "Encrypted (not supported): "
+  32 "Method not supported: "
+  33 " exists. Overwrite?"
+  34 "Cannot create: "
+  35 "Testing "
+  36 "Write failed (disk full?): "
+  37 "Data corrupt (CRC): "
+  38 "Extract to:"
+  39 "Not enough memory."
+  40 "Cancelled."
+  41 " files OK"
+  42 " files extracted"
+  43 " errors"
+  44 "Packing "
+  50 "New archive"
+  51 "Open archive"
+  52 "ZIP archives|*.ZIP|All|*.*|"
+  53 "Add folder:"
+  54 "Add file"
+  55 "All|*.*|"
+  56 "Pack into archive:"
+  57 " files in "
+ENDE
+MENU 1
+  POPUP "&Archive"
+    ITEM "&New...\tCtrl+N"          101
+    ITEM "&Open...\tCtrl+O"         102
+    TRENNER
+    ITEM "E&xit"                    109
+  ENDE
+  POPUP "&Files"
+    ITEM "&Extract...\tF5"          112
+    ITEM "Extract &all..."          111
+    ITEM "&Test"                    115
+    TRENNER
+    ITEM "Add &file..."             113
+    ITEM "Add f&older..."           114
+    TRENNER
+    ITEM "&Mark all\tCtrl+A"        116
+  ENDE
+ENDE

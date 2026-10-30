@@ -32,6 +32,7 @@
 #define CM_PDESK  112                             /* Ordner: Programm auf den Schreibtisch */
 #define CM_FEIG   113                             /* Datei-Eigenschaften (Alt+Eingabe) */
 #define CM_SUCH   114                             /* Dateien suchen ab dem Ordner (Strg+F) */
+#define CM_ZIP    115                             /* 115 hier entpacken, 116 entpacken nach, 117 packen (RDZIP.EXE) */
 #define CM_LSUCH  304                             /* Dateien suchen auf dem Laufwerk */
 #define CM_DKOP   305                             /* Diskette kopieren (DKOPIE.EXE) */
 #define CM_PRUEF  306                             /* Datentraeger pruefen (DPRUEF.EXE X:) */
@@ -224,6 +225,9 @@ static void starten(LPCSTR p)
     {   static const char tx[] = "TXT\0INI\0DOC\0NFO\0DIZ\0LOG\0";   /* Textdateien: RDEDIT (Programmdiskette), sonst Notizblock */
         char n[80]; WORD i;
         for (i = 0; i < sizeof tx - 1; i += 4) if (endung(p, tx + i) && ((werkzeug(n, "RDEDIT.EXE") && TaskExec(n, p, SW_SHOW)) || (werkzeug(n, "NOTIZ.EXE") && TaskExec(n, p, SW_SHOW)))) return; }
+    {   static const char zu[] = "ZIPRDZIP.EXE\0BMPRDBILD.EXE\0PCXRDBILD.EXE\0GIFRDBILD.EXE\0JPGRDBILD.EXE\0";   /* Dateizuordnung: Endung, Programm */
+        char n[80]; WORD i;
+        for (i = 0; i < sizeof zu - 1; i += slen(zu + i) + 1) if (endung(p, zu + i) && werkzeug(n, zu + i + 3) && TaskExec(n, p, SW_SHOW)) return; }
     if (endung(p, "EXE") && TaskExec(p, "", SW_SHOW)) return;
     dos = !endung(p, "EXE") || LastError() == RD_ERR_FORMAT;   /* merken: sta_schreiben aendert LastError */
     if (dos) sta_schreiben();                     /* vor RunDos (Diskettenbetrieb: Neustart) */
@@ -255,6 +259,19 @@ static void oeffnen(ORDNER *o)
     }
     scpy(buf, o->pfad, sizeof buf); scat(buf, n, sizeof buf);
     starten(buf);
+}
+static void zip(ORDNER *o, WORD art)              /* RDZIP: 0 hier entpacken, 1 entpacken nach (fragt RDZIP), 2 Auswahl packen */
+{
+    EINTRAG FAR *e; char n[80], c[128]; short i, mk = 0;
+    if (o->sel < 0 || !werkzeug(n, "RDZIP.EXE") || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
+    scpy(c, art == 2 ? "/N " : "/X ", sizeof c); scat(c, o->pfad, sizeof c);
+    if (art == 2) {
+        for (i = 0; i < o->n; i++) mk |= e[i].mark;
+        for (i = 0; i < o->n; i++) if ((mk ? e[i].mark : i == o->sel) && e[i].name[0] != '.') { scat(c, " ", sizeof c); scat(c, e[i].name, sizeof c); }
+    } else if (endung(e[o->sel].name, "ZIP")) { scat(c, e[o->sel].name, sizeof c); if (!art) { scat(c, " ", sizeof c); scat(c, o->pfad, sizeof c); } }
+    else c[0] = 0;
+    MemUnlock(o->h);
+    if (c[0]) TaskExec(n, c, SW_SHOW);
 }
 static void hoch(ORDNER *o)
 {
@@ -762,6 +779,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_UMBEN) umbenennen(o);
         else if (p1 == CM_FEIG) eigenschaften(o);
         else if (p1 == CM_SUCH) suchen(o->pfad);
+        else if (p1 >= CM_ZIP && p1 <= CM_ZIP + 2) zip(o, (WORD)(p1 - CM_ZIP));
         else if (p1 == CM_MKDIR) neuer_ordner(o);
         else if (p1 == CM_LOESCH) loeschen(o);
         else if (p1 == CM_ANHEFT || p1 == CM_PDESK) anheften(o, p1 == CM_PDESK);

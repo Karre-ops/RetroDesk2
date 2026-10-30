@@ -29,6 +29,9 @@ MENU 2
     ITEM "&L”schen\tEntf"       108
     ITEM "&Eigenschaften...\tAlt+Eingabe" 113
     ITEM "Su&chen...\tStrg+F"   114
+    ITEM "Hier entp&acken"      115
+    ITEM "Ent&packen nach..."   116
+    ITEM "&ZIP packen..."       117
     ITEM "An&heften/L”sen"      109
     ITEM "Auf den Schreib&tisch" 112
     TRENNER
@@ -173,6 +176,9 @@ MENU 2
     ITEM "&Delete\tDel"         108
     ITEM "Propert&ies...\tAlt+Enter" 113
     ITEM "&Search...\tCtrl+F"   114
+    ITEM "Extract &here"        115
+    ITEM "Extract &to..."       116
+    ITEM "&ZIP pack..."         117
     ITEM "&Pin/unpin"           109
     ITEM "On the des&ktop"      112
     TRENNER

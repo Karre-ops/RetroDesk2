@@ -125,8 +125,8 @@ static int weiterkey(HWND h, WORD k, DWORD p2, WORD pfeile)
 {
     HWND p;
     if (k == K_TAB || k == K_ENTER || k == K_ESC || (HIWORD(p2) & KS_ALT) ||
-        (pfeile && (k == K_UP || k == K_DOWN || k == K_LEFT || k == K_RIGHT))) {
-        if ((p = GetParent(h)) != 0 && TYP(p) == T_DLG) { SendMessage(p, M_KEY, k, p2); return 1; }
+        ((pfeile & 1) && (k == K_UP || k == K_DOWN || k == K_LEFT || k == K_RIGHT))) {
+        if ((p = GetParent(h)) != 0 && (TYP(p) == T_DLG || (pfeile & 2))) { SendMessage(p, M_KEY, k, p2); return 1; }   /* 2: LIST auch in normalen Fenstern (RDZIP) */
     }
     return 0;
 }
@@ -458,7 +458,7 @@ DWORD RDEXPORT c_List(HWND h, WORD msg, WORD p1, DWORD p2)
         SetWindowData(h, 1, MAKELONG(sel, top)); lsicht(h, 0xFFFF); SetWindowData(h, 1, MAKELONG(sel, HIWORD(GetWindowData(h, 1)))); neu(h);
         return 0;
     case M_KEY:
-        if (weiterkey(h, p1, p2, 0)) return 0;
+        if (weiterkey(h, p1, p2, 2)) return 0;
         z = lzeilen(h);
         switch (p1) {
         case K_UP: lwahl(h, sel == 0xFFFF ? 0 : sel ? sel - 1 : 0); break;
@@ -468,7 +468,7 @@ DWORD RDEXPORT c_List(HWND h, WORD msg, WORD p1, DWORD p2)
         case K_PGUP: lwahl(h, sel == 0xFFFF || sel < (WORD)z ? 0 : sel - z); break;
         case K_PGDN: lwahl(h, sel == 0xFFFF ? 0 : sel + z); break;
         default:                                  /* F-Tasten, Leertaste, Strg+Buchstabe, Einfg/Entf: an den Dialog (RDFTP) */
-            if ((p1 >= 0x100 || p1 <= ' ') && GetParent(h) && TYP(GetParent(h)) == T_DLG) SendMessage(GetParent(h), M_KEY, p1, p2);
+            if ((p1 >= 0x100 || p1 <= ' ') && GetParent(h)) SendMessage(GetParent(h), M_KEY, p1, p2);
         }
         return 0;
     case M_CHAR:                                  /* Buchstabe: naechster Eintrag damit */
