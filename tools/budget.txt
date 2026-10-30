@@ -32,7 +32,7 @@ SVGA16.DRV      6144    6   P  VESA 800x600 16 Farben, Modus 102h (30.10.)
 MCGA.DRV        6144    6   P  MCGA/VGA 320x200 256 Farben, Modus 13h (30.10.)
 VESA800.DRV     6144    7   P  VESA 800x600 256 Farben, Modus 103h (30.10.)
 VESA1024.DRV    6144    7   P  VESA 1024x768 256 Farben, Modus 105h (30.10.)
-CGA4.DRV        4096    4   P  CGA 320x200 4 Farben, Modus 4, schlicht in C (30.10.)
+CGA4.DRV        5120    6.5 P  CGA 320x200 4 Farben, Modus 4, byteweise mit Tabellen und Assembler-Schleifen, 1,7 KB Tabellen (30.10.)
 VESA.DRV         6144    6   P  VESA 640x480 256 Farben, Modus 101h, Bankumschaltung (Punkt 9, 27.10.)
 FARBSYM.DAT      4096    0   P  farbige Symbole (16 Farben, Maske) fuer SHELL, nur bei buntem Schirm; fehlt sie: S/W
 VGAM.DRV         5120    5   S
