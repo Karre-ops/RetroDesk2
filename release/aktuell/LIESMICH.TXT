@@ -1,5 +1,13 @@
-RetroDesk 2.0 - Release-Dateien
-================================
+RetroDesk 2 - Entwicklungsstand 31.10.2026 (nach Release 2.0, Commit siehe GitHub)
+==================================================================================
+
+Neu gegenueber 2.0: RDZIP.EXE (ZIP ansehen, entpacken, pruefen, packen; Shell:
+Doppelklick auf .ZIP, Datei-Menue/Rechtsklick "Hier entpacken", "Entpacken nach",
+"ZIP packen"), RDBILD.EXE (Bildbetrachter BMP, PCX, GIF, JPEG; Doppelklick auf
+Bilddateien), Kern-API 2.0 (weniger RAM; Programme aus dem 2.0-SDK neu uebersetzen),
+SHELL.EXE 4,2 KB kleiner im Speicher (SHELLX.MOD bei Bedarf). Beide neuen Programme
+liegen auf Diskette 2 und im Universalpaket.
+
 
 RD2_1.IMG  Diskette 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern, RD2, Setup)  360 KB
 RD2_2.IMG  Diskette 2 RD2 PROG (Programme, FDISK, FORMAT, Treiber)       360 KB

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installation aus einem Festplattenordner (Weg ueber RD1-FTP, 29.10.2026): release/2.0/RD2_HDD.ZIP liegt entpackt
+# Installation aus einem Festplattenordner (Weg ueber RD1-FTP, 29.10.2026): ${Z:-release/2.0}/RD2_HDD.ZIP liegt entpackt
 # in C:\RD2NEU (bestehendes DOS mit CONFIG.SYS/AUTOEXEC.BAT), RD2 wird von dort gestartet: Erster Start -> RD2SETUP,
 # "I" -> INSTALL.EXE, Ziel C:\RD2, ohne Diskettenwechsel, Fragen zu CONFIG.SYS, danach Start von C:\RD2.
 # Gestartet ueber C:\RD2NEU\RD2INST.BAT. INI=1: im Ordner liegt schon eine RD2.INI (RD2INST ruft erst RD2SETUP auf).
@@ -10,10 +10,10 @@ T() { timeout 10 python3 test/qemu/qmon.py text 2>/dev/null; }
 waitscr() { for i in $(seq ${2:-30}); do T | grep -q "$1" && return 0; sleep 1; done; return 1; }
 waitser() { for i in $(seq ${3:-60}); do [ "$(tr -d '\r' < $SER | grep -c "$1")" -ge "${2:-1}" ] && return 0; sleep 1; done; return 1; }
 for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
-[ -f release/2.0/RD2_HDD.ZIP ] || { echo "FEHLER release/2.0/RD2_HDD.ZIP fehlt"; exit 1; }
+[ -f ${Z:-release/2.0}/RD2_HDD.ZIP ] || { echo "FEHLER ${Z:-release/2.0}/RD2_HDD.ZIP fehlt"; exit 1; }
 python3 - <<'PY'
 import zipfile, shutil, os
-shutil.rmtree('obj/ihd', True); os.makedirs('obj/ihd'); zipfile.ZipFile('release/2.0/RD2_HDD.ZIP').extractall('obj/ihd')
+shutil.rmtree('obj/ihd', True); os.makedirs('obj/ihd'); zipfile.ZipFile(os.environ.get('Z', 'release/2.0') + '/RD2_HDD.ZIP').extractall('obj/ihd')
 PY
 HD=obj/ihd_hd.img; bash tools/mkhd.sh $HD >/dev/null; dd if=test/daten/mbr_rdfdisk.bin of=$HD conv=notrunc 2>/dev/null
 C="-i $HD@@32256"
