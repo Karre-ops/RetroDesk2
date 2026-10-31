@@ -1,4 +1,4 @@
-RetroDesk 2.0 - Release-Dateien
+RetroDesk 2.1 - Release-Dateien
 ================================
 
 RD2_1.IMG  Diskette 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern, RD2, Setup)  360 KB
@@ -34,3 +34,28 @@ Installation von der Festplatte (Universalpaket) auf einen Rechner mit DOS 5
 
 Zurueck zum alten Stand: CONFIG.RDA wieder in CONFIG.SYS umbenennen (von einer
 DOS-Bootdiskette aus).
+
+Neu in 2.1 (31.10.2026)
+------------------------------------------------------------------------------
+- RDZIP: ZIP-Archive ansehen, pruefen, entpacken und packen (Shell: Doppelklick,
+  Rechtsklick "Hier entpacken", "ZIP packen").
+- RDBILD: Bildbetrachter fuer BMP, PCX, GIF und JPEG (Baseline, Exif-Drehung,
+  verkleinertes Entpacken fuer den 8088).
+- Dateimanager: beide Seiten lokal oder FTP, ganze Ordner kopieren (auch zum und
+  vom FTP-Server) und loeschen, Server-IP in der Pfadzeile.
+- Tastatur: RDKEYB mit ladbaren Belegungen (*.KBD: Deutsch, US, XT / Commodore
+  PC10), Auswahl in Optionen > Tastatur und im Setup.
+- FreeCOM 0.85a (GPL) als COMMAND.COM: Beenden und Notausgang (Umschalt beim
+  Start) geben auch auf frisch mit dem FreeDOS-Kern eingerichteten Platten eine
+  DOS-Eingabe.
+- Installation: Option "C: vorher formatieren", Ablauf ohne XMS mit klarer
+  Meldung und Neustart-Frage, RD2.STA wird bei Neuinstallation geloescht.
+- RD > Beenden schliesst offene Programme nach Rueckfrage; RD.EXE startet im
+  DOS-Fenster nicht doppelt.
+- Systemklaenge wie bei RetroDesk 1 (Start, Frage, Fehler, Ende).
+- Kern-API 2.0 mit weniger Speicherbedarf (RD.EXE 2,7 KB kleiner, SHELLX.MOD).
+- Fehlerkorrekturen aus dem Code-Audit (Pfadpuffer im Kern, CONFIG.SYS-Schutz,
+  Dateimanager-Abbrueche, Datentraegerpruefung, Fenstersystem) und im Netz
+  (DNS-Antworten, Haenger bei MSS 0).
+- Schneller auf dem 8088: mehrzeiliges Textfeld, Zeilenadressen in CGA/EGA/VGA,
+  VESA-Mauszeiger.

@@ -3,8 +3,8 @@
 # Ergebnis: obj/voll/<name>.txt je Test, Zusammenfassung obj/voll/ERGEBNIS.txt
 cd "$(dirname "$0")/.."
 mkdir -p obj/voll; [ -n "$1" ] || : > obj/voll/ERGEBNIS.txt   # $1: ab diesem Test weitermachen
-# bootlw braucht obj/inst_hd.img aus install.sh: laeuft direkt danach
-LISTE=$(ls test/*.sh | grep -v '/bootlw.sh$' | sed 's|test/install.sh|test/install.sh test/bootlw.sh|')
+# bootlw braucht obj/inst_hd.img aus install.sh, dosshell obj/ifmt_hd.img aus install_fmt.sh: laufen direkt danach
+LISTE=$(ls test/*.sh | grep -v '/bootlw.sh$\|/dosshell.sh$' | sed 's|test/install.sh|test/install.sh test/bootlw.sh|; s|test/install_fmt.sh|test/install_fmt.sh test/dosshell.sh|')
 for t in $LISTE; do
     n=$(basename $t .sh)
     [ -n "$1" ] && [[ "$n" < "$1" ]] && [ "$n" != bootlw ] && continue

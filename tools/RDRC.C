@@ -409,14 +409,14 @@ static void hilfe(void)
            "RDRC QUELLE.RC PROG.EXE \"Name\" [/T:P|M|D] [/S:Stapel] [/K:KB] [/V:Version] [/A:API] [/F:Flags] [/PAS]\n"
            "RDRC - PROG.EXE \"Name\" ...   (ohne Ressourcen)\n\n"
            "Uebersetzt QUELLE.RC und haengt RD2-Block und Ressourcen an PROG.EXE an.\n"
-           "Vorgaben: /T:P /S:4096 /K:0 /V:0x0100 /A:0x0100 /F:0. Name hoechstens 15 Zeichen.\n"
+           "Vorgaben: /T:P /S:4096 /K:0 /V:0x0100 /A:0x0200 /F:0. Name hoechstens 15 Zeichen.\n"
            "/PAS: Pascal-Programm (Turbo Pascal, Free Pascal mit Unit RD2): Vorspann davor.\n");
     exit(1);
 }
 
 int main(int argc, char **argv)
 {
-    char typ = 'P'; int pas = 0; D api = 0x100, flags = 0, stack = 4096, kb = 0, ver = 0x100;
+    char typ = 'P'; int pas = 0; D api = 0x200, flags = 0, stack = 4096, kb = 0, ver = 0x100;
     unsigned char kopf[28], blk[48], ab[16], kp[4096];
     char *name = 0; int i, fd; long dl, img, ende;
     W summe = 0; D pos, off;

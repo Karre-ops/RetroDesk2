@@ -584,7 +584,7 @@ static int sichtbar(WORD i) { return i != P_SB || !stricmp(p[P_KLANG].wert[p[P_K
 static void zeigen(int sel, int erst)
 {
     char z[100]; WORD i;
-    attr = 0x70; zeile(0, " RetroDesk 2.0 - Einrichtung"); attr = 0x07;
+    attr = 0x70; zeile(0, " RetroDesk 2.1 - Einrichtung"); attr = 0x07;
     zeile(1, erst ? " Erster Start: I installiert mit diesen Werten, S speichert hier."
                  : " Werte pruefen. I installiert mit diesen Werten, S speichert hier.");
     sprintf(z, " Rechner: %s, %s, DOS %d.%02d, %u KB, XMS %u KB, hoher Speicher %u KB",
