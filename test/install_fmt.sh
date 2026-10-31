@@ -25,7 +25,7 @@ timeout 330 qemu-system-i386 -m 1 -display none -no-reboot -drive file=obj/ifmt1
 QP=$!
 waitscr "Erster Start" 90 && echo "ok     Einrichtung erscheint" || { echo "FEHLER keine Einrichtung"; F=1; }
 sleep 1; Q "sendkey i"
-schritt "INSTALL: Start" "Installation offen" && { sleep 3; Q "sendkey alt-f"; sleep 1; Q "screendump obj/ifmt_dialog.ppm"; Q "sendkey ret"; }
+schritt "INSTALL: Start" "Installation offen" && { sleep 6; Q "sendkey alt-f"; sleep 1; Q "screendump obj/ifmt_dialog.ppm"; Q "sendkey ret"; }
 schritt "INSTALL: Frage" "Warnung vor dem Formatieren" && { sleep 1; Q "sendkey ret"; }
 schritt "Diskette 2 (RD2" "Diskette 2 fuer RDFORMAT" && { Q "change floppy0 obj/ifmt2.img"; sleep 2; Q "sendkey ret"; }
 schritt "RDFORMAT: bereit" "RDFORMAT startet fuer C:" && { sleep 2; Q "sendkey ret"; }
@@ -36,7 +36,7 @@ schritt "INSTALL: formatiert" "Installer sieht leere Platte"
 for d in 2 3; do schritt "Diskette $d (RD2" "Diskette $d" $([ $d = 2 ] && echo 2 || echo 1) && { Q "change floppy0 obj/ifmt$d.img"; sleep 2; Q "sendkey ret"; }; done
 schritt "Diskette 1 (RD2SYSTEM)" "Diskette 1 wieder" 2 && { Q "change floppy0 obj/ifmt1.img"; sleep 2; Q "sendkey ret"; }
 waitser "startf" 1 60 && { sleep 1; Q "sendkey ret"; }
-waitser "ist installiert" 1 60 && { sleep 1; Q "sendkey ret"; }
+waitser "Diskette 1 drin lassen" 1 60 && { sleep 1; Q "sendkey ret"; }
 schritt "SHELL: bereit" "RDSYS gelaufen, RD2 wieder da" 2 90
 sleep 2; Q quit; wait $QP 2>/dev/null
 P=$HD@@32256

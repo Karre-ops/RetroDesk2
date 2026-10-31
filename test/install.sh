@@ -51,7 +51,7 @@ waitser "INSTALL: Dateien" 1 60 && echo "       $(tr -d '\r' < $SER | grep "INST
 grep -q "INSTALL: Fehler 0x00000000" <(tr -d '\r' < $SER) && echo "ok     Kopieren ohne Fehler" || { echo "FEHLER beim Kopieren"; F=1; }
 if [ $FALL = 1 ]; then
   waitser "startf" 1 30 && { sleep 1; Q "sendkey ret"; }
-  waitser "ist installiert" 1 60 && { sleep 1; Q "sendkey ret"; }
+  waitser "Diskette 1 drin lassen" 1 60 && { sleep 1; Q "sendkey ret"; }
   waitser "SHELL: bereit" 2 90 && echo "ok     RDSYS gelaufen, RD2 wieder da" || { echo "FEHLER kein Neustart von RD2 nach RDSYS"; F=1; }
 else
   waitser "ist installiert" 1 60 && { echo "ok     fertig ohne SYS (Platte hat schon ein System)"; sleep 1; Q "sendkey ret"; } || { echo "FEHLER keine Fertigmeldung"; F=1; }
