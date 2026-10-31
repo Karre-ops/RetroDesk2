@@ -1,4 +1,4 @@
-/* HTRON.C - H-Tron fuer RetroDesk 2 (Open Watcom, Modell Medium, 8086)
+/* RDTRON.C (RDTRON.EXE) - H-Tron fuer RetroDesk 2 (Open Watcom, Modell Medium, 8086)
  *
  * Nach H-TRON von RobertK (2016, Hercules, Turbo C) und der CGA/EGA/VGA/GEM-Fassung von
  * MRalser (2026, https://github.com/marralser/H-TRON). Spielregeln, Spielfeld-Logik und
@@ -15,7 +15,7 @@
  * Runde starten, P: Pause, Esc: Spiel abbrechen (im Titelbild: beenden), F2: neues Spiel.
  *
  * Befehlszeile "T": Testlauf (Demo bis 5 Punkte, schnell, Meldungen per DbgPrint, Exitcode
- * = Punkte Spieler 1 * 16 + Punkte Spieler 2). test/htron.sh */
+ * = Punkte Spieler 1 * 16 + Punkte Spieler 2). test/rdtron.sh */
 #include "RD2.H"
 
 #define MAXC 100
