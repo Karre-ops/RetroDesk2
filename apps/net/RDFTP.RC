@@ -30,6 +30,8 @@ TEXTE
   27 "Kopiert: "
   28 "Zu viele Eintr„ge, nicht alles kopiert."
   29 " Datei(en)"
+  30 " KB/s"
+  31 " Bytes"
 ENDE
 MENU 1
   POPUP "FTP"

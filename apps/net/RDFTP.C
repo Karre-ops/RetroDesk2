@@ -41,7 +41,7 @@ enum { O_LIST = 1, O_RETR, O_STOR };
 static HINST hi; static HWND dl; static BYTE test, phase, op, z226, dzu, pumpen, ende_f, stapel, lauf, autov; static WORD nw;
 static HSOCK hc, hd; static DWORD sip; static WORD sport;
 static char srv[40], user[24], pass[24], pf[2][80], rp[128], zb[260], cmdb[160], dname[100], status[80];
-static WORD zl, ne[2], rzl, qi, leer, cw0, ch0; static short fh = -1, bw, bx0[27]; static DWORD xbytes, xgesamt;
+static WORD zl, ne[2], rzl, qi, leer, cw0, ch0; static short fh = -1, bw, bx0[27]; static DWORD xbytes, xgesamt, t0, tz, jt0, jsum;
 static HMEM hm; static ENT FAR *e[2]; static char FAR *xb; static WORD xn, xo; static HMENU pm;   /* stapel: 1 laden, 2 senden, 3 Server loeschen */
 static const BYTE lid[NLID] = { ID_HIER, ID_DORT, ID_LEISTE, ID_LEISTE2, ID_LL, ID_LR, ID_STAT, ID_VERB, ID_KOPIE, ID_LOESCH, ID_ORDNER, 2 };
 static RECT r0[NLID];
@@ -60,6 +60,22 @@ static void zahl(char *d, DWORD v) { char t[12]; WORD i = 0; do t[i++] = (char)(
 static void pr(LPCSTR a, LPCSTR b) { if (test) { char t[100]; scpy(t, "RDFTP: ", sizeof t); scat(t, a, sizeof t); scat(t, b, sizeof t); DbgPrint(t); } }
 static void stat(LPCSTR a, LPCSTR b) { scpy(status, a, sizeof status); scat(status, b, sizeof status); DlgSetText(dl, ID_STAT, status); }
 static void statz(WORD id, LPCSTR b) { stat(StrGet(hi, id), b); }
+static void kbs(char *d, DWORD b, DWORD ms)       /* ", 2,1 KB/s" anhaengen; ms seit Beginn */
+{
+    DWORD v; WORD l;
+    if (ms < 200) return;
+    v = b < 4000000UL ? b * 1000 / ms : b / (ms / 1000);   /* Bytes je Sekunde, ohne Ueberlauf */
+    v = v * 10 / 1024; l = slen(d); d[l++] = ' '; d[l++] = ' ';
+    zahl(d + l, v / 10); l = slen(d); d[l++] = ','; d[l++] = (char)('0' + (WORD)(v % 10)); d[l] = 0;
+    scat(d, StrGet(hi, 30), 40);
+}
+static void fortschritt(WORD id)                  /* Lade/Sende ... Bytes / gesamt  KB/s, hoechstens alle 0,5 s */
+{
+    char t[40]; DWORD j = TickCount();
+    if (j - tz < 500 && xbytes != xgesamt) return;
+    tz = j; zahl(t, xbytes); if (xgesamt) { scat(t, " / ", sizeof t); zahl(t + slen(t), xgesamt); }
+    kbs(t, xbytes, j - t0); statz(id, t);
+}
 static int vgl2(LPCSTR a, LPCSTR b, WORD l) { while (l && gr(*a) == gr(*b)) { a++; b++; l--; } return l; }
 static int vgl(LPCSTR a, LPCSTR b) { while (*a && gr(*a) == gr(*b)) { a++; b++; } return gr(*a) - gr(*b); }
 static void zeile_fmt(char *t, LPCSTR n, BYTE dir, DWORD g);
@@ -197,10 +213,12 @@ static void fertig_op(void)                       /* Datenuebertragung vorbei (2
         zahl(t, ne[1] - (slen(rp) > 1)); statz(6, t); knoepfe(); return;
     }
     zahl(t, xbytes);
-    if (jauf && op) { pr(op == O_RETR ? "geladen " : "gesendet ", t); op = 0; jz++; jlos(); return; }
+    if (jauf && op) { pr(op == O_RETR ? "geladen " : "gesendet ", t); op = 0; jz++; jsum += xbytes; jlos(); return; }
     if (op == O_STOR) { pr("gesendet ", t); statz(8, t); liste(); return; }   /* leere Textdatei (Neue Textdatei) */
 }
 static void datenende(void) { if (z226 && dzu) fertig_op(); }
+static void daten_lesen(void);
+static void daten_zu(void) { daten_lesen(); if (!hd) return; if (op == O_LIST && rzl) { rzeile[rzl] = 0; listzeile(rzeile); rzl = 0; } NetClose(hd); hd = 0; dzu = 1; datenende(); }
 static void antwort(WORD code, char *z)
 {
     char *p; WORD i, v[6];
@@ -273,7 +291,7 @@ static void daten_lesen(void)
             }
         } else if (op == O_RETR && fh >= 0) {
             if (FileWrite(fh, b, n) != n) { trennen(11, dname); return; }
-            { char t[24]; zahl(t, xbytes); if (xgesamt) { scat(t, " / ", sizeof t); zahl(t + slen(t), xgesamt); } statz(12, t); }
+            fortschritt(12);
         }
     }
 }
@@ -293,7 +311,7 @@ static void pumpe(void)                           /* STOR: Datei in den Sendepuf
         if (k == 0xFFFF) { trennen(10, ""); return; }
         if (!k) return;                           /* Puffer voll: beim naechsten Takt weiter */
         xo += k; xbytes += k; nw = 0;
-        { char t[24]; zahl(t, xbytes); scat(t, " / ", sizeof t); zahl(t + slen(t), xgesamt); statz(13, t); }
+        fortschritt(13);
     }
 }
 
@@ -430,6 +448,7 @@ static void jlos(void)                            /* naechster Auftrag; leer: fe
             if (c == 'L') { DirMake(dname); pr("Ordner ", dname); scpy(jlp, p, sizeof jlp); jlist = 1; op = O_LIST; rzl = 0; phase = F_PASV; senden("PASV", 0); knoepfe(); return; }
             if (!ueber(dname)) continue;
             if ((fh = FileCreate(dname, 0)) < 0) { statz(11, dname); continue; }
+            for (i = 0; i < ne[1]; i++) if (!e[1][i].dir && !vgl(e[1][i].n, p)) { xgesamt = e[1][i].gr; break; }   /* Groesse aus der Liste */
             pr("lade ", dname); op = O_RETR; scpy(t, p, sizeof t);
         }
         scpy(rzeile, jauf == 1 ? t : p, sizeof rzeile); if (jauf == 1) for (i = 0; rzeile[i]; i++) if (rzeile[i] == '\\') rzeile[i] = '/';
@@ -437,7 +456,11 @@ static void jlos(void)                            /* naechster Auftrag; leer: fe
         return;
     }
     i = jauf; jauf = 0; stapel = 0;
-    if (jvoll) { jvoll = 0; statz(28, ""); } else { char z[8]; zahl(z, jz); statz(27, z); scat(status, StrGet(hi, 29), sizeof status); DlgSetText(dl, ID_STAT, status); }
+    if (jvoll) { jvoll = 0; statz(28, ""); } else {
+        char z[40]; zahl(z, jz); statz(27, z); scat(status, StrGet(hi, 29), sizeof status);
+        if (jsum) { z[0] = ','; z[1] = ' '; zahl(z + 2, jsum); scat(z, StrGet(hi, 31), sizeof z); kbs(z, jsum, TickCount() - jt0); scat(status, z, sizeof status); }
+        DlgSetText(dl, ID_STAT, status);
+    }
     c = (char)wahl(ID_LL); lokal(0); SendMessage(DlgItem(dl, ID_LL), L_SETSEL, (BYTE)c, 0);   /* Auswahl bleibt */
     if (i == 1) liste(); else { anzeigen(1, wahl(ID_LR)); knoepfe(); }   /* laden: Serverliste unveraendert */
 }
@@ -460,7 +483,7 @@ static void kopieren(void)
         lokal((BYTE)!r); anzeigen(r, s);
         return;
     }
-    jn = jp = jz = 0; jvoll = 0;                       /* Server: Auftragsliste, dann nacheinander (Ordner samt Inhalt) */
+    jn = jp = jz = 0; jvoll = 0; jsum = 0; jt0 = TickCount();                       /* Server: Auftragsliste, dann nacheinander (Ordner samt Inhalt) */
     for (i = 0; i < ne[r]; i++) if (v[i].mk) {
         scpy(n, v[i].n, sizeof n);
         if (r) jadd((char)(v[i].dir ? 'L' : 'F'), n);
@@ -611,6 +634,10 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
         return FALSE;
     case M_TIMER:
         if (p1 == 1) { pumpe(); return TRUE; }
+        if (hd && phase == F_XFER && op != O_STOR) {   /* verlorene M_NETDATA/M_NETCLOSED (volle Warteschlange): nachsehen */
+            WORD z; daten_lesen();
+            if (hd && ((z = NetState(hd)) == NS_CLOSING || z == NS_CLOSED || z == NS_ERROR)) daten_zu();
+        }
         if (phase == F_BEREIT && hc && ++leer >= 60) senden("NOOP", 0);    /* Server trennen sonst untaetige Verbindungen */
         if (phase != F_AUS && phase != F_BEREIT && ++nw > (phase == F_NETZ ? 30 : 20)) trennen(16, "");
         return TRUE;
@@ -629,7 +656,7 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
         if (p1 == hc && phase == F_VERB) { if (p2) { hc = 0; trennen(10, ""); } else { phase = F_GRUSS; nw = 0; } return TRUE; }
         if (p1 == hd && phase == F_DATEN) {
             if (p2) { hd = 0; phase = F_BEREIT; op = 0; if (fh >= 0) { FileClose(fh); fh = -1; } statz(10, ""); knoepfe(); return TRUE; }
-            phase = F_XFER;
+            phase = F_XFER; t0 = tz = TickCount();
             if (op == O_LIST) { if (jlist) senden("LIST", jlp); else senden("LIST", 0); }   /* nicht "jlist ? jlp : 0": nahe 0 wird DS:0, nicht NULL */ else senden(op == O_RETR ? "RETR" : "STOR", rzeile);
         }
         return TRUE;
@@ -638,7 +665,7 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
         return TRUE;
     case M_NETCLOSED:
         if (p1 == hc && hc) { steuer_daten(); hc = 0; trennen(23, ""); return TRUE; }
-        if (p1 == hd && hd) { daten_lesen(); if (op == O_LIST && rzl) { rzeile[rzl] = 0; listzeile(rzeile); rzl = 0; } NetClose(hd); hd = 0; dzu = 1; datenende(); }
+        if (p1 == hd && hd) daten_zu();
         return TRUE;
     case M_COMMAND:
         if (p1 == ID_LL || p1 == ID_LR) {

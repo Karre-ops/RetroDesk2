@@ -109,7 +109,7 @@ static char *ipstr(char *o, const BYTE *ip)
     }
     return o - 1;
 }
-static void post(HWND w, WORD m, WORD p1, DWORD p2) { if (w) PostMessage(w, m, p1, p2); }
+static BYTE post(HWND w, WORD m, WORD p1, DWORD p2) { return (BYTE)(w && PostMessage(w, m, p1, p2)); }   /* 0: Warteschlange voll */
 
 /* ---------------- Paketreiber ---------------- */
 /* Aufruf des Paketreibers ohne int86x (das geht im Modul mit SS != DS nicht): pushf + call far auf den Vektor */
@@ -418,12 +418,12 @@ static SOCK *neu(HWND w, BYTE udp)
     return c;
 }
 static WORD hnd(SOCK *c) { return (WORD)(c - so) + 1; }
-static void schliessen_melden(SOCK *c, WORD e) { if (!c->mfin) { c->mfin = 1; post(c->w, M_NETCLOSED, hnd(c), e); } }
+static void schliessen_melden(SOCK *c, WORD e) { if (!c->mfin && post(c->w, M_NETCLOSED, hnd(c), e)) c->mfin = 1; }   /* nicht angekommen: Takt versucht es wieder */
 static void fehl(SOCK *c, WORD e)
 {
     BYTE war = c->st;
     c->st = S_ERR;
-    if (war == S_ARP || war == S_SYN) post(c->w, M_NETCONNECT, hnd(c), e); else schliessen_melden(c, e);
+    if (war == S_ARP || war == S_SYN) { post(c->w, M_NETCONNECT, hnd(c), e); c->mfin = 1; } else schliessen_melden(c, e);
     if (c->zu) frei(c);
 }
 static void verbunden(SOCK *c)
@@ -439,7 +439,7 @@ static void rx_rein(SOCK *c, const BYTE *d, WORD k)
     else _fmemcpy(c->rx + i, d, k);
     c->rh += k;
 }
-static void melde_daten(SOCK *c) { if (!c->gem && c->rh != c->rt) { c->gem = 1; post(c->w, M_NETDATA, hnd(c), (DWORD)(WORD)(c->rh - c->rt)); } }
+static void melde_daten(SOCK *c) { if (!c->gem && c->rh != c->rt && post(c->w, M_NETDATA, hnd(c), (DWORD)(WORD)(c->rh - c->rt))) c->gem = 1; }
 static void tcp_in(const BYTE *f, const BYTE *ih, const BYTE *t, WORD n)
 {
     DWORD s, seq, ack; WORD hl, dl, i, k; BYTE fl; SOCK *c, *l = 0; const BYTE *d;
@@ -597,6 +597,7 @@ static void takt(void)
             c->w = 0; c->zu = 1;
             if (c->st == S_OPEN) { c->wfin = 1; senden(c); } else if (c->st != S_FIN) { frei(c); continue; }
         }
+        if (c->w) { melde_daten(c); if (!c->mfin && (c->rfin || c->st == S_ERR)) schliessen_melden(c, c->rfin ? 0 : RD_ERR_NET); }   /* verlorene Meldungen nachholen */
         if (c->st == S_FIN && c->una == c->end + 1) {   /* FIN bestaetigt: hoechstens 10 s auf das der Gegenseite warten */
             if (ticks() - c->tsent > 182) { c->st = S_DONE; if (c->zu) frei(c); }
             continue;
