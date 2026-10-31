@@ -33,6 +33,7 @@
 #define CM_NORMAL  121
 #define CM_SCHNELL 122
 #define CM_KLANG   130
+#define CM_MOTOR   131
 #define CM_HILFE   140
 #define CM_INFO    141
 
@@ -43,7 +44,7 @@ static BYTE feld[MAXC * MAXR];                    /* 0 frei, 1 Spieler 1, 2 Spie
 static short cols, rows, bw, bh, ox, oy, sh, cw, chh, th;
 static short px[2], py[2], pdir[2], pts[2]; static BYTE crash[2];
 static short dreh[2];                             /* gesammelte Drehungen: + links, - rechts */
-static BYTE spieler = 1, zustand = S_TITEL, klang = 1, test, wenigf, joy[2], joyalt[2];
+static BYTE spieler = 1, zustand = S_TITEL, klang = 1, motor = 1, test, wenigf, joy[2], joyalt[2];
 static WORD tempo = 50, warte;
 static COLOR farbe[4];
 static char ini[80];
@@ -190,15 +191,62 @@ static void joystick(void)
         joyalt[n] = s;
     }
 }
+/* ---- Klang: kleine Tonfolgen (MIDI-Noten, Dauer in Spieltakten) ueber SndNote, sonst SndBeep ---- */
+typedef struct { BYTE n, t; } TON;               /* n 0 = Pause, t 0 = Ende */
+static const TON t_start[] = { {72,1},{0,1},{72,1},{0,1},{84,2},{0,0} };
+static const TON t_dreh[]  = { {79,1},{0,0} };
+static const TON t_crash[] = { {64,1},{58,1},{52,1},{46,1},{40,1},{34,2},{0,1},{0,0} };
+static const TON t_beide[] = { {52,1},{40,1},{52,1},{40,1},{28,3},{0,1},{0,0} };
+static const TON t_sieg[]  = { {72,2},{76,2},{79,2},{84,5},{0,1},{0,0} };
+static const TON t_verl[]  = { {67,3},{63,3},{60,3},{55,6},{0,1},{0,0} };
+static const TON t_remis[] = { {72,2},{67,4},{0,1},{0,0} };
+static const TON *seq; static BYTE seqt, seqp, notean, mtakt;
+static WORD hz(BYTE n)
+{
+    static const WORD b[12] = { 262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494 };
+    WORD f = b[n % 12]; short o = (short)(n / 12 - 5);
+    while (o > 0) { f <<= 1; o--; }
+    while (o < 0) { f >>= 1; o++; }
+    return f;
+}
+static void ton_aus(void) { if (notean) { SndNoteOff(0); notean = 0; } }
+static void ton(BYTE n)
+{
+    ton_aus();
+    if (!n) return;
+    if (SndNote(0, n, 100) == 0) notean = 1;
+    else SndBeep(hz(n), tempo);                   /* ohne Notentreiber: Piepser so lang wie ein Takt */
+}
+static void spiele(const TON *t, BYTE prio)      /* hoehere Prioritaet unterbricht, niedrigere wartet nicht */
+{
+    if (!klang || (seq && prio < seqp)) return;
+    seq = t; seqt = 0; seqp = prio;
+}
+static void still(void) { seq = 0; ton_aus(); }
+static void klang_takt(void)
+{
+    if (!klang) return;
+    if (seq) {
+        if (seqt) { seqt--; return; }
+        if (seq->t) { ton(seq->n); seqt = (BYTE)(seq->t - 1); seq++; return; }
+        seq = 0;
+    }
+    if (zustand == S_LAUF && motor) {             /* Motor: tiefes Brummen im Wechsel, jeder zweite Takt still */
+        mtakt++;
+        if (mtakt & 1) ton((BYTE)(mtakt & 2 ? 31 : 33)); else ton_aus();
+    } else ton_aus();
+}
 static void schritt(void)                        /* ein Takt: Eingaben, Computer, MovePlayers */
 {
-    HDC d; short i;
+    HDC d; short i, altd[2];
+    altd[0] = pdir[0]; altd[1] = pdir[1];
     if (spieler >= 1) drehe(&pdir[1], dreh[1]);
     if (spieler == 2) drehe(&pdir[0], dreh[0]);
     if (spieler == 1) drehe(&pdir[1], dreh[0]);    /* ein Spieler: A/D lenken auch den Menschen */
     dreh[0] = dreh[1] = 0;
     if (spieler < 2) computer(0);
     if (spieler == 0) computer(1);
+    if ((spieler == 2 && pdir[0] != altd[0]) || (spieler && pdir[1] != altd[1])) spiele(t_dreh, 1);   /* nur Menschen klicken */
     for (i = 0; i < 2; i++) {
         short k = (short)(pdir[i] / 90);
         px[i] = (short)(px[i] + DX[k]); py[i] = (short)(py[i] + DY[k]);
@@ -212,7 +260,7 @@ static void schritt(void)                        /* ein Takt: Eingaben, Computer
     if (crash[0] || crash[1]) punkte(d);
     ReleaseDC(fe, d);
     if (crash[0] || crash[1]) {
-        if (klang) SndBeep(crash[0] && crash[1] ? 150 : 220, 200);
+        spiele(crash[0] && crash[1] ? t_beide : t_crash, 2);
         zustand = S_CRASH; warte = (WORD)(250 / tempo + 1);
         if (test) { char s[32]; s[0] = 0; scat(s, "HTRON: Runde "); zahl(s, (WORD)pts[0]); scat(s, ":"); zahl(s, (WORD)pts[1]); DbgPrint(s); }
     }
@@ -220,14 +268,15 @@ static void schritt(void)                        /* ein Takt: Eingaben, Computer
 static void takt(void)
 {
     if (zustand == S_TITEL || zustand == S_ENDE || zustand == S_WARTEN) { if (joy[0] || joy[1]) joystick(); }
+    klang_takt();
     switch (zustand) {
-    case S_WARTEN: if (!spieler && !--warte) { zustand = S_LAUF; neu_zeigen(); } break;
+    case S_WARTEN: if (!spieler && !--warte) { zustand = S_LAUF; spiele(t_start, 1); neu_zeigen(); } break;
     case S_LAUF:   if (joy[0] || joy[1]) joystick(); schritt(); break;
     case S_CRASH:
         if (--warte) break;
         if (pts[0] < SIEG && pts[1] < SIEG) { runde(); break; }
         zustand = S_ENDE; neu_zeigen();
-        if (klang) SndSystem(spieler == 1 && pts[0] > pts[1] ? "FEHLER" : "ENDE");
+        spiele(pts[0] == pts[1] ? t_remis : spieler == 1 && pts[0] > pts[1] ? t_verl : t_sieg, 3);
         if (test) { DbgPrint("HTRON: Ende"); PostMessage(fe, M_CLOSE, 0, 0); }
         break;
     }
@@ -235,12 +284,12 @@ static void takt(void)
 static void starten(void)                        /* Leertaste, Feuer, Klick */
 {
     if (zustand == S_TITEL || zustand == S_ENDE) spiel();
-    else if (zustand == S_WARTEN) { zustand = S_LAUF; neu_zeigen(); }
+    else if (zustand == S_WARTEN) { zustand = S_LAUF; spiele(t_start, 1); neu_zeigen(); }
     else if (zustand == S_PAUSE) { zustand = S_LAUF; neu_zeigen(); }
 }
 static void pause(BYTE an)
 {
-    if (an && zustand == S_LAUF) { zustand = S_PAUSE; neu_zeigen(); }
+    if (an && zustand == S_LAUF) { zustand = S_PAUSE; still(); neu_zeigen(); }
     else if (!an && zustand == S_PAUSE) { zustand = S_LAUF; neu_zeigen(); }
 }
 
@@ -249,7 +298,7 @@ static void haken(void)
 {
     MenuCheck(mn, CM_DEMO, spieler == 0); MenuCheck(mn, CM_EINS, spieler == 1); MenuCheck(mn, CM_ZWEI, spieler == 2);
     MenuCheck(mn, CM_LANGSAM, tempo == 70); MenuCheck(mn, CM_NORMAL, tempo == 50); MenuCheck(mn, CM_SCHNELL, tempo == 35);
-    MenuCheck(mn, CM_KLANG, klang);
+    MenuCheck(mn, CM_KLANG, klang); MenuCheck(mn, CM_MOTOR, motor);
 }
 static void merken(void)
 {
@@ -258,6 +307,7 @@ static void merken(void)
     s[0] = 0; zahl(s, spieler); ProfileSetStr(ini, "HTron", "Spieler", s);
     s[0] = 0; zahl(s, tempo);   ProfileSetStr(ini, "HTron", "Tempo", s);
     s[0] = 0; zahl(s, klang);   ProfileSetStr(ini, "HTron", "Klang", s);
+    s[0] = 0; zahl(s, motor);   ProfileSetStr(ini, "HTron", "Motor", s);
 }
 static void setze_tempo(WORD t) { tempo = t; TimerSet(fe, 1, test ? 20 : tempo); }
 static void befehl(WORD id)
@@ -271,7 +321,8 @@ static void befehl(WORD id)
     case CM_LANGSAM: setze_tempo(70); break;
     case CM_NORMAL:  setze_tempo(50); break;
     case CM_SCHNELL: setze_tempo(35); break;
-    case CM_KLANG: klang ^= 1; break;
+    case CM_KLANG: klang ^= 1; if (!klang) still(); break;
+    case CM_MOTOR: motor ^= 1; break;
     case CM_HILFE: pause(1); MsgBox(fe, StrGet(hi, 40), StrGet(hi, 1), MB_OK | MB_INFO); return;
     case CM_INFO:  pause(1); MsgBox(fe, StrGet(hi, 41), StrGet(hi, 1), MB_OK | MB_INFO); return;
     default: return;
@@ -307,7 +358,7 @@ static DWORD RDCALLBACK proc(HWND w, WORD msg, WORD p1, DWORD p2)
     case M_ACTIVATE: if (!p1) pause(1); break;    /* andere Fenster vorn: Pause */
     case M_SIZE: if (p1 == SIZE_MIN) pause(1); break;
     case M_COMMAND: befehl(p1); return 0;
-    case M_DESTROY: TimerKill(w, 1); PostQuit((WORD)(pts[0] * 16 + pts[1])); return 0;
+    case M_DESTROY: TimerKill(w, 1); still(); PostQuit((WORD)(pts[0] * 16 + pts[1])); return 0;
     }
     return DefWindowProc(w, msg, p1, p2);
 }
@@ -322,6 +373,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     spieler = (BYTE)ProfileGetInt(ini, "HTron", "Spieler", 1); if (spieler > 2) spieler = 1;
     tempo = (WORD)ProfileGetInt(ini, "HTron", "Tempo", 50); if (tempo != 70 && tempo != 35) tempo = 50;
     klang = (BYTE)(ProfileGetInt(ini, "HTron", "Klang", 1) != 0);
+    motor = (BYTE)(ProfileGetInt(ini, "HTron", "Motor", 1) != 0);
     if (test) { spieler = 0; klang = 0; }
     zufall = TickCount() ^ 0x5A5AUL;               /* randomize() */
 

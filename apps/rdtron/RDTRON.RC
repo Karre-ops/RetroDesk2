@@ -43,6 +43,7 @@ MENU 1
     ITEM "&Schnell"               122
     TRENNER
     ITEM "&Klang"                 130
+    ITEM "&Motorger„usch"         131
   ENDE
   POPUP "&Hilfe"
     ITEM "&Steuerung\tF1"         140
@@ -93,6 +94,7 @@ MENU 1
     ITEM "&Fast"                  122
     TRENNER
     ITEM "&Sound"                 130
+    ITEM "&Engine noise"          131
   ENDE
   POPUP "&Help"
     ITEM "&Controls\tF1"          140
