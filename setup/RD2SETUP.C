@@ -291,6 +291,7 @@ static void sbliste(void)                         /* erkannter Wert zuerst, dann
     q->n = 0; q->wert[q->n] = sbwert; q->anzeige[q->n++] = sbanz;
     for (i = 0; i < 5; i++) if (stricmp(w[i], sbwert)) { q->wert[q->n] = w[i]; q->anzeige[q->n++] = w[i]; }
 }
+#define XTKBD (!(*(unsigned char __far *)0x00400096UL & 0x10) && (*(unsigned char __far *)0xF000FFFEUL == 0xFF || *(unsigned char __far *)0xF000FFFEUL == 0xFE || *(unsigned char __far *)0xF000FFFEUL == 0xFB))
 static void vorschlag(int i)                     /* Wert aus der Erkennung */
 {
     PUNKT *q = &p[i];
@@ -303,6 +304,7 @@ static void vorschlag(int i)                     /* Wert aus der Erkennung */
     case P_XMS:    q->v = (BYTE)(xmskb >= 256 ? 3 : xmskb >= 128 ? 2 : xmskb >= 64 ? 1 : 0);
                    q->n = (BYTE)(xmskb >= 512 ? 5 : q->v + 1); break;   /* nur anbieten, was da ist */
     case P_NETZ:   q->v = (BYTE)(pkt_int != 0); break;
+    case P_TAST:   q->v = (BYTE)(XTKBD ? 2 : 0); break;   /* XT-Rechner (Modellbyte FF/FE/FB) ohne 101er-Tastatur: XT-Belegung (31.10.) */
     }
     q->erk = q->v;
 }

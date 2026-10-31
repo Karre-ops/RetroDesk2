@@ -220,7 +220,7 @@ static short config(void)                         /* 1 eingetragen (alt gesicher
     }
     cpy(z2, quelle); cat(z2, "RD2.INI");
     cpy(pf, ziel); cat(pf, "RDKEYB.COM");         /* Tastatur DE/US, gilt auch in DOS-Programmen */
-    if (!kbda && gibts(pf)) { ProfileGetStr(z2, "System", "Tastatur", "DE", w, 8); cpy(z, "INSTALL="); cat(z, pf); cat(z, " ");
+    if (!kbda && gibts(pf)) { ProfileGetStr(z2, "System", "Tastatur", (!(*(unsigned char __far *)0x00400096UL & 0x10) && (*(unsigned char __far *)0xF000FFFEUL == 0xFF || *(unsigned char __far *)0xF000FFFEUL == 0xFE || *(unsigned char __far *)0xF000FFFEUL == 0xFB)) ? "PC10" : "DE", w, 8);   /* ohne Einstellung: XT-Rechner -> XT-Belegung (31.10.) */ cpy(z, "INSTALL="); cat(z, pf); cat(z, " ");
         if (stricmp(w, "DE") && stricmp(w, "US")) { cat(z, ziel); cat(w, ".KBD"); }   /* Belegungsdatei, z. B. PC10 (31.10.) */
         cat(z, w); cat(z, "\r\n"); NEU(z); }
     ProfileGetStr(z2, "System", "Maus", "", mw, sizeof mw);
