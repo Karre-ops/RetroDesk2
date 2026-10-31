@@ -239,13 +239,15 @@ static short config(void)                         /* 1 eingetragen (alt gesicher
 }
 
 /* ---- Festplatte startfaehig: nur wenn C: kein System hat und KERNEL.SYS auf der Diskette liegt ---- */
-static BOOL sys_moeglich(void)
+static BOOL sys_moeglich(BOOL leer)               /* leer: C: wird vorher formatiert, altes System zaehlt nicht */
 {
     char p[20];
     if ((ziel[0] & 0xDF) != 'C' || (quelle[0] & 0xDF) > 'B') return FALSE;
+    if (!leer) {
     cpy(p, "C:\\KERNEL.SYS"); if (gibts(p)) return FALSE;
     cpy(p, "C:\\IO.SYS"); if (gibts(p)) return FALSE;
     cpy(p, "C:\\IBMBIO.COM"); if (gibts(p)) return FALSE;
+    }
     p[0] = quelle[0]; p[1] = ':'; p[2] = '\\'; p[3] = 0; cat(p, "KERNEL.SYS"); if (!gibts(p)) return FALSE;
     cpy(pfad, quelle); cat(pfad, "RDSYS.EXE");
     return gibts(pfad);
@@ -284,7 +286,7 @@ static void install2(void)
         DbgPrint("INSTALL: formatiert"); DlgCheck(dl, ID_SYS, 1);   /* leere Platte: FreeDOS-Kern drauf */
     }
     if (!ordner()) { meldung(7, MB_ERROR); return; }
-    sys = DlgChecked(dl, ID_SYS) && sys_moeglich();
+    sys = DlgChecked(dl, ID_SYS) && sys_moeglich(FALSE);
     EnableWindow(DlgItem(dl, ID_OK), FALSE); EnableWindow(DlgItem(dl, ID_CANCEL), FALSE);
     CursorBusy(TRUE);
     ndat = nfehl = 0; dnr = 0;
@@ -352,12 +354,17 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
         DlgCheck(d, ID_SYS, 1); DlgCheck(d, ID_CFG, 1);
         SendMessage(DlgItem(d, ID_BALKEN), C_SETRANGE, 0, 4 * TEIL);
         cpy(ziel, "C:\\RD2\\");
-        if (!sys_moeglich()) { DlgCheck(d, ID_SYS, 0); EnableWindow(DlgItem(d, ID_SYS), FALSE); }
+        if (!sys_moeglich(FALSE)) { DlgCheck(d, ID_SYS, 0); EnableWindow(DlgItem(d, ID_SYS), FALSE); }
         if ((quelle[0] & 0xDF) > 'B') EnableWindow(DlgItem(d, ID_FMT), FALSE);   /* nur beim Start von Diskette: C: ist dann frei */
         if (test && cmd_f) DlgCheck(d, ID_FMT, 1);
         textn(2);
         if (test) PostMessage(d, M_COMMAND, ID_OK, 0);
         return FALSE;
+    }
+    if (msg == M_COMMAND && p1 == ID_FMT) {        /* Formatieren an: altes System auf C: ist danach weg, Kern wieder waehlbar */
+        BOOL m = sys_moeglich((BOOL)DlgChecked(d, ID_FMT));
+        EnableWindow(DlgItem(d, ID_SYS), m); DlgCheck(d, ID_SYS, m);
+        return TRUE;
     }
     if (msg == M_COMMAND && p1 == ID_OK) { installieren(); if (test) DialogEnd(d, ID_CANCEL); return TRUE; }
     return FALSE;
