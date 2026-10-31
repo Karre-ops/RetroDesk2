@@ -77,6 +77,7 @@ TESTMOD.MOD      2048    0   T
 TESTMOD2.MOD     2048    0   T
 RDTCP.MOD       20480   22   N  TCP/IP, DHCP, DNS (Punkt 8; RDKX laedt es beim ersten NetStart; 18 -> 22 KB: Empfangsring 4 x 1518 Bytes fuer den Paketreiber)
 RDNET.EXE       24576   20   N  Netzwerk-Einstellungen: Karte, Adresse, Zeit, Dienste, Netztest (Punkt 8)
+COMMAND.COM     99328    0   N  FreeCOM 0.85a deutsch (GPL v2), unveraendert; INSTALL kopiert es nach C:\RD2, RD.EXE startet es beim Beenden (31.10.: fehlte auf frisch eingerichteten Platten)
 RDFTP.EXE       16384   20   N  FTP als zweites Dateifenster: links Platte, rechts Server (Punkt 8)
 RDIRC.EXE       12288   20   N  IRC: Verlauf 120 Zeilen, UTF-8/CP437, ZNC-Kennwort (Punkt 8)
 RDSHELL.EXE     14336   20   P  DOS-Fenster: DIR CD COPY DEL TYPE ... eingebaut, sonst RunDos (Punkt 8)

@@ -151,6 +151,8 @@ mkdir -p obj/sys; for t in 12 16; do nasm -dISFAT$t -i disk/fdsys/ disk/fdsys/bo
   python3 -c "import sys; d=open(sys.argv[1],'rb').read(); print('unsigned char %s[] = {' % sys.argv[2]); print(','.join('0x%02X' % c for c in d)); print('};')" obj/sys/fat${t}com.bin fat${t}com > obj/sys/fat${t}com.h; done
 for f in sys fdkrncfg talloc kernel/prf; do wcc -0 -ms -zp1 -os -s -zq -bt=dos -DFORSYS -i=disk/fdsys/hdr -i=obj/sys -fo=obj/sys/${f##*/}.obj disk/fdsys/$f.c >/dev/null || exit 1; done
 wlink option quiet system dos name $O/RDSYS.EXE file obj/sys/sys.obj,obj/sys/fdkrncfg.obj,obj/sys/talloc.obj,obj/sys/prf.obj >/dev/null || exit 1
+# COMMAND.COM: FreeCOM 0.85a deutsch (GPL v2) unveraendert, Diskette 3; INSTALL kopiert es nach C:\RD2 (31.10.2026)
+cp disk/freecom/COMMAND.COM $O/COMMAND.COM
 wcc -0 -ms -os -s -zq -w4 -bt=dos -fo=obj/rd2setup.obj setup/RD2SETUP.C
 wlink option quiet system dos name $O/RD2SETUP.EXE file obj/rd2setup.obj,obj/setasm.obj option map=obj/rd2setup.map >/dev/null
 # G12-Test: LEER.EXE mit Mindestzuteilung FFFFh (Bild + minalloc laeuft ueber 64K Paragraphen), muss RD_ERR_FORMAT liefern
