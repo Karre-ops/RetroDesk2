@@ -1244,6 +1244,7 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
         return 0;
     }
     if (art == 4) return frage((WORD)h, p1, (LPCSTR)p2);
+    if (art == 5) { r.l = r.t = 0; r.r = r.b = 0x7FFF; aufdecken(&r); return 0; }   /* nach RunDos: Bild neu */
     if (art != 2) return 0;
     m = (MSG FAR *)p2;
     if (!w_[0].child) return 0xFFFF;              /* noch keine Fenster: Programm bekommt alles */

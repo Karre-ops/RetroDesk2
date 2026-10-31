@@ -107,6 +107,7 @@ rein:
     rd_swaprun(seg);
     rd_timer_on(16384);
     if (k_gdipause) k_gdipause(1);
+    if (k_wnd) k_wnd(5, 0, 0, 0, 0);                /* RDUSER: Schreibtisch und Fenster neu zeichnen */
     k_pausen(1);
     r = s->err == 1 ? RD_ERR_NOMEM : s->err == 0x102 || s->err == 0x103 ? RD_ERR_NOTFOUND : s->err ? RD_ERR_NOTSUP : 0;
     n = s->exitc & 0xFF;

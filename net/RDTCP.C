@@ -491,7 +491,7 @@ static void tcp_in(const BYTE *f, const BYTE *ih, const BYTE *t, WORD n)
     }
     if (dl || (fl & F_FIN)) {
         s = c->rcv - seq;
-        if ((long)s > 0 && s < dl && !c->rfin) { d += (WORD)s; dl -= (WORD)s; seq = c->rcv; }
+        if ((long)s > 0 && s <= dl && !c->rfin) { d += (WORD)s; dl -= (WORD)s; seq = c->rcv; }   /* <=: Wiederholung Daten+FIN, Daten schon da: FIN gilt */
         if (seq == c->rcv && !c->rfin) {
             k = dl < rfrei(c) ? dl : rfrei(c);
             if (k) { rx_rein(c, d, k); c->rcv += k; melde_daten(c); }

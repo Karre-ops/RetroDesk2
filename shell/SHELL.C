@@ -234,8 +234,8 @@ static void starten(LPCSTR p)
     if (endung(p, "EXE") && TaskExec(p, "", SW_SHOW)) return;
     dos = !endung(p, "EXE") || LastError() == RD_ERR_FORMAT;   /* merken: sta_schreiben aendert LastError */
     if (dos) sta_schreiben(1);                     /* vor RunDos (Diskettenbetrieb: Neustart) */
-    if (!dos || (RunDos(p, "", RD_DOS_KEEP | RD_DOS_PAUSE) == 0xFFFF &&   /* 0xFFFF = Fehler; zurueck nur mit */
-        (LastError() != RD_ERR_NOTSUP || RunDos(p, "", RD_DOS_PAUSE) == 0xFFFF))) {   /* XMS/Platte, sonst Neustart */
+    if (!dos || (RunDos(p, "", RD_DOS_KEEP) == 0xFFFF &&   /* 0xFFFF = Fehler; zurueck nur mit */
+        (LastError() != RD_ERR_NOTSUP || RunDos(p, "", 0) == 0xFFFF))) {   /* XMS/Platte, sonst Neustart */
         char t[8];                                /* Speichermangel mit freiem Speicher melden (Checkliste 1) */
         WORD f = LastError();
         zahl(t, MemAvail(MEMA_KONV) >> 10);

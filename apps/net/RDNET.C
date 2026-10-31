@@ -493,9 +493,27 @@ static BOOL RDCALLBACK tproc(HWND d, WORD msg, WORD p1, DWORD p2)
     return FALSE;
 }
 
+static BYTE tlad(void)                            /* Treiber bei Bedarf laden; 1 = RD2 startet neu (Ende), 2 = nein/fehlgeschlagen */
+{
+    if (!pkt() && karte != K_KEIN && treiber[0]) {   /* wie RD1: Treiber bei Bedarf laden (Karsten, 29.10.2026) */
+        char z[120]; WORD n = slen(treiber);
+        if (MsgBox(0, StrGet(hi, 50), StrGet(hi, 1), MB_YESNO | MB_ASK) != ID_YES) return 2;
+        param(z, sizeof z); pr("lade Treiber: ", z);
+        if (dosexec(treiber, z[n] ? z + n + 1 : "") != 0 || !pkt()) {   /* kein Platz frei: wie bisher mit Neustart */
+            pr("live ging nicht", "");
+            if (MsgBox(0, StrGet(hi, 51), StrGet(hi, 1), MB_YESNO | MB_ASK) == ID_YES) {
+                if (MemFree(hm), hm = 0, RunDos(treiber, z[n] ? z + n + 1 : "", RD_DOS_NEU) == 0) return 1;
+                hm = MemAlloc(2L * CMAX, MEM_MOVABLE);
+            }
+            return 2;
+        }
+        pr("Treiber live geladen", "");
+    }
+    return 0;
+}
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
-    SYSINFO si; short r;
+    SYSINFO si; short r; BYTE tl;
     (void)show; hi = inst;
     KernInfo(&si); scpy(home, si.home, sizeof home); if (slen(home) && home[slen(home) - 1] != '\\') scat(home, "\\", sizeof home);
     scpy(ini, home, sizeof ini); scat(ini, "RD2.INI", sizeof ini);
@@ -504,6 +522,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     scpy(cs, ord, sizeof cs); scat(cs, "CONFIG.SYS", sizeof cs);
     hm = MemAlloc(2L * CMAX, MEM_MOVABLE);
     laden();
+    if (cmd && cmd[0] == 'L') { if (tlad() != 1 && hm) MemFree(hm); return 0; }   /* RDFTP: nur Treiber laden */
     pr("bereit", "");
     for (;;) {
         r = DialogRun(inst, (WORD)(11 + seite), 0, sproc, 0);
@@ -511,20 +530,8 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         if (r == ID_TEST || r == ID_OK) {
             if (speichern()) { MsgBox(0, StrGet(hi, 8), StrGet(hi, 1), MB_OK | MB_WARN); if (r == ID_OK) continue; }
             if (r == ID_OK) break;
-            if (!pkt() && karte != K_KEIN && treiber[0]) {   /* wie RD1: Treiber bei Bedarf laden (Karsten, 29.10.2026) */
-                char z[120]; WORD n = slen(treiber);
-                if (MsgBox(0, StrGet(hi, 50), StrGet(hi, 1), MB_YESNO | MB_ASK) != ID_YES) continue;
-                param(z, sizeof z); pr("lade Treiber: ", z);
-                if (dosexec(treiber, z[n] ? z + n + 1 : "") != 0 || !pkt()) {   /* kein Platz frei: wie bisher mit Neustart */
-                    pr("live ging nicht", "");
-                    if (MsgBox(0, StrGet(hi, 51), StrGet(hi, 1), MB_YESNO | MB_ASK) == ID_YES) {
-                        if (MemFree(hm), hm = 0, RunDos(treiber, z[n] ? z + n + 1 : "", RD_DOS_NEU) == 0) break;
-                        hm = MemAlloc(2L * CMAX, MEM_MOVABLE);
-                    }
-                    continue;
-                }
-                pr("Treiber live geladen", "");
-            }
+            if ((tl = tlad()) == 1) break;
+            if (tl) continue;
             DialogRun(inst, 15, 0, tproc, 0);
             pr("Test zu", "");
             continue;

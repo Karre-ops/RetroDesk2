@@ -38,7 +38,7 @@ enum { F_AUS, F_NETZ, F_DNS, F_VERB, F_GRUSS, F_USER, F_PASS, F_TYPE, F_PWD, F_B
        F_PASV, F_DATEN, F_XFER, F_CWD, F_EINZEL, F_MKD };
 enum { O_LIST = 1, O_RETR, O_STOR };
 
-static HINST hi; static HWND dl; static BYTE test, phase, op, z226, dzu, pumpen, ende_f, stapel, lauf, autov; static WORD nw;
+static HINST hi; static HWND dl; static BYTE test, phase, op, z226, dzu, pumpen, ende_f, stapel, lauf, autov; static WORD nw; static BYTE tlad;
 static HSOCK hc, hd; static DWORD sip; static WORD sport;
 static char srv[40], user[24], pass[24], pf[2][80], rp[128], zb[260], cmdb[160], dname[100], status[80];
 static WORD zl, ne[2], rzl, qi, leer, cw0, ch0; static short fh = -1, bw, bx0[27]; static DWORD xbytes, xgesamt, t0, tz, jt0, jsum;
@@ -327,7 +327,9 @@ static void verbinden(void)
     if (!srv[0]) { MsgBox(dl, StrGet(hi, 14), StrGet(hi, 1), MB_OK | MB_INFO); return; }
     phase = F_NETZ; nw = 0; zl = 0; rp[0] = 0; knoepfe(); statz(15, srv);
     ne[1] = 0; SendMessage(DlgItem(dl, ID_LR), L_CLEAR, 0, 0); DlgSetText(dl, ID_DORT, srv); lw_zeigen(0);
-    if (NetStart(dl)) trennen(16, "");
+    if ((i = NetStart(dl)) == 0) return;
+    if (i == RD_ERR_NOTFOUND) { ini[slen(ini) - 7] = 0; scat(ini, "RDNET.EXE", sizeof ini); if (TaskExec(ini, "L", SW_SHOW)) { tlad = 1; return; } }   /* kein Paketreiber: RDNET laedt ihn, Takt versucht NetStart erneut */
+    trennen(16, "");
 }
 static void oeffnen(WORD id)
 {
@@ -634,12 +636,13 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
         return FALSE;
     case M_TIMER:
         if (p1 == 1) { pumpe(); return TRUE; }
+        if (tlad && phase == F_NETZ && !NetStart(d)) { tlad = 0; nw = 0; }   /* Treiber jetzt da: weiter wie sonst (M_NETSTATE) */
         if (hd && phase == F_XFER && op != O_STOR) {   /* verlorene M_NETDATA/M_NETCLOSED (volle Warteschlange): nachsehen */
             WORD z; daten_lesen();
             if (hd && ((z = NetState(hd)) == NS_CLOSING || z == NS_CLOSED || z == NS_ERROR)) daten_zu();
         }
         if (phase == F_BEREIT && hc && ++leer >= 60) senden("NOOP", 0);    /* Server trennen sonst untaetige Verbindungen */
-        if (phase != F_AUS && phase != F_BEREIT && ++nw > (phase == F_NETZ ? 30 : 20)) trennen(16, "");
+        if (phase != F_AUS && phase != F_BEREIT && ++nw > (phase == F_NETZ ? (tlad ? 90 : 30) : 20)) { tlad = 0; trennen(16, ""); }
         return TRUE;
     case M_NETSTATE:
         if (phase != F_NETZ) return TRUE;
