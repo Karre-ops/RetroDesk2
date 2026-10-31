@@ -18,7 +18,7 @@ TEXTE
   15 "Verbinde mit "
   16 "Kein Netz (RD > Netzwerk)."
   17 "Erst verbinden oder warten."
-  18 "Bitte eine Datei w„hlen."
+  18 "Bitte etwas ausw„hlen."
   19 "šberschreiben? "
   20 "L”schen? "
   21 "Name des neuen Ordners:"
@@ -28,6 +28,8 @@ TEXTE
   25 "Name der neuen Textdatei:"
   26 "Quelle und Ziel sind derselbe Ordner."
   27 "Kopiert: "
+  28 "Zu viele Eintr„ge, nicht alles kopiert."
+  29 " Datei(en)"
 ENDE
 MENU 1
   POPUP "FTP"
@@ -74,7 +76,7 @@ TEXTE
   15 "Connecting to "
   16 "No network (RD > Network)."
   17 "Connect first or wait."
-  18 "Please select a file."
+  18 "Please select something."
   19 "Overwrite? "
   20 "Delete? "
   21 "Name of the new folder:"
@@ -84,6 +86,8 @@ TEXTE
   25 "Name of the new text file:"
   26 "Source and target are the same folder."
   27 "Copied: "
+  28 "Too many entries, not everything copied."
+  29 " file(s)"
 ENDE
 MENU 1
   POPUP "FTP"
