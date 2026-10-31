@@ -382,8 +382,8 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     ax = GetCaps(d, CAPS_ASPX); ay = GetCaps(d, CAPS_ASPY); n = GetCaps(d, CAPS_FARBEN);
     wenigf = (BYTE)(n <= 4);
     farbe[0] = C_BLACK;
-    farbe[1] = ColorNearest(d, RGB(64, 64, 255));   /* hellblau (LIGHTBLUE), auch mit aelteren 16-Farben-Treibern */
-    farbe[2] = ColorNearest(d, RGB(255, 255, 64));  /* gelb (YELLOW) */
+    farbe[1] = RGB(64, 64, 255);                   /* direkt, nicht ColorNearest: dessen Ergebnis (85,85,255) wird beim Zeichnen wieder Weiss */   /* hellblau (LIGHTBLUE), auch mit aelteren 16-Farben-Treibern */
+    farbe[2] = RGB(255, 255, 64);  /* gelb (YELLOW) */
     farbe[3] = C_WHITE;
     if (n <= 2) farbe[1] = farbe[2] = C_WHITE;
     ReleaseDC(0, d);
