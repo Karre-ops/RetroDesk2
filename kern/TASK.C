@@ -120,6 +120,7 @@ void input_poll(void)
         if (a == 0xE0 && sc) a = 0;               /* graue Tasten der 101er-Tastatur */
         ks = (bda[0x17] & 3 ? KS_SHIFT : 0) | (bda[0x17] & (KS_CTRL | KS_ALT));
         if (ks & KS_SHIFT && !(bda[0x17] & 0x20) && sc >= 0x47 && sc <= 0x53 && sc != 0x4A && sc != 0x4E) a = 0;   /* Umschalt+Ziffernblock (XT): Pfeil statt Ziffer, fuers Markieren */
+        if (a > ' ' && (ks & KS_ALT)) ks &= ~(KS_CTRL | KS_ALT);   /* Zeichen trotz Alt: AltGr (RDKEYB Strg+Alt, rechte Alt), sonst verwerfen es die Textfelder (31.10.2026) */
         k = a ? a : 0x100 + sc;
         post_in(M_KEY, k, ((DWORD)ks << 16) | 1, 0, 0); k_ein = ms_now();
         if (a) post_in(M_CHAR, a, ((DWORD)ks << 16) | 1, 0, 0);
