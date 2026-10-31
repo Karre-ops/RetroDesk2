@@ -162,11 +162,36 @@ static void RDEXPORT x_IconColor(HDC dc, short x, short y, HBMP b, HBMP m)
 }
 /* Grafikwahl (Menue Grafik): Namen in der Reihenfolge der Kandidaten von RDGDI (kand[]) */
 static const char *const gnam[] = { "VGA", "EGA", "VESA", "Hercules", "VGA", "CGA", "EGA/VGA", "EGA", "EGA", "VGA", "EGA", "VESA", "MCGA/VGA", "VESA", "VESA", "CGA" };   /* Optionen zeigt dazu Aufloesung und Farben */
+static BYTE karte(void)                           /* Kartenklasse per BIOS: 1 CGA/MDA/HGC, 2 EGA, 3 VGA/MCGA */
+{
+    BYTE a = 0, b = 0;
+    _asm {
+        mov ax, 1A00h
+        int 10h
+        mov a, al
+        mov b, bl
+    }
+    if (a == 0x1A && b >= 7 && b != 0xFF) return 3;
+    _asm {
+        mov ah, 12h
+        mov bl, 10h
+        int 10h
+        mov b, bl
+    }
+    return (BYTE)(b != 0x10 ? 2 : 1);
+}
+static BYTE geht(WORD y, BYTE k)                  /* kann die Karte die Art ueberhaupt? sonst Treiber gar nicht laden (XT: Optionen, 31.10.2026) */
+{
+    if (y == GFX_HGC) return k < 3;
+    if (y == GFX_CGA || y == GFX_CGA4) return 1;
+    return k >= (y == GFX_EGA || y == GFX_EGA320 || y == GFX_EGAMONO || y == GFX_EGA4 || y == GFX_EGA200 ? 2 : 3);
+}
 static WORD RDEXPORT x_GfxList(GI FAR *g, GFXINFO FAR *l, WORD max)
 {
+    BYTE kk = karte();
     WORD i, n = 0, std = 0, t, f, k; GFXMODE m; const char *q; GFXINFO FAR *e;
     for (i = 0; n < max && (t = g->gfx(i, 0, 0)) != 0xFFFF; i++) {
-        if ((f = g->gfx(i, 1, (void FAR *)&m)) == 0xFFFF) continue;
+        if ((i && !geht(t, kk)) || (f = g->gfx(i, 1, (void FAR *)&m)) == 0xFFFF) continue;   /* i = 0 immer: RDGDI liest dabei RD2.INI */
         e = &l[n++];
         e->typ = t; e->w = m.w; e->h = m.h; e->farben = m.farben; e->flags = 0;
         if (f & 1) e->flags |= GI_AKTIV;
