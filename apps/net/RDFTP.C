@@ -134,7 +134,7 @@ static void sortieren(BYTE r)                     /* ".." bleibt oben, Ordner zu
 }
 static void lokal(BYTE r)                         /* Seite r: Ordner pf[r] der eigenen Platte lesen */
 {
-    FINDDATA f; char m[90], t[8]; WORD i, n = 0; DRIVEINFO di; ENT FAR *v = e[r]; char *p = pf[r];
+    FINDDATA f; char m[90], t[8]; WORD n = 0; ENT FAR *v = e[r]; char *p = pf[r];
     if (slen(p) > 3) { fcpy(v[0].n, "..", RN); v[0].dir = 1; v[0].gr = 0; n = 1; }
     scpy(m, p, sizeof m); scat(m, "*.*", sizeof m);
     if (!FileFindFirst(m, FA_DIR, &f)) do {
@@ -142,9 +142,8 @@ static void lokal(BYTE r)                         /* Seite r: Ordner pf[r] der e
         fcpy(v[n].n, f.name, 13); v[n].dir = (BYTE)((f.attr & FA_DIR) != 0); v[n].gr = f.groesse; n++;
     } while (!FileFindNext(&f));
     ne[r] = n; sortieren(r);
-    for (i = 1; i <= 26 && n < NE; i++)
-        if (!DriveInfo(i | DI_NURTYP, &di) && di.typ != DT_NONE && !(di.flags & DI_PHANTOM)) { v[n].n[0] = (char)('A' + i - 1); v[n].n[1] = 0; v[n].dir = 2; v[n].gr = 0; v[n].mk = 0; n++; }
-    ne[r] = n; anzeigen(r, 0);
+    /* Laufwerke stehen in der Leiste oben, nicht mehr am Listenende (31.10.) */
+    anzeigen(r, 0);
     DlgSetText(dl, r ? ID_DORT : ID_HIER, p);
     if (test) { zahl(t, n); pr(r ? "rlokal " : "links ", t); }
 }
@@ -180,7 +179,7 @@ static void fertig_op(void)                       /* Datenuebertragung vorbei (2
     if (fh >= 0) { FileClose(fh); fh = -1; }
     phase = F_BEREIT; pumpen = 0; TimerKill(dl, 1);
     if (op == O_LIST) {
-        op = 0; sortieren(1); anzeigen(1, 0); DlgSetText(dl, ID_DORT, rp);
+        op = 0; sortieren(1); anzeigen(1, 0); { char t2[100]; scpy(t2, srv, sizeof t2); scat(t2, ":", sizeof t2); scat(t2, rp, sizeof t2); DlgSetText(dl, ID_DORT, t2); }   /* Server (IP) vor dem Pfad */
         if (test) { for (i = 0; i < ne[1]; i++) { scpy(n, e[1][i].n, sizeof n); zeile_fmt(t, n, e[1][i].dir, e[1][i].gr); pr("  ", t); } zahl(t, ne[1]); pr("rechts ", t); }
         zahl(t, ne[1] - (slen(rp) > 1)); statz(6, t); knoepfe(); return;
     }

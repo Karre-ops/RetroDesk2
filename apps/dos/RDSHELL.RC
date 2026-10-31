@@ -1,6 +1,7 @@
 ; Ressourcen fuer RDSHELL.EXE (DOS-Fenster)
 SPRACHE DE
 TEXTE
+  41 "RetroDesk 2 l„uft schon. RD.EXE hier nicht noch einmal starten (RD > Beenden fhrt zu DOS)."
   1 "DOS-Fenster"
   2 "RetroDesk 2 DOS-Fenster. HILFE zeigt die Befehle."
   3 "Befehl oder Dateiname nicht gefunden."
@@ -52,6 +53,7 @@ MENU 1
 ENDE
 SPRACHE EN
 TEXTE
+  41 "RetroDesk 2 is already running. Do not start RD.EXE here again (RD > Exit leads to DOS)."
   1 "DOS Window"
   2 "RetroDesk 2 DOS window. HELP lists the commands."
   3 "Bad command or file name."

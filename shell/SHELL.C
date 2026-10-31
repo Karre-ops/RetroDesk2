@@ -984,7 +984,12 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         return 0;
     case M_COMMAND:
         if (p1 == CM_INFO) info();
-        else if (p1 == CM_ENDE) { char t[40]; scpy(t, StrGet(inst, 2), sizeof t); if (MsgBox(GetActive(), t, "RD", MB_YESNO | MB_ASK) == ID_YES) { sta_schreiben(); PostQuit(0); } }
+        else if (p1 == CM_ENDE) {                 /* laufen noch Programme: Hinweis, dann alle beenden (ExitRD) */
+            char t[90]; TASKINFO ti; HTASK k, me = TaskSelf(); WORD n = 0;
+            for (k = TaskFirst(&ti); k; k = TaskNext(k, &ti)) if (k != me) n++;
+            scpy(t, StrGet(inst, n ? 97 : 2), sizeof t);
+            if (MsgBox(GetActive(), t, "RD", MB_YESNO | MB_ASK) == ID_YES) { sta_schreiben(); ExitRD(0); PostQuit(0); }
+        }
         else if (p1 == CM_OEFFNEN && lsel < nlw) ordner_auf(lw[lsel], 0, 0);
         else if (p1 == CM_LWINFO && lsel < nlw) lwinfo();
         else if (p1 == CM_DKOP) { char p[80]; if (werkzeug(p, "DKOPIE.EXE")) starten(p); }

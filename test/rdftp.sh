@@ -71,7 +71,7 @@ lauf() {
   waitn "RDFTP: rlokal" 5 || return; sleep 1
   # Umschalt+F10: Menue, T = Neue Textdatei LIES
   Q "sendkey shift-f10"; sleep 1.2; Q "sendkey t"; sleep 1.5; Q "sendkey l" sleep0.15 "sendkey i" sleep0.15 "sendkey e" sleep0.15 "sendkey s" sleep0.3 "sendkey ret"
-  waitn "RDFTP: links 7" 1 || return; sleep 1
+  waitn "RDFTP: links 5" 1 || return; sleep 1
   Q "sendkey alt-v"
   waitn "RDFTP: rechts" 7 || return; sleep 2
   # Server: zwei Dateien markieren, F5 laedt beide nacheinander

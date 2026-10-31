@@ -423,7 +423,7 @@ DWORD RDEXPORT c_List(HWND h, WORD msg, WORD p1, DWORD p2)
         SetWindowData(h, 0, m); return 0;
     case M_DESTROY: if ((m = (HMEM)GetWindowData(h, 0)) != 0) { MemFree(m); SetWindowData(h, 0, 0); } return 0;
     case M_PAINT: lpaint(h); return 0;
-    case M_SIZE: lsicht(h, sel); return 0;
+    case M_SIZE: ScrollSet(h, SB_VERT, 0, 0, 0); lsicht(h, sel); return 0;   /* Balken nach MoveWindow sicher neu zeichnen */
     case M_SETFOCUS: case M_KILLFOCUS: case M_ENABLE: neu(h); return 0;
     case C_MNEMO: return 0;
     case L_ADD: return ladd(h, (LPCSTR)p2);

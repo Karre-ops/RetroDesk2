@@ -107,6 +107,7 @@ ENDE
 TEXTE
   1 "RetroDesk 2.0, API %s"
   2 "RetroDesk 2 beenden?"
+  97 "RetroDesk 2 beenden? Offene Programme werden geschlossen, ungespeicherte Žnderungen gehen verloren."
   3 "Programm konnte nicht gestartet werden:\n%s"
   4 "Laufwerk %s ist nicht bereit."
   5 "Info"
@@ -255,6 +256,7 @@ ENDE
 TEXTE
   1 "RetroDesk 2.0, API %s"
   2 "Exit RetroDesk 2?"
+  97 "Exit RetroDesk 2? Open programs will be closed, unsaved changes are lost."
   3 "Could not start program:\n%s"
   4 "Drive %s is not ready."
   5 "About"

@@ -294,6 +294,10 @@ static void dos(LPCSTR prog, LPCSTR arg)
 {
     WORD r; char t[16];
     if (test) { char s[200]; scpy(s, "RDSHELL: RunDos ", sizeof s); scat(s, prog, sizeof s); scat(s, " ", sizeof s); scat(s, arg, sizeof s); DbgPrint(s); }
+    {   LPCSTR b = prog, q;                       /* RD.EXE im laufenden RD2: zweiter Kern, nicht starten */
+        for (q = prog; *q; q++) if (*q == '\\' || *q == ':') b = q + 1;
+        if ((b[0] | 0x20) == 'r' && (b[1] | 0x20) == 'd' && (!b[2] || b[2] == '.')) { sagz(41); return; }
+    }
     DirChange(cwd);
     r = RunDos(prog, arg, RD_DOS_KEEP | RD_DOS_PAUSE);
     if (r == 0xFFFF) { r = LastError(); sagz(r == RD_ERR_NOTSUP ? 32 : r == RD_ERR_NOMEM ? 33 : 3); }
