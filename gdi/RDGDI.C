@@ -69,9 +69,9 @@ static void RDAPI m_put(short x, short y, short w, short h, const BYTE FAR *src,
     WORD sh = x & 7, nb = (sh + w + 7) >> 3, sb = (w + 7) >> 3, i;
     BYTE lm = (BYTE)(0xFF >> sh), rm = (BYTE)(0xFF << (7 - ((x + w - 1) & 7)));
     BYTE vf = (BYTE)(fg ? 0xFF : 0), vb = (BYTE)(bg ? 0xFF : 0);
+    BYTE FAR *p = MP(x, y);                       /* einmal multiplizieren, dann weiterzaehlen */
     (void)srcbpp;
-    for (; h > 0; h--, y++, src += srcbytes) {
-        BYTE FAR *p = MP(x, y);
+    for (; h > 0; h--, p += mbpr, src += srcbytes) {
         WORD acc = 0;
         for (i = 0; i < nb; i++) {
             BYTE b, m = 0xFF;
@@ -87,12 +87,11 @@ static void RDAPI m_put(short x, short y, short w, short h, const BYTE FAR *src,
 static void RDAPI m_get(short x, short y, short w, short h, BYTE FAR *dst, WORD dstbytes)
 {
     WORD sh = x & 7, sb = (w + 7) >> 3, i, last = (WORD)(((WORD)x + w - 1) >> 3);
-    BYTE rm = (BYTE)(0xFF << ((8 - (w & 7)) & 7));
-    for (; h > 0; h--, y++, dst += dstbytes) {
-        BYTE FAR *p = MP(x, y);
-        WORD b0 = (WORD)x >> 3;
+    BYTE rm = (BYTE)(0xFF << ((8 - (w & 7)) & 7)), FAR *p = MP(x, y);
+    WORD k = sh ? last - ((WORD)x >> 3) : 0;      /* so viele Bytes haben einen rechten Nachbarn */
+    for (; h > 0; h--, p += mbpr, dst += dstbytes) {
         for (i = 0; i < sb; i++)
-            dst[i] = (BYTE)((p[i] << sh) | (sh && b0 + i + 1 <= last ? p[i + 1] >> (8 - sh) : 0));
+            dst[i] = (BYTE)((p[i] << sh) | (i < k ? p[i + 1] >> (8 - sh) : 0));
         dst[sb - 1] &= rm;
     }
 }

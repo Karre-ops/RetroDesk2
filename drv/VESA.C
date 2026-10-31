@@ -58,9 +58,11 @@ void vbank(WORD dx);
 #pragma aux vbank = "mov ax,4F05h" "xor bx,bx" "push bp" "int 10h" "pop bp" parm [dx] modify [ax bx cx si di es]
 
 /* Adresse x,y: Bank schalten, Zeiger im Fenster */
+DWORD mul32(WORD a, WORD b);                       /* ein MUL 16x16 -> 32 statt Bibliotheksaufruf __U4M */
+#pragma aux mul32 = "mul dx" parm [ax] [dx] value [dx ax] modify exact [ax dx]
 static BYTE __far *va(WORD x, WORD y)
 {
-    DWORD a = (DWORD)y * bpl + x; BYTE b = (BYTE)(a >> 16);
+    DWORD a = mul32(y, bpl) + x; BYTE b = (BYTE)(a >> 16);
     if (b != bank) { bank = b; vbank((WORD)b * schritt); }
     return (BYTE __far *)MK_FP(seg, (WORD)a);
 }
@@ -265,7 +267,10 @@ static void crest(void)
 {
     WORD r, k;
     if (!c_on) return;
-    for (r = 0; r < c_h; r++) for (k = 0; k < c_w; k++) *va(c_x + k, c_y + r) = csv[r][k];
+    for (r = 0; r < c_h; r++) {                   /* Zeiger je Zeile einmal, dann weiterzaehlen (Bankgrenze beachten) */
+        BYTE __far *p = va(c_x, c_y + r);
+        for (k = 0; k < c_w; k++) { *p = csv[r][k]; if (!FP_OFF(++p) && k + 1 < c_w) p = va(c_x + k + 1, c_y + r); }
+    }
     c_on = 0;
 }
 static void RDEXPORT d_cursorhide(BOOL aus) { if (aus) crest(); }
@@ -275,13 +280,16 @@ static void RDEXPORT d_cursor(short x, short y, const BYTE FAR *mb)
     crest();
     c_x = (WORD)x; c_y = (WORD)y;
     c_h = (BYTE)(H - y < 16 ? H - y : 16); c_w = (BYTE)(W - x < 16 ? W - x : 16);
-    for (r = 0; r < c_h; r++)
+    for (r = 0; r < c_h; r++) {
+        BYTE __far *p = va(x, y + r);
         for (k = 0; k < c_w; k++) {
-            BYTE __far *p = va(x + k, y + r); BYTE m = (BYTE)(0x80 >> (k & 7));
+            BYTE m = (BYTE)(0x80 >> (k & 7));
             csv[r][k] = *p;
             if (!(mb[2 * r + (k >> 3)] & m)) *p = 0;              /* UND 0 -> schwarz */
             if (mb[32 + 2 * r + (k >> 3)] & m) *p ^= 0x0F;        /* XOR 1 -> umkehren */
+            if (!FP_OFF(++p) && k + 1 < c_w) p = va(x + k + 1, y + r);
         }
+    }
     c_on = 1;
 }
 
