@@ -330,7 +330,9 @@ static void install2(void)
         if (RunDos(pfad, t, RD_DOS_KEEP) == 0xFFFF && LastError() == RD_ERR_NOTSUP) {
             meldung(14, MB_INFO);                 /* ohne XMS: RD2 endet, RDSYS laeuft, RD2 startet neu */
             DbgPrint("INSTALL: fertig, Neustart");
+            cpy(z2, quelle); cat(z2, "RD2.INI"); ProfileSetStr(z2, "System", "Installieren", "2");   /* nach dem Neustart: Schlussmeldung */
             RunDos(pfad, t, 0);
+            ProfileSetStr(z2, "System", "Installieren", "0");
         }
     }
     DbgPrint("INSTALL: fertig");
@@ -370,6 +372,11 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     quelle[i] = 0; if (i && quelle[i - 1] != '\\') cat(quelle, "\\");
     for (puf = PUF; puf >= 8192 && !(hpu = MemAlloc(puf, 0)); puf >>= 1) ;
     if (!hpu || !(pu = (char FAR *)MemLock(hpu))) { MsgBox(0, StrGet(inst, 18), StrGet(inst, 1), MB_OK | MB_ERROR); return 1; }
+    if (cmd && cmd[0] == 'F') {                   /* RD2 kam nach RDSYS (ohne XMS) neu: Schlussmeldung, Neustart anbieten */
+        DbgPrint("INSTALL: Schluss"); DbgPrint(StrGet(inst, 24));
+        if (MsgBox(0, StrGet(inst, 24), StrGet(inst, 1), MB_YESNO | MB_ASK) == ID_YES) neustart();
+        MemUnlock(hpu); MemFree(hpu); return 0;
+    }
     DbgPrint("INSTALL: Start"); DbgPrint(quelle);
     DialogRun(inst, 10, 0, dproc, 0);
     MemUnlock(hpu); MemFree(hpu);

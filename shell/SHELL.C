@@ -1051,11 +1051,11 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     TimerSet(desk, 1, 1000); uhr(); prgladen(); sta_lesen(); mvoll = muellvoll();
     { char p[80], u[80]; if (werkzeug(p, "RD2.INI")) szeit = (WORD)ProfileGetInt(p, "Schoner", "Zeit", 300);
       if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "Netz", "Zeit", 0) && werkzeug(u, "UHR.EXE")) TaskExec(u, "N", SW_HIDE); }   /* Netzzeit beim Start */
-    { SYSINFO si; char p[80], u[80]; KernInfo(&si);   /* Menuepunkt nur von Diskette; RD2SETUP "I" startet die Installation auch aus einem Festplattenordner */
+    { SYSINFO si; char p[80], u[80]; int n; KernInfo(&si);   /* Menuepunkt nur von Diskette; RD2SETUP "I" startet die Installation auch aus einem Festplattenordner */
       MenuEnable(msys, CM_ZUB + 12, (si.home[0] | 0x20) < 'c' && werkzeug(u, "INSTALL.EXE"));
       MenuEnable(msys, CM_ZUB + 13, werkzeug(u, "RDEDIT.EXE"));     /* Editor liegt auf der Programmdiskette */
-      if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "System", "Installieren", 0) == 1 && werkzeug(u, "INSTALL.EXE"))
-          { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, "", SW_SHOW); }
+      if (werkzeug(p, "RD2.INI") && (n = ProfileGetInt(p, "System", "Installieren", 0)) >= 1 && n <= 2 && werkzeug(u, "INSTALL.EXE"))
+          { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, n == 2 ? "F" : "", SW_SHOW); }   /* 2: nach RDSYS ohne XMS nur Schlussmeldung (31.10.) */
       if (werkzeug(p, "RD2.INI") && ProfileGetStr(p, "System", "GrafikAlt", "", u, 4) && werkzeug(u, "OPTIONEN.EXE")) TaskExec(u, "B", SW_SHOW); }   /* neue Grafik: "Behalten?" */
     dbg("bereit");
     while (GetMessage(&m)) {

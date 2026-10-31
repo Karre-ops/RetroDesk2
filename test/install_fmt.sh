@@ -38,6 +38,7 @@ schritt "Diskette 1 (RD2SYSTEM)" "Diskette 1 wieder" 2 && { Q "change floppy0 ob
 waitser "startf" 1 60 && { sleep 1; Q "sendkey ret"; }
 waitser "Diskette 1 drin lassen" 1 60 && { sleep 1; Q "sendkey ret"; }
 schritt "SHELL: bereit" "RDSYS gelaufen, RD2 wieder da" 2 90
+schritt "INSTALL: Schluss" "nach dem Neustart: Schlussmeldung mit Neustart-Frage" 1 30
 sleep 2; Q quit; wait $QP 2>/dev/null
 P=$HD@@32256
 for f in KERNEL.SYS CONFIG.SYS RD2/RD.EXE RD2/SHELL.EXE RD2/RDFORMAT.EXE RD2/RDNET.EXE; do mdir -i $P ::/$f >/dev/null 2>&1 || { echo "FEHLER C:\\$f fehlt"; F=1; }; done
