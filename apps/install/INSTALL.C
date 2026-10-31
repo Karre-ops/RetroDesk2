@@ -11,12 +11,13 @@
 #define ID_ZIEL   21
 #define ID_SYS    22
 #define ID_CFG    23
+#define ID_FMT    24                              /* C: vorher formatieren (31.10.2026, Karsten) */
 #define ID_BALKEN 41
 #define ID_TEXT   42
 #define PUF 32768U                                /* 30.10.: 32 KB statt 8 KB, weniger Umdrehungen je KB auf der Diskette; sonst 16/8 KB */
 #define TEIL 1000                                 /* Balken: je Diskette 1000 Schritte */
 
-static HINST hi; static BYTE test; static HWND dl;
+static HINST hi; static BYTE test, cmd_f; static HWND dl;
 static char quelle[80], ziel[64], pfad[96], z2[96];
 static char FAR *pu; static HMEM hpu; static WORD puf;
 static DWORD gesamt, fertig; static WORD dnr, ndat, nfehl, verloren;
@@ -250,6 +251,18 @@ static BOOL sys_moeglich(void)
     return gibts(pfad);
 }
 
+static BOOL lebt(HTASK t) { TASKINFO ti; HTASK h; for (h = TaskFirst(&ti); h; h = TaskNext(h, &ti)) if (h == t) return TRUE; return FALSE; }
+static BOOL formatieren(void)                     /* C: mit RDFORMAT (Diskette 2) formatieren; TRUE = C: ist danach leer */
+{
+    HTASK t; FINDDATA fd;
+    if (!frage(StrGet(hi, 25))) return FALSE;
+    if (!einlegen("RDFORMAT.EXE", 4)) return FALSE;
+    DbgPrint("INSTALL: RDFORMAT");
+    if (!(t = TaskExec(pfad, "C:", SW_SHOW))) return FALSE;
+    while (lebt(t)) { malen(); TaskYield(); }      /* RDFORMAT fragt selbst noch einmal und zeigt den Fortschritt */
+    einlegen("RD.EXE", 6);
+    return FileFindFirst("C:\\*.*", FA_DIR | FA_HIDDEN | FA_SYSTEM | FA_RDONLY, &fd) != 0;   /* nichts mehr auf C: */
+}
 static void installieren(void)
 {
     WORD n; short c; char t[100]; BOOL sys;
@@ -257,6 +270,13 @@ static void installieren(void)
     n = (WORD)strlen(ziel); if (n && ziel[n - 1] != '\\') cat(ziel, "\\");
     if (strlen(ziel) < 4 || ziel[1] != ':' || (ziel[0] & 0xDF) < 'C') { meldung(16, MB_ERROR); return; }
     if (!stricmp(ziel, quelle)) { meldung(8, MB_ERROR); return; }
+    if (DlgChecked(dl, ID_FMT)) {
+        EnableWindow(DlgItem(dl, ID_OK), FALSE); EnableWindow(DlgItem(dl, ID_CANCEL), FALSE);
+        n = formatieren();
+        EnableWindow(DlgItem(dl, ID_OK), TRUE); EnableWindow(DlgItem(dl, ID_CANCEL), TRUE);
+        if (!n) { DbgPrint("INSTALL: nicht formatiert"); meldung(26, MB_WARN); return; }
+        DbgPrint("INSTALL: formatiert"); DlgCheck(dl, ID_SYS, 1);   /* leere Platte: FreeDOS-Kern drauf */
+    }
     if (!ordner()) { meldung(7, MB_ERROR); return; }
     sys = DlgChecked(dl, ID_SYS) && sys_moeglich();
     EnableWindow(DlgItem(dl, ID_OK), FALSE); EnableWindow(DlgItem(dl, ID_CANCEL), FALSE);
@@ -324,6 +344,8 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
         SendMessage(DlgItem(d, ID_BALKEN), C_SETRANGE, 0, 4 * TEIL);
         cpy(ziel, "C:\\RD2\\");
         if (!sys_moeglich()) { DlgCheck(d, ID_SYS, 0); EnableWindow(DlgItem(d, ID_SYS), FALSE); }
+        if ((quelle[0] & 0xDF) > 'B') EnableWindow(DlgItem(d, ID_FMT), FALSE);   /* nur beim Start von Diskette: C: ist dann frei */
+        if (test && cmd_f) DlgCheck(d, ID_FMT, 1);
         textn(2);
         if (test) PostMessage(d, M_COMMAND, ID_OK, 0);
         return FALSE;
@@ -335,7 +357,7 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
     SYSINFO si; WORD i;
-    (void)show; hi = inst; test = (BYTE)(cmd && cmd[0] == 'T');
+    (void)show; hi = inst; test = (BYTE)(cmd && cmd[0] == 'T'); cmd_f = (BYTE)(test && cmd[1] == 'F');   /* Test "TF": mit Formatieren */
     KernInfo(&si);
     for (i = 0; si.home[i] && i < 66; i++) quelle[i] = si.home[i];
     quelle[i] = 0; if (i && quelle[i - 1] != '\\') cat(quelle, "\\");

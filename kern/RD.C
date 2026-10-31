@@ -123,6 +123,7 @@ int main(void)
     h = (kr.ax = 0x6200, rd_int(0x21, &kr), kr.bx);
     if (((koop & 2) || *(WORD __far *)MK_FP(h, 0x16) == h) && !k_wseg && (h = k_stub(2)) != 0) rd_swaprun(h);
     koop &= 1;
+    if (k_wseg && (*(BYTE __far *)MK_FP(0x40, 0x17) & 3) && k_dosshell()) return 0xD5;   /* Notausgang (31.10.): Umschalt beim Start -> COMMAND.COM */
     /* Erkennung macht nur RD2SETUP: beim allerersten Start (kein RD2.INI) oder mit /SETUP */
     kr.ax = 0x4300; kr.dx = (WORD)k_hpath("RD2.INI"); kr.ds = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
     if (CARRY || i == -1) {
