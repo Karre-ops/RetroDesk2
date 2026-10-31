@@ -83,6 +83,7 @@ RDSHELL.EXE     14336   20   P  DOS-Fenster: DIR CD COPY DEL TYPE ... eingebaut,
 RDCALC.EXE      90112   80   L
 RDEDIT.EXE      65536   60   P
 RDZIP.EXE       24576   36   P  ZIP: Liste, Entpacken, Pruefen, Packen (Deflate, Fenster 8 KB); Puffer 36/68 KB nur waehrend der Arbeit (30.10.)
+RDBILD.EXE      28672   40   P  Bildbetrachter BMP/PCX/GIF/JPEG (Baseline, 1/2..1/8), Rastern, Exif-Lage; Bild in Streifen nur waehrend der Anzeige (31.10.)
 RDPRN.MOD        6144    8   P  Drucken (und HelpShow -> HILFE.EXE): Druckdialog, Baender (48 Zeilen), LPT direkt/Datei (Punkt 7; RDKX laedt es bei PrnOpen, 27.10.)
 HILFE.EXE        8192   16   P  Hilfeanzeige (F1, Punkt 10): Themen, Verweise, Zurueck; startet ueber HelpShow
 RD2.HLP         16384    0   P  Hilfetext RD2 (deutsch), Format docs/HILFE.md

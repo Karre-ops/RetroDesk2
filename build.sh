@@ -107,6 +107,8 @@ app apps/schoner/SCHONER.C SCHONER.EXE "Bildschirmschoner"
 app apps/edit/RDEDIT.C RDEDIT.EXE "Editor"
 for z in INFLATE DEFLATE CRC; do wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/zk_$z.obj apps/zip/$z.C || exit 1; done   # ZIP-Kern (auch test/zip_kern.c)
 APPOBJ=",obj/zk_INFLATE.obj,obj/zk_DEFLATE.obj,obj/zk_CRC.obj" app apps/zip/RDZIP.C RDZIP.EXE "ZIP"
+for z in BLESER JPEG; do wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/bk_$z.obj apps/bild/$z.C || exit 1; done   # Bilddecoder (auch test/bild_kern.c)
+APPOBJ=",obj/bk_BLESER.obj,obj/bk_JPEG.obj" app apps/bild/RDBILD.C RDBILD.EXE "Bild"
 # RDFORMAT: RD2-Oberflaeche + FreeDOS FORMAT 0.92a (GPL v2); FreeDOS-Dateien mit disk/fdshim.h (DOS ueber RDDISK.MOD)
 FDF="createfs floppy hdisk main savefs bcread prf userint driveio getopt init recordbc uformat msghlpr"
 for f in $FDF; do wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=disk/fdshim.h -dRD2 -dNOCATS -i=disk/fdformat -fo=obj/fdf_$f.obj disk/fdformat/$f.c || exit 1; done
