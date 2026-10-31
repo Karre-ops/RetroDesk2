@@ -1,6 +1,8 @@
 ; RDKEYB.COM - residenter Tastaturtreiber DE/US fuer RD2 und DOS-Programme (8086).
-; Aufruf: RDKEYB DE | RDKEYB US   (auch als INSTALL= in CONFIG.SYS). Ist RDKEYB schon geladen, schaltet
-; ein zweiter Aufruf nur die Belegung um. Ist ein fremder KEYB geladen, bleibt RDKEYB draussen.
+; Aufruf: RDKEYB DE | RDKEYB US | RDKEYB datei[.KBD]   (auch als INSTALL= in CONFIG.SYS). Ist RDKEYB schon geladen,
+; schaltet ein zweiter Aufruf nur die Belegung um (auch auf eine andere Datei).
+; Belegungsdatei (31.10.2026, tools/mkkbd.py): 'RDKBD',1, dann 178 Bytes = yz, tab, tab56, totab (wie unten).
+; Fehlt sie oder ist sie kaputt, bleibt die eingebaute DE-Belegung (Tastatur faellt nie aus). Ist ein fremder KEYB geladen, bleibt RDKEYB draussen.
 ; Zur Laufzeit: Strg+Alt+F1 = US, Strg+Alt+F2 = DE.
 ; Arbeitsweise: INT 9 ruft zuerst das BIOS, danach wird der neue Eintrag im BIOS-Tastaturpuffer ersetzt,
 ; entfernt (Tottaste) oder eingefuegt (Tasten, die das BIOS nicht kennt, z. B. AltGr auf dem XT, <>|).
@@ -24,6 +26,8 @@ mit4f   db 0                    ; BIOS ruft INT 15h/4Fh: Scancode von dort, Port
 letzt   db 0FFh
 alt2f   dd 0
 
+; ab hier 178 Bytes, die eine Belegungsdatei ersetzt
+yz      db 1                    ; 1: Strg/Alt+y/z tauschen (QWERTZ)
 ; DE-Tabelle ab Scancode 02h bis 35h: normal, Umschalt, AltGr. 0 = BIOS-Zeichen lassen, 1..3 = Tottaste
 tab label byte
     db 0,0,0            ; 02 1
@@ -83,6 +87,7 @@ tab56   db '<','>','|'  ; 56 <>| (102 Tasten)
 totab   db 83h,88h,8Ch,93h,96h,'^'      ; ^
         db 0A0h,82h,0A1h,0A2h,0A3h,27h  ; ´
         db 85h,8Ah,8Dh,95h,97h,'`'      ; `
+KBDLEN  equ $ - yz
 vokal   db 'aeiou'
 
 int2f:
@@ -210,6 +215,8 @@ i9_g:
 i9_h:
     test bl, 0Ch                ; Strg oder Alt: nur y/z tauschen
     jz   i9_i
+    cmp  yz, 0
+    je   fertig_j
     cmp  dl, 15h
     je   i9_yz
     cmp  dl, 2Ch
@@ -345,22 +352,105 @@ ende_res:
 install:
     push cs
     pop  ds
-    mov  si, 81h                ; Befehlszeile: DE / GR / US
-    mov  bl, 1
-suche:
+    push cs
+    pop  es
+    cld
+    mov  si, 81h                ; Befehlszeile: erstes Wort = DE / GR / US / Datei
+p_sp:
     lodsb
-    cmp  al, 0Dh
-    je   gefunden
-    and  al, 0DFh
-    cmp  al, 'U'
-    jne  suche2
+    cmp  al, ' '
+    je   p_sp
+    cmp  al, 9
+    je   p_sp
+    dec  si
+    mov  di, offset kname
+    mov  cx, 70
+    xor  dx, dx                 ; dl = Punkt gesehen
+p_cp:
+    lodsb
+    cmp  al, ' '
+    jbe  p_end
+    cmp  al, '.'
+    jne  p_cp2
+    mov  dl, 1
+p_cp2:
+    cmp  al, 'a'
+    jb   p_cp3
+    cmp  al, 'z'
+    ja   p_cp3
+    sub  al, 20h
+p_cp3:
+    stosb
+    loop p_cp
+p_end:
+    mov  byte ptr [di], 0
+    mov  bl, 1
+    mov  ax, di
+    sub  ax, offset kname
+    jz   gefunden               ; nichts angegeben: DE
+    cmp  ax, 2
+    jne  p_datei
+    mov  ax, word ptr kname
+    cmp  ax, 'SU'
+    jne  p_de
     mov  bl, 0
-    jmp  short gefunden
-suche2:
-    cmp  al, 'D'
+    jmp  gefunden
+p_de:
+    cmp  ax, 'ED'
     je   gefunden
-    cmp  al, 'G'
-    jne  suche
+    cmp  ax, 'RG'
+    je   gefunden
+p_datei:
+    or   dl, dl                 ; ohne Punkt: .KBD anhaengen
+    jnz  p_offen
+    mov  word ptr [di], 'K.'
+    mov  word ptr [di+2], 'DB'
+    mov  byte ptr [di+4], 0
+    add  di, 4
+p_offen:
+    push di
+    mov  ax, 3D00h
+    mov  dx, offset kname
+    int  21h
+    pop  di
+    jc   p_fehl
+    mov  bx, ax
+    mov  ah, 3Fh
+    mov  cx, KBDLEN + 7         ; ein Byte mehr: zu lange Datei erkennen
+    mov  dx, offset kbuf
+    int  21h
+    pushf
+    push ax
+    mov  ah, 3Eh
+    int  21h
+    pop  ax
+    popf
+    jc   p_fehl
+    cmp  ax, KBDLEN + 6
+    jne  p_fehl
+    cmp  word ptr kbuf, 'DR'
+    jne  p_fehl
+    cmp  word ptr kbuf+2, 'BK'
+    jne  p_fehl
+    cmp  word ptr kbuf+4, 0144h ; 'D', 1
+    jne  p_fehl
+    mov  si, offset kbuf + 6
+    mov  di, offset yz
+    mov  cx, KBDLEN
+    rep  movsb
+    mov  datei, 1
+    mov  bl, 1
+    jmp  short gefunden
+p_fehl:
+    mov  byte ptr [di], '$'
+    mov  dx, offset m_kfehl
+    mov  ah, 9
+    int  21h
+    mov  dx, offset kname
+    int  21h
+    mov  dx, offset m_kfehl2
+    int  21h
+    mov  bl, 1
 gefunden:
     mov  modus, bl
     push bx
@@ -379,6 +469,15 @@ gefunden:
     cmp  word ptr es:[di+2], 'BK'
     jne  fremd
     mov  es:[di+4], bl
+    or   bl, bl                 ; DE/Datei: Tabelle (eingebaut oder geladen) ins residente RDKEYB
+    jz   um_ok
+    add  di, offset yz - offset sig
+    mov  si, offset yz
+    mov  cx, KBDLEN
+    cli
+    rep  movsb
+    sti
+um_ok:
     mov  dx, offset m_um
     jmp  short meldung_ende
 fremd:
@@ -436,9 +535,25 @@ l1: mov  dx, offset int9
     int  21h
 
 meldung:
+    push cs
+    pop  es
     mov  ah, 9
     int  21h
-    mov  dx, offset m_de
+    cmp  datei, 0
+    je   m0
+    cmp  modus, 0
+    je   m0
+    mov  di, offset kname       ; Dateiname ausgeben
+    xor  al, al
+    mov  cx, 80
+    repne scasb
+    mov  byte ptr [di-1], '$'
+    mov  dx, offset kname
+    mov  ah, 9
+    int  21h
+    mov  dx, offset m_nl
+    jmp  short m1
+m0: mov  dx, offset m_de
     cmp  modus, 0
     jne  m1
     mov  dx, offset m_us
@@ -451,5 +566,11 @@ m_um    db 'RDKEYB umgeschaltet: $'
 m_fremd db 'Tastaturtreiber ist schon geladen, RDKEYB bleibt draussen. $'
 m_de    db 'DE',13,10,'$'
 m_us    db 'US',13,10,'$'
+m_nl    db 13,10,'$'
+m_kfehl db 'RDKEYB: Belegung $'
+m_kfehl2 db ' nicht lesbar, eingebaute DE-Belegung gilt.',13,10,'$'
+datei   db 0
+kname   db 80 dup (0)
+kbuf    db KBDLEN + 8 dup (0)
 _TEXT ends
 end start

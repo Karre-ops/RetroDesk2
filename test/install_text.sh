@@ -55,6 +55,8 @@ fi
 if [ "${FALL:-}" != 1 ]; then
 bash tools/mkhd.sh $HD; C="-i $HD@@32256"
 starten
+for i in 1 2 3 4 5 6 7 8 9; do $Q "sendkey down" >/dev/null 2>&1; done; $Q "sendkey left" sleep1 >/dev/null 2>&1   # Tastatur: DE -> PC10 (31.10.)
+$Q text 2>/dev/null | grep -q "Commodore PC10" && echo "ok     Setup: Tastatur Commodore PC10 waehlbar" || { echo "FEHLER Tastatur PC10 nicht im Setup"; F=1; }
 $Q "sendkey t" sleep2 "sendkey ret" >/dev/null 2>&1
 ende 2
 grep -q "Uebernehmen\|eintragen (J/N)" obj/schirm_install2.txt && { echo "FEHLER Rueckfrage bei Neuinstallation"; F=1; } || echo "ok     keine Rueckfrage"
@@ -63,7 +65,7 @@ dateien RD2
 mtype $C ::/CONFIG.SYS | tr -d '\r' > obj/inst_cs.txt
 pruef "^SHELL=C:\\\\RD2\\\\RD.EXE /P C:\\\\RD2\\\\SHELL.EXE$" "SHELL=RD.EXE /P"
 pruef "^INSTALL=C:\\\\RD2\\\\RDMAUS.COM /P$" "RDMAUS /P fuer die PS/2-Maus"
-[ "$(wc -l < obj/inst_cs.txt)" = 3 ] && grep -q "^INSTALL=C:.RD2.RDKEYB.COM DE" obj/inst_cs.txt && echo "ok     CONFIG.SYS: Shell, RDKEYB DE, CTMOUSE" || { echo "FEHLER CONFIG.SYS hat Fremdes"; cat obj/inst_cs.txt; F=1; }
+[ "$(wc -l < obj/inst_cs.txt)" = 3 ] && grep -q "^INSTALL=C:.RD2.RDKEYB.COM C:.RD2.PC10.KBD$" obj/inst_cs.txt && mdir $C ::/RD2/PC10.KBD >/dev/null 2>&1 && echo "ok     CONFIG.SYS: Shell, RDKEYB C:\\RD2\\PC10.KBD (Datei kopiert), RDMAUS" || { echo "FEHLER CONFIG.SYS hat Fremdes"; cat obj/inst_cs.txt; F=1; }
 mtype $C ::/AUTOEXEC.BAT >/dev/null 2>&1 && { echo "FEHLER AUTOEXEC.BAT angelegt"; F=1; } || echo "ok     keine AUTOEXEC.BAT"
 fi
 [ $F = 0 ] && echo "Installation: alles ok"

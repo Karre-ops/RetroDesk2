@@ -23,7 +23,7 @@ static char FAR *pu; static HMEM hpu; static WORD puf;
 static DWORD gesamt, fertig; static WORD dnr, ndat, nfehl, verloren;
 static char buf[6144], neu[6144], pathz[128];
 
-static const char *const muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", "*.COM", "*.TXT", "COPYING", 0 };
+static const char *const muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", "*.COM", "*.TXT", "*.KBD", "COPYING", 0 };
 static const char *const nicht[] = { "REM", "ECHO", "SET", "PATH", "PROMPT", "CLS", "GOTO", "IF", "CALL", "PAUSE", "FOR",
                                      "SHIFT", "VER", "CD", "CHDIR", "COMMAND", "WIN", "DOSSHELL", "EXIT", 0 };
 
@@ -220,7 +220,9 @@ static short config(void)                         /* 1 eingetragen (alt gesicher
     }
     cpy(z2, quelle); cat(z2, "RD2.INI");
     cpy(pf, ziel); cat(pf, "RDKEYB.COM");         /* Tastatur DE/US, gilt auch in DOS-Programmen */
-    if (!kbda && gibts(pf)) { ProfileGetStr(z2, "System", "Tastatur", "DE", w, 8); cpy(z, "INSTALL="); cat(z, pf); cat(z, " "); cat(z, w); cat(z, "\r\n"); NEU(z); }
+    if (!kbda && gibts(pf)) { ProfileGetStr(z2, "System", "Tastatur", "DE", w, 8); cpy(z, "INSTALL="); cat(z, pf); cat(z, " ");
+        if (stricmp(w, "DE") && stricmp(w, "US")) { cat(z, ziel); cat(w, ".KBD"); }   /* Belegungsdatei, z. B. PC10 (31.10.) */
+        cat(z, w); cat(z, "\r\n"); NEU(z); }
     ProfileGetStr(z2, "System", "Maus", "", mw, sizeof mw);
     if (!stricmp(mw, "DOS") || !mw[0]) ProfileGetStr(z2, "System", "MausHW", "", mw, sizeof mw);
     if (!mausda && stricmp(mw, "KEINE")) {        /* eigener Maustreiber RDMAUS mit dem Schalter der Auswahl */

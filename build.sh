@@ -19,7 +19,7 @@ $W -fpi87 -fo=obj/kasm.obj kern/KASM.ASM
 $W -fo=obj/swap.obj kern/SWAP.ASM
 $W -fo=obj/rdswap.obj kern/RDSWAP.ASM
 wlink option quiet format raw bin name $O/RDSWAP.BIN file obj/rdswap.obj option offset=0 2>&1 | grep -v "W1014\|W1023" || true
-(cd obj && wasm -q -0 -fo=rdkeyb.obj ../drv/RDKEYB.ASM && wlink option quiet format dos com name ../$O/RDKEYB.COM file rdkeyb.obj)   # Tastatur DE/US
+(cd obj && wasm -q -0 -fo=rdkeyb.obj ../drv/RDKEYB.ASM && wlink option quiet format dos com name ../$O/RDKEYB.COM file rdkeyb.obj) && python3 tools/mkkbd.py $O   # Tastatur DE/US, Belegungen DE/US/PC10.KBD
 (cd obj && wasm -q -0 -fo=rdmaus.obj ../drv/RDMAUS.ASM && wlink option quiet format dos com name ../$O/RDMAUS.COM file rdmaus.obj)   # Maus: Bus, InPort, PS/2, seriell
 nasm -f bin -o obj/ZTEST.COM test/dos/ZTEST.ASM   # Testprogramm fuer test/rdmaus.sh
 # Kern: Small, SS != DS (API-Aufrufe kommen mit dem Stack des Programms)

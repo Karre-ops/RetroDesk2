@@ -267,7 +267,7 @@ static PUNKT p[] = {
     { "Sound Blaster", "SB",  { 0 }, { 0 }, 0, 0, 0 },
     { "XMS-Ablage", "XMS",    { "0", "64", "128", "256", "512" }, { "aus", "64 KB", "128 KB", "256 KB", "512 KB" }, 5, 0, 0 },
     { "Netz",       "Netz",   { "KEIN", "PAKET" }, { "keins", "Paketreiber" }, 2, 0, 0 },
-    { "Tastatur",   "Tastatur", { "DE", "US" }, { "Deutsch (RDKEYB)", "US-Englisch (RDKEYB)" }, 2, 0, 0 },
+    { "Tastatur",   "Tastatur", { "DE", "US", "PC10" }, { "Deutsch (RDKEYB)", "US-Englisch (RDKEYB)", "Commodore PC10 (RDKEYB)" }, 3, 0, 0 },   /* PC10: PC10.KBD, wie aufgedruckt (31.10.) */
 };
 #define NP (sizeof p / sizeof p[0])
 enum { P_GRAFIK, P_PROFIL, P_MAUS, P_KLANG, P_SB, P_XMS, P_NETZ, P_TAST };
@@ -476,7 +476,8 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
         }
     }
     sprintf(pf, "%sRDKEYB.COM", ziel);           /* Tastatur DE/US, gilt auch in DOS-Programmen */
-    if (!kbda && gibts(pf)) { sprintf(z, "INSTALL=%s %s\r\n", pf, p[P_TAST].wert[p[P_TAST].v]); NEU(z); }
+    if (!kbda && gibts(pf)) { const char *t = p[P_TAST].wert[p[P_TAST].v];
+        if (p[P_TAST].v < 2) sprintf(z, "INSTALL=%s %s\r\n", pf, t); else sprintf(z, "INSTALL=%s %s%s.KBD\r\n", pf, ziel, t); NEU(z); }
     if (!mausda) {                                /* eigener Maustreiber RDMAUS: Schalter nach der Erkennung */
         sprintf(pf, "%sRDMAUS.COM", ziel); w[0] = 0;
         maus_auswahl();
@@ -518,7 +519,7 @@ static int startfaehig(char lw, int y)            /* Variante A: leere Platte mi
     zeile(y, e == 0 ? "Festplatte ist startfaehig (FreeDOS-Kern)." : "FEHLER: Festplatte nicht startfaehig (SYS).");
     return e == 0 ? 1 : -1;
 }
-static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", "*.COM", 0 };   /* BIN: RDSWAP.BIN, DAT: FARBSYM.DAT, HLP: Hilfe, COM: RDKEYB */
+static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", "*.COM", "*.KBD", 0 };   /* BIN: RDSWAP.BIN, DAT: FARBSYM.DAT, HLP: Hilfe, COM: RDKEYB */
 static void alle(const char *ziel, int y, int *k, int *fehl)       /* alle RD2-Dateien aus quelle nach ziel */
 {
     char von[80], nach[80], z[80]; struct find_t ft; int i;
