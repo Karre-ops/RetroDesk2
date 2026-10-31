@@ -40,8 +40,8 @@ WORD RDEXPORT ShxInfo(HINST inst, LPSTR a, LPSTR b, WORD w)
     scat(buf, StrGet(inst, 24), sizeof buf); zahl(t, (WORD)(MemAvail(MEMA_KONV) >> 10)); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf);
     if (si.kb_ext) { scat(buf, " + XMS ", sizeof buf); zahl(t, si.kb_ext); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf); }
     scat(buf, "\nDOS ", sizeof buf); p = zahl(t, si.dos >> 8); *p++ = '.'; zahl(p, si.dos & 0xFF); scat(buf, t, sizeof buf);
-    {   GFXINFO gl[17]; WORD n = GfxList(gl, 17), k, g = si.grafik;   /* laufende Grafikart (RDGDI), nicht nur der Startschalter */
-        for (k = 0; k < n; k++) if (gl[k].flags & GI_AKTIV) g = gl[k].typ;
+    {   HDC d = GetDC(0); WORD g = (WORD)GetCaps(d, CAPS_GFX);   /* laufende Grafikart (RDGDI); keine GfxList-Tabelle auf dem Stapel (408 Bytes, ueberlief ihn: Reste nach Info) */
+        ReleaseDC(0, d); if (!g) g = si.grafik;
         scat(buf, StrGet(inst, 25), sizeof buf); scat(buf, nte(gfx, g <= GFX_CGA4 ? g : 0), sizeof buf); }   /* Grafik */
     scat(buf, " ", sizeof buf); zahl(t, wh[0]); scat(buf, t, sizeof buf); scat(buf, "x", sizeof buf); zahl(t, wh[1]); scat(buf, t, sizeof buf);
     scat(buf, StrGet(inst, 27), sizeof buf);                                 /* Sound */

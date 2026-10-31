@@ -426,7 +426,7 @@ short RDEXPORT g_GetCaps(HDC h, WORD i)
     case CAPS_FARBEN: return (short)gm.farben;
     case CAPS_ASPX: return (short)gm.aspx;
     case CAPS_ASPY: return (short)gm.aspy;
-    case CAPS_DPI: return 72;
+    case CAPS_DPI: return 72; case CAPS_GFX: return (short)gfxtyp;
     case CAPS_TEXTH: return (short)syshoehe();
     default: return 0;
     }

@@ -467,6 +467,7 @@ typedef struct {
 #define CAPS_DPI    6
 #define CAPS_TEXTH  7                             /* Systemschrift Hoehe */
 #define CAPS_TECH   8                             /* 0 Schirm, 1 Speicher, 2 Drucker */
+#define CAPS_GFX    9                             /* laufende Grafikart GFX_* (31.10.2026) */
 #define C_BLACK  RGB(0,0,0)
 #define C_WHITE  RGB(255,255,255)
 #define C_GRAY   RGB(128,128,128)
