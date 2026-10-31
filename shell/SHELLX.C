@@ -40,10 +40,13 @@ WORD RDEXPORT ShxInfo(HINST inst, LPSTR a, LPSTR b, WORD w)
     scat(buf, StrGet(inst, 24), sizeof buf); zahl(t, (WORD)(MemAvail(MEMA_KONV) >> 10)); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf);
     if (si.kb_ext) { scat(buf, " + XMS ", sizeof buf); zahl(t, si.kb_ext); scat(buf, t, sizeof buf); scat(buf, " KB", sizeof buf); }
     scat(buf, "\nDOS ", sizeof buf); p = zahl(t, si.dos >> 8); *p++ = '.'; zahl(p, si.dos & 0xFF); scat(buf, t, sizeof buf);
-    scat(buf, StrGet(inst, 25), sizeof buf); scat(buf, nte(gfx, si.grafik <= GFX_CGA4 ? si.grafik : 0), sizeof buf);   /* Grafik */
+    {   GFXINFO gl[17]; WORD n = GfxList(gl, 17), k, g = si.grafik;   /* laufende Grafikart (RDGDI), nicht nur der Startschalter */
+        for (k = 0; k < n; k++) if (gl[k].flags & GI_AKTIV) g = gl[k].typ;
+        scat(buf, StrGet(inst, 25), sizeof buf); scat(buf, nte(gfx, g <= GFX_CGA4 ? g : 0), sizeof buf); }   /* Grafik */
     scat(buf, " ", sizeof buf); zahl(t, wh[0]); scat(buf, t, sizeof buf); scat(buf, "x", sizeof buf); zahl(t, wh[1]); scat(buf, t, sizeof buf);
     scat(buf, StrGet(inst, 27), sizeof buf);                                 /* Sound */
-    scat(buf, si.sound & (SC_OPL2 | SC_OPL3) ? "AdLib" : si.sound & SC_SPEAKER ? "PC-Speaker" : StrGet(inst, 26), sizeof buf);
+    {   WORD sc = SndCaps();                      /* geladener Klangtreiber (RDSND), SYSINFO kennt ihn nicht */
+        scat(buf, sc & SC_OPL3 ? "Sound Blaster/OPL3" : sc & SC_OPL2 ? "AdLib" : sc & SC_SPEAKER ? "PC-Speaker" : sc ? "Sound Blaster" : StrGet(inst, 26), sizeof buf); }
     scpy(u, StrGet(inst, 5), sizeof u); MsgBox(GetActive(), buf, u, MB_OK | MB_INFO);
     return 0;
 }

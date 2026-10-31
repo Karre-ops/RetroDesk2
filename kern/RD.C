@@ -143,7 +143,7 @@ int main(void)
     task_api();
     file_api();
     mod_api();
-    k_out("RD: RetroDesk 2 Kern, API 1.0", 1);
+    k_out("RD: RetroDesk 2 Kern, API 2.0", 1);
     if (a >= argc) { k_out("Aufruf: RD [/x] programm", 1); return 1; }
     mem_init(136);                                /* Reserve: DOS und der RunDos-Rest (120 Paragraphen) */
     task_init();
