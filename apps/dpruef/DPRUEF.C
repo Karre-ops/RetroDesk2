@@ -68,8 +68,10 @@ static void setfat(WORD c, WORD v)
     for (i = 0; i < NC; i++) if (cs[i] == s) schmutz[i] = 1;
     if (f16) { p[o] = (BYTE)v; if (o == 511) { q = fsek(s + 1); if (q) { q[0] = (BYTE)(v >> 8); for (i = 0; i < NC; i++) if (cs[i] == s + 1) schmutz[i] = 1; } } else p[o + 1] = (BYTE)(v >> 8); return; }
     if (c & 1) v = (WORD)(v << 4 | (p[o] & 0x0F)); else v |= (WORD)((o == 511 ? (q = fsek(s + 1)) ? q[0] : 0 : p[o + 1]) & 0xF0) << 8;
-    p = fsek(s); p[o] = (BYTE)v;
-    if (o == 511) { q = fsek(s + 1); if (q) { q[0] = (BYTE)(v >> 8); for (i = 0; i < NC; i++) if (cs[i] == s + 1) schmutz[i] = 1; } } else p[o + 1] = (BYTE)(v >> 8);
+    if (!(p = fsek(s))) return;
+    p[o] = (BYTE)v; if (o != 511) p[o + 1] = (BYTE)(v >> 8);
+    for (i = 0; i < NC; i++) if (cs[i] == s) schmutz[i] = 1;   /* nach dem Nachladen neu: fsek(s + 1) kann s verdraengt haben */
+    if (o == 511 && (q = fsek(s + 1)) != 0) { q[0] = (BYTE)(v >> 8); for (i = 0; i < NC; i++) if (cs[i] == s + 1) schmutz[i] = 1; }
 }
 static BYTE ende(WORD v) { return (BYTE)(f16 ? v >= 0xFFF8 : v >= 0xFF8); }
 static BYTE schlecht(WORD v) { return (BYTE)(f16 ? v == 0xFFF7 : v == 0xFF7); }

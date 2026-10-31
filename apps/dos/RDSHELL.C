@@ -193,6 +193,7 @@ static void kopie(char *a)
         if ((fi = FileOpen(s, FO_READ)) < 0) { e = LastError(); break; }
         if ((fo = FileCreate(d, 0)) < 0) { e = LastError(); FileClose(fi); break; }
         while ((r = FileRead(fi, buf, 4096)) != 0 && r != 0xFFFF) if (FileWrite(fo, buf, r) != r) { e = RD_ERR_FULL; break; }
+        if (r == 0xFFFF && !e) e = LastError() ? LastError() : RD_ERR_FULL;   /* Lesefehler: halbe Kopie weg */
         FileClose(fi); FileClose(fo);
         if (e) { FileDelete(d); break; }
         sag(fd.name); n++;

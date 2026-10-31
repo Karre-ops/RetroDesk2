@@ -174,7 +174,7 @@ static void trennen(WORD txt, LPCSTR b)
 {
     if (hd) { NetClose(hd); hd = 0; }
     if (hc) { if (phase >= F_BEREIT) NetSend(hc, "QUIT\r\n", 6); NetClose(hc); hc = 0; }
-    if (fh >= 0) { FileClose(fh); fh = -1; }
+    if (fh >= 0) { FileClose(fh); fh = -1; if (op == O_RETR) FileDelete(dname); }   /* halbe Datei nicht liegen lassen */
     phase = F_AUS; op = 0; pumpen = 0; stapel = 0; jauf = 0; jlist = 0; TimerKill(dl, 1);
     if (lauf) { lokal(1); lw_zeigen(1); }
     knoepfe();
@@ -230,7 +230,7 @@ static void antwort(WORD code, char *z)
         for (p = z + 4; *p && (*p < '0' || *p > '9'); p++) ;
         for (i = 0; i < 6; i++) { v[i] = 0; while (*p >= '0' && *p <= '9') v[i] = (WORD)(v[i] * 10 + *p++ - '0'); if (*p == ',') p++; }
         z226 = 0; dzu = 0; xbytes = 0; rzl = 0;
-        if (!(hd = NetOpen(dl, sip, (WORD)((v[4] << 8) | v[5]), NO_TCP))) { phase = F_BEREIT; statz(10, ""); return; }
+        if (!(hd = NetOpen(dl, sip, (WORD)((v[4] << 8) | v[5]), NO_TCP))) { trennen(10, ""); return; }   /* Datei zu, Auftraege weg */
         phase = F_DATEN; return;
     case F_DATEN: case F_XFER:
         if (code == 150 || code == 125) { if (op == O_STOR) { pumpen = 1; TimerSet(dl, 1, 55); } return; }

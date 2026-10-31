@@ -246,7 +246,7 @@ static DWORD callp(WNDPROC f, HWND w, WORD m, WORD p1, DWORD p2)
 static DWORD sendi(WORD i, WORD m, WORD p1, DWORD p2)
 {
     WND *x = &w_[i];
-    if (!i || !x->proc) return 0;
+    if (!i || !x->used || !x->proc) return 0;   /* zerstoertes Fenster bekommt nichts mehr */
     if (x->flags & F_INTERN) return x->proc(hw(i), m, p1, p2);
     if (x->task != (BYTE)TaskSelf()) { PostMessage(hw(i), m, p1, p2); return 0; }
     return callp(x->proc, hw(i), m, p1, p2);

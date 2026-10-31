@@ -170,7 +170,7 @@ static BOOL finden(const char *w, char *aus)      /* Programm: direkt, Wurzel, P
 }
 static short config(void)                         /* 1 eingetragen (alt gesichert), 3 neu, 2 schon da, -2 nein, -1 zu gross, 0 Fehler */
 {
-    char cs[16], ab[16], z[110], w[64], pf[80], mw[24]; WORD n, o = 0, m, i; char *a, *e, *q; BOOL alt, mausda = 0, kbda; short f;
+    char cs[16], ab[16], z[110], w[64], pf[80], mw[24]; WORD n, o = 0, m, i; char *a, *e, *q; BOOL alt, mausda = 0, kbda;
     cpy(cs, "C:\\CONFIG.SYS"); cs[0] = ziel[0]; cpy(ab, "C:\\AUTOEXEC.BAT"); ab[0] = ziel[0];
     alt = gibts(cs) || gibts(ab); verloren = 0;
     if ((n = lesen(cs)) == 0xFFFF) return -1;
@@ -235,9 +235,7 @@ static short config(void)                         /* 1 eingetragen (alt gesicher
         else if (!strnicmp(mw, "INPORT", 6)) cpy(w, " /I1");
         if ((w[0] || !alt) && gibts(pf)) { cpy(z, "INSTALL="); cat(z, pf); cat(z, w); cat(z, "\r\n"); NEU(z); }
     }
-    if ((f = FileCreate(cs, 0)) < 0) return 0;
-    m = FileWrite(f, (char FAR *)neu, o);
-    return !FileClose(f) && m == o ? (alt ? 1 : 3) : 0;
+    return FileSaveSafe(cs, (char FAR *)neu, o) ? 0 : (alt ? 1 : 3);   /* erst CONFIG.$$$, dann umbenennen: volle Platte laesst die alte stehen */
 }
 
 /* ---- Festplatte startfaehig: nur wenn C: kein System hat und KERNEL.SYS auf der Diskette liegt ---- */

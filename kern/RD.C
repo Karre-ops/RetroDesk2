@@ -15,8 +15,8 @@ char *k_hpath(const char __far *n)                /* RD2-Verzeichnis + Name, in 
 {
     char *d = cmdline; const char *h = k_home;
     while (*h) *d++ = *h++;
-    while ((*d++ = *n++) != 0) ;
-    return cmdline;
+    while (*n && d < cmdline + sizeof cmdline - 1) *d++ = *n++;   /* lange Namen: kuerzen statt ueberlaufen */
+    *d = 0; return cmdline;
 }
 
 /* ---- Ausgabe: COM1 (immer) und Bildschirm (nur im Kern-Kontext) ---------- */

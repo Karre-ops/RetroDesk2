@@ -24,7 +24,7 @@
 #define NS      6
 #define CMAX    8192
 static HINST hi; static BYTE test, seite; static char ord[64], cs[80], home[66], ini[80];
-static HMEM hm; static char FAR *ein, FAR *aus, FAR *ae; static WORD nein, nae; static BYTE csneu;
+static HMEM hm; static char FAR *ein, FAR *aus, FAR *ae; static WORD nein, nae; static BYTE csneu, zugross;
 static SYSINFO si;
 
 /* Werte aller Karten (0 = erste Auswahl), *0 = Stand beim Oeffnen */
@@ -72,7 +72,7 @@ static BYTE gibts(LPCSTR p) { FINDDATA f; return FileFindFirst(p, 0, &f) == 0; }
 static WORD lesen(LPCSTR n, char FAR *b)
 {
     short f; WORD r = 0;
-    if ((f = FileOpen(n, FO_READ)) >= 0) { r = FileRead(f, b, CMAX - 1); if (r == 0xFFFF) r = 0; FileClose(f); }
+    if ((f = FileOpen(n, FO_READ)) >= 0) { r = FileRead(f, b, CMAX - 1); if (r == 0xFFFF) r = 0; else if (r == CMAX - 1) zugross = 1; FileClose(f); }
     b[r] = 0; return r;
 }
 static const char FAR *sp(const char FAR *a) { while (*a == ' ' || *a == '\t') a++; return a; }
@@ -351,7 +351,7 @@ static WORD speichern(void)
     if (csneu) {
         if (test) { WORD i = 0, j; char p[80]; while (i < nein) { for (j = 0; i < nein && ein[i] != '\n' && j < 78; i++) if (ein[i] != '\r') p[j++] = ein[i];
                     p[j] = 0; i++; DbgPrint(p); } }   /* neue CONFIG.SYS Zeile fuer Zeile */
-        if (FileSaveSafe(cs, ein, nein)) return 2;
+        if (zugross || FileSaveSafe(cs, ein, nein)) return 2;   /* ueber 8 KB: nie gekuerzt zurueckschreiben */
         start0 = start;
     }
     return 0;
@@ -441,7 +441,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     }
     if (!(hm = MemAlloc(3L * CMAX, MEM_MOVABLE)) || !(ein = (char FAR *)MemLock(hm))) return 1;
     aus = ein + CMAX; ae = aus + CMAX;
-    scpy(cs, ord, sizeof cs); scat(cs, "AUTOEXEC.BAT", sizeof cs); nae = lesen(cs, ae);
+    scpy(cs, ord, sizeof cs); scat(cs, "AUTOEXEC.BAT", sizeof cs); nae = lesen(cs, ae); zugross = 0;   /* nur CONFIG.SYS zaehlt */
     scpy(cs, ord, sizeof cs); scat(cs, "CONFIG.SYS", sizeof cs); nein = lesen(cs, ein);
     laden();
     if (test) DbgPrint(start ? "OPTIONEN: bereit, Start an" : "OPTIONEN: bereit, Start aus");
