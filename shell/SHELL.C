@@ -218,7 +218,7 @@ static void sichtbar(ORDNER *o)
     if (z < o->oben) o->oben = z; else if (z >= o->oben + o->zeilen) o->oben = z - o->zeilen + 1;
     rollen(o);
 }
-static void sta_schreiben(void);
+static void sta_schreiben(BYTE dos);
 static void wechsel(char l);
 static WORD werkzeug(char *p, LPCSTR n);
 static void starten(LPCSTR p)
@@ -233,7 +233,7 @@ static void starten(LPCSTR p)
         for (i = 0; i < sizeof zu - 1; i += slen(zu + i) + 1) if (endung(p, zu + i) && werkzeug(n, zu + i + 3) && TaskExec(n, p, SW_SHOW)) return; }
     if (endung(p, "EXE") && TaskExec(p, "", SW_SHOW)) return;
     dos = !endung(p, "EXE") || LastError() == RD_ERR_FORMAT;   /* merken: sta_schreiben aendert LastError */
-    if (dos) sta_schreiben();                     /* vor RunDos (Diskettenbetrieb: Neustart) */
+    if (dos) sta_schreiben(1);                     /* vor RunDos (Diskettenbetrieb: Neustart) */
     if (!dos || (RunDos(p, "", RD_DOS_KEEP | RD_DOS_PAUSE) == 0xFFFF &&   /* 0xFFFF = Fehler; zurueck nur mit */
         (LastError() != RD_ERR_NOTSUP || RunDos(p, "", RD_DOS_PAUSE) == 0xFFFF))) {   /* XMS/Platte, sonst Neustart */
         char t[8];                                /* Speichermangel mit freiem Speicher melden (Checkliste 1) */
@@ -830,11 +830,11 @@ static ORDNER *ordner_auf(char l, LPCSTR pfad, RECT *wr)   /* pfad, wr: aus RD2.
 /* ---- RD2.STA: Zustand (SPEC 8), beim Beenden und vor RunDos ------------------------------- */
 typedef struct { char pfad[68]; RECT r; short sel, oben; } STAO;
 typedef struct { char kopf[4]; WORD ver; BYTE liste, lsel, n, akt; STAO o[MAXO]; } STA;
-static STA z;
-static void sta_schreiben(void)
+static STA z; static BYTE klang0 = 1;           /* START-Klang beim Start, nicht nach einem DOS-Programm (wie RD1) */
+static void sta_schreiben(BYTE dos)                /* dos: vor RunDos (nach dem Neustart kein START-Klang) */
 {
     char p[80]; short i; HWND a = GetActive();
-    z.kopf[0] = 'R'; z.kopf[1] = 'D'; z.kopf[2] = 'S'; z.kopf[3] = '1'; z.ver = 1; z.liste = (BYTE)(liste | verst << 1 | sortart << 2); z.lsel = (BYTE)lsel; z.n = 0; z.akt = 0xFF;
+    z.kopf[0] = 'R'; z.kopf[1] = 'D'; z.kopf[2] = 'S'; z.kopf[3] = '1'; z.ver = 1; z.liste = (BYTE)(liste | verst << 1 | sortart << 2 | dos << 4); z.lsel = (BYTE)lsel; z.n = 0; z.akt = 0xFF;
     for (i = 0; i < MAXO; i++) if (od[i].w) {
         STAO *s = &z.o[z.n];
         scpy(s->pfad, od[i].pfad, sizeof s->pfad); GetWindowRect(od[i].w, &s->r); s->sel = od[i].sel; s->oben = od[i].oben;
@@ -851,6 +851,7 @@ static void sta_lesen(void)
     if ((f = FileOpen(p, 0)) < 0) return;
     n = FileRead(f, &z, sizeof z); FileClose(f);
     if (n == 0xFFFF || n < 10 || z.kopf[0] != 'R' || z.kopf[1] != 'D' || z.kopf[2] != 'S' || z.kopf[3] != '1' || z.ver != 1 || z.n > MAXO || n < 10 + z.n * sizeof(STAO)) return;   /* unbekannt: ignorieren */
+    if (z.liste & 0x10) klang0 = 0;
     liste = (BYTE)(z.liste & 1); verst = (BYTE)(z.liste >> 1 & 1); sortart = (BYTE)(z.liste >> 2 & 3); if (z.lsel < nlw) lsel = z.lsel;
     MenuCheck(mbar, CM_SYMB, !liste); MenuCheck(mbar, CM_LISTE, liste); MenuCheck(mbar, CM_VERST, verst); { short k; for (k = 0; k < 4; k++) MenuCheck(mbar, CM_SORT + k, k == sortart); }
     for (i = 0; i < z.n; i++) {
@@ -991,7 +992,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
             char t[90]; TASKINFO ti; HTASK k, me = TaskSelf(); WORD n = 0;
             for (k = TaskFirst(&ti); k; k = TaskNext(k, &ti)) if (k != me) n++;
             scpy(t, StrGet(inst, n ? 97 : 2), sizeof t);
-            if (MsgBox(GetActive(), t, "RD", MB_YESNO | MB_ASK) == ID_YES) { sta_schreiben(); ExitRD(0); PostQuit(0); }
+            if (MsgBox(GetActive(), t, "RD", MB_YESNO | MB_ASK) == ID_YES) { DWORD t = TickCount(); sta_schreiben(0); SetLastError(0); SndSystem("ENDE"); if (!LastError()) while (TickCount() - t < 650) ; ExitRD(0); PostQuit(0); }
         }
         else if (p1 == CM_OEFFNEN && lsel < nlw) ordner_auf(lw[lsel], 0, 0);
         else if (p1 == CM_LWINFO && lsel < nlw) lwinfo();
@@ -1057,6 +1058,7 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
       if (werkzeug(p, "RD2.INI") && (n = ProfileGetInt(p, "System", "Installieren", 0)) >= 1 && n <= 2 && werkzeug(u, "INSTALL.EXE"))
           { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, n == 2 ? "F" : "", SW_SHOW); }   /* 2: nach RDSYS ohne XMS nur Schlussmeldung (31.10.) */
       if (werkzeug(p, "RD2.INI") && ProfileGetStr(p, "System", "GrafikAlt", "", u, 4) && werkzeug(u, "OPTIONEN.EXE")) TaskExec(u, "B", SW_SHOW); }   /* neue Grafik: "Behalten?" */
+    if (klang0) SndSystem("START");
     dbg("bereit");
     while (GetMessage(&m)) {
         WORD __near *z = (WORD __near *)&stkbot, f;      /* nie benutzter Stapel (Startcode loescht ihn): neuer Tiefstwert -> COM1 */

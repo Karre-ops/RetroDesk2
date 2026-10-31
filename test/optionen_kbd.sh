@@ -1,6 +1,6 @@
 #!/bin/bash
 # Optionen > Tastatur (31.10.2026): Liste der *.KBD (DE, PC10, US), "XT / Commodore PC10" waehlen -> laufendes RDKEYB bekommt PC10.KBD sofort (KEYTEST: # auf 29h,
-# < auf 2Bh), RDKEYB-Zeile der CONFIG.SYS (Testordner T1) zeigt auf PC10.KBD, RD2.INI Tastatur=PC10. Danach zurueck auf Deutsch.
+# < auf 2Bh), RDKEYB-Zeile der CONFIG.SYS (Testordner T1) zeigt auf PC10.KBD, RD2.INI Tastatur=PC10. Danach zurueck auf Deutsch. 3: RD2.INI PC10, CONFIG.SYS noch "RDKEYB.COM DE" (Installation): nur OK richtet die Zeile und schaltet um.
 cd "$(dirname "$0")/.."
 IMG=obj/optkbd.img; SER=obj/optkbd_com1.txt; S=/tmp/qmon_optkbd.sock; export QMON=$S; F=0
 export WATCOM=${WATCOM:-/opt/ow} PATH=/opt/ow/binl64:/opt/ow/binl:$PATH INCLUDE=/opt/ow/h
@@ -13,12 +13,16 @@ A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\OPTIONEN.EXE T A:\T1\
 A:\KEYTEST.COM
 A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\OPTIONEN.EXE T A:\T1\
 A:\KEYTEST.COM
+copy A:\T2\PC10.INI A:\RD2\RD2.INI > NUL
+A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\OPTIONEN.EXE T A:\T2\
+A:\KEYTEST.COM
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_optkbd.txt >/dev/null 2>&1
 for f in RDMAUS.COM RDFORMAT.EXE RDFDISK.EXE RDSYS.EXE RD2SETUP.EXE; do mdel -i $IMG ::/RD2/$f 2>/dev/null; done
 mkdir -p obj/optkbd; printf 'SHELL=A:\\RD2\\RD.EXE /P A:\\RD2\\SHELL.EXE\r\nINSTALL=A:\\RD2\\RDKEYB.COM DE\r\n' > obj/optkbd/CONFIG.SYS
-mmd -i $IMG ::/T1; mcopy -i $IMG obj/optkbd/CONFIG.SYS ::/T1/; mcopy -o -i $IMG obj/keytest.com ::/KEYTEST.COM
+mmd -i $IMG ::/T1; mcopy -i $IMG obj/optkbd/CONFIG.SYS ::/T1/; mmd -i $IMG ::/T2; mcopy -i $IMG obj/optkbd/CONFIG.SYS ::/T2/
+printf '[System]\r\nTastatur=PC10\r\n' > obj/optkbd/PC10.INI; mcopy -i $IMG obj/optkbd/PC10.INI ::/T2/; mcopy -o -i $IMG obj/keytest.com ::/KEYTEST.COM
 rm -f $SER $S
 timeout 140 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &
@@ -35,6 +39,10 @@ mcopy -o -i $IMG ::/T1/CONFIG.SYS obj/optkbd/neu.sys 2>/dev/null; mcopy -o -i $I
 Q "sendkey alt-4" sleep0.8 "sendkey alt-b" sleep0.4 "sendkey up" sleep0.5 "sendkey ret"
 waitn "KEYTEST: bereit" 2 || { echo "FEHLER KEYTEST 2"; F=1; }
 for k in grave_accent a backslash esc; do Q "sendkey $k"; sleep 0.3; done
+waitn "OPTIONEN: bereit" 3 || { echo "FEHLER Optionen 3 startet nicht"; F=1; }; sleep 3
+Q "sendkey alt-4" sleep0.8 "sendkey alt-b" sleep0.4 "sendkey ret"   # 3: INI sagt PC10, CONFIG.SYS "RDKEYB.COM DE" (wie nach der Installation): nur OK
+waitn "KEYTEST: bereit" 3 || { echo "FEHLER KEYTEST 3"; F=1; }
+for k in grave_accent backslash esc; do Q "sendkey $k"; sleep 0.3; done
 wait $QP 2>/dev/null
 ist=$(zeichen 0); [ "$ist" = "23 3C 27" ] && echo "ok     Optionen PC10: sofort aktiv (# < ')" || { echo "FEHLER PC10 nicht aktiv: $ist"; F=1; }
 grep -q "^INSTALL=A:.RD2.RDKEYB.COM A:.RD2.PC10.KBD" <(tr -d '\r' < obj/optkbd/neu.sys) && echo "ok     CONFIG.SYS: RDKEYB.COM A:\\RD2\\PC10.KBD" || { echo "FEHLER CONFIG.SYS"; cat obj/optkbd/neu.sys; F=1; }
@@ -42,5 +50,7 @@ tr -d '\r' < obj/optkbd/neu.ini | grep -qi "^Tastatur=PC10" && echo "ok     RD2.
 ist=$(zeichen 1); [ "$ist" = "83 23" ] && echo "ok     zurueck auf Deutsch: sofort aktiv (^a = â, #)" || { echo "FEHLER DE nicht aktiv: $ist"; F=1; }
 mcopy -o -i $IMG ::/T1/CONFIG.SYS obj/optkbd/neu2.sys; tr -d '\r' < obj/optkbd/neu2.sys | grep -q "^INSTALL=A:.RD2.RDKEYB.COM A:.RD2.DE.KBD$" && echo "ok     CONFIG.SYS wieder RDKEYB.COM A:\\RD2\\DE.KBD" || { echo "FEHLER CONFIG.SYS DE"; cat obj/optkbd/neu2.sys; F=1; }
 python3 test/bildvergleich.py obj/optkbd_vga.ppm test/ref/optkbd_vga.png | grep -q "^ok" && echo "ok     Bild Karte Tastatur (Liste, XT / Commodore PC10 gewaehlt)" || { echo "FEHLER Bild Karte Tastatur"; F=1; }
+mcopy -o -i $IMG ::/T2/CONFIG.SYS obj/optkbd/neu3.sys; tr -d '\r' < obj/optkbd/neu3.sys | grep -q "^INSTALL=A:.RD2.RDKEYB.COM A:.RD2.PC10.KBD$" && echo "ok     nur OK: falsche Zeile RDKEYB.COM DE wird auf PC10.KBD gerichtet" || { echo "FEHLER CONFIG.SYS nicht gerichtet"; cat obj/optkbd/neu3.sys; F=1; }
+ist=$(zeichen 2); [ "$ist" = "23 3C" ] && echo "ok     dabei PC10 sofort aktiv (# <)" || { echo "FEHLER PC10 nach Richten nicht aktiv: $ist"; F=1; }
 [ $F = 0 ] && echo "Optionen Tastatur: alles ok"
 exit $F

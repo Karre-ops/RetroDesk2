@@ -333,11 +333,13 @@ static WORD speichern(void)
         if (mhw) ProfileSetStr(ini, "System", "MausHW", mhww[mhw]);
         neupc = 1;
     }
-    if (kbart != 2 && tast != tast0 && kbliste(0, tast, 0) > tast) {   /* Belegung: RDKEYB.COM <RD2>\PC10.KBD */
-        char a[80]; WORD i;
+    if (kbart != 2 && kbliste(0, tast, 0) > tast) {   /* Belegung: RDKEYB.COM <RD2>\PC10.KBD */
+        char a[80]; WORD i; const char FAR *z = instz("RDKEYB.COM");
         scpy(a, home, sizeof a); scat(a, kbn, sizeof a);
-        schalter("RDKEYB.COM", a);
-        if (!kbm || !kbsetz(a)) neupc = 1;
+        for (i = 0; a[i]; i++) a[i] = (char)gr(a[i]);   /* gross fuer suche (DOS-Pfad bleibt gleich) */
+        i = z && !suche(z, zlen(z), a);           /* CONFIG.SYS passt nicht (z. B. "RDKEYB.COM DE" der Installation): auch ohne Aenderung richten */
+        if (i) schalter("RDKEYB.COM", a);
+        if ((i || tast != tast0) && (!kbm || !kbsetz(a))) neupc = 1;
         for (i = 0; kbn[i] && kbn[i] != '.'; i++) ; kbn[i] = 0;
         ProfileSetStr(ini, "System", "Tastatur", kbn);
     }

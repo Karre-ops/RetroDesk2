@@ -715,6 +715,7 @@ short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
     WORD j, art = (fl & 7) == MB_YESNO ? 3 : (fl & 7) == MB_YESNOCANCEL ? 2 : (fl & 7) == MB_OKCANCEL ? 1 : 0;
     char kt[3][16]; short erg;
     if (!text) text = "";
+    j = fl & 0xF0; if (j == MB_ERROR || j == MB_WARN || j == MB_ASK) SndSystem(j == MB_ASK ? "FRAGE" : "FEHLER");   /* wie RD1 (31.10.) */
     if (!(d = GetDC(0))) return -1;
     cw = TextWidth(d, "0", 1);
     zw = (short)(48 * 4);                          /* hoechstens 48 Zeichen je Zeile (Dialogeinheiten) */
