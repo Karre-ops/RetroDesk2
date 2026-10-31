@@ -26,6 +26,8 @@ STK equ 4096
 endif
 STACK  segment para stack 'STACK'
 bss_end label byte                  ; _BSS endet vor STACK
+public stkbot
+stkbot label byte                   ; unterstes Stapelbyte (Programme messen damit den freien Stapel, 31.10.)
        db STK dup(?)                ; Stackgroesse: wasm -dSTK=3072 (build.sh APPSTACK), sonst 4 KB
 stacktop label byte
 STACK  ends
@@ -43,7 +45,7 @@ _start:
     push cx
     mov  es, ax
     mov  di, offset DGROUP:bss_anf
-    mov  cx, offset DGROUP:bss_end
+    mov  cx, offset DGROUP:stacktop      ; _BSS und Stapel loeschen: unberuehrte Nullen zeigen den nie benutzten Stapel
     sub  cx, di
     xor  al, al
     cld

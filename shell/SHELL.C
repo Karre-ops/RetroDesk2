@@ -93,6 +93,9 @@ static void dbgh(const char *t, DWORD v)             /* Testmeldung "SHELL: t" (
     if (v == 0xFFFFFFFFUL) DbgPrint(b); else DbgHex(b, v);
 }
 #define dbg(t) dbgh(t, 0xFFFFFFFFUL)
+extern char stkbot;
+#pragma aux stkbot "*"
+static WORD stkmin = 0xFFFF;
 static ORDNER *ord(HWND w) { short i; for (i = 0; i < MAXO; i++) if (od[i].w == w) return &od[i]; return 0; }
 static WORD symbol(const EINTRAG FAR *e)
 {
@@ -1055,7 +1058,12 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
           { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, "", SW_SHOW); }
       if (werkzeug(p, "RD2.INI") && ProfileGetStr(p, "System", "GrafikAlt", "", u, 4) && werkzeug(u, "OPTIONEN.EXE")) TaskExec(u, "B", SW_SHOW); }   /* neue Grafik: "Behalten?" */
     dbg("bereit");
-    while (GetMessage(&m)) DispatchMessage(&m);
+    while (GetMessage(&m)) {
+        WORD __near *z = (WORD __near *)&stkbot, f;      /* nie benutzter Stapel (Startcode loescht ihn): neuer Tiefstwert -> COM1 */
+        DispatchMessage(&m);
+        for (f = 0; !z[f]; f++) ;
+        if (f < stkmin) { stkmin = f; dbgh("Stapel frei", (DWORD)f * 2); }
+    }
     dbg("Ende");
     return 0;
 }

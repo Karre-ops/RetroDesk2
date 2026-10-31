@@ -86,7 +86,7 @@ mv $O/RDTCP.MOD.exe $O/RDTCP.MOD 2>/dev/null || true
 python3 tools/rd2link.py $O/RDTCP.MOD "TCP/IP" --type M --flags 0 >/dev/null
 for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST JOYTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT; do app apps/test/$t.C $t.EXE "$t"; done
 modul shell/SHELLX.C SHELLX.MOD "Shell-Zusatz" 0x0080 M "-ml -r -oa -ol"   # Info, Laufwerksinfo, Eigenschaften, Suchen (verwerfbar)
-APPSTACK=3072 app shell/SHELL.C SHELL.EXE "Shell"   # Stack 3 KB (gemessen hoechstens etwa 2,5 KB, 30.10.)
+APPSTACK=3584 app shell/SHELL.C SHELL.EXE "Shell"   # Stack 3,5 KB (31.10.: desk.sh misst bis 2,7 KB belegt, COM1 "SHELL: Stapel frei")
 app apps/hilfe/HILFE.C HILFE.EXE "Hilfe"   # F1: HelpShow -> RDKX -> RDPRN.MOD Nr. 6 -> HILFE.EXE
 iconv -f UTF-8 -t CP437 docs/RD2_HLP.txt > $O/RD2.HLP
 app apps/uhr/UHR.C UHR.EXE "Uhr"   # voller Stapel: GetDC laedt Treiber und Module auf dem Stapel des Programms

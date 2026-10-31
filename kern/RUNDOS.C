@@ -71,7 +71,7 @@ WORD k_dosshell(void)
         if (k == 3) { cpy((char __far *)p, k_home, 66); for (i = 0; p[i]; i++) ; if (i && p[i - 1] != '\\') p[i++] = '\\'; cpy((char __far *)p + i, "COMMAND.COM", 14); continue; }
         p[0] = (char)('@' + lw); cpy((char __far *)p + 1, k == 2 ? ":\\DOS\\COMMAND.COM" : ":\\COMMAND.COM", 20);
     }
-    if (!p[0] || !gibt(p)) return 0;
+    if (!p[0] || !gibt(p)) { d21(0x0900, 0, 0, (WORD)"\r\nRD2: COMMAND.COM fehlt (gesucht in \\, \\DOS und im RD2-Ordner).$"); return 0; }   /* 31.10.: Grund zeigen */
     cpy(s->path, p, 80);
     for (i = k = 0; p[i]; i++) if (p[i] == '\\') k = i + 1;
     p[k] = 0; cpy(s->tail + 2, p, 124);          /* COMMAND X:\DIR\ setzt COMSPEC */
