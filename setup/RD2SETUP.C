@@ -267,7 +267,7 @@ static PUNKT p[] = {
     { "Sound Blaster", "SB",  { 0 }, { 0 }, 0, 0, 0 },
     { "XMS-Ablage", "XMS",    { "0", "64", "128", "256", "512" }, { "aus", "64 KB", "128 KB", "256 KB", "512 KB" }, 5, 0, 0 },
     { "Netz",       "Netz",   { "KEIN", "PAKET" }, { "keins", "Paketreiber" }, 2, 0, 0 },
-    { "Tastatur",   "Tastatur", { "DE", "US", "PC10" }, { "Deutsch (RDKEYB)", "US-Englisch (RDKEYB)", "Commodore PC10 (RDKEYB)" }, 3, 0, 0 },   /* PC10: PC10.KBD, wie aufgedruckt (31.10.) */
+    { "Tastatur",   "Tastatur", { "DE", "US", "PC10" }, { "Deutsch (RDKEYB)", "US-Englisch (RDKEYB)", "XT/Commodore PC10 (RDKEYB)" }, 3, 0, 0 },   /* PC10: PC10.KBD, wie aufgedruckt (31.10.) */
 };
 #define NP (sizeof p / sizeof p[0])
 enum { P_GRAFIK, P_PROFIL, P_MAUS, P_KLANG, P_SB, P_XMS, P_NETZ, P_TAST };

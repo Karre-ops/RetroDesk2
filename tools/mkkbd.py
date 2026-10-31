@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Belegungsdateien fuer RDKEYB (31.10.2026): out/DE.KBD, out/US.KBD, out/PC10.KBD.
-# Aufbau: 'RDKBD',1, dann 178 Bytes wie im residenten RDKEYB: yz (1 = Strg/Alt+y/z tauschen),
+# Aufbau: 'RDKBD',2, 20 Bytes Name (Klartext fuer Optionen, mit 0 aufgefuellt), dann 178 Bytes wie im residenten RDKEYB: yz (1 = Strg/Alt+y/z tauschen),
 # tab (Scancodes 02h..35h je normal, Umschalt, AltGr; 0 = BIOS-Zeichen lassen, 1..3 = Tottaste ^ ´ `),
 # tab56 (Taste 56h <>| der 102er-Tastatur), totab (Tottasten: a e i o u, Zeichen allein).
 # DE kommt aus RDKEYB.COM selbst (eine Quelle), die anderen sind Abwandlungen davon.
@@ -14,14 +14,14 @@ assert de[0] == 1 and de[1 + 0x0C * 3 - 6] == 0xE1, 'RDKEYB.COM: DE-Tabelle nich
 def setz(t, sc, n, s, a):
     o = 1 + (sc - 2) * 3
     t[o:o + 3] = bytes([n, s, a])
-def schreib(name, t):
-    assert len(t) == LEN
-    open(f'{O}/{name}.KBD', 'wb').write(b'RDKBD\x01' + bytes(t))
-schreib('DE', de)
+def schreib(name, t, klar):
+    assert len(t) == LEN and len(klar) < 20
+    open(f'{O}/{name}.KBD', 'wb').write(b'RDKBD\x02' + klar.encode('cp437').ljust(20, b'\0') + bytes(t))
+schreib('DE', de, 'Deutsch')
 # US: nichts ersetzen, kein y/z-Tausch (Tottasten-Tabelle bleibt, wird nie benutzt)
 us = bytearray(de); us[0] = 0; us[1:1 + 52 * 3 + 3] = bytes(52 * 3 + 3)
-schreib('US', us)
-# PC10: Commodore PC10-III (XT-Tastatur, 83 Tasten), Belegung wie aufgedruckt (Karsten, 31.10.2026).
+schreib('US', us, 'US-Englisch')
+# PC10: Commodore PC10-III (XT-Tastatur, 83 Tasten; deutsche XT-Tastaturen haben dieselben zwei Zusatzplaetze 29h/2Bh), Belegung wie aufgedruckt (Karsten, 31.10.2026).
 # Keine Tottasten. AltGr = Strg+Alt (eine AltGr-Taste gibt es nicht). # sitzt auf 29h, <> auf 2Bh (XT-Plaetze).
 pc = bytearray(de)
 C = lambda c: ord(c) if isinstance(c, str) else c
@@ -44,4 +44,4 @@ for sc, n, s, a in [
     (0x32, 0, 0, 0),            # m (kein µ)
 ]:
     setz(pc, sc, C(n), C(s), C(a))
-schreib('PC10', pc)
+schreib('PC10', pc, 'XT / Commodore PC10')

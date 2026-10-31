@@ -5,7 +5,7 @@
  *  2 Klang:    Geraet, Sound-Blaster-Einstellung, Systemklaenge. [System] Sound=, SB=, Systemklang=.
  *  3 Maus:     Tempo, Doppelklick, Tasten tauschen ([Maus], bisher MAUS.EXE), Anschluss (Schalter der RDMAUS-Zeile in
  *              CONFIG.SYS, [System] MausHW=). Ohne RDMAUS-Zeile (anderer Treiber) ist der Anschluss gesperrt.
- *  4 Tastatur: Deutsch/US/Commodore PC10 (31.10.: PC10.KBD/DE.KBD werden ins laufende RDKEYB kopiert). Ist RDKEYB geladen (INT 2Fh AD80h, "RDKB"), schaltet es sofort um; dazu [System] Tastatur=
+ *  4 Tastatur: Liste aller *.KBD im RD2-Ordner (31.10.; die gewaehlte wird sofort ins laufende RDKEYB kopiert). Ist RDKEYB geladen (INT 2Fh AD80h, "RDKB"), schaltet es sofort um; dazu [System] Tastatur=
  *              und der Schalter der RDKEYB-Zeile in CONFIG.SYS. Fremder KEYB: gesperrt.
  *  5 Schoner:  Art und Wartezeit ([Schoner], bisher Dialog in SCHONER.EXE), Vorschau startet SCHONER.EXE S.
  *  6 System:   Start nach dem Booten, Netzzeit, XMS-Ablage ([System] XMS=), Netzwerk... (RDNET), Hardware erkennen...
@@ -156,23 +156,38 @@ typedef struct { WORD ax, bx, di, es; } KB;
 extern void kb2f(KB *k);
 #pragma aux kb2f = "push si" "mov ax,0AD80h" "xor bx,bx" "xor di,di" "mov es,di" "int 2Fh" "pop si" \
                    "mov [si],ax" "mov [si+2],bx" "mov [si+4],di" "mov [si+6],es" parm [si] modify [ax bx cx dx di es];
-static BYTE kbsetz(BYTE t)                        /* laufendes RDKEYB umschalten; DE/PC10 aus DE.KBD/PC10.KBD (31.10.) */
+static char kbn[13];                              /* Dateiname des Eintrags "wahl" aus kbliste */
+static BYTE kbliste(HWND d, BYTE wahl, LPCSTR such) /* *.KBD im RD2-Ordner: d -> Klartextnamen in die Liste; such -> Index */
+{                                                 /* dieser Belegung (0xFF = keine); sonst Anzahl (31.10.) */
+    FINDDATA f; char p[80], b[26]; short h; BYTE n = 0, r = 0xFF; WORD i;
+    scpy(p, home, sizeof p); scat(p, "*.KBD", sizeof p);
+    if (FileFindFirst(p, 0, &f) == 0) do {
+        if (d) {
+            scpy(p, home, sizeof p); scat(p, f.name, sizeof p); b[6] = 0;
+            if ((h = FileOpen(p, FO_READ)) != -1) { if (FileRead(h, b, 26) != 26 || b[5] != 2) b[6] = 0; b[25] = 0; FileClose(h); }
+            ladd(d, 161, b[6] ? b + 6 : f.name);
+        }
+        if (n == wahl) scpy(kbn, f.name, sizeof kbn);
+        if (such) { scpy(p, f.name, sizeof p); for (i = 0; p[i] && p[i] != '.'; i++) ; p[i] = 0; if (gleich(p, such)) r = n; }
+        n++;
+    } while (n < 40 && FileFindNext(&f) == 0);
+    return such ? r : n;
+}
+static BYTE kbsetz(LPCSTR p)                      /* laufendes RDKEYB auf Belegungsdatei p umschalten */
 {
-    char p[80], b[185]; short f; WORD n, i;
-    if (t == 1) { *kbm = 0; return 1; }
-    scpy(p, home, sizeof p); scat(p, t ? "PC10.KBD" : "DE.KBD", sizeof p);
+    char b[205]; short f; WORD n, i;
     if ((f = FileOpen(p, FO_READ)) == -1) return 0;
     n = FileRead(f, b, sizeof b); FileClose(f);
-    if (n != 184 || b[0] != 'R' || b[4] != 'D' || b[5] != 1) return 0;
+    if (n != 204 || b[0] != 'R' || b[4] != 'D' || b[5] != 2) return 0;
     _asm cli;
-    for (i = 0; i < 178; i++) kbm[18 + i] = b[6 + i];   /* yz liegt 22 Bytes hinter "RDKB" */
+    for (i = 0; i < 178; i++) kbm[18 + i] = b[26 + i];   /* yz liegt 22 Bytes hinter "RDKB" */
     *kbm = 1;
     _asm sti;
     return 1;
 }
 static void tastatur(void)
 {
-    KB k; char w[6];
+    KB k; char w[10];
     kb2f(&k); kbart = 0; kbm = 0;
     if ((k.ax & 0xFF) == 0xFF) {
         BYTE FAR *p = MKFP(k.es, k.di);
@@ -180,9 +195,8 @@ static void tastatur(void)
         if (k.bx == 0x0100 && k.es && p[0] == 'R' && p[1] == 'D' && p[2] == 'K' && p[3] == 'B') { kbart = 1; kbm = p + 4; }
     }
     ProfileGetStr(ini, "System", "Tastatur", "DE", w, sizeof w);
-    tast = (BYTE)(gleich(w, "US") ? 1 : gleich(w, "PC10") ? 2 : 0);
-    if (kbm && !*kbm) tast = 1;
-    else if (tast == 1 && kbm) tast = 0;
+    if (kbm && !*kbm) scpy(w, "US", sizeof w);   /* "RDKEYB US": Tabelle aus */
+    tast = kbliste(0, 0xFF, w); if (tast == 0xFF) tast = 0;
 }
 
 /* ---- Werte laden ---------------------------------------------------------------------------------- */
@@ -264,8 +278,8 @@ static void fuellen(HWND d)
         lsel(d, 153, rdm ? mhw : 0); en(d, 153, rdm);
         break;
     case 3:
-        DlgCheck(d, (WORD)(161 + tast), 1);
-        if (kbart == 2) for (i = 161; i < 164; i++) en(d, i, 0);
+        i = kbliste(d, 0xFF, 0); lsel(d, 161, tast);
+        if (kbart == 2 || !i) en(d, 161, 0);
         DlgSetText(d, 165, StrGet(hi, (WORD)(kbart == 1 ? 11 : kbart == 2 ? 12 : 14)));
         if (kbart != 1) DlgSetText(d, 166, StrGet(hi, (WORD)(kbart == 2 ? 13 : 15)));
         break;
@@ -286,7 +300,7 @@ static void holen(HWND d)
     case 0: gsel = lget(d, 101); prof = radio(d, 102, 3); cgaf = (BYTE)lget(d, 107); deskf = (BYTE)lget(d, 108); break;
     case 1: snd = radio(d, 121, 4); sysk = (BYTE)DlgChecked(d, 126); sb = lget(d, 127); break;
     case 2: tempo = radio(d, 141, 5); dk = radio(d, 146, 3); tausch = (BYTE)DlgChecked(d, 149); if (rdm) mhw = lget(d, 153); break;
-    case 3: if (kbart != 2) tast = radio(d, 161, 3); break;
+    case 3: if (kbart != 2) tast = lget(d, 161); break;
     case 4: sart = radio(d, 181, 3); szeit = radio(d, 184, 6); break;
     case 5: start = (BYTE)DlgChecked(d, 201); netz = (BYTE)DlgChecked(d, 202); xms = lget(d, 207); break;
     }
@@ -319,13 +333,13 @@ static WORD speichern(void)
         if (mhw) ProfileSetStr(ini, "System", "MausHW", mhww[mhw]);
         neupc = 1;
     }
-    if (kbart != 2 && tast != tast0) {
-        static const char *const kw[] = { "DE", "US", "PC10" };
-        char a[80];
-        ProfileSetStr(ini, "System", "Tastatur", kw[tast]);
-        if (tast == 2) { scpy(a, home, sizeof a); scat(a, "PC10.KBD", sizeof a); } else scpy(a, kw[tast], sizeof a);
+    if (kbart != 2 && tast != tast0 && kbliste(0, tast, 0) > tast) {   /* Belegung: RDKEYB.COM <RD2>\PC10.KBD */
+        char a[80]; WORD i;
+        scpy(a, home, sizeof a); scat(a, kbn, sizeof a);
         schalter("RDKEYB.COM", a);
-        if (!kbm || !kbsetz(tast)) neupc = 1;
+        if (!kbm || !kbsetz(a)) neupc = 1;
+        for (i = 0; kbn[i] && kbn[i] != '.'; i++) ; kbn[i] = 0;
+        ProfileSetStr(ini, "System", "Tastatur", kbn);
     }
     t[0] = (char)('0' + sart); t[1] = 0; ProfileSetStr(ini, "Schoner", "Art", t);
     setze("Schoner", "Zeit", zt[szeit]); if (szeit != szeit0) neurd = 1;

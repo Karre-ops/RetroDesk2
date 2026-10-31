@@ -1,7 +1,7 @@
 ; RDKEYB.COM - residenter Tastaturtreiber DE/US fuer RD2 und DOS-Programme (8086).
 ; Aufruf: RDKEYB DE | RDKEYB US | RDKEYB datei[.KBD]   (auch als INSTALL= in CONFIG.SYS). Ist RDKEYB schon geladen,
 ; schaltet ein zweiter Aufruf nur die Belegung um (auch auf eine andere Datei).
-; Belegungsdatei (31.10.2026, tools/mkkbd.py): 'RDKBD',1, dann 178 Bytes = yz, tab, tab56, totab (wie unten).
+; Belegungsdatei (31.10.2026, tools/mkkbd.py): 'RDKBD',2, 20 Bytes Name (fuer Optionen), dann 178 Bytes = yz, tab, tab56, totab (wie unten).
 ; Fehlt sie oder ist sie kaputt, bleibt die eingebaute DE-Belegung (Tastatur faellt nie aus). Ist ein fremder KEYB geladen, bleibt RDKEYB draussen.
 ; Zur Laufzeit: Strg+Alt+F1 = US, Strg+Alt+F2 = DE.
 ; Arbeitsweise: INT 9 ruft zuerst das BIOS, danach wird der neue Eintrag im BIOS-Tastaturpuffer ersetzt,
@@ -416,7 +416,7 @@ p_offen:
     jc   p_fehl
     mov  bx, ax
     mov  ah, 3Fh
-    mov  cx, KBDLEN + 7         ; ein Byte mehr: zu lange Datei erkennen
+    mov  cx, KBDLEN + 27        ; ein Byte mehr: zu lange Datei erkennen
     mov  dx, offset kbuf
     int  21h
     pushf
@@ -426,15 +426,15 @@ p_offen:
     pop  ax
     popf
     jc   p_fehl
-    cmp  ax, KBDLEN + 6
+    cmp  ax, KBDLEN + 26
     jne  p_fehl
     cmp  word ptr kbuf, 'DR'
     jne  p_fehl
     cmp  word ptr kbuf+2, 'BK'
     jne  p_fehl
-    cmp  word ptr kbuf+4, 0144h ; 'D', 1
+    cmp  word ptr kbuf+4, 0244h ; 'D', 2
     jne  p_fehl
-    mov  si, offset kbuf + 6
+    mov  si, offset kbuf + 26   ; Name ueberspringen
     mov  di, offset yz
     mov  cx, KBDLEN
     rep  movsb
@@ -571,6 +571,6 @@ m_kfehl db 'RDKEYB: Belegung $'
 m_kfehl2 db ' nicht lesbar, eingebaute DE-Belegung gilt.',13,10,'$'
 datei   db 0
 kname   db 80 dup (0)
-kbuf    db KBDLEN + 8 dup (0)
+kbuf    db KBDLEN + 28 dup (0)
 _TEXT ends
 end start

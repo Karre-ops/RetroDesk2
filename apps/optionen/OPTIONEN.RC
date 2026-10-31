@@ -126,10 +126,8 @@ DIALOG 14 "Optionen" 0 0 268 150
   BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Abbrechen"  2 204 130 56 14
-  GROUP    "Belegung"  -1   8  24 252 26
-  RADIO    "&Deutsch"  161  14  35  70 10
-  RADIO    "&US-Englisch"  162  88  35  80 10
-  RADIO    "&Commodore PC10"  163 170  35  88 10
+  STATIC   "&Belegung:"  -1  12  32  62 10
+  COMBO                  161  76  30 170 60
   STATIC   ""  165   8  58 252 10
   STATIC   ""  166   8  70 252 10
 ENDE
@@ -306,10 +304,8 @@ DIALOG 14 "Options" 0 0 268 150
   BUTTON   "System" 96 218 4 40 14
   BUTTON   "OK"  1 140 130 56 14 STANDARD
   BUTTON   "Cancel"  2 204 130 56 14
-  GROUP    "Layout"  -1   8  24 252 26
-  RADIO    "&German"  161  14  35  70 10
-  RADIO    "&US English"  162  88  35  80 10
-  RADIO    "&Commodore PC10"  163 170  35  88 10
+  STATIC   "&Layout:"  -1  12  32  62 10
+  COMBO                  161  76  30 170 60
   STATIC   ""  165   8  58 252 10
   STATIC   ""  166   8  70 252 10
 ENDE
