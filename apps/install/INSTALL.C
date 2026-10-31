@@ -259,11 +259,17 @@ static BOOL formatieren(void)                     /* C: mit RDFORMAT (Diskette 2
     if (!einlegen("RDFORMAT.EXE", 4)) return FALSE;
     DbgPrint("INSTALL: RDFORMAT");
     if (!(t = TaskExec(pfad, "C:", SW_SHOW))) return FALSE;
-    while (lebt(t)) { malen(); TaskYield(); }      /* RDFORMAT fragt selbst noch einmal und zeigt den Fortschritt */
+    ShowWindow(dl, SW_HIDE);                       /* Tasten gehen an RDFORMAT, nicht an diesen Dialog */
+    while (lebt(t)) {                              /* RDFORMAT fragt selbst noch einmal und zeigt den Fortschritt */
+        MSG m;
+        while (PeekMessage(&m, 1)) if ((m.msg & 0xFF00) != M_KEY && m.msg != M_COMMAND && (m.msg < M_MOUSEMOVE || m.msg > M_DBLCLK)) DispatchMessage(&m);
+        TaskYield();
+    }
+    ShowWindow(dl, SW_SHOW); SetActive(dl); malen();
     einlegen("RD.EXE", 6);
     return FileFindFirst("C:\\*.*", FA_DIR | FA_HIDDEN | FA_SYSTEM | FA_RDONLY, &fd) != 0;   /* nichts mehr auf C: */
 }
-static void installieren(void)
+static void install2(void)
 {
     WORD n; short c; char t[100]; BOOL sys;
     DlgGetText(dl, ID_ZIEL, ziel, sizeof ziel - 1); strupr(ziel);
@@ -334,6 +340,7 @@ static void installieren(void)
     DlgSetText(dl, ID_CANCEL, StrGet(hi, 23));
 }
 
+static void installieren(void) { static BYTE laeuft; if (laeuft) return; laeuft = 1; install2(); laeuft = 0; }   /* nicht doppelt (Enter waehrend RDFORMAT) */
 static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
 {
     (void)p2;
