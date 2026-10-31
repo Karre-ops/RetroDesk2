@@ -780,6 +780,11 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 == CM_FEIG) eigenschaften(o);
         else if (p1 == CM_SUCH) suchen(o->pfad);
         else if (p1 >= CM_ZIP && p1 <= CM_ZIP + 2) zip(o, (WORD)(p1 - CM_ZIP));
+        else if (p1 == 118 && o->sel >= 0) {      /* Bearbeiten: Datei im Editor (sonst Notizblock), auch .BAT/.SYS */
+            EINTRAG FAR *e = (EINTRAG FAR *)MemLock(o->h); char n[80]; BYTE d = 1;
+            if (e) { d = (BYTE)(e[o->sel].attr & FA_DIR); scpy(buf, o->pfad, sizeof buf); scat(buf, e[o->sel].name, sizeof buf); MemUnlock(o->h); }
+            if (!d && !((werkzeug(n, "RDEDIT.EXE") && TaskExec(n, buf, SW_SHOW)) || (werkzeug(n, "NOTIZ.EXE") && TaskExec(n, buf, SW_SHOW)))) SndSystem("FEHLER");
+        }
         else if (p1 == CM_MKDIR) neuer_ordner(o);
         else if (p1 == CM_LOESCH) loeschen(o);
         else if (p1 == CM_ANHEFT || p1 == CM_PDESK) anheften(o, p1 == CM_PDESK);
