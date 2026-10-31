@@ -199,15 +199,23 @@ static short zh(HWND h) { HDC d = GetDC(h); short z = 8; if (d) { z = GetCaps(d,
 #define TMAX 8192
 static LPSTR tb(HWND h) { return (LPSTR)MemLock((HMEM)GetWindowData(h, 0)); }
 static void tu(HWND h) { MemUnlock((HMEM)GetWindowData(h, 0)); }
-static WORD zeile(LPCSTR b, WORD pos) { WORD z = 0, i; for (i = 0; i < pos && b[i]; i++) if (b[i] == '\n') z++; return z; }
+/* Ein Durchgang statt drei (8 KB auf dem 8088): Zeilenumbrueche gesamt, *zc = vor pos, *len = Laenge */
+static WORD zaehl(LPCSTR b, WORD pos, WORD *zc, WORD *len)
+{
+    LPCSTR p = b; WORD z = 0, i = 0; char c;
+    for (; i < pos && (c = *p) != 0; i++, p++) if (c == '\n') z++;
+    *zc = z;
+    if (i == pos) for (; (c = *p) != 0; i++, p++) if (c == '\n') z++;
+    *len = i; return z;
+}
 static WORD zanf(LPCSTR b, WORD z) { WORD i = 0; while (z && b[i]) { if (b[i++] == '\n') z--; } return i; }
 static WORD zlen(LPCSTR b, WORD a) { WORD n = 0; while (b[a + n] && b[a + n] != '\n') n++; return n; }
 static short tsicht(HWND h) { RECT r; short z; GetClientRect(h, &r); z = (short)((r.b - 4) / zh(h)); return z > 0 ? z : 1; }
 static void tset(HWND h, WORD cur, WORD top)      /* Schreibmarke sichtbar halten, Balken setzen */
 {
-    LPSTR b = tb(h); WORD z, n; short v = tsicht(h);
+    LPSTR b = tb(h); WORD z, n, l; short v = tsicht(h);
     if (!b) return;
-    z = zeile(b, cur); n = zeile(b, 0xFFFF) + 1; tu(h);
+    n = zaehl(b, cur, &z, &l) + 1; tu(h);
     if (z < top) top = z;
     if (z >= top + v) top = (WORD)(z - v + 1);
     if (n <= (WORD)v) top = 0; else if (top > n - v) top = (WORD)(n - v);
@@ -238,14 +246,14 @@ static void tpaint(HWND h)
 }
 static void ttaste(HWND h, WORD k, WORD ch)
 {
-    LPSTR b = tb(h); WORD cur = LOWORD(GetWindowData(h, 1)), top = HIWORD(GetWindowData(h, 1)), n, i, a, sp, z, lim = (WORD)GetWindowData(h, 2);
+    LPSTR b = tb(h); WORD cur = LOWORD(GetWindowData(h, 1)), top = HIWORD(GetWindowData(h, 1)), n, i, a, sp, z, m, lim = (WORD)GetWindowData(h, 2);
     BYTE sm = (BYTE)(GetWindowData(h, 2) >> 16), zm = (BYTE)(GetWindowData(h, 2) >> 24);
     int ro = (GetWindowData(h, WD_STIL) & ES_READONLY) != 0, ge = 0; short v;
     if (!b) return;
-    n = slen(b); if (cur > n) cur = n;
-    z = zeile(b, cur); a = zanf(b, z); sp = cur - a;
+    m = zaehl(b, cur, &z, &n); if (cur > n) cur = n;   /* m = letzte Zeile */
+    a = zanf(b, z); sp = cur - a;
     if (ch) {
-        if (!ro && n < lim && (ch == '\n' ? !zm || zeile(b, 0xFFFF) + 1 < zm : !sm || zlen(b, a) < sm)) { for (i = n + 1; i > cur; i--) b[i] = b[i - 1]; b[cur++] = (char)ch; ge = 1; }
+        if (!ro && n < lim && (ch == '\n' ? !zm || m + 1 < zm : !sm || zlen(b, a) < sm)) { for (i = n + 1; i > cur; i--) b[i] = b[i - 1]; b[cur++] = (char)ch; ge = 1; }
         else SndBeep(880, 30);
     } else switch (k) {
         case K_LEFT: if (cur) cur--; break;
@@ -255,7 +263,7 @@ static void ttaste(HWND h, WORD k, WORD ch)
         case K_UP: case K_PGUP: case K_DOWN: case K_PGDN:
             v = (k == K_PGUP || k == K_PGDN) ? tsicht(h) : 1;
             if (k == K_UP || k == K_PGUP) z = z > (WORD)v ? z - v : 0;
-            else { WORD m = zeile(b, 0xFFFF); z = z + v > m ? m : z + v; }
+            else z = z + v > m ? m : z + v;
             a = zanf(b, z); i = zlen(b, a); cur = a + (sp < i ? sp : i);
             break;
         case K_BACK: if (!ro && cur) { for (i = --cur; i < n; i++) b[i] = b[i + 1]; ge = 1; } break;
@@ -301,7 +309,7 @@ static DWORD RDEXPORT x_Text(HWND h, WORD msg, WORD p1, DWORD p2)
         case SB_PAGEDOWN: top += tsicht(h); break;
         case SB_THUMB: top = LOWORD(p2); break;
         }
-        if ((b = tb(h)) != 0) { n = zeile(b, 0xFFFF); tu(h); if (top > n) top = n; }
+        if ((b = tb(h)) != 0) { n = zaehl(b, 0, &i, &j); tu(h); if (top > n) top = n; }
         SetWindowData(h, 1, MAKELONG(LOWORD(GetWindowData(h, 1)), top));
         ScrollSet(h, SB_VERT, (short)top, ScrollGet(h, SB_VERT) >= 0 ? (short)0x7FFF : 0, tsicht(h));
         tset(h, LOWORD(GetWindowData(h, 1)) , top);   /* Balken neu; Schreibmarke bleibt */

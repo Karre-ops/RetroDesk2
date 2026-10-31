@@ -27,7 +27,8 @@ static BYTE e4[16];                               /* 4 Punkte 1 Bit -> 8 Bit (je
 #define N2H(i) ((BYTE)(N2(i) << 4))
 #define G1(n)  ((BYTE)((((n) & 0x0C) << 2) | ((n) & 3)))           /* 2 Punkte 2 Bit -> 2 Halbbytes */
 #define G2(a)  ((WORD)G1((BYTE)(a) >> 4) << 8 | G1((a) & 15))       /* 4 Punkte 2 Bit -> 4 Halbbytes (2 Bytes, links zuerst) */
-#define ZO(y)  ((WORD)(((WORD)(y) >> 1) * BPR + (((y) & 1) << 13)))
+static WORD zo(WORD y) { WORD h = y >> 1; h = ((h << 2) + h) << 4; return h + ((y & 1) << 13); }   /* *80 ohne MUL */
+#define ZO(y)  zo((WORD)(y))
 #define VP(x, y) ((BYTE __far *)MK_FP(0xB800, ZO(y) + ((WORD)(x) >> 2)))
 #define FP4(c) ((BYTE)(((c) & 3) * 0x55))         /* Farbe in alle 4 Punkte eines Bytes */
 

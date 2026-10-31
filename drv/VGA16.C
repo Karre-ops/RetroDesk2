@@ -63,7 +63,20 @@
 #  define NPL 4
 #endif
 #define PLM ((1 << NPL) - 1)                      /* Ebenenmaske, zugleich "weiss" fuer Umkehren */
-#define VP(x, y) ((BYTE __far *)MK_FP(0xA000, (WORD)(y) * BPR + ((WORD)(x) >> 3)))
+/* Zeile * BPR mit Schieben statt MUL (8088: MUL 16 Bit ~120 Takte, so ~40) */
+static WORD zbpr(WORD y)
+{
+#if BPR == 80
+    return ((y << 2) + y) << 4;
+#elif BPR == 40
+    return ((y << 2) + y) << 3;
+#elif BPR == 100
+    WORD t = (y << 3) + (y << 4) + y; return t << 2;
+#else
+    return y * BPR;
+#endif
+}
+#define VP(x, y) ((BYTE __far *)MK_FP(0xA000, zbpr((WORD)(y)) + ((WORD)(x) >> 3)))
 #pragma intrinsic(inp, outp, outpw, _fmemcpy, _fmemset)
 
 static BYTE altmodus;
@@ -371,11 +384,11 @@ static void RDEXPORT d_glyphs(short x, short y, const WORD FAR *offs, WORD seg, 
         BYTE __far *p = VP(gx, y);
         if (rop == ROP_COPY) {                    /* deckend: Hintergrund der Zelle, dann Zeichen */
             m3((BYTE)bg, ROP_COPY);
-            for (r = 0; r < h; r++) { BYTE __far *q = p + r * BPR; w3(q, (BYTE)(0xFF >> sh)); if (sh) w3(q + 1, (BYTE)(0xFF << (8 - sh))); }
+            { BYTE __far *q = p; for (r = 0; r < h; r++, q += BPR) { w3(q, (BYTE)(0xFF >> sh)); if (sh) w3(q + 1, (BYTE)(0xFF << (8 - sh))); } }
         }
         m3((BYTE)(rop == ROP_XOR ? PLM : fg), rop == ROP_XOR ? ROP_XOR : ROP_COPY);
-        for (r = 0; r < h; r++) {
-            BYTE b = g[r]; BYTE __far *q = p + r * BPR;
+        for (r = 0; r < h; r++, p += BPR) {
+            BYTE b = g[r]; BYTE __far *q = p;
             if (!b) continue;
             w3(q, (BYTE)(b >> sh));
             if (sh) { BYTE c = (BYTE)(b << (8 - sh)); if (c) w3(q + 1, c); }
