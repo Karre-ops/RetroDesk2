@@ -457,9 +457,12 @@ static WORD RDEXPORT d_farbe(COLOR c)              /* 4 Farben: Grau nach Hellig
 }
 static COLOR RDEXPORT d_rgb(WORD i) { return f4[i & 3]; }
 #else
+static COLOR RDEXPORT d_rgb(WORD i);
 static WORD RDEXPORT d_farbe(COLOR c)
 {
     BYTE r = (BYTE)c, g = (BYTE)(c >> 8), b = (BYTE)(c >> 16), m;
+    WORD i;
+    for (i = 0; i < 16; i++) if (d_rgb(i) == (c & 0xFFFFFFUL)) return i;   /* eigene Farben (ColorNearest) wieder genau treffen */
     if (r == g && g == b) return r < 43 ? 0 : r < 128 ? 8 : r < 213 ? 7 : 15;   /* Grau */
     m = r > g ? r : g; if (b > m) m = b;
     if (r > 128 && g > 32 && g < 128 && b < 64) return 6;                        /* braun/orange */
