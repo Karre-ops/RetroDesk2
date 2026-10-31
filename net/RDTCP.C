@@ -459,7 +459,7 @@ static void tcp_in(const BYTE *f, const BYTE *ih, const BYTE *t, WORD n)
         memcpy(c->rip, ih + 12, 4); memcpy(c->rmac, f + 6, 6); c->rport = get16(t); c->lport = l->lport;
         c->lis = (BYTE)hnd(l); c->rcv = seq + 1; c->rwin = get16(t + 14);
         for (k = 20; k + 3 < hl; ) { if (!t[k]) break; if (t[k] == 1) { k++; continue; } if (t[k] == 2 && t[k + 1] == 4) c->rmss = get16(t + k + 2); if (t[k + 1] < 2) break; k += t[k + 1]; }
-        if (c->rmss > mss) c->rmss = mss;
+        if (c->rmss < 64) c->rmss = 536; if (c->rmss > mss) c->rmss = mss;   /* MSS 0 vom Gegenueber haengte den Versand */
         c->iss = ((DWORD)ticks() << 16) ^ seq; c->una = c->iss; c->nxt = c->end = c->iss + 1;
         c->st = S_SYNR; wiederholen(c); return;
     }
@@ -468,7 +468,7 @@ static void tcp_in(const BYTE *f, const BYTE *ih, const BYTE *t, WORD n)
     if (c->st == S_SYN) {
         if ((fl & (F_SYN | F_ACK)) != (F_SYN | F_ACK) || ack != c->nxt) return;
         for (k = 20; k + 3 < hl; ) { if (!t[k]) break; if (t[k] == 1) { k++; continue; } if (t[k] == 2 && t[k + 1] == 4) c->rmss = get16(t + k + 2); if (t[k + 1] < 2) break; k += t[k + 1]; }
-        if (c->rmss > mss) c->rmss = mss;
+        if (c->rmss < 64) c->rmss = 536; if (c->rmss > mss) c->rmss = mss;   /* MSS 0 vom Gegenueber haengte den Versand */
         c->rcv = seq + 1; c->una = ack; c->rwin = get16(t + 14);
         c->st = S_OPEN; c->tries = 0; c->rto = (ticks() - c->tsent) * 2 + 4;
         tcp_out(c, F_ACK, 0, c->nxt);
@@ -513,10 +513,11 @@ static void udp_in(const BYTE *ih, const BYTE *u, WORD n)
         if (dq[i].st && dp == 0xF000 + i && m >= 12 && get16(u + 8) == dq[i].id) {
             const BYTE *b = u + 8, *p = b + 12, *e = b + m; WORD an = get16(b + 6), k;
             if ((b[3] & 15) || !an) { post(dq[i].w, M_NETRESOLVED, RD_ERR_NOTFOUND, 0); dq[i].st = 0; return; }
-            while (p < e && *p) { if (*p >= 0xC0) { p++; break; } p += *p + 1; }
-            p += 5;                               /* Ende des Namens, Typ, Klasse */
+            while (p < e && *p && *p < 0xC0) p += *p + 1;
+            p += (p < e && *p >= 0xC0) ? 6 : 5;   /* Ende des Namens (0 oder Zeiger), Typ, Klasse */
             for (k = 0; k < an && p + 12 <= e; k++) {
-                if (*p >= 0xC0) p += 2; else { while (p < e && *p) p += *p + 1; p++; }
+                while (p < e && *p && *p < 0xC0) p += *p + 1;   /* Name: Labels, dann 0 oder Zeiger (auch gemischt) */
+                p += (p < e && *p >= 0xC0) ? 2 : 1;
                 if (p + 10 > e) break;
                 if (get16(p) == 1 && get16(p + 8) == 4 && p + 14 <= e) { post(dq[i].w, M_NETRESOLVED, 0, ipd(p + 10)); dq[i].st = 0; return; }
                 p += 10 + get16(p + 8);
