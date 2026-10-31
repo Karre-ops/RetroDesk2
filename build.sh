@@ -105,6 +105,7 @@ app apps/hallo/HALLO.C HALLO.EXE "Hallo"
 app apps/dpruef/DPRUEF.C DPRUEF.EXE "Datentraeger pruefen"
 app apps/schoner/SCHONER.C SCHONER.EXE "Bildschirmschoner"
 app apps/edit/RDEDIT.C RDEDIT.EXE "Editor"
+app apps/htron/HTRON.C HTRON.EXE "H-Tron"   # Spiel nach H-TRON (RobertK 2016, MRalser 2026); Lizenz offen: nicht im Diskettensatz (budget L)
 for z in INFLATE DEFLATE CRC; do wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/zk_$z.obj apps/zip/$z.C || exit 1; done   # ZIP-Kern (auch test/zip_kern.c)
 APPOBJ=",obj/zk_INFLATE.obj,obj/zk_DEFLATE.obj,obj/zk_CRC.obj" app apps/zip/RDZIP.C RDZIP.EXE "ZIP"
 for z in BLESER JPEG; do wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/bk_$z.obj apps/bild/$z.C || exit 1; done   # Bilddecoder (auch test/bild_kern.c)

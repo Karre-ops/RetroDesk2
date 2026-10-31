@@ -1,0 +1,101 @@
+; Ressourcen fuer HTRON.EXE (Codepage 437)
+SPRACHE DE
+TEXTE
+  1 "H-Tron"
+  2 "Der Bildschirm ist zu klein fÅr das Spielfeld."
+  3 "Computer 1: "
+  4 "Computer 2: "
+  5 "Computer: "
+  6 "Mensch: "
+  7 "Spieler 1: "
+  8 "Spieler 2: "
+  9 "P U N K T E"
+  10 "Leertaste, Feuerknopf oder Klick: Runde starten"
+  11 "Pause - beliebige Taste drÅcken"
+  12 "Endstand "
+  13 "Computer 1 gewinnt!"
+  14 "Computer 2 gewinnt!"
+  15 "Der Computer gewinnt!"
+  16 "Du gewinnst!"
+  17 "Spieler 1 gewinnt!"
+  18 "Spieler 2 gewinnt!"
+  19 "Unentschieden!"
+  20 "Leertaste: neues Spiel   Esc: Titelbild"
+  30 "H - T R O N"
+  31 "Leertaste: Spiel starten   F1: Steuerung   Esc: Beenden"
+  40 "Wer gegen eine Wand oder eine Spur fÑhrt, gibt dem Gegner einen Punkt. Wer zuerst 5 Punkte hat, gewinnt.\n\nSpieler 1: A / D (links / rechts drehen)\nSpieler 2: Pfeil links / rechts\nEin Spieler: Pfeiltasten oder A / D\nJoystick A: Spieler 2, Joystick B: Spieler 1\n\nLeertaste, Feuer oder Klick: Runde starten\nP: Pause   F2: Neues Spiel   Esc: Abbrechen"
+  41 "H-Tron fÅr RetroDesk 2\n\nOriginal: RobertK 2016 (Hercules, Schneider Euro PC)\nCGA/EGA/VGA/GEM-Fassung: MRalser 2026\ngithub.com/marralser/H-TRON\n\nRD2-Fassung mit dem RD2-SDK."
+ENDE
+MENU 1
+  POPUP "&Spiel"
+    ITEM "&Neues Spiel\tF2"       101
+    ITEM "&Pause\tP"              102
+    TRENNER
+    ITEM "&Demo (Computer gegen Computer)" 110
+    ITEM "&1 Spieler"             111
+    ITEM "&2 Spieler"             112
+    TRENNER
+    ITEM "&Beenden\tEsc"          109
+  ENDE
+  POPUP "&Optionen"
+    ITEM "&Langsam"               120
+    ITEM "&Normal"                121
+    ITEM "&Schnell"               122
+    TRENNER
+    ITEM "&Klang"                 130
+  ENDE
+  POPUP "&Hilfe"
+    ITEM "&Steuerung\tF1"         140
+    ITEM "&Info"                  141
+  ENDE
+ENDE
+SPRACHE EN
+TEXTE
+  1 "H-Tron"
+  2 "The screen is too small for the playfield."
+  3 "Computer One: "
+  4 "Computer Two: "
+  5 "Computer: "
+  6 "Human: "
+  7 "Player One: "
+  8 "Player Two: "
+  9 "S C O R E"
+  10 "Space, fire button or click: start round"
+  11 "Pause - press any key"
+  12 "Final score "
+  13 "Computer Player One wins!"
+  14 "Computer Player Two wins!"
+  15 "Computer wins!"
+  16 "You win!"
+  17 "Player One wins!"
+  18 "Player Two wins!"
+  19 "A draw!"
+  20 "Space: new game   Esc: title"
+  30 "H - T R O N"
+  31 "Space: start game   F1: controls   Esc: quit"
+  40 "If you crash into a wall or a trail, your opponent scores a point. The first to reach 5 points wins.\n\nPlayer One: A / D (turn left / right)\nPlayer Two: cursor left / right\nOne player: cursor keys or A / D\nJoystick A: Player Two, joystick B: Player One\n\nSpace, fire or click: start round\nP: pause   F2: new game   Esc: abort"
+  41 "H-Tron for RetroDesk 2\n\nOriginal: RobertK 2016 (Hercules, Schneider Euro PC)\nCGA/EGA/VGA/GEM version: MRalser 2026\ngithub.com/marralser/H-TRON\n\nRD2 version built with the RD2 SDK."
+ENDE
+MENU 1
+  POPUP "&Game"
+    ITEM "&New game\tF2"          101
+    ITEM "&Pause\tP"              102
+    TRENNER
+    ITEM "&Demo (computer vs. computer)" 110
+    ITEM "&1 player"              111
+    ITEM "&2 players"             112
+    TRENNER
+    ITEM "E&xit\tEsc"             109
+  ENDE
+  POPUP "&Options"
+    ITEM "&Slow"                  120
+    ITEM "&Normal"                121
+    ITEM "&Fast"                  122
+    TRENNER
+    ITEM "&Sound"                 130
+  ENDE
+  POPUP "&Help"
+    ITEM "&Controls\tF1"          140
+    ITEM "&About"                 141
+  ENDE
+ENDE
