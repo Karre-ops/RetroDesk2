@@ -1,6 +1,6 @@
-/* RDFDISK.C - RD2-Oberflaeche fuer Free FDISK (GPL v2, siehe disk/fdfdisk/COPYING).
+/* RDFDISK.C - RD2-Oberflaeche fuer Free FDISK (GPL v2, siehe src/disk/fdfdisk/COPYING).
  * Aufruf: RDFDISK.EXE            Festplatte einrichten: Partitionen anlegen, loeschen, aktiv setzen, schreiben.
- * Der Rechenkern ist Free FDISK (pcompute.c, pdiskio.c) fast unveraendert; disk/fdglue.c verbindet ihn mit
+ * Der Rechenkern ist Free FDISK (pcompute.c, pdiskio.c) fast unveraendert; src/disk/fdglue.c verbindet ihn mit
  * dieser Oberflaeche (fdglue.h). DOS- und BIOS-Aufrufe laufen ueber RDDISK.MOD (Positivliste).
  * Anlegen nach DOS-Regel: das erste DOS-Laufwerk wird primaer und aktiv, weitere werden logische Laufwerke
  * in einer erweiterten Partition. Erst "Schreiben" aendert die Platte; danach Neustart, dann RDFORMAT.

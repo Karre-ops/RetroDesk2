@@ -1,4 +1,4 @@
-/* fdshim.h - wird vor jede FreeDOS-Datei (FORMAT, FDISK) gesetzt (wcc -fi=disk/fdshim.h).
+/* fdshim.h - wird vor jede FreeDOS-Datei (FORMAT, FDISK) gesetzt (wcc -fi=src/disk/fdshim.h).
  * Leitet DOS-/BIOS-Aufrufe ueber RDDISK.MOD, Textausgabe ins Protokoll, exit() zurueck in die
  * RD2-Oberflaeche. Der FreeDOS-Quelltext bleibt dadurch fast unveraendert. */
 #ifndef FDSHIM_H

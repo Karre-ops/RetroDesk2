@@ -20,7 +20,7 @@ mkdir -p $D/QUELLE/UNTER
 python3 - $D <<'PY'
 import sys, os, zipfile, random
 d = sys.argv[1]; random.seed(7)
-txt = open('shell/SHELL.C', 'rb').read()[:40000]
+txt = open('src/shell/SHELL.C', 'rb').read()[:40000]
 z = zipfile.ZipFile(d + '/TEST.ZIP', 'w')
 z.writestr(zipfile.ZipInfo('LIESMICH.TXT'), txt, zipfile.ZIP_DEFLATED)
 z.writestr(zipfile.ZipInfo('ordner/Ein langer Name.text'), txt[:5000], zipfile.ZIP_DEFLATED)

@@ -4,7 +4,7 @@
  * Befehlszeile "T": Testmodus (Quelle = Ziel = B:, test/dkopie.sh). */
 #include <dos.h>
 #include "RD2.H"
-#include "../../disk/RDDISK.H"
+#include "../../src/disk/RDDISK.H"
 
 #define ID_VA 31
 #define ID_VB 32

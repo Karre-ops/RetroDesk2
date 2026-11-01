@@ -5,7 +5,7 @@
  * Groessenfehler werden nur gemeldet. Befehlszeile: "X:" Laufwerk, "T X:" Testmodus (pruefen, reparieren, pruefen). */
 #include <dos.h>
 #include "RD2.H"
-#include "../../disk/RDDISK.H"
+#include "../../src/disk/RDDISK.H"
 
 #define ID_LISTE 40
 #define ID_BALKEN 41

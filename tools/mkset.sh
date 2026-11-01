@@ -6,7 +6,7 @@ set -e
 cd "$(dirname "$0")/.."
 O=out/set; T=obj/set.tmp
 python3 -c "import shutil,os; shutil.rmtree('$T', True); os.makedirs('$T'); os.makedirs('$O', exist_ok=True)"
-K=disk/fdkern/KERNEL.SYS; [ -f $K ] || { echo "mkset: $K fehlt (ke2046_86f16.zip)"; exit 1; }
+K=src/disk/fdkern/KERNEL.SYS; [ -f $K ] || { echo "mkset: $K fehlt (ke2046_86f16.zip)"; exit 1; }
 liste() { awk -v d=$1 '!/^[#@]/ && NF>=4 && $4==d {print $1}' tools/budget.txt; }
 neu() { rm -f $O/$1; mformat -C -f 360 -v "$2" -i $O/$1 ::; }
 kopie() { img=$1; shift; for f in "$@"; do [ -f out/$f ] || { echo "mkset: out/$f fehlt, nicht auf $img" >&2; continue; }; mcopy -i $O/$img out/$f ::/RD2/; done; }
@@ -21,7 +21,7 @@ f.seek(0); f.write(d)
 PY
 mcopy -i $O/RD2_1.IMG $K ::/KERNEL.SYS
 printf 'INSTALL=A:\\RD2\\RDKEYB.COM DE\r\nINSTALL=A:\\RD2\\RDMAUS.COM\r\nSHELL=A:\\RD2\\RD.EXE /P A:\\RD2\\SHELL.EXE\r\n' > $T/CONFIG.SYS
-txt disk/fdsys/COPYING COPYING; txt docs/LIZENZ.TXT LIZENZ.TXT; txt docs/QUELLEN.TXT QUELLEN.TXT
+txt src/disk/fdsys/COPYING COPYING; txt docs/LIZENZ.TXT LIZENZ.TXT; txt docs/QUELLEN.TXT QUELLEN.TXT
 mcopy -i $O/RD2_1.IMG $T/CONFIG.SYS $T/COPYING $T/LIZENZ.TXT $T/QUELLEN.TXT ::/
 mmd -i $O/RD2_1.IMG ::/RD2; kopie RD2_1.IMG $(liste S)
 # Disketten 2 bis 4

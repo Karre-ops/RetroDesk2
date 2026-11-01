@@ -8,7 +8,7 @@ MODES=("cga /CGA /C" "hercules /HGC /H" "vgaonly /VGA /V"); [ -n "$NUR_CGA" ] &&
 for m in "${MODES[@]}"; do
   set -- $m
   python3 -c "import shutil; shutil.rmtree('$R', True)"; mkdir -p $R/RD2
-  cp out/RD.EXE out/*.MOD out/*.DRV out/*.FNT out/RDSWAP.BIN out/BENCH2.EXE obj/bench1/BENCH1.EXE rd1ref/RDFONT.F14 $R/RD2/
+  cp out/RD.EXE out/*.MOD out/*.DRV out/*.FNT out/RDSWAP.BIN out/BENCH2.EXE obj/bench1/BENCH1.EXE docs/rd1ref/RDFONT.F14 $R/RD2/
   printf '[System]\nMaus=DOS\n' > $R/RD2/RD2.INI
   printf '[sdl]\nfullscreen=false\n[dosbox]\nmachine=%s\nmemsize=1\n[cpu]\ncore=normal\ncputype=8086\ncycles=fixed %s\n[mixer]\nnosound=true\n[speaker]\npcspeaker=false\n[dos]\nxms=false\numb=false\n' $1 $CYC > $R/dbx.conf
   SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy timeout 300 dosbox -conf $R/dbx.conf -c "mount c $R" -c "c:" -c "cd \\RD2" \

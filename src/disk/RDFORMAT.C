@@ -1,10 +1,10 @@
-/* RDFORMAT.C - RD2-Oberflaeche fuer FreeDOS FORMAT (GPL v2, siehe disk/fdformat/COPYING).
+/* RDFORMAT.C - RD2-Oberflaeche fuer FreeDOS FORMAT (GPL v2, siehe src/disk/fdformat/COPYING).
  * Aufruf: RDFORMAT.EXE A:        Dialog (Kapazitaet, Bezeichnung, Schnell), dann FreeDOS FORMAT
  *         RDFORMAT.EXE C:        Festplatte (FAT12/FAT16): Dialog (Bezeichnung, Schnell), Rueckfrage, FORMAT
  * Das Laufwerk, auf dem RD2 liegt, wird nicht formatiert.
- * Der Formatier-Kern ist FreeDOS FORMAT 0.92a fast unveraendert (disk/fdformat). Er laeuft als
+ * Der Formatier-Kern ist FreeDOS FORMAT 0.92a fast unveraendert (src/disk/fdformat). Er laeuft als
  * fd_main(argc, argv) mit Schaltern wie auf der DOS-Befehlszeile (/F:360 /V:NAME /Q bzw. /U).
- * disk/fdshim.h leitet seine DOS-/BIOS-Aufrufe ueber RDDISK.MOD, seine Textausgabe ins
+ * src/disk/fdshim.h leitet seine DOS-/BIOS-Aufrufe ueber RDDISK.MOD, seine Textausgabe ins
  * Debug-Protokoll und exit() per longjmp hierher zurueck. Rueckfragen, Fortschritt und Fehler
  * kommen ueber die Funktionen unten (rdfmtui.h) in RD2-Dialoge. */
 #include <dos.h>

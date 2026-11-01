@@ -3,5 +3,5 @@ Kopfdateien main.h, cmd.h, ui.h, kbdinput.h, helpscr.h, compat.h, printf.h, disp
 Quelle: https://github.com/FDOS/fdisk (Stand a6e3622, 26.04.2025). Lizenz: GNU GPL Version 2 (COPYING).
 RD2 benutzt nur den Kern pcompute.c und pdiskio.c (Partitionstabellen lesen, rechnen, schreiben) und den
 Start-Code bootnorm.asm (NASM beim Bauen). Oberflaeche, Befehlszeile und FDISK.INI sind ersetzt durch
-disk/RDFDISK.C und disk/fdglue.c. Anpassung (24.10.2026, hinter #ifdef RD2): pdiskio.h MAX_DISKS 2 statt 8.
-DOS- und BIOS-Aufrufe laufen ueber disk/fdshim.h (intr) und RDDISK.MOD.
+src/disk/RDFDISK.C und src/disk/fdglue.c. Anpassung (24.10.2026, hinter #ifdef RD2): pdiskio.h MAX_DISKS 2 statt 8.
+DOS- und BIOS-Aufrufe laufen ueber src/disk/fdshim.h (intr) und RDDISK.MOD.

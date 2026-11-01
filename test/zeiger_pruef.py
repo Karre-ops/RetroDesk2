@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """zeiger_pruef.py COM1-LOG: prueft in obj/zeig{1,2,3}_{cga,vga}.ppm, ob an der gemeldeten Position
-die gemeldete Form steht ('#' schwarz, 'o' weiss; Formen wie in user/RDUSER.C, Quelle tools/zeiger.py)."""
+die gemeldete Form steht ('#' schwarz, 'o' weiss; Formen wie in src/user/RDUSER.C, Quelle tools/zeiger.py)."""
 import sys, re, os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tools"))
 from PIL import Image

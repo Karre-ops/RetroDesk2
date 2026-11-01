@@ -1,5 +1,5 @@
 /* fdglue.c - Kern von Free FDISK (pcompute.c, pdiskio.c, GPL v2) fuer die RD2-Oberflaeche RDFDISK.
- * Wird wie die FreeDOS-Dateien mit disk/fdshim.h uebersetzt; die Oberflaeche sieht nur fdglue.h.
+ * Wird wie die FreeDOS-Dateien mit src/disk/fdshim.h uebersetzt; die Oberflaeche sieht nur fdglue.h.
  * Ersetzt main.c/fdiskio.c von FDISK: Voreinstellungen (ohne FDISK.INI), Liste der Teile, Anlegen nach
  * DOS-Regel (erste DOS-Partition primaer und aktiv, weitere als logische Laufwerke in einer erweiterten). */
 #define MAIN                                      /* main.h: flags, arg, user_defined_chs_settings hier anlegen */

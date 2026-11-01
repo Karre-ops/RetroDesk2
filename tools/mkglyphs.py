@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Erzeugt drv/GLYPHS.H: d_glyphs fuer GFX1.C (CGA/HGC/VGAM), 25.10.2026.
+"""Erzeugt src/drv/GLYPHS.H: d_glyphs fuer GFX1.C (CGA/HGC/VGAM), 25.10.2026.
 Text spaltenweise direkt aus der Schrift. Durchsichtig verschoben: je Glyphe ein Wort (ODER/UND/XOR).
 Deckend verschoben (x & 7): jedes Bildschirmbyte genau einmal,
 Inhalt = (vorige Glyphe:diese Glyphe) >> sh. Erste und letzte Spalte mit Maske (deckend).

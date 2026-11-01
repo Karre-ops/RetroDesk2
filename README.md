@@ -1,58 +1,51 @@
-# RetroDesk 2 (in Arbeit)
+# RetroDesk 2
 
-Grafische Umgebung für 8088 (640 KB, Diskettenbetrieb) bis Pentium. Entwurf: [docs/ENTWURF_RD2.md](docs/ENTWURF_RD2.md), Plan: [docs/PLAN_RD2.md](docs/PLAN_RD2.md).
+Grafische Mehrprogramm-Oberfläche für DOS-PCs vom 8088 mit 640 KB und Diskettenlaufwerk bis zum Pentium.
+CGA, Hercules, EGA, VGA und VESA, Maus und Tastatur, AdLib/Sound Blaster, Netz über Paketreiber (FTP, IRC, Netzzeit).
+Läuft ab DOS 5, ohne Festplattenzwang.
 
-Stand: Phase 0 (Spezifikation API 1.0) freigegeben am 19.10.2026, Phase 1 (Gerüst, Diskettentest) fertig.
-**Phase 2, Teil 1** fertig: Speicherverwaltung (Handles, verschiebbar, verwerfbar, Verdichten), Tasks mit Zeitscheiben, Nachrichten, Zeitgeber, 8087-Zustand je Task.
-**Phase 3, Teil 1** fertig (20.10.2026): Grafiktreiber `CGA.DRV`, `HGC.DRV`, `VGAM.DRV`, `RDGDI.MOD` (Gerätekontexte, Clipping mit Rechtecklisten, Linien, Rechtecke, Ellipsen, abgerundete Rechtecke, Polygone, Füllen, Dithering/Muster, Bitmaps, BitBlt/StretchBlt mit Rasteroperationen). Testbild `GDITEST.EXE`, Vergleich gegen `test/ref/` mit `test/gdi_dosbox.sh` (CGA, Hercules, VGA) und `test/gdi.sh` (QEMU). Dazu CPU-Erkennung, Profile Schnell/Komfort und Grafikwahl nach Hardware (`GfxList`/`GfxSelect`, Test `test/gfxwahl_dosbox.sh`). Schriften und Text: `SYS8/14/16.FNT`, `TextOut`, `TextBox`, fett/kursiv/unterstrichen, Testbild `TEXTTEST.EXE` (`PROG=TEXTTEST BILD=text test/gdi_dosbox.sh`). Offen in Phase 3: Maus, Tastatur, Treiber in Assembler.
-Phase 2 erledigt; früher offen in Phase 2: Module laden/verwerfen mit Diskettenwechsel, Datei-API, Profile, INT-24h-Dialog, Zwischenablage, Notbeenden.
+## Herunterladen und installieren
 
-## Bauen und testen
+Fertige Disketten stehen unter [Releases](../../releases) und im Ordner [`release/2.0/`](release/2.0):
 
-```sh
-bash rd2/build.sh          # SDK (RD2START.OBJ, RD2.LIB), Kern RD.EXE, LEER.EXE -> rd2/out, Budgetprüfung
-bash rd2/test/floppy.sh    # bootet eine 720-KB-Diskette in QEMU (nur A:, keine Platte), prüft COM1-Ausgaben
-```
+| Datei | Inhalt |
+|---|---|
+| `RD2_1.IMG` | System, bootfähig (360 KB) |
+| `RD2_2.IMG` | Programme und Treiber |
+| `RD2_3.IMG` | Netz, FreeCOM, H-Tron |
+| `RD2_4.IMG` | SDK |
+| `RD2_HDD.ZIP` | alle vier Disketten als ein Ordner für die Installation von der Festplatte |
 
-Aufbau:
+Von Diskette: mit `RD2_1.IMG` starten, Installation im Menü. Von der Festplatte: `RD2_HDD.ZIP` z. B. nach
+`C:\RD2NEU` entpacken und `C:\RD2NEU\RD2INST` aufrufen. Mehr in `release/2.0/LIESMICH.TXT`.
+
+## Aufbau
 
 | Ordner | Inhalt |
 |---|---|
-| `sdk/` | `RD2.H`, `RD2API.H`, `RD2ORD.H`, `RD2DRV.H`, `RD2START.ASM` (Startcode) |
-| `kern/` | `RD.C` (Start, Ausgabe, Systeminfo), `MEM.C` (Speicher), `TASK.C` (Laden, Tasks, Nachrichten, Zeitgeber), `KASM.ASM` (Umschalten, INT 8, Kopieren) |
-| `apps/` | `leer/`, `test/` (PING, PONG, RECHNE, MEMTEST für Phase 2) |
-| `tools/` | `apicheck.py`, `mkapi.py` (erzeugt Aufrufstücke und Kerntabelle), `rd2link.py` (RD2-Anhang), `budget.py`/`budget.txt`, `mkdisk.sh` |
-| `test/` | `hdrtest.c`, `floppy.sh` |
-| `shell/` | `SHELL.C` Desktop und Dateimanager (Teil 1), Symbole `*.TXT` -> `*.ICO` mit `tools/mkrdb.py`, Test `test/desk.sh` |
-| `gdi/ user/ snd/ drv/` | Grafik, Oberfläche, Sound, Treiber |
+| `src/` | System: `kern` (RD.EXE), `gdi`, `user`, `ctl`, `shell`, `drv` (Grafik, Maus, Tastatur), `snd`, `net`, `prn`, `disk` (FORMAT, FDISK, SYS auf FreeDOS-Grundlage), `setup`, `lng` |
+| `apps/` | Programme: Editor, Rechner, Bildbetrachter, ZIP, Netz, Uhr, Optionen, H-Tron und weitere |
+| `sdk/` | Header, Startcode und `RD2.LIB` für eigene Programme in C und Pascal |
+| `tools/` | Bauwerkzeuge (Ressourcen, Schriften, Disketten, Größenprüfung `budget.txt`) |
+| `test/` | automatische Tests in QEMU und DOSBox, Referenzbilder `test/ref/` |
+| `docs/` | Spezifikation, Funktionen, SDK, Lizenz; `docs/archiv/` alte Entwürfe und Pläne |
+| `release/` | fertige Disketten |
 
-`RD2.LIB` enthält je Funktion ein eigenes Stück (5 bis 15 Bytes), eingebunden wird nur, was ein Programm benutzt. LEER.EXE ist so 508 Bytes groß.
+## Bauen und testen
 
-- [docs/SPEC.md](docs/SPEC.md): Regeln, Programm-, Ressourcen-, Schrift-, INI-Formate, Disketten, Netz
-- [docs/FUNKTIONEN.md](docs/FUNKTIONEN.md): alle Funktionen mit Nummer
-- [sdk/RD2.H](sdk/RD2.H), [sdk/RD2API.H](sdk/RD2API.H), [sdk/RD2DRV.H](sdk/RD2DRV.H)
-- [tools/budget.txt](tools/budget.txt): Größengrenzen
-
-Header prüfen:
+Braucht Open Watcom 2 (`/opt/ow`), Python 3, mtools und QEMU.
 
 ```sh
-python3 rd2/tools/apicheck.py                       # Nummern/Namen
-wcc -0 -mm -zq -i=rd2/sdk rd2/test/hdrtest.c        # 16 Bit
-wcc386 -zq -i=rd2/sdk rd2/test/hdrtest.c            # 32 Bit
+bash build.sh             # alles bauen -> out/, mit Größenprüfung
+bash tools/mkset.sh       # Diskettensatz -> out/set/
+bash test/schnell.sh      # Kurztest (Grafik, Desktop, Dialoge)
+bash test/voll.sh         # voller Testsatz
 ```
 
-## Eigenes Repository (seit 28.10.2026)
-
-RD2 lag bis Commit 69e187f im Unterordner `rd2/` von Karre-ops/retrodesk (Branch rd2). Die Geschichte
-wurde mit `git subtree split` übernommen. Aus dem RD1-Repo kamen dazu:
-
-- `test/qemu/`: QEMU-Steuerung (qmon.py), Netztest-Helfer, NE2000-Paket-Treiber. `boot.img`
-  (FreeDOS-Startdiskette) und `CTMOUSE.EXE` (nur test/install.sh) stehen wie bisher nicht im Git
-  und müssen lokal nach `test/qemu/` gelegt werden.
-- `docs/ENTWURF_RD2.md`, `docs/PLAN_RD2.md`: Entwurf und Plan.
-- `rd1ref/`: Teile von RetroDesk 1 als Vergleich (Schrift RDFONT.F14 für tools/mkfont.py,
-  calc.c für test/rechner_kern.sh, gfx.c/mouse.c für den Leistungsvergleich bench).
+Dokumentation: [Spezifikation](docs/SPEC.md), [alle Funktionen](docs/FUNKTIONEN.md), [SDK](docs/SDK.TXT).
 
 ## Lizenz
 
-RetroDesk 2 ist freie Software unter der **GNU General Public License Version 2 oder später** (siehe `COPYING`, Übersicht `docs/LIZENZ.TXT`). Das gilt für Kern, Module, Treiber, Shell, Programme und SDK. FreeDOS-Teile (Kern, SYS, FORMAT, FDISK, FreeCOM, CuteMouse) stehen unter ihrer eigenen GPL. Fehler bitte als Issue melden.
+RetroDesk 2 ist freie Software unter der **GNU General Public License Version 2 oder später** (siehe [`COPYING`](COPYING),
+Übersicht [`docs/LIZENZ.TXT`](docs/LIZENZ.TXT)). FreeDOS-Teile (Kern, SYS, FORMAT, FDISK, FreeCOM, CuteMouse) stehen unter
+ihrer eigenen GPL. Fehler bitte als Issue melden.
