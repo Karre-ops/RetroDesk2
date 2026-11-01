@@ -48,7 +48,7 @@ Strg+Alt+Rückschritt: hängendes Programm beenden
 
 Siehe auch {Fenster|3} und {So benutzen Sie die Hilfe|13}.
 @5 Dateien und Ordner
-Ein Doppelklick auf ein Laufwerk oder einen Ordner öffnet ein Ordnerfenster. Dateien lassen sich kopieren, verschieben, umbenennen und löschen.
+Ein Doppelklick auf ein Laufwerk oder einen Ordner öffnet ein Ordnerfenster. Dateien lassen sich kopieren, verschieben, umbenennen und löschen. Gibt es eine Datei am Ziel schon, fragt RD2 nach: „Alle“ ersetzt ohne weitere Frage auch die übrigen Dateien dieses Vorgangs (Systemdateien fragen trotzdem).
 Beim Löschen, Überschreiben oder Verschieben wichtiger Systemdateien fragt RetroDesk 2 zusätzlich nach.
 Textdateien öffnet ein Doppelklick im Editor oder im Notizblock.
 @6 Programme starten
@@ -57,7 +57,7 @@ Mit "Auf den Schreibtisch" legen Sie ein Programm als Symbol auf den {Schreibtis
 Wie DOS-Programme laufen, steht unter {DOS-Programme|8}.
 @7 Zubehör
 Im Menü RD unter Zubehör finden Sie:
-Uhr: große Anzeige, Uhrzeit stellen, auf Wunsch Netzzeit (siehe {Netzwerk|10})
+Uhr: große Anzeige, Uhrzeit stellen, auf Wunsch Netzzeit (siehe {Netzwerk|10}); fehlt der Netzwerktreiber, lädt die Uhr ihn selbst nach
 Notizblock: kurze Texte
 Rechner: Grundrechenarten
 Optionen: Klänge und weitere Einstellungen

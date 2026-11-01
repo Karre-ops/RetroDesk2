@@ -1,4 +1,4 @@
-# RD2 API 1.0: Funktionsliste
+# RD2 API 2.0: Funktionsliste (Stand 01.11.2026)
 
 Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Hand ändern.
 
@@ -107,7 +107,7 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x128 | Grafik | `HFONT FontLoad(LPCSTR name, WORD hoehe, WORD stil)` |
 | 0x129 | Grafik | `void FontFree(HFONT f)` |
 | 0x12A | Grafik | `WORD FontInfo(HFONT f, FONTINFO FAR *fi)` |
-| 0x130 | Grafik | `HBMP BmpCreate(WORD w, WORD h, WORD bpp)` |
+| 0x130 | Grafik | `HBMP BmpCreate(WORD w, WORD h, WORD bpp)` (bpp 0/1/4/8; BMP_MASKE Symbolmaske; BMP_ROH Hintergrund roh, Bildspeicher-Ablage oder RAM; BMP_NURVR nur Ablage, sonst 0) |
 | 0x131 | Grafik | `void BmpFree(HBMP b)` |
 | 0x132 | Grafik | `HDC BmpDC(HBMP b)` |
 | 0x133 | Grafik | `void DCFree(HDC dc)` |
@@ -176,7 +176,7 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x2C7 | Dialoge | `void DlgCheck(HWND dlg, WORD id, WORD an)` |
 | 0x2C8 | Dialoge | `WORD DlgChecked(HWND dlg, WORD id)` |
 | 0x2C9 | Dialoge | `short DialogIndirect(HINST i, const void FAR *vorlage, HWND owner, DLGPROC proc, DWORD param)` |
-| 0x2D0 | Dialoge | `short MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD flags)` (flags: Knöpfe MB_OK, MB_OKCANCEL, MB_YESNO, MB_YESNOCANCEL; Symbol MB_INFO, MB_WARN, MB_ERROR, MB_ASK; MB_DEFNO = Nein vorgewählt) |
+| 0x2D0 | Dialoge | `short MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD flags)` (flags: Knöpfe MB_OK, MB_OKCANCEL, MB_YESNO, MB_YESNOCANCEL, MB_YESALLNO, MB_YESALLNOCANCEL (Knopf Alle = ID_ALLE); Symbol MB_INFO, MB_WARN, MB_ERROR, MB_ASK; MB_DEFNO = Nein vorgewählt) |
 | 0x2D1 | Dialoge | `BOOL FileDialog(HWND owner, FILEDLG FAR *fd)` |
 | 0x2D2 | Dialoge | `BOOL InputBox(HWND owner, LPCSTR frage, LPCSTR titel, LPSTR buf, WORD len)` |
 | 0x2D3 | Dialoge | `BOOL HelpShow(HWND owner, LPCSTR datei, WORD thema)` |
@@ -198,7 +198,7 @@ Erzeugt mit `python3 tools/apicheck.py --list` aus `sdk/RD2API.H`. Nicht von Han
 | 0x380 | Netz | `WORD NetCaps(NETINFO FAR *ni)` |
 | 0x381 | Netz | `WORD NetStart(HWND melden)` |
 | 0x382 | Netz | `WORD NetResolve(HWND melden, LPCSTR host)` |
-| 0x383 | Netz | `HSOCK NetOpen(HWND melden, DWORD ip, WORD port, WORD flags)` |
+| 0x383 | Netz | `HSOCK NetOpen(HWND melden, DWORD ip, WORD port, WORD flags)` (NO_TCP, NO_UDP, NO_GROSS = 8 KB Empfangsfenster) |
 | 0x384 | Netz | `HSOCK NetListen(HWND melden, WORD port, WORD flags)` |
 | 0x385 | Netz | `WORD NetSend(HSOCK s, const void FAR *buf, WORD n)` |
 | 0x386 | Netz | `WORD NetRecv(HSOCK s, void FAR *buf, WORD n)` |

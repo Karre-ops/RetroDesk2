@@ -1,4 +1,4 @@
-# RetroDesk 2: Spezifikation API 1.0 (Phase 0)
+# RetroDesk 2: Spezifikation (Phase 0, fortgeschrieben bis API 2.0 / RD2 2.1, Stand 01.11.2026)
 
 Stand: 19.10.2026, **freigegeben** am 19.10.2026. Grundlage: [ENTWURF_RD2.md](ENTWURF_RD2.md), [PLAN_RD2.md](PLAN_RD2.md)
 
@@ -128,6 +128,10 @@ Treiber-Tabellen siehe `RD2DRV.H`. Wichtig:
 - Ein Grafiktreiber muss nur `span`, `pixel`, `getpixel`, `put`, `get` liefern, alles Weitere ist optional und wird sonst von RDGDI nachgebaut.
 - Treiber kennen kein Clipping und keine Fenster.
 - Die Treibertabelle wächst nur hinten. `groesse` zeigt, welche Felder es gibt.
+- Erweiterungen der Grafiktabelle (alle optional, erkannt an `h.groesse`):
+  - `GFXDRVF` (`farbe`, `rgb`): Farbtreiber, Index zu einer Farbe und zurück.
+  - `GFXDRVR` (30.10.2026): `rohgr`/`rohget`/`rohput` retten einen Bildschirmausschnitt unverändert (Ebenen bzw. Schirmbytes) und schreiben ihn an dieselbe Stelle zurück, auch in Teilen; `symput` setzt farbige Symbole mit Maske.
+  - `GFXDRVV` (01.11.2026): Ablage im unsichtbaren Bildspeicher. `vrneu(w, h)` reserviert Platz für einen rohen Block und liefert 1..255 oder 0 (kein Platz), `vrfrei(n)` gibt ihn frei. RDGDI trägt dann `bpr = 0x8000 | n` in die Bitmap ein, `rohget`/`rohput` erkennen das und kopieren im Bildspeicher (EGA/VGA: über die Latches, Schreibmodus 1; Ränder mit Bitmaske). Der Treiber ermittelt den Platz selbst: VGA 64 KB je Ebene (Modus 12h und 11h: 26 KB hinter Zeile 480), EGA laut BIOS (INT 10h 12h, 16 KB je 64 KB Karte; EGA mono nur mit 256 KB), Hercules zweite Bildseite B800h (32 KB, nur ohne Farbkarte auf 3D4h und nach Speichertest). Ein Moduswechsel leert die Ablage. Umgesetzt in VGA16, VGA4, EGA, EGA4, EGA200, EGA320, VGAM, EGAM und HGC; CGA, MCGA, SVGA16 und VESA haben keine Ablage.
 
 **Grafikwahl (beschlossen 20.10.2026).** Der Kern erkennt die CPU (`SYSINFO.cpu`). Daraus folgt das Profil:
 - **Schnell** (8088, V20, 286): nur 1-Bit-Treiber, Reihenfolge Hercules, VGA mono, CGA (wie RetroDesk 1.x).
@@ -156,7 +160,7 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 - **Menüleiste: global oben** (wie RetroDesk 1.x und GEM). Sie zeigt das Menü des aktiven Fensters, die Uhr steht rechts. Freigegeben am 19.10.2026.
 - Ganz links steht immer das Systemmenü "RD" (Info, Zubehör, Programmliste, Beenden), es gehört der Shell.
 - Zubehör (`PF_TOOL`/`WS_TOOL`) hat kein eigenes Menü. Ist es aktiv, bleibt das Menü des zuletzt aktiven Programms stehen.
-- Neu zeichnen über `M_PAINT`. Popups mit `CS_SAVEBITS` sichern den Hintergrund, wenn genug Speicher frei ist.
+- Neu zeichnen über `M_PAINT`. Menüs retten ihren Hintergrund roh (`BMP_ROH`), bei Ablage im Bildspeicher ohne RAM. Hauptfenster mit `WS_POPUP` (Dialoge, `MsgBox`, `InputBox`) retten ihn beim Erscheinen nur in die Bildspeicher-Ablage (`BMP_NURVR`, höchstens zwei verschachtelt) und holen ihn beim Schließen zurück, statt die Fenster darunter neu zu zeichnen (01.11.2026). Malt währenddessen ein Fenster darunter (Inhalt) oder der Schreibtisch in den verdeckten Bereich, gilt die Rettung als veraltet und es wird normal neu gezeichnet. `EnableWindow` zeichnet Hauptfenster nicht neu (nur Kindfenster, die gesperrt anders aussehen). `CS_SAVEBITS` ist reserviert, aber nicht ausgewertet.
 - Tastatur: Alt bzw. F10 öffnet die Menüleiste, Alt+Buchstabe ein Menü, Tab wechselt das Steuerelement, Alt+Tab das Programm, Alt+F4 schließt, F1 öffnet die Hilfe.
 
 ### 5.0 Schreibtisch und Shell (24.10.2026)
@@ -191,7 +195,7 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 
 ### 5.1 Steuerelemente und Dialoge (RDCTL, 23.10.2026)
 
-`RDCTL.MOD` ist verwerfbar und wird erst geladen, wenn ein Programm einen Dialog oder eine Standardklasse braucht (RDUSER ruft bei unbekannter Klasse `CtlInit`). Fertig: `BUTTON`, `CHECK`, `RADIO`, `STATIC`, `GROUP`, `EDIT` (einzeilig, höchstens 80 Zeichen; der Vorgabetext aus der Vorlage ist wie jeder Fenstertext höchstens 31 Zeichen lang, längere Texte per `DlgSetText`), `LIST` (mit `WS_VSCROLL`, Einträge höchstens 32 Zeichen), `PROGRESS`, dazu `DialogRun`, `DialogEnd`, `DlgItem`, `DlgSet/GetText`, `DlgSet/GetInt`, `DlgCheck/Checked`, `MsgBox` `InputBox` und `DialogIndirect` (Vorlage im Speicher). `FileDialog` liegt in `RDCTLX.MOD` (3,3 KB, verwerfbar), das RDCTL nur für die Dauer des Dialogs lädt: Eingabefeld, Dateiliste nach dem ersten Filtermuster, rechte Liste mit `[..]`, Ordnern und Laufwerken (`[-A-]`, Phantom-B: ausgeblendet), Muster wie `*.TXT` im Eingabefeld ändern die Liste, `FD_MUSTEXIST` und `FD_ASKOVER` fragen per `MsgBox`. Ebenfalls in RDCTLX (RDCTL meldet die Klassen erst an, wenn ein Programm eine davon anlegt; RDUSER gibt das Modul am Ende frei): `TEXT` mehrzeilig bis 4 KB mit Rollbalken, `COMBO` Klappliste (F4 oder Alt+Pfeil runter öffnet, wächst nach unten, daher im Dialog als letztes Element ohne etwas darunter), `SCROLL` eigener Rollbalken (`C_SETPOS`, `C_SETRANGE`, `C_GETPOS`, Meldung `N_CHANGE`). Der Dateidialog hat eine Klappliste „Dateityp“ mit allen Paaren aus `filter`; die Wahl ändert das Muster sofort. Offen: `HelpShow`.
+`RDCTL.MOD` ist verwerfbar und wird erst geladen, wenn ein Programm einen Dialog oder eine Standardklasse braucht (RDUSER ruft bei unbekannter Klasse `CtlInit`). Fertig: `BUTTON`, `CHECK`, `RADIO`, `STATIC`, `GROUP`, `EDIT` (einzeilig, höchstens 80 Zeichen; der Vorgabetext aus der Vorlage ist wie jeder Fenstertext höchstens 31 Zeichen lang, längere Texte per `DlgSetText`), `LIST` (mit `WS_VSCROLL`, Einträge höchstens 32 Zeichen), `PROGRESS`, dazu `DialogRun`, `DialogEnd`, `DlgItem`, `DlgSet/GetText`, `DlgSet/GetInt`, `DlgCheck/Checked`, `MsgBox` (Knöpfe `MB_OK`, `MB_OKCANCEL`, `MB_YESNO`, `MB_YESNOCANCEL`, seit 01.11.2026 `MB_YESALLNO` und `MB_YESALLNOCANCEL` mit Knopf „Alle“, Rückgabe `ID_ALLE`; `MB_DEFNO` wählt Nein vor), `InputBox` und `DialogIndirect` (Vorlage im Speicher). `FileDialog` liegt in `RDCTLX.MOD` (3,3 KB, verwerfbar), das RDCTL nur für die Dauer des Dialogs lädt: Eingabefeld, Dateiliste nach dem ersten Filtermuster, rechte Liste mit `[..]`, Ordnern und Laufwerken (`[-A-]`, Phantom-B: ausgeblendet), Muster wie `*.TXT` im Eingabefeld ändern die Liste, `FD_MUSTEXIST` und `FD_ASKOVER` fragen per `MsgBox`. Ebenfalls in RDCTLX (RDCTL meldet die Klassen erst an, wenn ein Programm eine davon anlegt; RDUSER gibt das Modul am Ende frei): `TEXT` mehrzeilig bis 4 KB mit Rollbalken, `COMBO` Klappliste (F4 oder Alt+Pfeil runter öffnet, wächst nach unten, daher im Dialog als letztes Element ohne etwas darunter), `SCROLL` eigener Rollbalken (`C_SETPOS`, `C_SETRANGE`, `C_GETPOS`, Meldung `N_CHANGE`). Der Dateidialog hat eine Klappliste „Dateityp“ mit allen Paaren aus `filter`; die Wahl ändert das Muster sofort. Offen: `HelpShow`.
 
 - Zustand steht nur in den Fensterdaten (`data` 0..3) und in Speicher des Programms, damit das Modul zwischen zwei Aufrufen verworfen werden darf. `data[3]` = `'RC'` + Typ.
 - Nachrichten an Steuerelemente: `C_SETTEXT`, `C_GETTEXT`, `C_SETCHECK`, `C_GETCHECK`, `C_SETLIMIT`, `C_CLICK`, `C_MNEMO`, `C_SETPOS`, `C_SETRANGE`; Listen `L_ADD`, `L_CLEAR`, `L_COUNT`, `L_GETSEL`, `L_SETSEL`, `L_GETTEXT`, `L_DELETE`. Meldungen an die Eltern als `M_COMMAND` mit `N_CLICKED`, `N_CHANGE`, `N_SELECT`, `N_DBLCLK`.
@@ -240,6 +244,8 @@ Binärformate:
 Sprache: Der Kern sucht zuerst die Ressource in `LangGet()`, dann Englisch, dann Sprache 0. Systemtexte (Kern, Shell) liegen in `DE.LNG`/`EN.LNG`. Das Format ist dasselbe wie STRING, mit Kopf `RDL1` + `WORD sprache`.
 
 ## 7. Bilder und Schriften
+
+**Bitmaps (`BmpCreate(w, h, bpp)`)**: `bpp` 0 = Format des Schirms, 1, 4 oder 8 Bit. `BMP_MASKE` (zu 4/8 Bit): Maske hinter den Punkten, BitBlt setzt nur deckende Punkte (Symbole), fällt weg, wenn der Treiber kein `symput` hat. `BMP_ROH`: Hintergrund unverändert retten, nur BitBlt Schirm -> Bitmap -> dieselbe Stelle, nie hineinzeichnen; nutzt die Bildspeicher-Ablage des Treibers, sonst RAM. `BMP_NURVR` (mit `BMP_ROH`): nur Bildspeicher-Ablage, sonst liefert `BmpCreate` 0 (`RD_ERR_FULL`).
 
 **`.RDB` Bitmap**: `RDB1`, `WORD w, h, bpp (1/4/8), flags (1 = mit Maske)`, bei bpp > 1 eine Palette (`n x 3 Bytes RGB`), dann Zeilen von oben, je Zeile auf ganze Bytes aufgefüllt. Mit Maske folgt danach die Maske als 1-Bit-Bild. Symbole sind 32x32 (VGA) und 32x16 (CGA, wegen des Seitenverhältnisses), beide in derselben Ressource-Nummer mit Flag-Bit 2 für die CGA-Fassung.
 
@@ -312,6 +318,8 @@ Für DOS-Programme kommen dazu: `Parameter=`, `Ordner=`, `Grafik=1` (Programm sc
 - Alle Netzfunktionen kehren sofort zurück. Ergebnisse kommen als Nachricht an das Fenster, das bei `NetOpen`/`NetResolve` angegeben wurde: `M_NETCONNECT`, `M_NETDATA` (Bytes bereit, abholen mit `NetRecv`), `M_NETCLOSED`, `M_NETACCEPT`.
 - Der Stack arbeitet im Hintergrund, während die Programme `GetMessage` aufrufen. Ein Programm, das nicht abholt, bremst nur seine eigenen Verbindungen (TCP-Fenster).
 - Höchstens 8 Verbindungen gleichzeitig in Modus R, Puffer je Verbindung 2 KB Empfang und 1 KB Senden .
+- Stand 2.1: je Verbindung 4 KB Empfang und 2 KB Senden. `NetOpen(..., flags)`: `NO_TCP` (0), `NO_UDP` (1), `NO_GROSS` (2, 01.11.2026): TCP mit 8 KB Empfangsfenster für Datenkanäle (FTP-Laden), fällt bei Speichermangel auf 4 KB zurück. Das Fenster wird schon gemeldet, wenn ein halbes Segment frei ist.
+- Fehlt der Paketreiber (`NetStart` liefert `RD_ERR_NOTFOUND`), lädt `RDNET.EXE L` ihn im laufenden Betrieb (fragt vorher; `LS` ohne Frage, z. B. Netzzeit beim Start) in den Platz, den der Kern dafür freihält (`[Netz] Platz=` in Paragraphen, schreibt RDNET beim Speichern). FTP und Uhr nutzen das und versuchen `NetStart` danach erneut.
 
 ## 11. 16 und 32 Bit
 
