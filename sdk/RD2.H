@@ -520,6 +520,7 @@ typedef struct {
 /* Netz */
 #define NO_TCP 0
 #define NO_UDP 1
+#define NO_GROSS 2                                /* TCP mit 8 KB Empfangsfenster (Datenkanal), sonst 4 KB */
 #define NS_CLOSED 0
 #define NS_CONNECTING 1
 #define NS_OPEN 2

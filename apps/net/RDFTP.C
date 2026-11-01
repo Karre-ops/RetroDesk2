@@ -38,7 +38,7 @@ enum { F_AUS, F_NETZ, F_DNS, F_VERB, F_GRUSS, F_USER, F_PASS, F_TYPE, F_PWD, F_B
        F_PASV, F_DATEN, F_XFER, F_CWD, F_EINZEL, F_MKD };
 enum { O_LIST = 1, O_RETR, O_STOR };
 
-static HINST hi; static HWND dl; static BYTE test, phase, op, z226, dzu, pumpen, ende_f, stapel, lauf, autov; static WORD nw; static BYTE tlad;
+static HINST hi; static HWND dl; static BYTE test, phase, op, z226, dzu, pumpen, ende_f, stapel, lauf, autov; static WORD nw, wn; static BYTE tlad; static HMEM hwb; static char FAR *wb;   /* wb: Schreibpuffer 4 KB, nur beim Laden */
 static HSOCK hc, hd; static DWORD sip; static WORD sport;
 static char srv[40], user[24], pass[24], pf[2][80], rp[128], zb[260], cmdb[160], dname[100], status[80];
 static WORD zl, ne[2], rzl, qi, leer, cw0, ch0; static short fh = -1, bw, bx0[27]; static DWORD xbytes, xgesamt, t0, tz, jt0, jsum;
@@ -186,8 +186,11 @@ static void knoepfe(void)
     EnableWindow(DlgItem(dl, ID_LOESCH), da);
     EnableWindow(DlgItem(dl, ID_ORDNER), da);
 }
+static BYTE wflush(void) { WORD n = wn; wn = 0; return (BYTE)(n && fh >= 0 && FileWrite(fh, wb, n) != n); }   /* 1 = Schreibfehler */
+static void wfrei(void) { if (hwb) { MemUnlock(hwb); MemFree(hwb); hwb = 0; } wb = 0; wn = 0; }
 static void trennen(WORD txt, LPCSTR b)
 {
+    wfrei();
     if (hd) { NetClose(hd); hd = 0; }
     if (hc) { if (phase >= F_BEREIT) NetSend(hc, "QUIT\r\n", 6); NetClose(hc); hc = 0; }
     if (fh >= 0) { FileClose(fh); fh = -1; if (op == O_RETR) FileDelete(dname); }   /* halbe Datei nicht liegen lassen */
@@ -204,8 +207,8 @@ static WORD wahl(WORD id) { return (WORD)SendMessage(DlgItem(dl, id), L_GETSEL, 
 static void fertig_op(void)                       /* Datenuebertragung vorbei (226 und Datenkanal zu) */
 {
     char t[34], n[RN]; WORD i;
-    if (fh >= 0) { FileClose(fh); fh = -1; }
-    phase = F_BEREIT; pumpen = 0; TimerKill(dl, 1);
+    if (fh >= 0) { if (wflush()) statz(11, dname); FileClose(fh); fh = -1; }
+    wfrei(); phase = F_BEREIT; pumpen = 0; TimerKill(dl, 1);
     if (op == O_LIST && jlist) { op = 0; jlist = 0; jlos(); return; }
     if (op == O_LIST) {
         op = 0; sortieren(1); anzeigen(1, 0); { char t2[100]; scpy(t2, srv, sizeof t2); scat(t2, ":", sizeof t2); scat(t2, rp, sizeof t2); DlgSetText(dl, ID_DORT, t2); }   /* Server (IP) vor dem Pfad */
@@ -248,7 +251,7 @@ static void antwort(WORD code, char *z)
         for (p = z + 4; *p && (*p < '0' || *p > '9'); p++) ;
         for (i = 0; i < 6; i++) { v[i] = 0; while (*p >= '0' && *p <= '9') v[i] = (WORD)(v[i] * 10 + *p++ - '0'); if (*p == ',') p++; }
         z226 = 0; dzu = 0; xbytes = 0; rzl = 0;
-        if (!(hd = NetOpen(dl, sip, (WORD)((v[4] << 8) | v[5]), NO_TCP))) { trennen(10, ""); return; }   /* Datei zu, Auftraege weg */
+        if (!(hd = NetOpen(dl, sip, (WORD)((v[4] << 8) | v[5]), op == O_RETR ? NO_GROSS : NO_TCP))) { trennen(10, ""); return; }   /* Laden: 8 KB Fenster */   /* Datei zu, Auftraege weg */
         phase = F_DATEN; return;
     case F_DATEN: case F_XFER:
         if (code == 150 || code == 125) { if (op == O_STOR) { pumpen = 1; TimerSet(dl, 1, 55); } return; }
@@ -256,7 +259,7 @@ static void antwort(WORD code, char *z)
         if (code / 100 == 4 || code / 100 == 5) {
             if (hd) { NetClose(hd); hd = 0; }
             if (fh >= 0) { FileClose(fh); fh = -1; if (op == O_RETR) FileDelete(dname); }
-            phase = F_BEREIT; op = 0; pumpen = 0; stapel = 0; jauf = 0; jlist = 0; TimerKill(dl, 1); statz(9, z); pr("Fehler ", z); knoepfe(); return;
+            wfrei(); phase = F_BEREIT; op = 0; pumpen = 0; stapel = 0; jauf = 0; jlist = 0; TimerKill(dl, 1); statz(9, z); pr("Fehler ", z); knoepfe(); return;
         }
         return;
     default: return;
@@ -282,6 +285,14 @@ static void steuer_daten(void)
 static void daten_lesen(void)
 {
     char b[512]; WORD n, i;
+    if (op == O_RETR && wb && fh >= 0) {           /* Laden: in 4 KB sammeln, dann ein DOS-Schreibaufruf (wie RD1) */
+        while ((n = NetRecv(hd, wb + wn, (WORD)(4096 - wn))) != 0 && n != 0xFFFF) {
+            nw = 0; xbytes += n; wn += n;
+            if (wn == 4096 && wflush()) { trennen(11, dname); return; }
+            fortschritt(12);
+        }
+        return;
+    }
     while ((n = NetRecv(hd, b, sizeof b)) != 0 && n != 0xFFFF) {
         nw = 0; xbytes += n;
         if (op == O_LIST) {
@@ -451,6 +462,7 @@ static void jlos(void)                            /* naechster Auftrag; leer: fe
             if (!ueber(dname)) continue;
             if ((fh = FileCreate(dname, 0)) < 0) { statz(11, dname); continue; }
             for (i = 0; i < ne[1]; i++) if (!e[1][i].dir && !vgl(e[1][i].n, p)) { xgesamt = e[1][i].gr; break; }   /* Groesse aus der Liste */
+            if (!hwb && (hwb = MemAlloc(4096, MEM_MOVABLE)) != 0) wb = (char FAR *)MemLock(hwb);   /* kein Platz: wie bisher 512er */
             pr("lade ", dname); op = O_RETR; scpy(t, p, sizeof t);
         }
         scpy(rzeile, jauf == 1 ? t : p, sizeof rzeile); if (jauf == 1) for (i = 0; rzeile[i]; i++) if (rzeile[i] == '\\') rzeile[i] = '/';

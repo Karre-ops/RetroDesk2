@@ -42,7 +42,7 @@ typedef struct {
     WORD lport, rport, rmss, rwin, rto, tsent, rh, rt;
     BYTE rip[4], rmac[6];
     DWORD una, nxt, end, rcv, iss;
-    HMEM hm; BYTE FAR *rx; BYTE FAR *tb;
+    HMEM hm; BYTE FAR *rx; BYTE FAR *tb; WORD rxb;   /* rxb: Empfangspuffer 4 oder 8 KB (NO_GROSS) */
 } SOCK;
 static SOCK so[NS];
 static struct { BYTE ip[4], mac[6]; } arpc[8];
@@ -349,8 +349,8 @@ static void dhcp_takt(void)                       /* 1 DISCOVER gesendet, 2 REQU
 }
 
 /* ---------------- TCP ---------------- */
-static WORD rfrei(SOCK *c) { return RXB - (c->rh - c->rt); }
-static WORD rwin(SOCK *c) { WORD f = rfrei(c); return f < mss ? 0 : f; }
+static WORD rfrei(SOCK *c) { return c->rxb - (c->rh - c->rt); }
+static WORD rwin(SOCK *c) { WORD f = rfrei(c); return f < (mss >> 1) ? 0 : f; }   /* halbes Segment frei: schon melden (FTP, 01.11.2026) */
 static void tcp_out(SOCK *c, BYTE fl, WORD n, DWORD seq)   /* n Bytes ab seq aus dem Sendepuffer */
 {
     BYTE *t = tx + 34; WORD hl = (fl & F_SYN) ? 24 : 20, i, w; DWORD s;
@@ -405,14 +405,15 @@ static void frei(SOCK *c)
     if (c->hm) { MemUnlock(c->hm); MemFree(c->hm); }
     memset(c, 0, sizeof *c);
 }
-static SOCK *neu(HWND w, BYTE udp)
+static SOCK *neu(HWND w, BYTE udp)                /* udp Bit 1 (NO_GROSS): 8 KB Empfang, wenn der Speicher reicht */
 {
-    WORD i; SOCK *c; HMEM h;
+    WORD i, b = RXB; SOCK *c; HMEM h = 0;
     for (i = 0; i < NS && so[i].st != S_FREE; i++) ;
     if (i == NS) { SetLastError(RD_ERR_BUSY); return 0; }
-    if (!(h = MemAlloc(RXB + TXB, MEM_FIXED | MEM_SHARE))) { SetLastError(RD_ERR_NOMEM); return 0; }
+    if ((udp & 2) && (h = MemAlloc(2 * RXB + TXB, MEM_FIXED | MEM_SHARE)) != 0) b = 2 * RXB;
+    if (!h && !(h = MemAlloc(RXB + TXB, MEM_FIXED | MEM_SHARE))) { SetLastError(RD_ERR_NOMEM); return 0; }
     c = &so[i]; memset(c, 0, sizeof *c);
-    c->hm = h; c->rx = (BYTE FAR *)MemLock(h); c->tb = c->rx + RXB; c->w = w; c->udp = udp;
+    c->hm = h; c->rx = (BYTE FAR *)MemLock(h); c->rxb = b; c->tb = c->rx + b; c->w = w; c->udp = (BYTE)(udp & 1);
     if (++nport < 1024 || nport > 60000U) nport = 1024;
     c->lport = nport; c->rmss = 536; c->rto = 18; c->rwin = 0;
     return c;
@@ -434,8 +435,8 @@ static void verbunden(SOCK *c)
 }
 static void rx_rein(SOCK *c, const BYTE *d, WORD k)
 {
-    WORD i = c->rh & (RXB - 1);
-    if (k > RXB - i) { _fmemcpy(c->rx + i, d, RXB - i); _fmemcpy(c->rx, d + (RXB - i), k - (RXB - i)); }
+    WORD i = c->rh & (c->rxb - 1), b = c->rxb;
+    if (k > b - i) { _fmemcpy(c->rx + i, d, b - i); _fmemcpy(c->rx, d + (b - i), k - (b - i)); }
     else _fmemcpy(c->rx + i, d, k);
     c->rh += k;
 }
@@ -694,7 +695,7 @@ static HSOCK RDEXPORT n_NetOpen(HWND w, DWORD ip, WORD port, WORD flags)
     SOCK *c;
     if (!up) { SetLastError(RD_ERR_NET); return 0; }
     sperre();
-    if (!(c = neu(w, (BYTE)(flags == NO_UDP)))) { frei_s(); return 0; }
+    if (!(c = neu(w, (BYTE)flags))) { frei_s(); return 0; }
     dip(c->rip, ip); c->rport = port;
     c->st = S_ARP; c->tsent = ticks();
     if (mac_von(c->rip, c->rmac, 1)) verbunden(c);
@@ -737,14 +738,14 @@ static WORD RDEXPORT n_NetRecv(HSOCK s, void FAR *buf, WORD n)
     c->gem = 0;
     if (c->udp) {
         if (c->rh == c->rt) { frei_s(); return 0; }
-        i = c->rt & (RXB - 1); k = c->rx[i] | (c->rx[(i + 1) & (RXB - 1)] << 8); c->rt += 2;
+        i = c->rt & (RXB - 1); k = c->rx[i] | (c->rx[(i + 1) & (RXB - 1)] << 8); c->rt += 2;   /* UDP: immer 4 KB */
         for (j = 0; j < k; j++) { if (j < n) ((BYTE FAR *)buf)[j] = c->rx[(c->rt + j) & (RXB - 1)]; }
         c->rt += k; if (k > n) k = n;
         melde_daten(c); frei_s(); return k;
     }
     k = c->rh - c->rt; if (k > n) k = n;
-    i = c->rt & (RXB - 1);
-    if (k > RXB - i) { _fmemcpy(buf, c->rx + i, RXB - i); _fmemcpy((BYTE FAR *)buf + (RXB - i), c->rx, k - (RXB - i)); }
+    i = c->rt & (c->rxb - 1);
+    if (k > c->rxb - i) { _fmemcpy(buf, c->rx + i, c->rxb - i); _fmemcpy((BYTE FAR *)buf + (c->rxb - i), c->rx, k - (c->rxb - i)); }
     else _fmemcpy(buf, c->rx + i, k);
     w0 = c->wnull; c->rt += k;
     if (w0 && rwin(c) && (c->st == S_OPEN || c->st == S_FIN)) tcp_out(c, F_ACK, 0, c->st == S_FIN ? c->end + 1 : c->nxt);   /* Fenster wieder auf */
