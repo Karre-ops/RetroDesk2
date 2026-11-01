@@ -81,6 +81,77 @@ M_CLOSE, M_DESTROY (dann PostQuit).
 - Debug-Ausgaben mit DbgPrint/DbgHex (COM1 oder RD2DBG.TXT).
 
 
+3a. Speicherfehler und Auslagerung (API 2.1)
+-------------------------------------------
+MemAlloc und MemRealloc liefern 0 bei Fehlern, MemLock einen Nullzeiger.
+Das kann auch bei einem gueltigen Handle passieren: dessen Daten sind
+moeglicherweise ausgelagert und koennen gerade nicht eingelesen werden.
+Nie ungeprueft dereferenzieren. Ein FAR-Zeiger gilt nur bis MemUnlock;
+keine gesperrten Zeiger ueber TaskYield, Nachrichten oder Wartezeiten halten.
+
+LastError bleibt bei Speichermangel RD_ERR_NOMEM (bisherige Apps bleiben
+kompatibel). MemError() liefert nach MemAlloc, MemLock, MemRealloc oder
+MemFixed den Zusatzgrund fuer den aufrufenden Task:
+  MEMERR_NONE       letzter Zugriff erfolgreich / kein Speicherfehler
+  MEMERR_RAM        kein geeigneter RAM-Bereich oder Handle verfuegbar
+  MEMERR_SWAPLIMIT  eingestelltes Dateilimit erreicht
+  MEMERR_RESERVE    Laufwerk voll oder Freiplatzreserve unterschritten
+  MEMERR_DISK       Lesen, Schreiben oder Freiplatzabfrage fehlgeschlagen
+  MEMERR_SLOTS      alle 32 Auslagerplaetze belegt
+Bei ungueltigen Handles gilt weiterhin RD_ERR_HANDLE, bei verworfenen
+Daten RD_ERR_NOTFOUND. LastError und MemError sofort sichern, bevor weitere
+Speicheroperationen den Zusatzgrund ersetzen. MemFree/MemUnlock allein
+setzen ihn nicht zurueck. Erfolgreiche Allokationen/Zugriffe setzen ihn
+auf MEMERR_NONE. Die Abfrage ist je Task getrennt.
+
+Bei Fehlern eine einzelne Aktion abbrechen, eigene kurzlebige Puffer
+freigeben und bestehende Dokumente/Handles behalten. MemRealloc-Ergebnis
+erst in eine zweite Variable schreiben: bei 0 bleibt das alte Handle
+verwendbar. Keine Endlosschleifen beim Wiederholen, kein malloc im
+Fehlerpfad. Auch ein Meldungsdialog kann mangels Speicher ausfallen;
+optional DbgHex protokollieren. Das SDK kann einen ungeprueften Nullzeiger
+nicht automatisch sicher machen. Beispiel: sdk/SWAPSAFE.C (C, -0 -mm).
+MemError ist neu an API-Nummer 0x042. Neue SDK-Programme mit dieser Abfrage
+brauchen Kern 2.1; alte Funktionsnummern und Signaturen bleiben erhalten.
+Die erzeugte Pascal-Unit bietet dieselbe Abfrage und Konstanten.
+
+Optionen > System: Swap ein/aus, Dateigrenze in KB ("ohne Limit" = 0),
+Freiplatzreserve in KB (0 = keine Reserve). Aenderungen gelten ab dem
+naechsten Start von RD2, vorhandene Swapbloecke bleiben bis dahin lesbar.
+[System] Auslagern=1, SwapMaxKB=0, SwapReserveKB=64 sind die Vorgaben.
+Ein KB sind 1024 Bytes. GUI-Vorgaben reichen bis 16384 KB; vorhandene
+INI-Werte von 0 bis 32767 KB bleiben beim Oeffnen erhalten. XMS hat Vorrang;
+Dateilimit und Reserve gelten nur fuer die Datei, nicht fuer den XMS-Pfad.
+Freie Dateibereiche koennen auch unterhalb der Reserve wiederverwendet
+werden; nur Wachstum mit zusaetzlichem Clusterbedarf wird abgewiesen.
+
+
+MemStats(MEMSTATS FAR *info), API 2.1 Nummer 0x043: aktueller Schnappschuss,
+Rueckgabe 0. NULL -> RD_ERR_HANDLE, Auslagerung beschaeftigt -> RD_ERR_BUSY.
+LastError/MemError bleiben bei Erfolg erhalten. Keine Speicherallokation.
+ram_total/ram_free: Bytes der RD2-Arena einschliesslich UMB, ohne DOS/Kern
+ ausserhalb dieser Arena. Belegt = total - free. Kein INI-Cache-Flush.
+swap_used: gueltige ausgelagerte Nutzbytes aus Datei und XMS zusammen.
+swap_file: geschriebene Dateilaenge samt Luecken, bleibt beim Einlagern und
+Freigeben bestehen; auch kurze Schreibzugriffe werden mitgezaehlt.
+swap_cached: momentan ungenutzte Bytebereiche in dieser Datei, als Puffer
+wiederverwendbar. Keine gueltigen gecachten Kopien; belegte Dateiplaetze
+zaehlen mit ihrer ganzen Laenge, also keine Anrechnung ihrer inneren Reste.
+swap_free: Puffer plus moegliches Dateiwachstum nach aktivem Limit und
+Freiplatzreserve, plus freies XMS. Fuer die Berechnung wird DOS 36h befragt;
+auf A:/B: kein Dateiwachstum. Es werden nur ganze zusaetzliche Cluster
+angerechnet, Restplatz im letzten Cluster konservativ weggelassen. Volumen
+mit unbekannten Clusterparametern erhalten keinen Zuwachs. Bei 32 belegten
+Auslagerungsplaetzen wird 0 gemeldet. Fragmentierung, Blockgroessen und
+E/A-Fehler koennen trotzdem Allokationen verhindern: immer Fehler pruefen.
+swap_maxkb/swap_reservekb: aktive Startwerte in KiB, max=0 ohne Limit.
+flags & MS_SWAP: RDAUSL geladen; sonst alle Swapfelder 0. Neue INI-Werte
+gelten ab Neustart. Taskmanager aktualisiert jede Sekunde und zeigt nach
+RAM nur: Swap aktuell, Puffer, frei. Frei umfasst den Puffer bereits.
+Belegung/Puffer werden aufgerundet, freie Kapazitaet auf volle KiB abgerundet.
+Die Programmzeilen zeigen weiterhin den Ladeblock als Bild/image.
+
+
 4. Ressourcen (.RC)
 -------------------
 

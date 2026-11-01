@@ -26,6 +26,10 @@ static WORD arena, arena_paras, minseg;
 static WORD umb[4], numb;
 WORD k_umb_paras;
 DWORD k_stamp;
+static WORD getcause = MEMERR_RAM, memcause[MAXTASK];
+static BYTE swbusy;
+static WORD swcause(void);
+static WORD memfail(WORD cause) { memcause[k_cur] = cause; return FAIL(RD_ERR_NOMEM); }
 
 
 static WORD find_seg(WORD seg)
@@ -211,6 +215,7 @@ static void put_index(WORD i);
 static WORD get(WORD paras, WORD flags, WORD h, WORD owner)
 {
     WORD seg;
+    getcause = MEMERR_RAM;
     if (!paras) paras = 1;
     if (mem_resv && (DWORD)paras + mem_resv > erreichbar()) return 0;
     if (flags & B_HIGH) {                         /* erst nur im hohen Speicher */
@@ -225,6 +230,7 @@ static WORD get(WORD paras, WORD flags, WORD h, WORD owner)
         compact();
         if ((seg = take(paras, flags, h, owner)) != 0) return seg;
     }
+    if (mem_sw && !swbusy) getcause = swcause();
     return 0;
 }
 
@@ -233,8 +239,8 @@ static WORD get(WORD paras, WORD flags, WORD h, WORD owner)
    setzt im Handle seg = 0, HA und stamp = Platz und gibt den Block frei (B_FREE). Art 0 aus, 1 ein (n = Platz),
    2 Platz frei, 3 Anmeldung (seg:n = mem_swi). */
 DWORD (__far __pascal *mem_sw)(WORD art, WORD seg, WORD n);
-static BYTE swbusy;
 static DWORD sw(WORD art, WORD seg, WORD n) { DWORD r; swbusy = 1; r = mem_sw(art, seg, n); swbusy = 0; return r; }
+static WORD swcause(void) { DWORD c = sw(4, 0, 0); return c >= MEMERR_RAM && c <= MEMERR_SLOTS ? (WORD)c : MEMERR_RAM; }
 static int aus(void) { if (!mem_sw || swbusy || !sw(0, 0, 0)) return 0; merge(); return 1; }
 static void swfrei(HND *x) { if (x->flags & HA) sw(2, 0, (WORD)x->stamp); }
 struct mem_swi_t mem_swi = { blk, &nblk, hnd, k_home, &k_stamp };
@@ -251,6 +257,7 @@ void mem_put(WORD seg) { WORD i = find_seg(seg); if (i != 0xFFFF) put_index(i); 
 void mem_owner_free(WORD owner)
 {
     WORD i, h;
+    if (owner < MAXTASK) memcause[owner] = MEMERR_NONE;
     for (h = 1; h <= MAXH; h++)
         if ((hnd[h].flags & HU) && hnd[h].owner == owner && !(hnd[h].flags & MEM_SHARE)) {
             if (hnd[h].seg) { i = find_seg(hnd[h].seg); if (i != 0xFFFF) put_index(i); }
@@ -278,13 +285,14 @@ static WORD paras_of(DWORD size) { return size > 0x9FFF0UL ? 0 : (WORD)((size + 
 HMEM RDK MemAlloc(DWORD size, WORD flags)
 {
     WORD h, p = paras_of(size), seg, f;
-    if (!p && size) return FAIL(RD_ERR_NOMEM);
+    memcause[k_cur] = MEMERR_NONE;
+    if (!p && size) return memfail(MEMERR_RAM);
     for (h = 1; h <= MAXH && (hnd[h].flags & HU); h++) ;
-    if (h > MAXH) return FAIL(RD_ERR_NOMEM);
+    if (h > MAXH) return memfail(MEMERR_RAM);
     f = flags & (MEM_MOVABLE | MEM_DISCARDABLE | MEM_SHARE | MEM_NOEMS);
     if (f & MEM_DISCARDABLE) f |= MEM_MOVABLE;
     seg = get(p, f, h, k_cur);
-    if (!seg) return FAIL(RD_ERR_NOMEM);
+    if (!seg) return memfail(getcause);
     hnd[h].seg = seg; hnd[h].flags = f | HU; hnd[h].owner = (BYTE)k_cur;
     hnd[h].lock = (f & MEM_MOVABLE) ? 0 : 1; hnd[h].size = size; hnd[h].stamp = ++k_stamp;
     if (flags & MEM_ZEROINIT) rd_pfill(seg, p ? p : 1, 0);
@@ -297,7 +305,7 @@ static int ein(WORD h)                            /* ausgelagerten Block zurueck
     HND *x = &hnd[h]; WORD p = paras_of(x->size), seg;
     if (!(x->flags & HA)) return 0;
     if (!(seg = get(p ? p : 1, x->flags & ~(HU | HA), h, x->owner))) return 0;
-    if (!sw(1, seg, (WORD)x->stamp)) { mem_put(seg); return 0; }
+    if (!sw(1, seg, (WORD)x->stamp)) { getcause = swcause(); mem_put(seg); return 0; }
     x->seg = seg; x->flags &= ~HA;
     return 1;
 }
@@ -313,8 +321,9 @@ HMEM RDK MemFree(HMEM h)
 void FAR * RDK MemLock(HMEM h)
 {
     HND *x = hp(h);
+    memcause[k_cur] = MEMERR_NONE;
     if (!x) { k_lasterr = RD_ERR_HANDLE; return 0; }
-    if (!x->seg && !ein(h)) { k_lasterr = (x->flags & HA) ? RD_ERR_NOMEM : RD_ERR_NOTFOUND; return 0; }  /* verworfen oder ausgelagert */
+    if (!x->seg && !ein(h)) { if (x->flags & HA) memfail(getcause); else k_lasterr = RD_ERR_NOTFOUND; return 0; }
     if (x->lock < 255) x->lock++;
     x->stamp = ++k_stamp;
     return MK_FP(x->seg, 0);
@@ -330,12 +339,13 @@ HMEM RDK MemRealloc(HMEM h, DWORD size, WORD flags)
 {
     HND *x = hp(h); WORD p = paras_of(size), old, oldp, seg, i, lk;
     (void)flags;
+    memcause[k_cur] = MEMERR_NONE;
     if (!x) return FAIL(RD_ERR_HANDLE);
-    if (!p) return FAIL(RD_ERR_NOMEM);
-    if (!x->seg && (x->flags & HA) && !ein(h)) return FAIL(RD_ERR_NOMEM);
+    if (!p) return memfail(MEMERR_RAM);
+    if (!x->seg && (x->flags & HA) && !ein(h)) return memfail(getcause);
     old = x->seg;
     if (!old) {                                   /* verworfen: neu anlegen */
-        if (!(seg = get(p, x->flags & ~HU, h, x->owner))) return FAIL(RD_ERR_NOMEM);
+        if (!(seg = get(p, x->flags & ~HU, h, x->owner))) return memfail(getcause);
         x->seg = seg; x->size = size; return h;
     }
     i = find_seg(old); oldp = blk[i].paras;
@@ -348,11 +358,11 @@ HMEM RDK MemRealloc(HMEM h, DWORD size, WORD flags)
         }
         x->size = size; return h;
     }
-    if (x->lock && !(x->flags & MEM_MOVABLE) ) return FAIL(RD_ERR_NOMEM);
+    if (x->lock && !(x->flags & MEM_MOVABLE) ) return memfail(MEMERR_RAM);
     lk = x->lock; x->lock = 1;                    /* waehrend des Umzugs nicht verschieben */
     seg = get(p, x->flags & ~HU, h, x->owner);
     x->lock = lk;
-    if (!seg) return FAIL(RD_ERR_NOMEM);
+    if (!seg) return memfail(getcause);
     old = x->seg;                                 /* kann durch Verdichten gewandert sein (nicht bei lock) */
     rd_pmove(seg, old, oldp);
     i = find_seg(old); if (i != 0xFFFF) put_index(i);
@@ -375,8 +385,46 @@ DWORD RDK MemCompact(DWORD wunsch)
 void FAR * RDK MemFixed(WORD size)
 {
     WORD seg = get((WORD)(((DWORD)size + 15) >> 4), MEM_FIXED, 0, k_cur);
-    if (!seg) { k_lasterr = RD_ERR_NOMEM; return 0; }
+    memcause[k_cur] = MEMERR_NONE;
+    if (!seg) { memfail(getcause); return 0; }
     return MK_FP(seg, 0);
+}
+WORD RDK MemError(void) { return memcause[k_cur]; }
+WORD RDK MemStats(MEMSTATS FAR *info)
+{
+    static MEMSTATS m;
+    WORD i, slots = 0; DWORD lim, indatei = 0, cluster, frei, reserve, cap;
+    if (!info) return FAIL(RD_ERR_HANDLE);
+    if (swbusy) return FAIL(RD_ERR_BUSY);
+    for (i = 0; i < sizeof m / 2; i++) ((WORD *)&m)[i] = 0;
+    m.ram_total = ((DWORD)arena_paras + k_umb_paras) << 4;
+    for (i = 0; i < nblk; i++) if (blk[i].flags & B_FREE) m.ram_free += (DWORD)blk[i].paras << 4;
+    for (i = 1; i <= MAXH; i++) if ((hnd[i].flags & (HU | HA)) == (HU | HA)) {
+        m.swap_used += hnd[i].size; slots++;
+        indatei += sw(6, 0, (WORD)hnd[i].stamp) << 4;
+    }
+    if (mem_sw) {
+        m.flags = MS_SWAP; m.swap_file = sw(5, 0, 0); lim = sw(5, 0, 1);
+        m.swap_maxkb = (WORD)lim; m.swap_reservekb = (WORD)(lim >> 16);
+        if (m.swap_file > indatei) m.swap_cached = m.swap_file - indatei;
+        m.swap_free = m.swap_cached + (sw(6, 0, 0) << 10);
+        if ((k_home[0] | 0x20) >= 'c') {
+            kr.ax = 0x3600; kr.dx = (WORD)((k_home[0] | 0x20) - 'a' + 1); rd_int(0x21, &kr);
+            if (!CARRY && kr.ax != 0xFFFF && kr.ax && kr.cx) {
+                cluster = (DWORD)kr.ax * kr.cx;
+                if (cluster > 65536UL || (cluster & (cluster - 1))) cluster = 0;
+                frei = cluster * kr.bx;
+                reserve = (DWORD)m.swap_reservekb << 10;
+                frei = frei > reserve ? (frei - reserve) & ~(cluster - 1) : 0;
+                cap = m.swap_maxkb ? (DWORD)m.swap_maxkb << 10 : 0x7FFFFFFFUL;
+                cap = cap > m.swap_file ? cap - m.swap_file : 0;
+                m.swap_free += frei < cap ? frei : cap;
+            }
+        }
+        if (slots >= 32) m.swap_free = 0;
+    }
+    for (i = 0; i < sizeof m / 2; i++) ((WORD FAR *)info)[i] = ((WORD *)&m)[i];
+    return 0;
 }
 void mem_share(HMEM h)
 {
@@ -402,4 +450,5 @@ void mem_api(void)
     KAPI(MemAlloc, MemAlloc); KAPI(MemFree, MemFree); KAPI(MemLock, MemLock); KAPI(MemUnlock, MemUnlock);
     KAPI(MemRealloc, MemRealloc); KAPI(MemSize, MemSize); KAPI(MemFlags, MemFlags); KAPI(MemAvail, MemAvail);
     KAPI(MemCompact, MemCompact); KAPI(MemFixed, MemFixed); KAPI(MemFixedFree, MemFixedFree);
+    KAPI(MemError, MemError); KAPI(MemStats, MemStats);
 }

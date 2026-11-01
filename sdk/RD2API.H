@@ -96,6 +96,9 @@ RDF(0x03E, DWORD,   MemAvail,       (WORD art))                   /* MEMA_* in B
 RDF(0x03F, DWORD,   MemCompact,     (DWORD wunsch))               /* liefert groessten freien Block */
 RDF(0x040, void FAR *, MemFixed,    (WORD size))                  /* kleiner fester Block, wie malloc */
 RDF(0x041, void,    MemFixedFree,   (void FAR *p))
+RDF(0x042, WORD,    MemError,       (void))                       /* MEMERR_* der letzten Speicheroperation, API 2.1 */
+
+RDF(0x043, WORD,    MemStats,       (MEMSTATS FAR *info))          /* 0 = ok, aktuelle RAM-/Swapwerte, API 2.1 */
 
 /* ---- Dateien und Laufwerke ---------------------------------------------- */
 RDF(0x04A, short,   FileOpen,       (LPCSTR name, WORD mode))     /* FO_*, -1 = Fehler */

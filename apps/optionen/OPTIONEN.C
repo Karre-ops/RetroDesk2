@@ -33,6 +33,8 @@ static BYTE snd, snd0, sb, sb0, sysk; static char sbeig[16];
 static BYTE tempo, dk, tausch, mw0, mhw, mhw0, rdm; static DWORD letzt;
 static BYTE tast, tast0, kbart; static BYTE FAR *kbm;    /* kbart 0 kein Treiber, 1 RDKEYB, 2 fremd */
 static BYTE sart, szeit, szeit0, start, start0, netz, xms, xms0;
+static BYTE swap, swap0; static WORD swmax, swmax0, swfrei, swfrei0;
+static const WORD swkb[] = { 0, 64, 128, 256, 512, 1024, 4096, 16384 };
 
 static const char *const sndw[] = { "SPEAKER", "ADLIB", "SB", "COVOX" };   /* Minimum PC-Lautsprecher, altes AUS -> SPEAKER */
 static const char *const sbw[] = { "A220 I5 D1", "A220 I7 D1", "A240 I5 D1", "A240 I7 D1", "A220 I10 D1" };
@@ -52,7 +54,7 @@ static void scat(char *d, LPCSTR s, WORD n) { WORD l = slen(d); if (l < n) scpy(
 static BYTE gr(BYTE c) { return (BYTE)(c >= 'a' && c <= 'z' ? c - 32 : c); }
 static BYTE gleich(LPCSTR a, LPCSTR b) { while (*a && gr(*a) == gr(*b)) a++, b++; return *a == *b; }
 static void zahl(char *p, short v) { char r[6]; short n = 0; do r[n++] = (char)('0' + v % 10); while (v /= 10); while (n) *p++ = r[--n]; *p = 0; }
-static void setze(LPCSTR sec, LPCSTR k, short v) { char t[8]; zahl(t, v); ProfileSetStr(ini, sec, k, t); }
+static WORD setze(LPCSTR sec, LPCSTR k, short v) { char t[8]; zahl(t, v); return ProfileSetStr(ini, sec, k, t); }
 static void en(HWND d, WORD id, BYTE an) { EnableWindow(DlgItem(d, id), an); }
 static HWND it(HWND d, WORD id) { return DlgItem(d, id); }
 static void ladd(HWND d, WORD id, LPCSTR s) { SendMessage(it(d, id), L_ADD, 0, (DWORD)s); }
@@ -236,12 +238,25 @@ static void laden(void)
     netz = (BYTE)(ProfileGetInt(ini, "Netz", "Zeit", 0) != 0);
     v = ProfileGetInt(ini, "System", "XMS", 256);
     for (xms = 4; xms > 0 && xw[xms] > v; xms--) ;
+    swap = swap0 = (BYTE)(ProfileGetInt(ini, "System", "Auslagern", 1) != 0);
+    v = ProfileGetInt(ini, "System", "SwapMaxKB", 0); swmax = swmax0 = v < 0 ? 0 : (WORD)v;
+    v = ProfileGetInt(ini, "System", "SwapReserveKB", 64); swfrei = swfrei0 = v < 0 ? 64 : (WORD)v;
     cgaf = (BYTE)(ProfileGetInt(ini, "Farben", "CGA", 15) & 15); deskf = (BYTE)(ProfileGetInt(ini, "Farben", "Schreibtisch", 3) & 15); farb0 = (BYTE)(cgaf | deskf << 4);
     mw0 = (BYTE)(tempo | dk << 3 | tausch << 5); gsel0 = gsel; prof0 = prof; snd0 = snd; sb0 = sb; mhw0 = mhw; tast0 = tast; szeit0 = szeit; start0 = start; xms0 = xms;
 }
 
 /* ---- Karten fuellen und lesen --------------------------------------------------------------------- */
 static void klang_en(HWND d) { BYTE i = radio(d, 121, 4); en(d, 127, (BYTE)(i == 2)); }
+static void swap_en(HWND d) { BYTE an = (BYTE)DlgChecked(d, 211); en(d, 212, an); en(d, 213, an); }
+static WORD swindex(WORD v) { WORD i; for (i = 0; i < 8 && swkb[i] != v; i++) ; return i; }
+static void swliste(HWND d, WORD id, WORD v, WORD nulltext)
+{
+    WORD i; char t[12];
+    ladd(d, id, StrGet(hi, nulltext));
+    for (i = 1; i < 8; i++) { zahl(t, (short)swkb[i]); ladd(d, id, t); }
+    i = swindex(v); if (i == 8) { zahl(t, (short)v); ladd(d, id, t); }
+    lsel(d, id, i);
+}
 static void fuellen(HWND d)
 {
     WORD i; char t[24];
@@ -290,7 +305,8 @@ static void fuellen(HWND d)
         DlgCheck(d, 201, start); DlgCheck(d, 202, netz);
         scpy(t, StrGet(hi, 31), sizeof t); ladd(d, 207, t);
         for (i = 1; i < 5; i++) ladd(d, 207, xt[i]);
-        lsel(d, 207, xms);
+        lsel(d, 207, xms); DlgCheck(d, 211, swap);
+        swliste(d, 212, swmax, 70); swliste(d, 213, swfrei, 31); swap_en(d);
         break;
     }
 }
@@ -302,7 +318,9 @@ static void holen(HWND d)
     case 2: tempo = radio(d, 141, 5); dk = radio(d, 146, 3); tausch = (BYTE)DlgChecked(d, 149); if (rdm) mhw = lget(d, 153); break;
     case 3: if (kbart != 2) tast = lget(d, 161); break;
     case 4: sart = radio(d, 181, 3); szeit = radio(d, 184, 6); break;
-    case 5: start = (BYTE)DlgChecked(d, 201); netz = (BYTE)DlgChecked(d, 202); xms = lget(d, 207); break;
+    case 5: { BYTE m = lget(d, 212), f = lget(d, 213);
+        start = (BYTE)DlgChecked(d, 201); netz = (BYTE)DlgChecked(d, 202); xms = lget(d, 207);
+        swap = (BYTE)DlgChecked(d, 211); if (m < 8) swmax = swkb[m]; if (f < 8) swfrei = swkb[f]; break; }
     }
 }
 
@@ -347,6 +365,11 @@ static WORD speichern(void)
     setze("Schoner", "Zeit", zt[szeit]); if (szeit != szeit0) neurd = 1;
     ProfileSetStr(ini, "Netz", "Zeit", netz ? "1" : "0");
     if (xms != xms0) { setze("System", "XMS", xw[xms]); neurd = 1; }
+    if (swap != swap0 || swmax != swmax0 || swfrei != swfrei0) {
+        if (setze("System", "SwapMaxKB", (short)swmax) || setze("System", "SwapReserveKB", (short)swfrei) ||
+            ProfileSetStr(ini, "System", "Auslagern", swap ? "1" : "0")) return 71;
+        neurd = 1;
+    }
     if (start != start0 && (e = schalten(start)) != 0) { start = start0; return 3; }
     if (csneu) {
         if (test) { WORD i = 0, j; char p[80]; while (i < nein) { for (j = 0; i < nein && ein[i] != '\n' && j < 78; i++) if (ein[i] != '\r') p[j++] = ein[i];
@@ -396,6 +419,7 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
         char t[2]; t[0] = (char)('0' + radio(d, 181, 3)); t[1] = 0; ProfileSetStr(ini, "Schoner", "Art", t);
         starte(d, "SCHONER.EXE", "S", 0); return TRUE;
     }
+    if (seite == 5 && p1 == 211) { swap_en(d); return TRUE; }
     if (seite == 5 && p1 == 204) { starte(d, "RDNET.EXE", "", 0); return TRUE; }
     if (seite == 5 && p1 == 205) { holen(d); starte(d, "RD2SETUP.EXE", "", 1); laden(); DialogEnd(d, (short)(ID_S1 + 5)); return TRUE; }
     (void)p2;
