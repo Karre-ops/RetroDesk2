@@ -123,14 +123,14 @@ static WORD RDEXPORT d_modes(GFXMODE FAR *m, WORD max)
     return 1;
 }
 
-#if defined(VGAM)
+#if defined(VGAM) || defined(HGC)
 static void vrinit(void);
 #endif
 static WORD RDEXPORT d_setmode(WORD nr)
 {
     (void)nr;
 #if defined(HGC)
-    hgc(1);
+    hgc(1); vrinit();
     _fmemset(MK_FP(VSEG, 0), 0, 0x8000U);
 #elif defined(EGAM)
     bios_set(0x10); vrinit();                               /* Schreibmaske aller Ebenen bleibt an: 0 schwarz, 15 weiss; gelesen wird Ebene 0 */
@@ -687,16 +687,30 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
    nur verschoben): Wort je Zeile, Bits ausserhalb der Zelle bleiben (Nachbarzeichen).
    ror legt die verschobene Zeile auf zwei Bytes. */
 #include "GLYPHS.H"                             /* tools/mkglyphs.py */
-#if defined(VGAM)
-/* ---- G3 (01.11.2026): rohe Hintergruende und Ablage im unsichtbaren Bildspeicher hinter Zeile H (Modus 11h/10h
+#if defined(VGAM) || defined(HGC)
+/* ---- G3/G6 (01.11.2026): rohe Hintergruende und Ablage im unsichtbaren Bildspeicher hinter Zeile H (Modus 11h/10h
    ist planar: Latch-Kopie mit Schreibmodus 1). VGA: 26 KB, EGA mono nur mit 256 KB. Sonst roh ins RAM. ---- */
-#define GC(i, v) outpw(0x3CE, (WORD)((i) | ((WORD)(v) << 8)))
+#if defined(HGC)                                  /* G6: zweite Bildseite B800h (32 KB), nur ohne Farbkarte daneben */
+#  define VRSEG 0xB800
+#  define VRANF 0
+#else
+#  define VRSEG VSEG
+#  define VRANF ROW(H)
+#  define GC(i, v) outpw(0x3CE, (WORD)((i) | ((WORD)(v) << 8)))
+#endif
 #define NVS 8
 typedef struct { WORD off, ps, n, h; short x, y; } VS;
 static VS vs[NVS]; static WORD vrende;
 static void vrinit(void)
 {
-#if defined(EGAM)
+#if defined(HGC)
+    BYTE alt; volatile BYTE __far *a = (BYTE __far *)MK_FP(0xB800, 0), __far *b = (BYTE __far *)MK_FP(0xB000, 0x7FFF);
+    vrende = 0;
+    outp(0x3D4, 0x0F); alt = (BYTE)inp(0x3D5); outp(0x3D5, 0x5A);
+    if ((BYTE)inp(0x3D5) == 0x5A) { outp(0x3D5, alt); _fmemset(vs, 0, sizeof vs); return; }   /* Farbkarte auf 3D4h: B800h gehoert ihr */
+    outp(0x3BF, 3);                               /* Seite 1 einblenden */
+    { BYTE x = *b; a[0] = 0x5A; a[1] = 0xA5; if (a[0] == 0x5A && a[1] == 0xA5 && *b == x) vrende = 0x7FFF; }   /* 64 KB da, kein Spiegel */
+#elif defined(EGAM)
     vrende = (egamem() & 0xFF) == 3 ? 0xFFFF : 0;
 #else
     vrende = 0xFFFF;
@@ -705,7 +719,7 @@ static void vrinit(void)
 }
 static WORD RDEXPORT d_vrneu(short w, short h)
 {
-    WORD n = (WORD)(((w + 7) >> 3) + 1) * (WORD)h, o = ROW(H), i, k, frei;
+    WORD n = (WORD)(((w + 7) >> 3) + 1) * (WORD)h, o = VRANF, i, k, frei;
     if (!vrende || w <= 0 || h <= 0) return 0;
     for (i = 0; i < NVS && vs[i].h; i++) ;
     if (i == NVS) return 0;
@@ -725,9 +739,14 @@ static void RDEXPORT d_rohget(short x, short y, short w, short h, BYTE FAR *z, W
     WORD r, k, ps = ((x & 7) + w + 7) >> 3; VS *s = VSL(bpr); volatile BYTE l;
     if (!s) { for (r = 0; r < (WORD)h; r++, z += bpr) _fmemcpy(z, VP(x, y + r), ps); return; }
     s->x = x; s->y = y; s->ps = ps;
+#if defined(HGC)
+    (void)k; (void)l;
+    for (r = 0; r < (WORD)h; r++) _fmemcpy(MK_FP(VRSEG, s->off + r * ps), VP(x, y + r), ps);
+#else
     GC(5, 1);
-    for (r = 0; r < (WORD)h; r++) { BYTE __far *p = VP(x, y + r), __far *q = (BYTE __far *)MK_FP(VSEG, s->off + r * ps); for (k = 0; k < ps; k++) { l = p[k]; q[k] = l; } }
+    for (r = 0; r < (WORD)h; r++) { BYTE __far *p = VP(x, y + r), __far *q = (BYTE __far *)MK_FP(VRSEG, s->off + r * ps); for (k = 0; k < ps; k++) { l = p[k]; q[k] = l; } }
     GC(5, 0);
+#endif
 }
 static void RDEXPORT d_rohput(short qx, short qy, short qw, short qh, const BYTE FAR *z, WORD bpr, short x0, short w0)
 {
@@ -736,8 +755,12 @@ static void RDEXPORT d_rohput(short qx, short qy, short qw, short qh, const BYTE
     (void)w0;
     if (nb == 1) lm &= rm;
     for (r = 0; r < (WORD)qh; r++, z += bpr) {
-        BYTE __far *p = VP(qx, qy + r); const BYTE FAR *q = s ? (const BYTE FAR *)MK_FP(VSEG, s->off + (WORD)(qy + r - s->y) * s->ps + c) : z + c;
+        BYTE __far *p = VP(qx, qy + r); const BYTE FAR *q = s ? (const BYTE FAR *)MK_FP(VRSEG, s->off + (WORD)(qy + r - s->y) * s->ps + c) : z + c;
+#if defined(HGC)
+        if (nb > 2) _fmemcpy(p + 1, q + 1, nb - 2);
+#else
         if (nb > 2) { if (s) { GC(5, 1); for (k = 1; k < nb - 1; k++) { l = q[k]; p[k] = l; } GC(5, 0); } else _fmemcpy(p + 1, q + 1, nb - 2); }
+#endif
         for (j = 0; j < 2 && j < nb; j++) { k = j ? nb - 1 : 0; m = j ? rm : lm; l = q[k]; p[k] = (BYTE)((p[k] & ~m) | (l & m)); }
     }
 }
@@ -757,7 +780,7 @@ static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WO
     }
 }
 
-#if defined(VGAM)
+#if defined(VGAM) || defined(HGC)
 static GFXDRVV tab = { { { {
     { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVV), NAME, d_init, d_done },
     d_modes, d_setmode, d_textmode,

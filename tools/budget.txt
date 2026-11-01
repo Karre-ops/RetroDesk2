@@ -23,7 +23,7 @@ RDUSER.MOD      27648   32.5 S  Fenster, Menues, Schreibtisch-Anbindung der Shel
 RDSND.MOD        4096    4   S  Sound-API, Treiber, Systemklaenge (Musik in RDMUS.MOD)
 RDMUS.MOD        3072    3   P  Musik-Spieler IMF/DRO, nur waehrend des Abspielens geladen (26.10.)
 CGA.DRV          5120    5   S
-HGC.DRV          5120    5   S
+HGC.DRV          6144    6   S
 VGA16.DRV         7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) VGA 640x480 16 Farben, Modus 12h (Punkt 9, 27.10.)
 EGA.DRV           7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) EGA 640x350 16 Farben, Modus 10h (Punkt 9, 27.10.)
 EGA320.DRV        7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) 320x200 16 Farben, Modus 0Dh, nur von Hand (30.10.)
@@ -97,7 +97,7 @@ RDDISK.MOD       4096    4   P  Laufwerkszugriff fuer RDFORMAT/RD2SETUP: INT 13h
 RDFDISK.EXE     40960    0   P  Partitionieren (GPL v2, aus Free FDISK)
 RDFORMAT.EXE    73728    0   P  Formatieren Disketten und Festplatte: FreeDOS FORMAT 0.92a (GPL v2) mit RD2-Oberflaeche; englische FreeDOS-Texte bleiben fuers Protokoll (24.10., Karsten: Option 1, 72 KB)
 # Summen
-@SYSTEM_DISK   349184        360-KB-Systemdiskette: S-Dateien + DOS 5 (@DOS) hoechstens 340 KB (27.10. Karsten: 360 KB ausnutzen, Rest fuer RD2.INI/RD2.STA); vorher 302 KB (27.10.: +1 KB farbige Symbole, +1 KB RD2SETUP Mehrdisketten), Rest (>= 50 KB) fuer RD2.INI, RD2.STA, Daten
+@SYSTEM_DISK   350208        360-KB-Systemdiskette: S-Dateien + DOS 5 (@DOS) hoechstens 340 KB (27.10. Karsten: 360 KB ausnutzen, Rest fuer RD2.INI/RD2.STA); vorher 302 KB (27.10.: +1 KB farbige Symbole, +1 KB RD2SETUP Mehrdisketten), Rest (>= 50 KB) fuer RD2.INI, RD2.STA, Daten
 @DOS            73728        DOS 5: IO.SYS + MSDOS.SYS (kein COMMAND.COM, SHELL=RD.EXE), je auf 1-KB-Cluster gerundet (28.10.: CTMOUSE entfaellt, RDMAUS zaehlt als S-Datei)
 RDRC.EXE        26624    0   D  SDK: Ressourcen-Compiler und Linker (DOS-Fassung von rdrc.py + rd2link.py, byte-gleich, test/rdrc.sh) (28.10.); 29.10.: +2 KB fuer /PAS (Vorspann fuer Pascal-Programme)
 @DISK          362496        Nutzflaeche einer 360-KB-Diskette (354 Cluster zu 1 KB); Grenze fuer P, N, D

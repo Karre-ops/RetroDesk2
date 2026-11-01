@@ -122,6 +122,16 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     DbgHex("GDITEST: Schirm-Punkte (7 = ok)", n);
 
     if (stufe < 8) goto ende;
+    if (cmd && *cmd == 'V') {                     /* G1/G3/G6: Rechteck in die Bildspeicher-Ablage, schwarz uebermalen, in zwei Teilen zurueck */
+        short l = (short)(X(300) + 3), t = Y(200), b = (short)(X(300) + 5), hh = Y(300); HBMP v; HDC vd;
+        if ((v = BmpCreate((WORD)b, (WORD)hh, BMP_ROH | BMP_NURVR)) != 0 && (vd = BmpDC(v)) != 0) {
+            BitBlt(vd, 0, 0, b, hh, dc, l, t, ROP_COPY);
+            SetBrush(dc, C_BLACK, PAT_SOLID); rc(l, t, (short)(l + b), (short)(t + hh)); FillRect(dc, &r);
+            BitBlt(dc, l, t, (short)(b / 2 + 1), hh, vd, 0, 0, ROP_COPY);
+            BitBlt(dc, (short)(l + b / 2 + 1), t, (short)(b - b / 2 - 1), hh, vd, (short)(b / 2 + 1), 0, ROP_COPY);
+            DCFree(vd); BmpFree(v); DbgPrint("GDITEST: Ablage ok");
+        } else DbgPrint("GDITEST: keine Ablage");
+    }
 ende:
     DbgHex("GDITEST: Zeit ms", TickCount() - t0);
     /* Bildspeicher nach SHOT.BIN (nur fuer die Testautomatik, wie SHOT in RetroDesk 1) */
