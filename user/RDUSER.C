@@ -206,7 +206,7 @@ static void svalt(WORD i, int client, const RECT *nur)   /* nur: tatsaechlich be
     for (k = 0; k < 2; k++) if (sv[k].w && !sv[k].alt && top(i) != sv[k].w) {
         if (i) { for (j = w_[sv[k].w].next; j && j != top(i); j = w_[j].next) ; if (!j) continue; }   /* liegt darueber: egal */
         if (i || nur) { if (nur) a = *nur; else wrect(i, &a); isect(&a, &sv[k].r); if (leer(&a)) continue; }
-        sv[k].alt = 1; DbgHex("USER: veraltet durch", ((DWORD)i << 16) | (WORD)client);
+        sv[k].alt = 1;
     }
 }
 static void svneu(WORD i)
@@ -217,7 +217,7 @@ static void svneu(WORD i)
     if (s == sv + 2) return;
     wrect(i, &r);
     if (!(s->b = BmpCreate(r.r - r.l, r.b - r.t, BMP_ROH | BMP_NURVR))) return;
-    if ((bd = BmpDC(s->b)) != 0 && (d = gdc(0)) != 0) { BitBlt(bd, 0, 0, r.r - r.l, r.b - r.t, d, r.l, r.t, ROP_COPY); DCFree(d); s->w = (BYTE)i; s->alt = 0; s->r = r; DbgPrint("USER: gerettet"); }
+    if ((bd = BmpDC(s->b)) != 0 && (d = gdc(0)) != 0) { BitBlt(bd, 0, 0, r.r - r.l, r.b - r.t, d, r.l, r.t, ROP_COPY); DCFree(d); s->w = (BYTE)i; s->alt = 0; s->r = r; }
     if (bd) DCFree(bd);
     if (!s->w) BmpFree(s->b);
 }
@@ -231,7 +231,7 @@ static BYTE svweg(WORD i)                         /* 1 = Hintergrund zurueckgeho
         if ((d = gdc(0)) != 0) { BitBlt(d, r.l, r.t, r.r - r.l, r.b - r.t, bd, 0, 0, ROP_COPY); DCFree(d); ok = 1; }
         DCFree(bd);
     }
-    BmpFree(s->b); s->w = 0; DbgPrint(ok ? "USER: zurueck" : "USER: veraltet");
+    BmpFree(s->b); s->w = 0;
     return ok;
 }
 static HDC ndc(WORD i, int client, const RECT *nur)   /* nur: zusaetzlich begrenzen (Bildschirm) */
