@@ -88,7 +88,7 @@ RDCALC.EXE      90112   80   L
 RDEDIT.EXE      65536   60   P
 RDZIP.EXE       24576   36   P  ZIP: Liste, Entpacken, Pruefen, Packen (Deflate, Fenster 8 KB); Puffer 36/68 KB nur waehrend der Arbeit (30.10.)
 RDBILD.EXE      28672   40   P  Bildbetrachter BMP/PCX/GIF/JPEG (Baseline, 1/2..1/8), Rastern, Exif-Lage; Bild in Streifen nur waehrend der Anzeige (31.10.)
-RDTRON.EXE      12288   24   L  H-Tron (Tron-Spiel nach RobertK/MRalser, github.com/marralser/H-TRON), Fenster, Demo/1/2 Spieler, Joystick; L bis Lizenz geklaert (31.10.)
+RDTRON.EXE      12288   24   P  H-Tron (Tron-Spiel nach RobertK/MRalser, github.com/marralser/H-TRON), Fenster, Demo/1/2 Spieler, Joystick; GPL (Karsten, 01.11.2026)
 RDPRN.MOD        6144    8   P  Drucken (und HelpShow -> HILFE.EXE): Druckdialog, Baender (48 Zeilen), LPT direkt/Datei (Punkt 7; RDKX laedt es bei PrnOpen, 27.10.)
 HILFE.EXE        8192   16   P  Hilfeanzeige (F1, Punkt 10): Themen, Verweise, Zurueck; startet ueber HelpShow
 RD2.HLP         16384    0   P  Hilfetext RD2 (deutsch), Format docs/HILFE.md
@@ -97,7 +97,7 @@ RDDISK.MOD       4096    4   P  Laufwerkszugriff fuer RDFORMAT/RD2SETUP: INT 13h
 RDFDISK.EXE     40960    0   P  Partitionieren (GPL v2, aus Free FDISK)
 RDFORMAT.EXE    73728    0   P  Formatieren Disketten und Festplatte: FreeDOS FORMAT 0.92a (GPL v2) mit RD2-Oberflaeche; englische FreeDOS-Texte bleiben fuers Protokoll (24.10., Karsten: Option 1, 72 KB)
 # Summen
-@SYSTEM_DISK   350208        360-KB-Systemdiskette: S-Dateien + DOS 5 (@DOS) hoechstens 340 KB (27.10. Karsten: 360 KB ausnutzen, Rest fuer RD2.INI/RD2.STA); vorher 302 KB (27.10.: +1 KB farbige Symbole, +1 KB RD2SETUP Mehrdisketten), Rest (>= 50 KB) fuer RD2.INI, RD2.STA, Daten
+@SYSTEM_DISK   351232        360-KB-Systemdiskette: S-Dateien + DOS 5 (@DOS) hoechstens 343 KB (01.11.: +1 KB Lizenzzeile im Info-Fenster) (27.10. Karsten: 360 KB ausnutzen, Rest fuer RD2.INI/RD2.STA); vorher 302 KB (27.10.: +1 KB farbige Symbole, +1 KB RD2SETUP Mehrdisketten), Rest (>= 50 KB) fuer RD2.INI, RD2.STA, Daten
 @DOS            73728        DOS 5: IO.SYS + MSDOS.SYS (kein COMMAND.COM, SHELL=RD.EXE), je auf 1-KB-Cluster gerundet (28.10.: CTMOUSE entfaellt, RDMAUS zaehlt als S-Datei)
 RDRC.EXE        26624    0   D  SDK: Ressourcen-Compiler und Linker (DOS-Fassung von rdrc.py + rd2link.py, byte-gleich, test/rdrc.sh) (28.10.); 29.10.: +2 KB fuer /PAS (Vorspann fuer Pascal-Programme)
 @DISK          362496        Nutzflaeche einer 360-KB-Diskette (354 Cluster zu 1 KB); Grenze fuer P, N, D

@@ -1,4 +1,5 @@
 /* RDTRON.C (RDTRON.EXE) - H-Tron fuer RetroDesk 2 (Open Watcom, Modell Medium, 8086)
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * Nach H-TRON von RobertK (2016, Hercules, Turbo C) und der CGA/EGA/VGA/GEM-Fassung von
  * MRalser (2026, https://github.com/marralser/H-TRON). Spielregeln, Spielfeld-Logik und

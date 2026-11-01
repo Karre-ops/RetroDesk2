@@ -28,6 +28,14 @@ RetroDesk 2 ist freie Software.
    RDFDISK.EXE und COMMAND.COM duerfen nur unter Version 2 weiter-
    gegeben werden, weil ihre Quellen kein "oder spaeter" erlauben.
 
+3. Schriften: SYS8.FNT und SYS16.FNT stammen aus fntcol16.zip von
+   Joseph Gil (ueber SeaBIOS), SYS14.FNT aus den VGA14-Konsolen-
+   schriften von console-setup. Beide Quellen sind gemeinfrei
+   (public domain).
+
+4. RDTRON.EXE nach H-TRON von RobertK (2016) und MRalser (2026,
+   github.com/marralser/H-TRON), ebenfalls GPL.
+
 KEINE GEWAEHRLEISTUNG. RetroDesk 2 wird ohne jede Gewaehrleistung
 weitergegeben, soweit das Gesetz es zulaesst (GPL v2, Abschnitte 11
 und 12). Nutzung auf eigene Gefahr.

@@ -3,7 +3,7 @@
  * ruft eine Funktion und gibt es gleich wieder frei. Dialoge und Texte kommen aus SHELL.EXE (inst).
  * Alle Funktionen: WORD f(HINST inst, LPSTR a, LPSTR b, WORD w). */
 #include "RD2.H"
-static char buf[200];
+static char buf[256];
 static WORD slen(LPCSTR s) { WORD n = 0; while (s[n]) n++; return n; }
 static void scpy(char *d, LPCSTR s, WORD n) { while (--n && *s) *d++ = *s++; *d = 0; }
 static void scat(char *d, LPCSTR s, WORD n) { WORD l = slen(d); if (l < n) scpy(d + l, s, n - l); }
@@ -47,6 +47,7 @@ WORD RDEXPORT ShxInfo(HINST inst, LPSTR a, LPSTR b, WORD w)
     scat(buf, StrGet(inst, 27), sizeof buf);                                 /* Sound */
     {   WORD sc = SndCaps();                      /* geladener Klangtreiber (RDSND), SYSINFO kennt ihn nicht */
         scat(buf, sc & SC_OPL3 ? "Sound Blaster/OPL3" : sc & SC_OPL2 ? "AdLib" : sc & SC_SPEAKER ? "PC-Speaker" : sc ? "Sound Blaster" : StrGet(inst, 26), sizeof buf); }
+    scat(buf, StrGet(inst, 98), sizeof buf);                                 /* Lizenz (GPL v2 Abschnitt 2 c) */
     scpy(u, StrGet(inst, 5), sizeof u); MsgBox(GetActive(), buf, u, MB_OK | MB_INFO);
     return 0;
 }

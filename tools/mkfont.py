@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """mkfont.py OUTDIR - erzeugt die Systemschriften SYS8.FNT, SYS14.FNT, SYS16.FNT (Codepage 437).
 
-Quellen: 8x8 und 8x16 aus dem VGA-BIOS von SeaBIOS (LGPL, IBM-Zeichenformen),
-8x14 aus RDFONT.F14 von RetroDesk 1. Zeichen 32..255.
+Quellen: 8x8 und 8x16 aus dem VGA-BIOS von SeaBIOS (vgasrc/vgafonts.c: Schriften aus fntcol16.zip von Joseph Gil,
+"The individual fonts are public domain"), 8x14 aus RDFONT.F14 von RetroDesk 1 (aus den VGA14-Konsolenschriften
+von console-setup, "All console fonts are public domain by nature"). Zeichen 32..255.
 Format .FNT (SPEC 7): 'RDF1', WORD hoehe, oberlaenge, stil, BYTE fest, erstes, letztes, 0,
 char name[13], BYTE breite[n], WORD offset[n], Zeichendaten zeilenweise ((breite+7)/8 Bytes je Zeile)."""
 import sys, os, struct

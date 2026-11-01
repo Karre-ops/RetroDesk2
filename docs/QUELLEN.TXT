@@ -5,6 +5,7 @@ License (Text: COPYING, Uebersicht: LIZENZ.TXT). Dazu gehoeren:
 
   RetroDesk 2 selbst: Kern, Module, Treiber, Shell, Programme, SDK
                 Quelle: github.com/Karre-ops/retrodesk2
+  RDTRON.EXE    nach H-TRON (github.com/marralser/H-TRON), GPL
   KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert
                 Quelle: ke2046s.zip, github.com/FDOS/kernel (Release ke2046)
   COMMAND.COM   FreeCOM 0.85a (github.com/FDOS/freecom), unveraendert

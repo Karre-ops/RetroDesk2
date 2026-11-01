@@ -251,7 +251,7 @@ Sprache: Der Kern sucht zuerst die Ressource in `LangGet()`, dann Englisch, dann
 
 **`.FNT` Schrift**: `RDF1`, `WORD hoehe, oberlaenge, stil`, `BYTE fest, erstes, letztes, 0`, `char name[13]`, dann `BYTE breite[letztes-erstes+1]`, `WORD offset[...]` und die Zeichen zeilenweise, je Zeile `(breite+7)/8` Bytes. Fett und kursiv berechnet RDGDI, eigene Schnitte sind möglich (eigene Datei mit `stil`).
 
-Mitgeliefert werden `SYS8.FNT` (8x8), `SYS14.FNT` (aus RDFONT.F14) und `SYS16.FNT` (8x16), später proportionale Schriften. 8x8 und 8x16 stammen aus dem VGA-BIOS von SeaBIOS (LGPL, IBM-Zeichenformen), `tools/mkfont.py` erzeugt alle drei beim Bauen. Zeichen 32 bis 255, Codepage 437 (ä = 0x84, ö = 0x94, ü = 0x81, Ä = 0x8E, Ö = 0x99, Ü = 0x9A, ß = 0xE1).
+Mitgeliefert werden `SYS8.FNT` (8x8), `SYS14.FNT` (aus RDFONT.F14) und `SYS16.FNT` (8x16), später proportionale Schriften. 8x8 und 8x16 stammen aus dem VGA-BIOS von SeaBIOS (Schriften aus fntcol16.zip von Joseph Gil, gemeinfrei; geprüft 01.11.2026), 8x14 aus den gemeinfreien VGA14-Konsolenschriften von console-setup, `tools/mkfont.py` erzeugt alle drei beim Bauen. Zeichen 32 bis 255, Codepage 437 (ä = 0x84, ö = 0x94, ü = 0x81, Ä = 0x8E, Ö = 0x99, Ü = 0x9A, ß = 0xE1).
 
 Umgesetzt (20.10.2026):
 - `FontLoad("SYS", 14, stil)` lädt `SYS14.FNT` aus dem RD2-Verzeichnis. Ein Name mit Punkt ist ein Dateiname. Höhe 0 = Systemschrift.
