@@ -78,7 +78,7 @@ static DWORD aus(void)
     }
     if (best == 0xFFFF) return 0;
     b = &blk[best]; p = b->paras;
-    for (s = 0; s < NS && sl[s].art; s++) ;
+    for (s = 0; s < NS && sl[s].art && sl[s].art != 3; s++) ;   /* freie Dateiluecken sind wiederverwendbare Plaetze */
     if (s == NS) return 0;
     if (xent) {                                   /* XMS: eigener Block */
         r = xc(0x0900, (p + 63) >> 6, 0, (WORD)&xent);
