@@ -4,3 +4,4 @@ sdk/lib/
 src/kern/NOTSUP.ASM
 test/qemu/*.img
 test/qemu/CTMOUSE.EXE
+*.err
