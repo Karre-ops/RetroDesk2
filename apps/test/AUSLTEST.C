@@ -5,7 +5,7 @@
 #include "RD2.H"
 #define N 60
 #define GR 16384
-static HMEM h[N];
+static HMEM h[N], druck[32];
 static WORD fehler;
 static void fuell(HMEM x, WORD pat) { WORD FAR *p = (WORD FAR *)MemLock(x); WORD j; if (!p) { fehler++; return; } for (j = 0; j < GR / 2; j++) p[j] = pat + j; MemUnlock(x); }
 static int pruef(HMEM x, WORD pat) { WORD FAR *p = (WORD FAR *)MemLock(x); WORD j; int ok = 1; if (!p) return 0; for (j = 0; j < GR / 2; j++) if (p[j] != (WORD)(pat + j)) { ok = 0; break; } MemUnlock(x); return ok; }
@@ -18,6 +18,11 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     DbgHex("AUSLTEST: angelegt (16-KB-Bloecke)", k);
     DbgHex("AUSLTEST: mehr als frei war", (DWORD)k * GR > frei0);
     if (k < N) DbgHex("AUSLTEST: Abbruch mit Fehler", LastError());
+    if (k == N) {                                /* volle Swap-Platzliste erzwingen, auch mit mehr freiem DOS-RAM */
+        for (i = 0; i < 32; i++) if (!(druck[i] = MemAlloc(GR, MEM_MOVABLE))) break;
+        DbgHex("AUSLTEST: zusaetzliche Druckbloecke", i);
+        while (i) MemFree(druck[--i]);            /* danach muessen auch Dateiluecken wieder nutzbar sein */
+    }
     for (i = 0; i < k; i++) if (MemFlags(h[i]) & 0x4000) aus++;   /* 0x4000: verworfen (darf nicht sein) */
     DbgHex("AUSLTEST: als verworfen gemeldet", aus);
     for (i = 1; i < k; i += 7) { MemFree(h[i]); h[i] = 0; }     /* einige (auch ausgelagerte) freigeben */
