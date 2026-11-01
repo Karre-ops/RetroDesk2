@@ -9,7 +9,7 @@
 #define ID_STELLEN 1
 #define ID_NETZ    2
 #define ID_BIOS    3
-static HINST hi; static HWND fe; static short dw, dh, sd, x0, y0, ty, kh; static BYTE alt[8], test, still, nphase, nw;
+static HINST hi; static HWND fe; static short dw, dh, sd, x0, y0, ty, kh; static BYTE alt[8], test, still, nphase, nw, tlad;
 static HSOCK ns; static char ini[80], srv[40];
 static char datum[40]; static RDTIME tt;      /* Testmodus: feste Zeit, damit Bildvergleiche gehen */
 static void zeit(RDTIME *t) { if (test) *t = tt; else TimeGet(t); }
@@ -96,11 +96,20 @@ static void nfertig(WORD txt, const RDTIME *t)    /* txt 0: gestellt (t), sonst 
 }
 static void netz(void)                            /* 1 Netz, 2 Name, 3 Antwort */
 {
+    WORD e;
     if (nphase) return;
     ProfileGetStr(ini, "Netz", "NTP", "", srv, sizeof srv);
     if (!srv[0]) ProfileGetStr(ini, "Netz", "NTPDHCP", "pool.ntp.org", srv, sizeof srv);
     nphase = 1; nw = 0;
-    if (NetStart(fe)) nfertig(17, 0);
+    if ((e = NetStart(fe)) == 0) return;
+    if (e == RD_ERR_NOTFOUND) {                   /* kein Paketreiber: RDNET laedt ihn live ("LS" beim Start: ohne Frage), Takt versucht NetStart erneut */
+        char p[80]; WORD i = 0, k = 0; static const char n[] = "RDNET.EXE";
+        while (ini[i]) i++;
+        for (k = 0; k + 7 < i; k++) p[k] = ini[k];
+        for (i = 0; i < sizeof n; i++) p[k + i] = n[i];
+        if (TaskExec(p, still ? "LS" : "L", SW_SHOW)) { tlad = 1; return; }
+    }
+    nfertig(17, 0);
 }
 static void netzmsg(WORD msg, WORD p1, DWORD p2)
 {
@@ -131,7 +140,8 @@ static DWORD RDCALLBACK proc(HWND w, WORD msg, WORD p1, DWORD p2)
     switch (msg) {
     case M_PAINT: BeginPaint(w, &ps); anzeige(ps.dc, TRUE); EndPaint(w, &ps); return 0;
     case M_TIMER:
-        if (nphase && ++nw > (nphase == 1 ? 30 : 10)) nfertig(18, 0);
+        if (tlad && nphase == 1 && !NetStart(w)) { tlad = 0; nw = 0; }   /* Treiber da: weiter ueber M_NETSTATE */
+        if (nphase && ++nw > (nphase == 1 ? (tlad ? 90 : 30) : 10)) { tlad = 0; nfertig(nphase == 1 ? 17 : 18, 0); }
         if (!still) { HDC d = GetDC(w); if (d) { anzeige(d, FALSE); ReleaseDC(w, d); } }
         return 0;
     case M_NETSTATE: case M_NETRESOLVED: case M_NETCONNECT: case M_NETDATA: netzmsg(msg, p1, p2); return 0;
