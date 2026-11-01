@@ -563,7 +563,8 @@ WORD RDEXPORT g_GfxSelect(WORD typ)                                   { GX_SEL f
 /* ---- Bitmaps ------------------------------------------------------------------ */
 HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
 {
-    WORD bpr, vr = 0; HMEM m; BMPH FAR *bh;
+    WORD bpr, vr = 0, nv = bpp & BMP_NURVR; HMEM m; BMPH FAR *bh;
+    bpp &= ~BMP_NURVR;
     if (bpp == BMP_ROH && !(drv && ((GFXDRV FAR *)drv)->h.groesse >= (gm.bpp > 1 ? sizeof(GFXDRVR) : sizeof(GFXDRVV)))) bpp = 0;   /* 1 Bit: nur mit Ablage (VGA/EGA mono) */   /* Treiber ohne roh: Geraeteformat */
     if ((bpp & BMP_MASKE) && !(gm.bpp > 1 && drv && ((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVR) && ((GFXDRVR FAR *)drv)->symput)) bpp &= ~BMP_MASKE;
     if (!bpp) bpp = gm.bpp;                       /* 0 = Geraeteformat des Schirms */
@@ -573,6 +574,7 @@ HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
         if ((bpp & 0xFF) != 4 && (bpp & 0xFF) != 8) bpp = 1;   /* 4/8 Bit: nur BitBlt mit dem Schirm, kein Zeichnen hinein */
         bpr = (w * (bpp & 0xFF) + 7) >> 3;        /* w <= MAXBW, kein Ueberlauf */
     }
+    if (nv && !vr) { SetLastError(RD_ERR_FULL); return 0; }   /* nur Bildspeicher gewuenscht (Dialoge) */
     if (!w || !h || w > MAXBW || (!vr && (DWORD)bpr * h > 65000UL)) { SetLastError(RD_ERR_FULL); return 0; }
     m = MemAlloc((vr ? 0 : (DWORD)bpr * h) + ((bpp & BMP_MASKE) ? (DWORD)((w + 7) >> 3) * h : 0) + sizeof(BMPH), MEM_MOVABLE | MEM_ZEROINIT);
     if (!m) { if (vr) ((GFXDRVV FAR *)drv)->vrfrei(vr); return 0; }
