@@ -173,6 +173,7 @@ typedef struct {
 
 /* ---- Konstanten ------------------------------------------------------------ */
 #define RD_DEFAULT      0xFFFFFFFFUL
+#define RD_NOBG         0xFFFFFFFEUL              /* WNDCLASS.hinter: Fenster fuellt selbst, RDUSER loescht nicht */
 
 #define RD_MODE_R       1                         /* Real Mode, 8088+ */
 #define RD_MODE_P       2                         /* Protected Mode, 386+ */

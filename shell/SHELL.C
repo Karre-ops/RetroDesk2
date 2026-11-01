@@ -954,8 +954,8 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
     switch (msg) {
     case M_PAINT:
         d = BeginPaint(w, &ps); GetClientRect(w, &r);
-        SetBrush(d, dvorn, PAT_GRAY50); SetBkColor(d, dhint); FillRect(d, &r);
-        for (i = 0; i < nlw + nps; i++) lwmal(d, i);
+        SetBrush(d, dvorn, PAT_GRAY50); SetBkColor(d, dhint); FillRect(d, &ps.neu);   /* nur der ungueltige Teil */
+        for (i = 0; i < nlw + nps; i++) { lwfeld(i, &r); if (r.r > ps.neu.l && r.l < ps.neu.r && r.b > ps.neu.t && r.t < ps.neu.b) lwmal(d, i); }
         EndPaint(w, &ps); return 0;
     case M_BUTTONDOWN: case M_DBLCLK:
         if ((i = lwbei((short)LOWORD(p2), (short)HIWORD(p2))) >= 0) {
@@ -1042,7 +1042,7 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     for (k = 1; k <= 26; k++)                     /* nur Typ, keine Diskette anfassen */
         if (!DriveInfo(k | DI_NURTYP, &di) && di.typ != DT_NONE && !(di.flags & DI_PHANTOM)) { lw[nlw] = (char)('A' + k - 1); lt[nlw++] = (char)di.typ; }
     msys = MenuLoad(inst, 1); mbar = MenuLoad(inst, 2); mlw = MenuLoad(inst, 3); mps = MenuLoad(inst, 4);
-    wc.name = "RDDesk"; wc.proc = deskproc; wc.stil = CS_DBLCLKS; wc.daten = 0; wc.inst = inst; wc.symbol = 0; wc.hinter = RD_DEFAULT;
+    wc.name = "RDDesk"; wc.proc = deskproc; wc.stil = CS_DBLCLKS; wc.daten = 0; wc.inst = inst; wc.symbol = 0; wc.hinter = RD_NOBG;   /* beide fuellen selbst (ps.neu) */
     RegisterClass(&wc);
     wc.name = "RDOrdner"; wc.proc = ordproc;
     RegisterClass(&wc);

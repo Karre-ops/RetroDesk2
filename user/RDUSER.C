@@ -468,7 +468,7 @@ void RDEXPORT u_ShowWindow(HWND h, WORD art)
         if (m) { m->nr = w_[i].r; w_[i].flags |= F_MAX; platz(0xFF, &r); u_MoveWindow(h, r.l, r.t, r.r - r.l, r.b - r.t, w_[i].vis); if (!idx(h)) return; }
     }
     if (!w_[i].vis) { w_[i].vis = 1; sendi(i, M_SHOW, 1, 0); }
-    if (!w_[i].parent) u_SetActive(h); else neuz(i, 0);
+    if (!w_[i].parent) { if (w_[0].child == i) neuz(i, 0); u_SetActive(h); } else neuz(i, 0);   /* oben: SetActive malt nur den Rahmen */
 }
 void RDEXPORT u_MoveWindow(HWND h, short x, short y, short b, short hh, BOOL neu)
 {
@@ -533,6 +533,7 @@ void RDEXPORT u_UpdateWindow(HWND h)
 static void hinter(WORD i, HDC d, const RECT *r)
 {
     COLOR c = kl[w_[i].cls - 1].hinter;
+    if (c == RD_NOBG) return;
     SetBrush(d, c == RD_DEFAULT ? C_WHITE : c, PAT_SOLID); FillRect(d, r);
 }
 HDC RDEXPORT u_BeginPaint(HWND h, PAINT FAR *ps)
@@ -570,13 +571,14 @@ HWND RDEXPORT u_SetFocus(HWND h)
 HWND RDEXPORT u_GetFocus(void) { return hw(foc); }
 HWND RDEXPORT u_SetActive(HWND h)
 {
-    WORD i = top(idx(h)), alt = act;
+    WORD i = top(idx(h)), alt = act; BYTE oben;
     if (!i) return bad();
-    if (w_[0].child != i && i != dsk) { unlink(i); link(i, 0); }   /* nach oben, der Schreibtisch bleibt unten */
+    oben = (BYTE)(w_[0].child == i);              /* lag schon oben: nur Rahmen/Titel neu (Dirty-Rect, 01.11.2026) */
+    if (!oben && i != dsk) { unlink(i); link(i, 0); }   /* nach oben, der Schreibtisch bleibt unten */
     act = (BYTE)i;
     if (alt != i && alt && w_[alt].used) { if (w_[alt].vis) rahmen(alt); sendi(alt, M_ACTIVATE, 0, 0); }
-    if (w_[i].vis) neuz(i, 0);
-    leiste();
+    if (w_[i].vis) { if (oben) rahmen(i); else neuz(i, 0); }
+    if (alt != i) leiste();
     if (alt != i) { sendi(i, M_ACTIVATE, 1, 0); if (!foc || top(foc) != i) u_SetFocus(h); }
     return hw(alt);
 }
