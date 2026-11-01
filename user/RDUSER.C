@@ -195,11 +195,51 @@ static WORD vis(WORD i, int client, RECT *v)
 }
 
 /* ---- DCs ----------------------------------------------------------------------- */
+/* P3 (01.11.2026): Hintergrund unter Dialogen (Hauptfenster mit WS_POPUP) im unsichtbaren Bildspeicher retten, beim
+   Schliessen zurueck statt neu zeichnen. Malt ein Fenster darunter (Inhalt) oder der Schreibtisch, gilt er als veraltet. */
+typedef struct { BYTE w, alt; HBMP b; RECT r; } SV;
+static SV sv[2];
+static void svalt(WORD i, int client, const RECT *nur)   /* nur: tatsaechlich bemalter Teil (BeginPaint) */
+{
+    WORD k, j; RECT a;
+    if (i && !client) return;                     /* Rahmen/Titel: kommen beim Aktivieren ohnehin neu */
+    for (k = 0; k < 2; k++) if (sv[k].w && !sv[k].alt && top(i) != sv[k].w) {
+        if (i) { for (j = w_[sv[k].w].next; j && j != top(i); j = w_[j].next) ; if (!j) continue; }   /* liegt darueber: egal */
+        if (i || nur) { if (nur) a = *nur; else wrect(i, &a); isect(&a, &sv[k].r); if (leer(&a)) continue; }
+        sv[k].alt = 1;
+    }
+}
+static void svneu(WORD i)
+{
+    SV *s; HDC d, bd; RECT r;
+    if (w_[i].parent || !(w_[i].stil & WS_POPUP)) return;
+    for (s = sv; s < sv + 2 && s->w; s++) ;
+    if (s == sv + 2) return;
+    wrect(i, &r);
+    if (!(s->b = BmpCreate(r.r - r.l, r.b - r.t, BMP_ROH | BMP_NURVR))) return;
+    if ((bd = BmpDC(s->b)) != 0 && (d = gdc(0)) != 0) { BitBlt(bd, 0, 0, r.r - r.l, r.b - r.t, d, r.l, r.t, ROP_COPY); DCFree(d); s->w = (BYTE)i; s->alt = 0; s->r = r; }
+    if (bd) DCFree(bd);
+    if (!s->w) BmpFree(s->b);
+}
+static BYTE svweg(WORD i)                         /* 1 = Hintergrund zurueckgeholt, nicht neu zeichnen */
+{
+    SV *s; HDC d, bd; BYTE ok = 0; RECT r;
+    for (s = sv; s < sv + 2 && s->w != (BYTE)i; s++) ;
+    if (s == sv + 2) return 0;
+    wrect(i, &r);
+    if (!s->alt && r.l == s->r.l && r.t == s->r.t && (bd = BmpDC(s->b)) != 0) {
+        if ((d = gdc(0)) != 0) { BitBlt(d, r.l, r.t, r.r - r.l, r.b - r.t, bd, 0, 0, ROP_COPY); DCFree(d); ok = 1; }
+        DCFree(bd);
+    }
+    BmpFree(s->b); s->w = 0;
+    return ok;
+}
 static HDC ndc(WORD i, int client, const RECT *nur)   /* nur: zusaetzlich begrenzen (Bildschirm) */
 {
     WORD s, k, n; HDC h; DCX FAR *d; short x, y; RECT r;
     for (s = 0; s < NSLOT && sl[s].dc; s++) ;
     if (s == NSLOT) return fehl(RD_ERR_FULL);
+    if (sv[0].w | sv[1].w) svalt(i, client, nur);
     if (!(h = gdc(0))) return 0;
     n = vis(i, client, sl[s].r);
     if (nur) for (k = 0; k < n; ) {
@@ -431,6 +471,7 @@ BOOL RDEXPORT u_DestroyWindow(HWND h)
     WORD i = idx(h), war; RECT r;
     if (!i) return bad();
     war = w_[i].vis && sichtbar(i); wrect(i, &r);
+    if (svweg(i)) war = 0;                        /* Hintergrund aus dem Bildspeicher zurueck */
     weg(i, 1);
     if (war) aufdecken(&r);
     if (!w_[act].used) neuaktiv();
@@ -442,7 +483,7 @@ void RDEXPORT u_ShowWindow(HWND h, WORD art)
     if (!i) { bad(); return; }
     if (art == SW_HIDE) {
         if (!w_[i].vis) return;
-        wrect(i, &r); w_[i].vis = 0; aufdecken(&r);
+        wrect(i, &r); w_[i].vis = 0; if (!svweg(i)) aufdecken(&r);
         if (foc && !sichtbar(foc)) foc = 0;       /* G28: keine Tasten an Verstecktes */
         if (act == i) neuaktiv();
         return;
@@ -467,7 +508,7 @@ void RDEXPORT u_ShowWindow(HWND h, WORD art)
         MERK *m = merk(i, 1);
         if (m) { m->nr = w_[i].r; w_[i].flags |= F_MAX; platz(0xFF, &r); u_MoveWindow(h, r.l, r.t, r.r - r.l, r.b - r.t, w_[i].vis); if (!idx(h)) return; }
     }
-    if (!w_[i].vis) { w_[i].vis = 1; sendi(i, M_SHOW, 1, 0); }
+    if (!w_[i].vis) { svneu(i); w_[i].vis = 1; sendi(i, M_SHOW, 1, 0); }
     if (!w_[i].parent) { if (w_[0].child == i) neuz(i, 0); u_SetActive(h); } else neuz(i, 0);   /* oben: SetActive malt nur den Rahmen */
 }
 void RDEXPORT u_MoveWindow(HWND h, short x, short y, short b, short hh, BOOL neu)
@@ -642,7 +683,7 @@ void RDEXPORT u_EnableWindow(HWND h, BOOL an)
     w_[i].dis = (BYTE)!an;
     if (an) w_[i].stil &= ~WS_DISABLED; else w_[i].stil |= WS_DISABLED;
     sendi(i, M_ENABLE, an ? 1 : 0, 0);
-    if (sichtbar(i)) inval(i, 0, 1);
+    if (sichtbar(i) && w_[i].parent) inval(i, 0, 1);   /* Hauptfenster (Besitzer eines Dialogs) sieht gleich aus: nicht neu zeichnen */
 }
 HWND RDEXPORT u_CaptureMouse(HWND h) { WORD alt = cap; cap = (BYTE)idx(h); return hw(alt); }
 void RDEXPORT u_ReleaseMouse(void) { cap = 0; }
