@@ -52,3 +52,7 @@ wurde mit `git subtree split` übernommen. Aus dem RD1-Repo kamen dazu:
 - `docs/ENTWURF_RD2.md`, `docs/PLAN_RD2.md`: Entwurf und Plan.
 - `rd1ref/`: Teile von RetroDesk 1 als Vergleich (Schrift RDFONT.F14 für tools/mkfont.py,
   calc.c für test/rechner_kern.sh, gfx.c/mouse.c für den Leistungsvergleich bench).
+
+## Lizenz
+
+RetroDesk 2 ist freie Software unter der **GNU General Public License Version 2 oder später** (siehe `COPYING`, Übersicht `docs/LIZENZ.TXT`). Das gilt für Kern, Module, Treiber, Shell, Programme und SDK. FreeDOS-Teile (Kern, SYS, FORMAT, FDISK, FreeCOM, CuteMouse) stehen unter ihrer eigenen GPL. Fehler bitte als Issue melden.

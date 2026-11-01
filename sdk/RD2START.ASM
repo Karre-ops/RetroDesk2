@@ -1,4 +1,5 @@
 ; RD2START.ASM - Startcode fuer RD2-Programme (16 Bit, Modell Medium/Large)
+; SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
 ; Der Kern ruft den Einsprung (CS:IP aus dem MZ-Kopf) per FAR CALL auf mit
 ;   AX = 5232h ('R2'), ES:BX = API-Tabelle, CX = HINST, DX = show, DI:SI = Befehlszeile
 ; Startet DOS die EXE direkt, steht in AX nie 5232h: Meldung, Fehlercode 1.

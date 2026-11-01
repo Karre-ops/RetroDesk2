@@ -1,4 +1,5 @@
 /* RD2.H - RetroDesk 2 Programmierschnittstelle, API 1.0
+ * SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
  *
  * Fuer Programme, die unter RetroDesk 2 laufen. Open Watcom C:
  *   16 Bit (8088 bis Pentium): wcl -0 -mm  ... rd2.lib rd2start.obj

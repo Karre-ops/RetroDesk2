@@ -1,4 +1,5 @@
 ; RD2MOD.ASM - Startcode fuer RD2-Module (.MOD/.DRV), Modell Medium, mit -zu bauen.
+; SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
 ; Der Kern ruft den Einsprung mit AX = 5232h, ES:BX = API-Tabelle, CX = HMOD.
 ; RdModInit() liefert in DX:AX einen Zeiger auf: WORD anzahl; FARPROC f[anzahl].
 ; Exportierte Funktionen laufen mit dem Stack des Aufrufers: RDEXPORT (__loadds).

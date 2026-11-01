@@ -1,4 +1,5 @@
 /* RD2ORD.H - Funktionsnummern als Konstanten RDO_<Name> (aus RD2API.H) */
+/* SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING */
 #ifndef RD2ORD_H
 #define RD2ORD_H
 enum {

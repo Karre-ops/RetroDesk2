@@ -120,6 +120,7 @@ o = []
 w = o.append
 w("{ RD2.PAS - Unit RD2 fuer RetroDesk-2-Programme in Pascal (API %d.%d)" % (1, 0))
 w("  Erzeugt von tools/mkpas.py aus sdk/RD2.H und sdk/RD2API.H, nicht von Hand aendern.")
+w("  SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING")
 w("  Turbo Pascal 5.5, 6.0, 7.0:  TPC PROG.PAS, dann RDRC PROG.RC PROG.EXE \"Name\" /PAS")
 w("  Free Pascal (i8086-msdos):   ppcross8086 -Tmsdos -WmLarge PROG.PAS, dann ebenso RDRC ... /PAS")
 w("  RD2 muss die erste Unit in uses sein. Keine Crt, Graph oder Write auf den Bildschirm.")

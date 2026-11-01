@@ -1,4 +1,13 @@
-# Lizenzen in RetroDesk 2 (geprüft am 24.10.2026)
+# Lizenzen in RetroDesk 2 (geprüft am 24.10.2026, umgestellt am 01.11.2026)
+
+**Beschluss 01.11.2026 (Karsten): Ganz RetroDesk 2 steht unter der GPL Version 2 oder später**, auch Kern, Module, Treiber, Shell, Programme und SDK. Damit ersetzt: Freeware ohne Quelltext für die eigenen Teile und MIT für das SDK (27.10.2026). Ziel: möglichst viele nutzen RD2, passen es an und melden Fehler. Teile aus Free FDISK und FreeCOM bleiben GPL v2 ohne „oder später“; das verträgt sich, weil eigener Code unter „v2 oder später“ zusammen mit v2-Code als v2 weitergegeben werden darf.
+
+Folgen:
+- Programme, die mit dem SDK gebaut werden, binden `RD2START.OBJ` und `RD2.LIB` ein und sind damit abgeleitete Werke: Wer sie weitergibt, muss sie GPL-verträglich lizenzieren (z. B. GPL, LGPL, MIT, BSD). Geschlossene Programme für RD2 gehen nur ohne Weitergabe. Wenn das später stört, wäre eine Ausnahme für Startcode und Bibliothek (wie die GCC Runtime Library Exception) der Weg.
+- Quelltext: Solange das Repo privat ist, gilt das schriftliche Angebot in `QUELLEN.TXT` für ganz RD2. Bei Weitergabe als Download genügt der Quelltext am selben Ort.
+- Offen: SYS8.FNT/SYS16.FNT stammen aus einem VGA-BIOS (Urheberrecht prüfen, ggf. freie Schriften), RDTRON (H-Tron) bleibt draußen, bis seine Lizenz geklärt ist.
+
+Der Rest dieser Datei ist die Prüfung vom 24.10.2026 und gilt für die fremden Teile weiter.
 
 Geprüft an den Lizenztexten selbst: GNU GPL Version 2 (gnu.org) und den Kopfzeilen der Quellen in
 `github.com/FDOS/fdisk`, `github.com/FDOS/format`, `github.com/FDOS/kernel`.

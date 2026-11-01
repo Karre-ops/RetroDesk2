@@ -1,4 +1,5 @@
 ; RD2PAS.ASM - Vorspann fuer Pascal-Programme (Turbo Pascal 5.5-7.0, Free Pascal i8086-msdos)
+; SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
 ; nasm -f bin -o RD2PAS.BIN RD2PAS.ASM
 ;
 ; RDRC /PAS (rd2link.py --pas) setzt dieses Stueck VOR das Bild einer Pascal-EXE und verschiebt das Bild

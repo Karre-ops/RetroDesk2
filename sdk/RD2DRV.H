@@ -1,4 +1,5 @@
 /* RD2DRV.H - Treiber-Schnittstellen RetroDesk 2 (API 1.0)
+ * SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
  *
  * Ein Treiber (.DRV) ist ein Modul wie jedes andere (siehe SPEC.md 2/3).
  * Der Kern ruft nach dem Laden Exportnummer 1 auf; sie liefert einen

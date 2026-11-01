@@ -1,4 +1,5 @@
 /* RD2API.H - Liste aller RD2-Funktionen mit fester Nummer (API 2.0)
+ * SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
  *
  * Diese Datei ist die einzige Quelle fuer Nummern und Signaturen.
  * Sie wird mit verschiedenen Definitionen von RDF() mehrfach eingebunden:

@@ -1,32 +1,38 @@
-RetroDesk 2 - Lizenzen (Stand 27.10.2026)
+RetroDesk 2 - Lizenz (Stand 01.11.2026)
 
-1. RetroDesk 2 (Kern, Module, Treiber, Shell, Programme): FREEWARE
-   (c) 2026 Karsten. Alle Rechte vorbehalten.
-   - Die Nutzung ist kostenlos, privat und gewerblich.
-   - Die Disketten duerfen unveraendert und vollstaendig kostenlos
-     weitergegeben werden. Verkauf oder Weitergabe gegen Entgelt ist
-     nur mit Erlaubnis des Autors gestattet.
-   - Der Quelltext wird nicht veroeffentlicht. Aendern, Zerlegen
-     (Disassemblieren) und Weitergabe veraenderter Fassungen sind
-     nicht gestattet, soweit das Gesetz es nicht ausdruecklich erlaubt.
-   - Keine Gewaehrleistung. Nutzung auf eigene Gefahr. Der Autor haftet
-     nur bei Vorsatz und grober Fahrlaessigkeit.
+RetroDesk 2 ist freie Software.
+(c) 2026 Karsten (kcopy@web.de)
 
-2. SDK (RD2.H, RD2API.H, RD2DRV.H, RD2ORD.H, RD2START.ASM, RD2MOD.ASM,
-   RD2.LIB): MIT-Lizenz. Eigene Programme fuer RetroDesk 2 duerfen
-   frei erstellt und unter beliebiger Lizenz weitergegeben werden.
+1. Ganz RetroDesk 2 steht unter der GNU General Public License
+   Version 2 oder (nach Ihrer Wahl) jeder spaeteren Version, die die
+   Free Software Foundation veroeffentlicht (Text: COPYING).
+   Das gilt fuer Kern (RD.EXE), Module (.MOD), Treiber (.DRV, .COM),
+   Shell, alle mitgelieferten Programme, Schriften, Symbole, Hilfe,
+   Installation und das SDK (RD2.H, RD2API.H, RD2DRV.H, RD2ORD.H,
+   RD2START.ASM, RD2MOD.ASM, RD2PAS.ASM, RD2.LIB, RD2.PAS).
+   - Sie duerfen RetroDesk 2 nutzen, kopieren, weitergeben (auch gegen
+     Entgelt), aendern und geaenderte Fassungen weitergeben.
+   - Wer RetroDesk 2 oder Teile davon weitergibt, gibt den Quelltext
+     mit oder bietet ihn an und laesst diese Lizenz unveraendert dabei.
+   - Programme, die mit dem SDK gebaut werden (RD2START.OBJ, RD2.LIB
+     werden eingebunden), sind abgeleitete Werke und muessen bei der
+     Weitergabe ebenfalls unter einer GPL-vertraeglichen Lizenz stehen.
 
-3. Fremde Teile unter der GNU General Public License Version 2
-   (Text: COPYING). Fuer sie gilt die GPL, nicht Abschnitt 1:
-     KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert
-     CTMOUSE.EXE   CuteMouse 2.1, unveraendert
-     RDSYS.EXE     FreeDOS SYS
-     RDFORMAT.EXE  FreeDOS FORMAT, geaendert fuer RetroDesk 2
-     RDFDISK.EXE   Free FDISK, geaendert fuer RetroDesk 2
-   Diese Teile werden OHNE JEDE GEWAEHRLEISTUNG weitergegeben
-   (GPL v2, Abschnitte 11 und 12). Quelltext: siehe QUELLEN.TXT.
-   Die uebrigen Programme liegen nur auf denselben Disketten und
-   fallen dadurch nicht unter die GPL.
+2. Fremde Teile unter der GPL Version 2:
+     KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert (GPL v2+)
+     CTMOUSE.EXE   CuteMouse 2.1, unveraendert (GPL v2+)
+     COMMAND.COM   FreeCOM 0.85a deutsch, unveraendert (GPL v2)
+     RDSYS.EXE     FreeDOS SYS (GPL v2+)
+     RDFORMAT.EXE  FreeDOS FORMAT, geaendert fuer RetroDesk 2 (GPL v2+)
+     RDFDISK.EXE   Free FDISK, geaendert fuer RetroDesk 2 (nur GPL v2)
+   RDFDISK.EXE und COMMAND.COM duerfen nur unter Version 2 weiter-
+   gegeben werden, weil ihre Quellen kein "oder spaeter" erlauben.
+
+KEINE GEWAEHRLEISTUNG. RetroDesk 2 wird ohne jede Gewaehrleistung
+weitergegeben, soweit das Gesetz es zulaesst (GPL v2, Abschnitte 11
+und 12). Nutzung auf eigene Gefahr.
+
+Quelltext: siehe QUELLEN.TXT.
 
 MS-DOS liegt nicht bei. Wer MS-DOS 5 oder hoeher besitzt, kann mit
 SYS A: tauschen.
