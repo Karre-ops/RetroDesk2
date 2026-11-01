@@ -91,6 +91,14 @@ typedef struct {
        Darf 0 sein (dann setzt RDGDIX die Punkte ueber BitBlt ein). */
     void  (RDAPI *symput)(short x, short y, short w, short h, const BYTE FAR *s, WORD sbpr, WORD unten, const BYTE FAR *m, WORD mbpr, WORD mbit);
 } GFXDRVR;
+/* Ablage im unsichtbaren Bildspeicher (01.11.2026, optional, h.groesse = sizeof(GFXDRVV)): vrneu reserviert Platz
+   fuer einen rohen Block w x h und liefert eine Nummer 1..255 (0 = kein Platz, dann RAM wie bisher). BmpCreate
+   setzt dann bpr = 0x8000 | Nummer; rohget/rohput erkennen das und kopieren ueber die Latches. vrfrei gibt frei. */
+typedef struct {
+    GFXDRVR r;
+    WORD  (RDAPI *vrneu)(short w, short h);
+    void  (RDAPI *vrfrei)(WORD n);
+} GFXDRVV;
 
 /* ---- Sound --------------------------------------------------------------- */
 typedef struct {

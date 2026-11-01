@@ -115,6 +115,9 @@ WORD vmode(WORD bx);
 static BYTE vb[256];                              /* VBE-Infoblock */
 #endif
 #endif
+#if !defined(SVGA16)
+static void vrinit(void);
+#endif
 static WORD RDEXPORT d_init(WORD param)
 {
     (void)param;
@@ -170,6 +173,9 @@ static WORD RDEXPORT d_setmode(WORD nr)
 #if NPL == 2
     {   static const BYTE ega[4] = { 0x00, 0x03, 0x07, 0x3F };   /* EGA-Farbwerte; VGA: Standard-DAC enthaelt dieselben 64 Farben */
         for (i = 0; i < 4; i++) int10b(0x1000, (WORD)(i | (ega[i] << 8))); }
+#endif
+#if !defined(SVGA16)
+    vrinit();                                     /* neuer Modus: Ablage leer */
 #endif
     m0();
     return 0;
@@ -477,11 +483,72 @@ static COLOR RDEXPORT d_rgb(WORD i)
 
 #endif
 
+/* ---- Ablage im unsichtbaren Bildspeicher (01.11.2026): Platz hinter dem sichtbaren Bild je Ebene, Kopie ueber die
+   Latches (Schreibmodus 1: ein Lese- und ein Schreibzugriff fuer 8 Punkte in allen Ebenen). Groesse je Ebene: VGA 64 KB,
+   EGA laut BIOS (16 KB je 64 KB Karte). SVGA16 nicht (Fenster/Banken). ---- */
+#if !defined(SVGA16)
+#define NVS 8
+typedef struct { WORD off, ps, n, h; short x, y; } VS;   /* n: reservierte Bytes je Ebene, h = 0: frei */
+static VS vs[NVS]; static WORD vrende;
+static WORD vrstart(void) { return zbpr(H); }
+static void vrinit(void)
+{
+#if defined(VGA16) || defined(VGA4)
+    vrende = 0xFFFF;
+#else
+    WORD m = egamem() & 0xFF; vrende = m > 3 ? 0 : (WORD)((m + 1) * 16384UL - 1);
+#endif
+    _fmemset(vs, 0, sizeof vs);
+}
+static WORD RDEXPORT d_vrneu(short w, short h)
+{
+    WORD n = (WORD)(((w + 7) >> 3) + 1) * (WORD)h, o = vrstart(), i, k, frei;
+    if (!vrende || w <= 0 || h <= 0) return 0;
+    for (i = 0; i < NVS && vs[i].h; i++) ;
+    if (i == NVS) return 0;
+    for (;;) {                                    /* erste Luecke ab o, die n Bytes fasst */
+        if ((DWORD)o + n - 1 > vrende) return 0;
+        for (frei = 1, k = 0; k < NVS; k++) if (vs[k].h && o < vs[k].off + vs[k].n && vs[k].off < o + n) { o = vs[k].off + vs[k].n; frei = 0; break; }
+        if (frei) break;
+    }
+    vs[i].off = o; vs[i].n = n; vs[i].h = (WORD)h; vs[i].ps = 0;
+    return i + 1;
+}
+static void RDEXPORT d_vrfrei(WORD n) { if (n >= 1 && n <= NVS) vs[n - 1].h = 0; }
+static void vrget(VS *s, short x, short y, short w, short h)
+{
+    WORD r, k, ps = ((x & 7) + w + 7) >> 3; volatile BYTE l;
+    s->x = x; s->y = y; s->ps = ps;
+    GC(5, 1); MAPMASK(PLM);
+    for (r = 0; r < (WORD)h; r++) { BYTE __far *p = VP(x, y + r), __far *q = (BYTE __far *)MK_FP(0xA000, s->off + r * ps); for (k = 0; k < ps; k++) { l = p[k]; q[k] = l; } }
+    m0();
+}
+static void vrput(VS *s, short qx, short qy, short qw, short qh)
+{
+    WORD r, k, e, c = ((WORD)qx >> 3) - ((WORD)s->x >> 3), nb = ((qx & 7) + qw + 7) >> 3, j;
+    BYTE lm = (BYTE)(0xFF >> (qx & 7)), rm = (BYTE)(0xFF << (7 - ((qx + qw - 1) & 7))), v; volatile BYTE l;
+    if (nb == 1) lm &= rm;
+    for (r = 0; r < (WORD)qh; r++) {
+        BYTE __far *p = VP(qx, qy + r), __far *q = (BYTE __far *)MK_FP(0xA000, s->off + (WORD)(qy + r - s->y) * s->ps + c);
+        if (nb > 2) { GC(5, 1); MAPMASK(PLM); for (k = 1; k < nb - 1; k++) { l = q[k]; p[k] = l; } GC(5, 0); }   /* Mitte: Latches */
+        for (j = 0; j < 2 && j < nb; j++) {       /* Raender: je Ebene lesen, mit Bitmaske schreiben */
+            k = j ? nb - 1 : 0; GC(8, j ? rm : lm);
+            for (e = 0; e < NPL; e++) { GC(4, e); v = q[k]; l = p[k]; MAPMASK(1 << e); p[k] = v; }
+        }
+        GC(8, 0xFF); MAPMASK(PLM);
+    }
+    GC(4, 0); m0();
+}
+#define VSL(bpr) (((bpr) & 0x8000) && ((bpr) & 0xFF) >= 1 && ((bpr) & 0xFF) <= NVS && vs[((bpr) & 0xFF) - 1].h ? &vs[((bpr) & 0xFF) - 1] : (VS *)0)
+#endif
 /* ---- Hintergrund roh: je Zeile die Ebenen hintereinander (je ps Bytes), Raender mit Bitmaske ---- */
 static WORD RDEXPORT d_rohgr(short x, short w) { return (WORD)((((x & 7) + w + 7) >> 3) * NPL); }
 static void RDEXPORT d_rohget(short x, short y, short w, short h, BYTE FAR *z, WORD bpr)
 {
     WORD r, e, ps = ((x & 7) + w + 7) >> 3;
+#if !defined(SVGA16)
+    VS *s = VSL(bpr); if (s) { vrget(s, x, y, w, h); return; }
+#endif
     for (r = 0; r < (WORD)h; r++, z += bpr) { BYTE __far *p = VP(x, y + r); for (e = 0; e < NPL; e++) { GC(4, e); _fmemcpy(z + e * ps, p, ps); } }
     GC(4, 0);
 }
@@ -490,6 +557,9 @@ static void RDEXPORT d_rohput(short qx, short qy, short qw, short qh, const BYTE
     WORD r, e, ps = ((x0 & 7) + w0 + 7) >> 3, c = ((WORD)qx >> 3) - ((WORD)x0 >> 3), nb = ((qx & 7) + qw + 7) >> 3;
     BYTE lm = (BYTE)(0xFF >> (qx & 7)), rm = (BYTE)(0xFF << (7 - ((qx + qw - 1) & 7)));
     if (nb == 1) lm &= rm;
+#if !defined(SVGA16)
+    { VS *s = VSL(bpr); if (s) { vrput(s, qx, qy, qw, qh); return; } }
+#endif
     GC(5, 0); GC(1, 0); GC(3, 0);
     for (r = 0; r < (WORD)qh; r++, z += bpr) {
         BYTE __far *p = VP(qx, qy + r); const BYTE FAR *q = z + c; volatile BYTE l;
@@ -503,12 +573,21 @@ static void RDEXPORT d_rohput(short qx, short qy, short qw, short qh, const BYTE
     m0();
 }
 
+#if !defined(SVGA16)
+static GFXDRVV tab = { { { {
+    { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVV), NAME, d_init, d_done },
+#else
 static GFXDRVR tab = { { {
     { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVR), NAME, d_init, d_done },
+#endif
     d_modes, d_setmode, d_textmode,
     d_span, d_pixel, d_getpixel, d_put, d_get,
     0, 0, d_copy, d_glyphs, d_palette, d_cursor, d_cursorhide, 0, d_box }, d_farbe, d_rgb },
+#if !defined(SVGA16)
+    d_rohgr, d_rohget, d_rohput, d_symput }, d_vrneu, d_vrfrei
+#else
     d_rohgr, d_rohget, d_rohput, d_symput
+#endif
 };
 FARPROC RDEXPORT DrvTab(void) { return (FARPROC)(void FAR *)&tab; }
 static struct { WORD n; FARPROC f[1]; } ex = { 1, { (FARPROC)DrvTab } };

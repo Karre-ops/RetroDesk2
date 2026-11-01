@@ -563,18 +563,19 @@ WORD RDEXPORT g_GfxSelect(WORD typ)                                   { GX_SEL f
 /* ---- Bitmaps ------------------------------------------------------------------ */
 HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
 {
-    WORD bpr; HMEM m; BMPH FAR *bh;
+    WORD bpr, vr = 0; HMEM m; BMPH FAR *bh;
     if (bpp == BMP_ROH && !(gm.bpp > 1 && drv && ((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVR))) bpp = 0;   /* Treiber ohne roh: Geraeteformat */
     if ((bpp & BMP_MASKE) && !(gm.bpp > 1 && drv && ((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVR) && ((GFXDRVR FAR *)drv)->symput)) bpp &= ~BMP_MASKE;
     if (!bpp) bpp = gm.bpp;                       /* 0 = Geraeteformat des Schirms */
-    if (bpp == BMP_ROH) bpr = ((GFXDRVR FAR *)drv)->rohgr(7, (short)w);   /* roh: Bildspeicher unveraendert (Menue-Hintergrund) */
+    if (bpp == BMP_ROH) { bpr = ((GFXDRVR FAR *)drv)->rohgr(7, (short)w);   /* roh: Bildspeicher unveraendert (Menue-Hintergrund) */
+        if (((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVV) && w && h && (vr = ((GFXDRVV FAR *)drv)->vrneu((short)w, (short)h)) != 0) bpr = 0x8000 | vr; }   /* im Bildspeicher: kein RAM */
     else {
         if ((bpp & 0xFF) != 4 && (bpp & 0xFF) != 8) bpp = 1;   /* 4/8 Bit: nur BitBlt mit dem Schirm, kein Zeichnen hinein */
         bpr = (w * (bpp & 0xFF) + 7) >> 3;        /* w <= MAXBW, kein Ueberlauf */
     }
-    if (!w || !h || w > MAXBW || (DWORD)bpr * h > 65000UL) { SetLastError(RD_ERR_FULL); return 0; }
-    m = MemAlloc((DWORD)bpr * h + ((bpp & BMP_MASKE) ? (DWORD)((w + 7) >> 3) * h : 0) + sizeof(BMPH), MEM_MOVABLE | MEM_ZEROINIT);
-    if (!m) return 0;
+    if (!w || !h || w > MAXBW || (!vr && (DWORD)bpr * h > 65000UL)) { SetLastError(RD_ERR_FULL); return 0; }
+    m = MemAlloc((vr ? 0 : (DWORD)bpr * h) + ((bpp & BMP_MASKE) ? (DWORD)((w + 7) >> 3) * h : 0) + sizeof(BMPH), MEM_MOVABLE | MEM_ZEROINIT);
+    if (!m) { if (vr) ((GFXDRVV FAR *)drv)->vrfrei(vr); return 0; }
     bh = (BMPH FAR *)MemLock(m);
     bh->w = w; bh->h = h; bh->bpp = bpp; bh->bpr = bpr;
     MemUnlock(m);
@@ -594,7 +595,11 @@ static HDC newdc(BYTE typ, HBMP b)
 void RDEXPORT g_BmpFree(HBMP b)
 {
     WORD i;
+    BMPH FAR *bh;
     for (i = 1; i <= MAXDC; i++) if (dcs[i - 1].used && dcs[i - 1].typ == 1 && dcs[i - 1].bmp == b) dcs[i - 1].used = 0;
+    if (drv && ((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVV) && (bh = (BMPH FAR *)MemLock(b)) != 0) {   /* Ablage im Bildspeicher freigeben */
+        if (bh->bpp == BMP_ROH && (bh->bpr & 0x8000)) ((GFXDRVV FAR *)drv)->vrfrei(bh->bpr & 0xFF);
+        MemUnlock(b); }
     MemFree(b);
 }
 HDC  RDEXPORT g_BmpDC(HBMP b) { if (!MemSize(b)) { SetLastError(RD_ERR_HANDLE); return 0; } return newdc(1, b); }
