@@ -89,6 +89,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cl, WORD show)
 {
     WNDCLASS wc; HWND w; short e;
     (void)cl; (void)show;
+    if (cl && cl[0] == 'A') { DbgPrint("DLGTEST: Alle bereit"); e = MsgBox(0, "Die Datei gibt es schon. Ersetzen?", 0, MB_YESALLNOCANCEL | MB_ASK); DbgHex("DLGTEST: Alle ->", (WORD)e); return 0; }   /* Ja fuer alle (01.11.2026) */
     wc.name = "DlgTest"; wc.proc = wproc; wc.stil = 0; wc.daten = 0; wc.inst = inst; wc.symbol = 0; wc.hinter = RD_DEFAULT;
     RegisterClass(&wc);
     w = CreateWindow("DlgTest", "Dialogtest", WS_NORMAL | WS_VISIBLE, 4, 30, 300, 120, 0, 1, inst);

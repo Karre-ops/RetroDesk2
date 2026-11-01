@@ -414,6 +414,8 @@ typedef struct {
 #define MB_OK       0x0000
 #define MB_OKCANCEL 0x0001
 #define MB_YESNO    0x0004
+#define MB_YESALLNOCANCEL 0x0005                  /* Ja, Alle, Nein, Abbruch (Ersetzen beim Kopieren, 01.11.2026) */
+#define MB_YESALLNO 0x0006                          /* Ja, Alle, Nein */
 #define MB_YESNOCANCEL 0x0003
 #define MB_INFO     0x0040
 #define MB_WARN     0x0030
@@ -424,6 +426,7 @@ typedef struct {
 #define ID_CANCEL 2
 #define ID_YES    6
 #define ID_NO     7
+#define ID_ALLE   8                               /* MsgBox: Ja fuer alle */
 #define FD_OPEN   0x0000
 #define FD_SAVE   0x0001
 #define FD_MUSTEXIST 0x0002

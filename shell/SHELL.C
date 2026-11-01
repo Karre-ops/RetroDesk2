@@ -338,6 +338,7 @@ static int esc(void)
     return 0;
 }
 /* qv nach qn kopieren (Datei oder ganzer Ordner), bei weg danach Quelle loeschen. 0 = ok, 1 = Abbruch */
+static BYTE kalle;                                /* Ersetzen: Ja fuer alle */
 static WORD kop(BYTE attr, int weg)
 {
     WORD e = 0, lv = slen(qv), ln = slen(qn), n; FINDDATA f; short a, b; HMEM hb; BYTE FAR *p;
@@ -359,8 +360,9 @@ static WORD kop(BYTE attr, int weg)
     }
     if ((n = FileAttr(qn, 0, 0)) != 0xFFFF) {     /* Ziel gibt es schon */
         fmt(buf, StrGet(inst, 12), qn, 0);
-        a = MsgBox(GetActive(), buf, "RD", MB_YESNOCANCEL | MB_ASK);
+        a = kalle ? ID_YES : MsgBox(GetActive(), buf, "RD", MB_YESALLNOCANCEL | MB_ASK);
         if (a == ID_CANCEL) return 1;
+        if (a == ID_ALLE) { kalle = 1; a = ID_YES; }   /* Ja fuer alle: Rest dieses Vorgangs ohne Frage (Systemdateien fragen trotzdem) */
         if (a != ID_YES || !sicher(qn, n, 17)) return 0;
         FileAttr(qn, 0, 1);
     }
@@ -407,7 +409,7 @@ static void kopieren(ORDNER *o, int weg, LPCSTR wohin)   /* wohin 0: fragen */
         scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
         if (!sicher(qv, e[i].attr, 18)) { MemUnlock(o->h); return; }
     }
-    CursorBusy(TRUE);
+    CursorBusy(TRUE); kalle = 0;
     for (i = 0; i < o->n && !r; i++) if (betrifft(o, e, i, mk)) {
         scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
         scpy(qn, ziel, sizeof qn); scat(qn, e[i].name, sizeof qn);

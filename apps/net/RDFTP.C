@@ -25,7 +25,7 @@
 #define ID_ORDNER 53
 #define ID_TEXT  54
 #define ID_NEU   55
-#define ID_ALLE  56
+#define ID_MALLE 56
 #define ID_LW    60                                /* 60 + Laufwerk (1 = A:), linke Leiste */
 #define ID_RW    90                                /* rechte Leiste */
 #define NE 160                                    /* Eintraege je Seite */
@@ -38,7 +38,7 @@ enum { F_AUS, F_NETZ, F_DNS, F_VERB, F_GRUSS, F_USER, F_PASS, F_TYPE, F_PWD, F_B
        F_PASV, F_DATEN, F_XFER, F_CWD, F_EINZEL, F_MKD };
 enum { O_LIST = 1, O_RETR, O_STOR };
 
-static HINST hi; static HWND dl; static BYTE test, phase, op, z226, dzu, pumpen, ende_f, stapel, lauf, autov; static WORD nw, wn; static BYTE tlad; static HMEM hwb; static char FAR *wb;   /* wb: Schreibpuffer 4 KB, nur beim Laden */
+static HINST hi; static HWND dl; static BYTE test, phase, op, z226, dzu, pumpen, ende_f, stapel, lauf, autov; static WORD nw, wn; static BYTE tlad, ualle; static HMEM hwb; static char FAR *wb;   /* wb: Schreibpuffer 4 KB, nur beim Laden */
 static HSOCK hc, hd; static DWORD sip; static WORD sport;
 static char srv[40], user[24], pass[24], pf[2][80], rp[128], zb[260], cmdb[160], dname[100], status[80];
 static WORD zl, ne[2], rzl, qi, leer, cw0, ch0; static short fh = -1, bw, bx0[27]; static DWORD xbytes, xgesamt, t0, tz, jt0, jsum;
@@ -366,9 +366,11 @@ static void markiere(BYTE r, WORD i, BYTE wie) { if (mkbar(r, i)) e[r][i].mk = (
 static BYTE ueber(LPCSTR z)                       /* Ziel vorhanden: fragen; 1 = schreiben */
 {
     FINDDATA fd; char t[110];
-    if (test || FileFindFirst(z, 0, &fd)) return 1;
+    short a;
+    if (test || ualle || FileFindFirst(z, 0, &fd)) return 1;
     scpy(t, StrGet(hi, 19), sizeof t); scat(t, z, sizeof t);
-    return (BYTE)(MsgBox(dl, t, StrGet(hi, 1), MB_YESNO | MB_ASK | MB_DEFNO) == ID_YES);
+    if ((a = MsgBox(dl, t, StrGet(hi, 1), MB_YESALLNO | MB_ASK | MB_DEFNO)) == ID_ALLE) ualle = 1;   /* Ja fuer alle: Rest dieses Kopierens */
+    return (BYTE)(a == ID_YES || a == ID_ALLE);
 }
 static BYTE kopie_lokal(LPCSTR q, LPCSTR z)       /* 0 = ok */
 {
@@ -482,7 +484,7 @@ static void kopieren(void)
 {
     BYTE r = rechts_f(); WORD s, i, k = anzahl(r); char n[RN]; ENT FAR *v = e[r];
     if (phase != F_BEREIT && phase != F_AUS) { statz(17, ""); return; }
-    s = wahl(LID(r));
+    s = wahl(LID(r)); ualle = 0;
     if (!k) { if (!mkbar(r, s)) { statz(18, ""); return; } v[s].mk = 1; }
     if (phase == F_AUS) {                         /* Platte zu Platte, Ordner samt Inhalt */
         if (!vgl(pf[0], pf[1])) { statz(26, ""); return; }
@@ -565,7 +567,7 @@ static void befehl(WORD id)
 {
     if (seite) SetFocus(seite);
     if (id == ID_KOPIE) kopieren(); else if (id == ID_LOESCH) loeschen(); else if (id == ID_ORDNER) neuordner(0);
-    else if (id == ID_TEXT) neuordner(1); else if (id == ID_NEU) neu_lesen(); else if (id == ID_ALLE) alle(rechts_f());
+    else if (id == ID_TEXT) neuordner(1); else if (id == ID_NEU) neu_lesen(); else if (id == ID_MALLE) alle(rechts_f());
     if (seite) SetFocus(seite);
 }
 /* ---------------- Fenster: Laufwerksleisten, Groesse ---------------- */

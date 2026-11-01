@@ -569,7 +569,7 @@ DWORD RDEXPORT c_Dialog(HWND h, WORD msg, WORD p1, DWORD p2)
         if (p1 > ' ' && p1 < 0x80 && (!f || TYP(f) != T_EDIT)) { mnemo(h, (char)p1); return 0; }
         return 0;
     case M_COMMAND:
-        if (!dproc(h, msg, p1, p2) && (p1 == ID_OK || p1 == ID_CANCEL || p1 == ID_YES || p1 == ID_NO) && HIWORD(p2) == N_CLICKED)
+        if (!dproc(h, msg, p1, p2) && (p1 == ID_OK || p1 == ID_CANCEL || p1 == ID_YES || p1 == ID_NO || p1 == ID_ALLE) && HIWORD(p2) == N_CLICKED)
             DialogEnd(h, (short)p1);
         return 0;
     case M_CLOSE: SendMessage(h, M_COMMAND, ID_CANCEL, MAKELONG(0, N_CLICKED)); return 0;
@@ -710,10 +710,10 @@ static BYTE FAR *elem(BYTE FAR *p, LPCSTR kl, LPCSTR tx, WORD id, short x, short
 short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
 {
     HMEM hm; BYTE FAR *v, FAR *p; short FAR *q; HDC d; short cw, tw, zw, zeilen, w, h, bx, n, i; LPCSTR s;
-    static const WORD knr[4][3] = { { 2, 0, 0 }, { 2, 3, 0 }, { 4, 5, 3 }, { 4, 5, 0 } };   /* Texte in DE.LNG */
-    static const WORD kid[4][3] = { { ID_OK, 0, 0 }, { ID_OK, ID_CANCEL, 0 }, { ID_YES, ID_NO, ID_CANCEL }, { ID_YES, ID_NO, 0 } };
-    WORD j, art = (fl & 7) == MB_YESNO ? 3 : (fl & 7) == MB_YESNOCANCEL ? 2 : (fl & 7) == MB_OKCANCEL ? 1 : 0;
-    char kt[3][16]; short erg;
+    static const WORD knr[6][4] = { { 2 }, { 2, 3 }, { 4, 5, 3 }, { 4, 5 }, { 4, 17, 5, 3 }, { 4, 17, 5 } };   /* Texte in DE.LNG */
+    static const WORD kid[6][4] = { { ID_OK }, { ID_OK, ID_CANCEL }, { ID_YES, ID_NO, ID_CANCEL }, { ID_YES, ID_NO }, { ID_YES, ID_ALLE, ID_NO, ID_CANCEL }, { ID_YES, ID_ALLE, ID_NO } };
+    WORD j, k = fl & 7, art = k == MB_YESNO ? 3 : k == MB_YESNOCANCEL ? 2 : k == MB_OKCANCEL ? 1 : k == MB_YESALLNOCANCEL ? 4 : k == MB_YESALLNO ? 5 : 0, dn = art >= 4 ? 2 : 1;   /* dn: Platz von Nein */
+    char kt[4][16]; short erg;
     if (!text) text = "";
     j = fl & 0xF0; if (j == MB_ERROR || j == MB_WARN || j == MB_ASK) SndSystem(j == MB_ASK ? "FRAGE" : "FEHLER");   /* wie RD1 (31.10.) */
     if (!(d = GetDC(0))) return -1;
@@ -727,7 +727,7 @@ short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
     }
     ReleaseDC(0, d);
     if (w > zw) w = zw;
-    n = kid[art][2] ? 3 : kid[art][1] ? 2 : 1;
+    for (n = 1; n < 4 && kid[art][n]; n++) ;
     if (w < n * 48 - 8) w = (short)(n * 48 - 8);
     w += 16; h = (short)(zeilen * 8 + 34);
     if (!(hm = MemAlloc(512, MEM_MOVABLE))) return -1;
@@ -738,7 +738,7 @@ short RDEXPORT c_MsgBox(HWND owner, LPCSTR text, LPCSTR titel, WORD fl)
     bx = (short)((w - (n * 48 - 8)) / 2);
     for (j = 0; j < (WORD)n; j++) {                /* MB_DEFNO: Nein zuerst anlegen (Fokus, Vorgabe), Platz bleibt */
         LPCSTR t; WORD c;
-        i = (short)((fl & MB_DEFNO) && j < 2 && n > 1 ? 1 - j : j);
+        i = (short)((fl & MB_DEFNO) && n > 1 && (j == 0 || j == dn) ? dn - j : j);   /* Nein mit Eingabe zuerst */
         t = StrGet(0, knr[art][i]);
         for (c = 0; c < 15 && t && t[c]; c++) kt[i][c] = t[c];
         kt[i][c] = 0;
