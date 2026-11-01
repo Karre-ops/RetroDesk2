@@ -3,7 +3,7 @@
 # Diskette (360 KB seit 24.10.2026): S = Systemdiskette (bootfaehig), P = Programme, N = Netz, D = SDK, T = nur Tests, L = spaeter (nicht im Satz)
 # Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
-RD.EXE          28864 44.4375 S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock); 26.10.: 44,25 KB fuer den Klang-Takt im INT 8 und RunDos-Pause (RDSND)
+RD.EXE          29696 45       S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock); 26.10.: 44,25 KB fuer den Klang-Takt im INT 8 und RunDos-Pause (RDSND)
 RD2SETUP.EXE    34816    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier; +1 KB Sound Blaster 26.10.); +1 KB Mehrdisketten-Installation 27.10.; +1 KB Mausauswahl (12 Arten), Klang keine, Texte 29.10.; +1 KB I startet die grafische Installation (Installieren=1), T Text-Notweg 29.10.
 INSTALL.EXE     14336    0   S  Grafische Installation auf Festplatte (Variante B, 29.10.): Disketten 1-3 mit Fortschrittsbalken, CONFIG.SYS, RDSYS per RunDos; +1 KB Formatieren, Schlussmeldung nach RDSYS ohne XMS 31.10.
 RDSYS.EXE       24576    0   S  FreeDOS SYS 3.6 (GPL v2), unveraendert; RD2SETUP: Festplatte startfaehig (24.10.)
@@ -15,7 +15,7 @@ PC10.KBD          256    0   S  Belegung Commodore PC10-III wie aufgedruckt (31.
 RDMAUS.COM       5120    0   S  Maustreiber PS/2, seriell MS/Logitech/Mouse Systems (Assembler, resident ca. 3,4 KB mit Grafikzeiger und Funktion 10h), Bus/InPort/PS2/seriell, ersetzt CTMOUSE, INSTALL= in CONFIG.SYS (28.10.)
 RDGDI.MOD       17920 20.5   S  (30.10.: 20,5 KB fuer Symbole mit Maske im Treiber) (30.10.: 17 KB Datei fuer Hintergrund roh) (30.10.: 20 KB Speicher fuer den schnellen Weg der schmalen Schrift) (30.10.: 16,5 KB Datei fuer 8 weitere Grafikarten in der Kandidatenliste) Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5); 23.10.: 18,5 KB fuer schnelle Textausgabe (statt Auslagern, Text wird staendig gebraucht); 27.10.: 19,5 KB fuer 16 Farben (Farbindex, Muster zweifarbig, 4-Bit-Hintergrund)
 RDKX.MOD         6656    6.5   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.)
-RDAUSL.MOD       3072    3   S  Auslagern bei Speichermangel nach XMS oder RD2.SWP (nur Festplatte), bleibt geladen, nur wenn es ein Ziel gibt (25.10.)
+RDAUSL.MOD       3072    3.5 S  Auslagern bei Speichermangel nach XMS oder RD2.SWP (nur Festplatte), bleibt geladen, nur wenn es ein Ziel gibt (25.10.)
 RDGDIX.MOD       4608    4.5 S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf); 28.10.: 4,5 KB fuer Grafikwahl (Liste/Auswahl aus RDGDI)
 RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
 RDCTLX.MOD      12288   10   S  Dateidialog, TEXT, COMBO, SCROLL (verwerfbar)
@@ -57,7 +57,7 @@ RECHNER.EXE      8192   10   P  Zubehoer, kleiner Rechner (4 KB Stapel wie UHR, 
 SCHONER.EXE      3072    8   P  Bildschirmschoner (Sterne, Uhr, Schwarz; RD2.INI [Schoner] Zeit= Sekunden, Art=; Einstellungen seit 29.10. in OPTIONEN)
 DPRUEF.EXE       7168   10   P  Datentraeger pruefen (wie CHKDSK, FAT12/16, INT 25h/26h ueber RDDISK.MOD)
 DKOPIE.EXE       5120    8   P  Diskette kopieren (wie DISKCOPY, RDDISK.MOD/INT 13h), Zylinderpuffer beim Lauf
-TASKMAN.EXE      4096    8   P  Zubehoer Taskmanager (RD-Menue): Programme mit Speicher, Beenden, frei
+TASKMAN.EXE      4096    8   P  Zubehoer Taskmanager: Ladeblock, RAM und Swap aktuell/Puffer/frei (1s), Beenden; weiter 3 Cluster
 PAPIERK.EXE      6144    8   P  Zubehoer Papierkorb (RD-Menue): X:\PAPIERK\PAPIERK.LST, wiederherstellen/loeschen/leeren, 8 KB Tabelle beim Lauf
 OPTIONEN.EXE    21504   16   P  (31.10.: 21 KB Datei, RDKEYB-Zeile wird auch ohne Aenderung gerichtet) (31.10.: 16 KB fuer Belegungsliste *.KBD) (30.10.: 15 KB Speicher fuer 16 Grafikarten) Optionen (30.10.: 20 KB fuer CGA-Farbe und Schreibtischfarbe, 16 Farbnamen DE/EN): Karteikarten Grafik, Klang, Maus, Tastatur, Schoner, System (29.10.: +12 KB fuer alle Einstellungen, 12 Kartendialoge DE/EN, Grafik sofort mit Rueckfrage "Behalten?" 15 s, Maus- und Schonerdialog hierher; beim Lauf 24 KB Puffer fuer CONFIG.SYS/AUTOEXEC.BAT, nur solange offen)
 HALLO.EXE        4096    0   T  SDK-Beispiel in C (Quelle auf Diskette 4, test/pascal.sh)
@@ -118,3 +118,5 @@ SNDTEST.EXE      8192    0   T  Test: Klang (RDSND, SPEAKER.DRV, ADLIB.DRV, SB.D
 NETTEST.EXE      8192    0   T  Test: Netz (RDTCP: DHCP, TCP-Echo, UDP, Lauschen, DNS)
 DISKFRAG.EXE     4096    0   T  Test: Diskettenabfrage im Grafikbetrieb (Audit K2)
 DOPPFMT.EXE      4096    0   T  Test: RDFORMAT doppelt starten (Audit M4)
+
+SWAPTEST.EXE     4096    0   T  SDK-Beispiel: kontrollierter Speicherfehler, Statistik, Inhaltspruefung; V zeigt Last im Taskmanager
