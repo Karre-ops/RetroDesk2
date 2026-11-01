@@ -52,6 +52,8 @@ Stand 01.11.2026 (Aktualisierung nach 2.1)
 - Lizenz: ganz RetroDesk 2 steht unter der GPL v2 oder spaeter (COPYING,
   LIZENZ.TXT); das Info-Fenster zeigt den Hinweis.
 - Hilfe: Text war abgeschnitten, jetzt vollstaendig.
+- Auslagern nach RD2.SWP: freie Stellen in der Datei werden wieder genutzt,
+  auch wenn alle 32 Plaetze schon einmal belegt waren (Beitrag von crazycusti).
 - Quelltext oeffentlich: github.com/Karre-ops/RetroDesk2 (Fehler bitte als Issue).
 
 Neu in 2.1 (31.10.2026)
