@@ -3,7 +3,7 @@ RetroDesk 2.1 - Release-Dateien
 
 RD2_1.IMG  Diskette 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern, RD2, Setup)  360 KB
 RD2_2.IMG  Diskette 2 RD2 PROG (Programme, FDISK, FORMAT, Treiber)       360 KB
-RD2_3.IMG  Diskette 3 RD2 NETZ (Netzwerk, FTP, IRC)                      360 KB
+RD2_3.IMG  Diskette 3 RD2 NETZ (Netzwerk, FTP, IRC, FreeCOM, H-Tron)     360 KB
 RD2_4.IMG  Diskette 4 RD2 EXTRA (SDK fuer C und Pascal)                  360 KB
 RD2_HDD.ZIP  Universalpaket: Inhalt ALLER Disketten 1 bis 4 in einem Ordner RD2
              (8.3-Namen, SDK als Unterordner RD2\SDK) mit RD2INST.BAT. Fuer jeden Weg
@@ -18,22 +18,40 @@ Installation von der Festplatte (Universalpaket) auf einen Rechner mit DOS 5
    C:\RD2NEU ablegen. Nicht C:\RD2 nehmen: das ist das Ziel der Installation.
    Von den Disketten geht es auch: alles aus A:\RD2 von Diskette 1 bis 3 nach
    C:\RD2NEU, dazu den Ordner SDK von Diskette 4 nach C:\RD2NEU\SDK.
-3. RetroDesk 1 beenden und am DOS-Prompt starten:
+2. RetroDesk 1 beenden und am DOS-Prompt starten:
      C:\RD2NEU\RD2INST
    (anderer Ordner: C:\ORDNER\RD2INST C:\ORDNER). Ohne Batchdatei geht es auch mit
      C:\RD2NEU\RD.EXE C:\RD2NEU\SHELL.EXE
    Die Batchdatei heisst nicht INSTALL.BAT, weil DOS sonst INSTALL.EXE im selben
    Ordner zuerst startet.
-4. Beim ersten Start erscheint die Einrichtung (Hardware-Erkennung). Werte pruefen,
+3. Beim ersten Start erscheint die Einrichtung (Hardware-Erkennung). Werte pruefen,
    dann I: RetroDesk 2 startet und oeffnet die grafische Installation.
    Ziel C:\RD2 bestaetigen. Es gibt keinen Diskettenwechsel; das SDK kommt mit
    nach C:\RD2\SDK. Die Fragen zur CONFIG.SYS
    beantworten (RD2 als Shell, Treiber aus der AUTOEXEC.BAT einzeln uebernehmen).
    Die alte CONFIG.SYS wird als CONFIG.RDA gesichert, AUTOEXEC.BAT bleibt unveraendert.
-5. Neu starten. RD2 startet von C:\RD2. C:\RD2NEU kann danach geloescht werden.
+4. Neu starten. RD2 startet von C:\RD2. C:\RD2NEU kann danach geloescht werden.
 
 Zurueck zum alten Stand: CONFIG.RDA wieder in CONFIG.SYS umbenennen (von einer
 DOS-Bootdiskette aus).
+
+Stand 01.11.2026 (Aktualisierung nach 2.1)
+------------------------------------------------------------------------------
+- Kopieren: beim Ersetzen vorhandener Dateien gibt es "Alle" (Ja fuer alle),
+  im Dateimanager und in den Ordnerfenstern.
+- FTP schneller (8 KB Empfangsfenster), Fortschritt mit KB/s und Gesamtgroesse.
+- Uhr: Netzzeit laedt einen fehlenden Paketreiber selbst nach.
+- Tastatur: Zeichen mit AltGr bzw. Strg+Alt (@, \, Klammern) kommen in
+  Textfeldern an.
+- DOS-Programme aus dem Schreibtisch: kein "Taste druecken" mehr danach.
+- Schneller auf EGA, VGA und Hercules: Menues und Dialoge merken sich den
+  Hintergrund im unsichtbaren Bildspeicher statt im RAM; Schliessen von Fenstern
+  zeichnet weniger neu. Optionen startet auf CGA/HGC deutlich schneller.
+- Installation: "Startfaehig machen" auch waehlbar, wenn C: schon ein System hatte.
+- H-Tron (RDTRON.EXE) neu auf Diskette 3, mit Motorgeraeusch und Klaengen.
+- Lizenz: ganz RetroDesk 2 steht unter der GPL v2 oder spaeter (COPYING,
+  LIZENZ.TXT); das Info-Fenster zeigt den Hinweis.
+- Hilfe: Text war abgeschnitten, jetzt vollstaendig.
 
 Neu in 2.1 (31.10.2026)
 ------------------------------------------------------------------------------
