@@ -564,7 +564,7 @@ WORD RDEXPORT g_GfxSelect(WORD typ)                                   { GX_SEL f
 HBMP RDEXPORT g_BmpCreate(WORD w, WORD h, WORD bpp)
 {
     WORD bpr, vr = 0; HMEM m; BMPH FAR *bh;
-    if (bpp == BMP_ROH && !(gm.bpp > 1 && drv && ((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVR))) bpp = 0;   /* Treiber ohne roh: Geraeteformat */
+    if (bpp == BMP_ROH && !(drv && ((GFXDRV FAR *)drv)->h.groesse >= (gm.bpp > 1 ? sizeof(GFXDRVR) : sizeof(GFXDRVV)))) bpp = 0;   /* 1 Bit: nur mit Ablage (VGA/EGA mono) */   /* Treiber ohne roh: Geraeteformat */
     if ((bpp & BMP_MASKE) && !(gm.bpp > 1 && drv && ((GFXDRV FAR *)drv)->h.groesse >= sizeof(GFXDRVR) && ((GFXDRVR FAR *)drv)->symput)) bpp &= ~BMP_MASKE;
     if (!bpp) bpp = gm.bpp;                       /* 0 = Geraeteformat des Schirms */
     if (bpp == BMP_ROH) { bpr = ((GFXDRVR FAR *)drv)->rohgr(7, (short)w);   /* roh: Bildspeicher unveraendert (Menue-Hintergrund) */

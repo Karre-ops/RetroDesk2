@@ -27,7 +27,7 @@ HGC.DRV          5120    5   S
 VGA16.DRV         7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) VGA 640x480 16 Farben, Modus 12h (Punkt 9, 27.10.)
 EGA.DRV           7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) EGA 640x350 16 Farben, Modus 10h (Punkt 9, 27.10.)
 EGA320.DRV        7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) 320x200 16 Farben, Modus 0Dh, nur von Hand (30.10.)
-EGAM.DRV         5120    5   P  EGA 640x350 1 Bit, Modus 10h (30.10.)
+EGAM.DRV         6144    6   P  EGA 640x350 1 Bit, Modus 10h (30.10.)
 EGA4.DRV         7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) EGA 640x350 4 Farben, 2 Ebenen (30.10.)
 VGA4.DRV         7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) VGA 640x480 4 Farben, 2 Ebenen (30.10.)
 EGA200.DRV       7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) EGA 640x200 16 Farben, Modus 0Eh (30.10.)
@@ -38,7 +38,7 @@ VESA1024.DRV    6144    7   P  VESA 1024x768 256 Farben, Modus 105h (30.10.)
 CGA4.DRV        6144    6.5 P  (30.10.: ohne Tabellen) CGA 320x200 4 Farben, Modus 4, byteweise mit Tabellen und Assembler-Schleifen, 1,7 KB Tabellen (30.10.)
 VESA.DRV         6144    6   P  VESA 640x480 256 Farben, Modus 101h, Bankumschaltung (Punkt 9, 27.10.)
 FARBSYM.DAT      4096    0   P  farbige Symbole (16 Farben, Maske) fuer SHELL, nur bei buntem Schirm; fehlt sie: S/W
-VGAM.DRV         5120    5   S
+VGAM.DRV         6144    6   S
 SPEAKER.DRV      2048    2   S
 ADLIB.DRV        2048    2   P
 COVOX.DRV        2048    2   P  Covox Speech Thing und Kompatible am Druckerport, Samples ueber den Zeitgeber (26.10.)

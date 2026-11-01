@@ -123,6 +123,9 @@ static WORD RDEXPORT d_modes(GFXMODE FAR *m, WORD max)
     return 1;
 }
 
+#if defined(VGAM)
+static void vrinit(void);
+#endif
 static WORD RDEXPORT d_setmode(WORD nr)
 {
     (void)nr;
@@ -130,9 +133,10 @@ static WORD RDEXPORT d_setmode(WORD nr)
     hgc(1);
     _fmemset(MK_FP(VSEG, 0), 0, 0x8000U);
 #elif defined(EGAM)
-    bios_set(0x10);                               /* Schreibmaske aller Ebenen bleibt an: 0 schwarz, 15 weiss; gelesen wird Ebene 0 */
+    bios_set(0x10); vrinit();                               /* Schreibmaske aller Ebenen bleibt an: 0 schwarz, 15 weiss; gelesen wird Ebene 0 */
 #elif defined(VGAM)
     bios_set(0x11);
+    vrinit();                                     /* neuer Modus: Ablage leer */
 #else
     bios_set(0x06);
     if (nr & 0x1000) {                            /* Vordergrundfarbe (RD2.INI [Farben] CGA=, RDGDI): CGA-Register 3D9h, */
@@ -683,6 +687,62 @@ static void RDEXPORT d_put(short x, short y, short w, short h, const BYTE FAR *s
    nur verschoben): Wort je Zeile, Bits ausserhalb der Zelle bleiben (Nachbarzeichen).
    ror legt die verschobene Zeile auf zwei Bytes. */
 #include "GLYPHS.H"                             /* tools/mkglyphs.py */
+#if defined(VGAM)
+/* ---- G3 (01.11.2026): rohe Hintergruende und Ablage im unsichtbaren Bildspeicher hinter Zeile H (Modus 11h/10h
+   ist planar: Latch-Kopie mit Schreibmodus 1). VGA: 26 KB, EGA mono nur mit 256 KB. Sonst roh ins RAM. ---- */
+#define GC(i, v) outpw(0x3CE, (WORD)((i) | ((WORD)(v) << 8)))
+#define NVS 8
+typedef struct { WORD off, ps, n, h; short x, y; } VS;
+static VS vs[NVS]; static WORD vrende;
+static void vrinit(void)
+{
+#if defined(EGAM)
+    vrende = (egamem() & 0xFF) == 3 ? 0xFFFF : 0;
+#else
+    vrende = 0xFFFF;
+#endif
+    _fmemset(vs, 0, sizeof vs);
+}
+static WORD RDEXPORT d_vrneu(short w, short h)
+{
+    WORD n = (WORD)(((w + 7) >> 3) + 1) * (WORD)h, o = ROW(H), i, k, frei;
+    if (!vrende || w <= 0 || h <= 0) return 0;
+    for (i = 0; i < NVS && vs[i].h; i++) ;
+    if (i == NVS) return 0;
+    for (;;) {
+        if ((DWORD)o + n - 1 > vrende) return 0;
+        for (frei = 1, k = 0; k < NVS; k++) if (vs[k].h && o < vs[k].off + vs[k].n && vs[k].off < o + n) { o = vs[k].off + vs[k].n; frei = 0; break; }
+        if (frei) break;
+    }
+    vs[i].off = o; vs[i].n = n; vs[i].h = (WORD)h;
+    return i + 1;
+}
+static void RDEXPORT d_vrfrei(WORD n) { if (n >= 1 && n <= NVS) vs[n - 1].h = 0; }
+#define VSL(bpr) (((bpr) & 0x8000) && ((bpr) & 0xFF) >= 1 && ((bpr) & 0xFF) <= NVS && vs[((bpr) & 0xFF) - 1].h ? &vs[((bpr) & 0xFF) - 1] : (VS *)0)
+static WORD RDEXPORT d_rohgr(short x, short w) { return (WORD)(((x & 7) + w + 7) >> 3); }
+static void RDEXPORT d_rohget(short x, short y, short w, short h, BYTE FAR *z, WORD bpr)
+{
+    WORD r, k, ps = ((x & 7) + w + 7) >> 3; VS *s = VSL(bpr); volatile BYTE l;
+    if (!s) { for (r = 0; r < (WORD)h; r++, z += bpr) _fmemcpy(z, VP(x, y + r), ps); return; }
+    s->x = x; s->y = y; s->ps = ps;
+    GC(5, 1);
+    for (r = 0; r < (WORD)h; r++) { BYTE __far *p = VP(x, y + r), __far *q = (BYTE __far *)MK_FP(VSEG, s->off + r * ps); for (k = 0; k < ps; k++) { l = p[k]; q[k] = l; } }
+    GC(5, 0);
+}
+static void RDEXPORT d_rohput(short qx, short qy, short qw, short qh, const BYTE FAR *z, WORD bpr, short x0, short w0)
+{
+    WORD r, k, j, c = ((WORD)qx >> 3) - ((WORD)x0 >> 3), nb = ((qx & 7) + qw + 7) >> 3; VS *s = VSL(bpr);
+    BYTE lm = (BYTE)(0xFF >> (qx & 7)), rm = (BYTE)(0xFF << (7 - ((qx + qw - 1) & 7))), m; volatile BYTE l;
+    (void)w0;
+    if (nb == 1) lm &= rm;
+    for (r = 0; r < (WORD)qh; r++, z += bpr) {
+        BYTE __far *p = VP(qx, qy + r); const BYTE FAR *q = s ? (const BYTE FAR *)MK_FP(VSEG, s->off + (WORD)(qy + r - s->y) * s->ps + c) : z + c;
+        if (nb > 2) { if (s) { GC(5, 1); for (k = 1; k < nb - 1; k++) { l = q[k]; p[k] = l; } GC(5, 0); } else _fmemcpy(p + 1, q + 1, nb - 2); }
+        for (j = 0; j < 2 && j < nb; j++) { k = j ? nb - 1 : 0; m = j ? rm : lm; l = q[k]; p[k] = (BYTE)((p[k] & ~m) | (l & m)); }
+    }
+}
+#endif
+
 
 static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WORD dstbytes)
 {
@@ -697,12 +757,22 @@ static void RDEXPORT d_get(short x, short y, short w, short h, BYTE FAR *dst, WO
     }
 }
 
+#if defined(VGAM)
+static GFXDRVV tab = { { { {
+    { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRVV), NAME, d_init, d_done },
+    d_modes, d_setmode, d_textmode,
+    d_span, d_pixel, d_getpixel, d_put, d_get,
+    0, 0, 0, d_glyphs, 0, d_cursor, d_cursorhide, 0, d_box }, 0, 0 },
+    d_rohgr, d_rohget, d_rohput, 0 }, d_vrneu, d_vrfrei
+};
+#else
 static GFXDRV tab = {
     { { 'R', 'D', 'R', 'V' }, DRV_GFX, 0x0100, sizeof(GFXDRV), NAME, d_init, d_done },
     d_modes, d_setmode, d_textmode,
     d_span, d_pixel, d_getpixel, d_put, d_get,
     0, 0, 0, d_glyphs, 0, d_cursor, d_cursorhide, 0, d_box
 };
+#endif
 
 FARPROC RDEXPORT DrvTab(void) { return (FARPROC)(void FAR *)&tab; }
 static struct { WORD n; FARPROC f[1]; } ex = { 1, { (FARPROC)DrvTab } };
