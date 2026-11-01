@@ -48,7 +48,7 @@ Strg+Alt+Rückschritt: hängendes Programm beenden
 
 Siehe auch {Fenster|3} und {So benutzen Sie die Hilfe|13}.
 @5 Dateien und Ordner
-Ein Doppelklick auf ein Laufwerk oder einen Ordner öffnet ein Ordnerfenster. Dateien lassen sich kopieren, verschieben, umbenennen und löschen. Gibt es eine Datei am Ziel schon, fragt RD2 nach: „Alle“ ersetzt ohne weitere Frage auch die übrigen Dateien dieses Vorgangs (Systemdateien fragen trotzdem).
+Ein Doppelklick auf ein Laufwerk oder einen Ordner öffnet ein Ordnerfenster. Dateien lassen sich kopieren, verschieben, umbenennen und löschen. Gibt es eine Datei am Ziel schon, fragt RD2 nach: "Alle" ersetzt ohne weitere Frage auch die übrigen Dateien dieses Vorgangs (Systemdateien fragen trotzdem).
 Beim Löschen, Überschreiben oder Verschieben wichtiger Systemdateien fragt RetroDesk 2 zusätzlich nach.
 Textdateien öffnet ein Doppelklick im Editor oder im Notizblock.
 @6 Programme starten
