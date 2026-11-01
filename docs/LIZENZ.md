@@ -4,7 +4,7 @@
 
 Folgen:
 - Programme, die mit dem SDK gebaut werden, binden `RD2START.OBJ` und `RD2.LIB` ein und sind damit abgeleitete Werke: Wer sie weitergibt, muss sie GPL-verträglich lizenzieren (z. B. GPL, LGPL, MIT, BSD). Geschlossene Programme für RD2 gehen nur ohne Weitergabe. Wenn das später stört, wäre eine Ausnahme für Startcode und Bibliothek (wie die GCC Runtime Library Exception) der Weg.
-- Quelltext: Solange das Repo privat ist, gilt das schriftliche Angebot in `QUELLEN.TXT` für ganz RD2. Bei Weitergabe als Download genügt der Quelltext am selben Ort.
+- Quelltext: Seit 01.11.2026 ist das Repo öffentlich (github.com/Karre-ops/RetroDesk2), dort liegt der Quelltext für den Download. Für Disketten, die ohne Quelltext weitergegeben werden, bleibt das schriftliche Angebot in `QUELLEN.TXT` stehen.
 - Schriften (geprüft 01.11.2026): SYS8/SYS16 kommen aus SeaBIOS `vgasrc/vgafonts.c`, dort: „These fonts come from fntcol16.zip, (c) Joseph Gil, the individual fonts are public domain“. SYS14 (RDFONT.F14 aus RD1, `tools/mkfont14.py`) kommt aus den VGA14-Schriften von console-setup, dort: „All console fonts are public domain by nature.“ Die Zeichenformen gehen auf IBM zurück; Bitmap-Schriftbilder sind in Deutschland nur über ein eingetragenes Design geschützt (höchstens 25 Jahre, für 1987 längst abgelaufen), in den USA gar nicht. Ergebnis: frei verwendbar.
 - RDTRON (H-Tron): laut Karsten (01.11.2026) GPL, damit im Diskettensatz (Diskette 3, auf Diskette 2 fehlt der Platz für COPYING).
 - Info-Fenster zeigt Copyright, GPL und „ohne Gewährleistung“ (GPL v2 §2 c).

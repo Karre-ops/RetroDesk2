@@ -131,4 +131,4 @@ unit RD2 (\SDK\PASCAL\RD2.PAS):
 
 The full description (program format, modules, drivers, memory, limits) is in
 docs/SPEC.md (German) in the RetroDesk 2 sources:
-https://github.com/Karre-ops/retrodesk2
+https://github.com/Karre-ops/RetroDesk2

@@ -4,7 +4,7 @@ Alles auf den RetroDesk-2-Disketten steht unter der GNU General Public
 License (Text: COPYING, Uebersicht: LIZENZ.TXT). Dazu gehoeren:
 
   RetroDesk 2 selbst: Kern, Module, Treiber, Shell, Programme, SDK
-                Quelle: github.com/Karre-ops/retrodesk2
+                Quelle: github.com/Karre-ops/RetroDesk2 (oeffentlich)
   RDTRON.EXE    nach H-TRON (github.com/marralser/H-TRON), GPL
   KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert
                 Quelle: ke2046s.zip, github.com/FDOS/kernel (Release ke2046)
@@ -23,5 +23,4 @@ Diskette oder per Download, gegen hoechstens die Kosten fuer
 Datentraeger und Versand.
 
 Anfrage an: kcopy@web.de
-Fehler melden: github.com/Karre-ops/retrodesk2/issues (sobald das
-Projekt oeffentlich ist) oder per Mail.
+Fehler melden: github.com/Karre-ops/RetroDesk2/issues oder per Mail.

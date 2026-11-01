@@ -112,4 +112,4 @@ proc, param); MenuSet(fenster, MenuLoad(inst, n)) setzt ein Menue.
 
 Die vollstaendige Beschreibung (Programmformat, Module, Treiber, Speicher,
 Grenzen) steht in docs/SPEC.md im Quelltext von RetroDesk 2:
-https://github.com/Karre-ops/retrodesk2
+https://github.com/Karre-ops/RetroDesk2
