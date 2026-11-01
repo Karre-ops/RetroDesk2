@@ -78,7 +78,7 @@ static DWORD aus(void)
     }
     if (best == 0xFFFF) return 0;
     b = &blk[best]; p = b->paras;
-    for (s = 0; s < NS && sl[s].art && sl[s].art != 3; s++) ;   /* freie Dateiluecken sind wiederverwendbare Plaetze */
+    for (s = 0; s < NS && ((sl[s].art + 1) & 2); s++) ;   /* art 0 oder 3: frei oder Dateiluecke (wird wiederverwendet) */
     if (s == NS) return 0;
     if (xent) {                                   /* XMS: eigener Block */
         r = xc(0x0900, (p + 63) >> 6, 0, (WORD)&xent);
@@ -95,8 +95,9 @@ static DWORD aus(void)
         fh = (WORD)r; fend = 0;
     }
     for (k = 0; k < NS && !(sl[k].art == 3 && sl[k].paras >= p); k++) ;   /* Luecke wiederverwenden */
-    if (k < NS) { sl[k].art = 0; s = k; } else { sl[s].off = fend; sl[s].paras = p; }
-    if (!datei(0x40, b->seg, sl[s].off, p)) { if (k < NS) sl[k].art = 3; return 0; }
+    if (k < NS) s = k; else { sl[s].off = fend; sl[s].paras = p; }
+    sl[s].art = 0;                                /* s war evtl. eine zu kleine Luecke: gilt nicht mehr */
+    if (!datei(0x40, b->seg, sl[s].off, p)) { if (k < NS) sl[s].art = 3; return 0; }
     if (k == NS) fend += (DWORD)p << 4;
     sl[s].art = 2;
 weg:
