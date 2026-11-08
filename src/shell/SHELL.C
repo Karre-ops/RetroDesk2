@@ -221,6 +221,7 @@ static void sichtbar(ORDNER *o)
 static void sta_schreiben(BYTE dos);
 static void wechsel(char l);
 static WORD werkzeug(char *p, LPCSTR n);
+static char altdir[68];
 static void starten(LPCSTR p)
 {
     BYTE dos;
@@ -233,7 +234,14 @@ static void starten(LPCSTR p)
         for (i = 0; i < sizeof zu - 1; i += slen(zu + i) + 1) if (endung(p, zu + i) && werkzeug(n, zu + i + 3) && TaskExec(n, p, SW_SHOW)) return; }
     if (endung(p, "EXE") && TaskExec(p, "", SW_SHOW)) return;
     dos = !endung(p, "EXE") || LastError() == RD_ERR_FORMAT;   /* merken: sta_schreiben aendert LastError */
-    if (dos) sta_schreiben(1);                     /* vor RunDos (Diskettenbetrieb: Neustart) */
+    if (dos) {                                     /* DOS-Programm im eigenen Ordner starten: Spiele laden ihre Dateien von dort (08.11.2026) */
+        static char ziel[80]; WORD i, k = 0;
+        sta_schreiben(1);                          /* vor RunDos (Diskettenbetrieb: Neustart) */
+        DirGet(0, altdir);
+        for (i = 0; p[i] && i < sizeof ziel - 1; i++) { ziel[i] = p[i]; if (p[i] == '\\') k = i; }
+        ziel[k == 2 && ziel[1] == ':' ? 3 : k] = 0;   /* C:\SPIEL\X.EXE -> C:\SPIEL, C:\X.EXE -> C:\ */
+        if (k) DirChange(ziel);
+    }
     if (!dos || (RunDos(p, "", RD_DOS_KEEP) == 0xFFFF &&   /* 0xFFFF = Fehler; zurueck nur mit */
         (LastError() != RD_ERR_NOTSUP || RunDos(p, "", 0) == 0xFFFF))) {   /* XMS/Platte, sonst Neustart */
         char t[8];                                /* Speichermangel mit freiem Speicher melden (Checkliste 1) */
@@ -244,6 +252,7 @@ static void starten(LPCSTR p)
         if (f == RD_ERR_NOMEM) dbg("zu wenig Speicher");
         MsgBox(0, buf, "RD", MB_OK | MB_ERROR);
     }
+    if (dos && altdir[0]) DirChange(altdir);         /* RD2 wieder im alten Ordner */
 }
 static void oeffnen(ORDNER *o)
 {
