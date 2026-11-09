@@ -23,7 +23,7 @@ typedef struct {
     char path[80]; char tail[128]; BYTE fcb[32]; char rdp[80]; WORD spx;
 } STUB;
 #pragma pack()
-#define STUBP 120                                 /* Paragraphen, mit Stack: passt in die Reserve von mem_init */
+#define STUBP 152                                 /* Paragraphen: 120 Code und Stack, 32 Hauptumgebung (RDSWAP ENVO); passt in die Reserve von mem_init */
 
 static WORD d21(WORD ax, WORD bx, WORD cx, WORD dx)   /* INT 21h, DS = Kern; CARRY gilt danach */
 {
@@ -54,7 +54,7 @@ WORD k_stub(WORD mode)                            /* Block ganz oben, RDSWAP.BIN
     if (!CARRY) { kr.ax = 0x3F00; kr.bx = h; kr.cx = STUBP * 16 - 256; kr.dx = 0; kr.ds = seg; rd_int(0x21, &kr); n = CARRY ? 0 : kr.ax; d21(0x3E00, h, 0, 0); }
     if (n < 500) { kr.ax = 0x4900; kr.es = seg; rd_int(0x21, &kr); return FAIL(RD_ERR_NOTFOUND); }
     s = (STUB __far *)MK_FP(seg, 0);
-    s->top = STUBP * 16; s->psp = d21(0x6200, 0, 0, 0), s->psp = kr.bx; s->mode = mode; s->xent = k_xmsent;
+    s->top = 120 * 16; s->psp = d21(0x6200, 0, 0, 0), s->psp = kr.bx; s->mode = mode; s->xent = k_xmsent;
     cpy(s->rdp, k_home, 66);
     return seg;
 }

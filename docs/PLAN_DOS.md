@@ -4,7 +4,10 @@ summary: Wie RetroDesk 2 DOS-Programme so startet, dass sie wie unter reinem DOS
 ---
 # Plan: DOS-Programme 100 % kompatibel starten
 
-Stand 08.11.2026. Analyse von `src/kern/RUNDOS.C` und `src/kern/RDSWAP.ASM`, **noch nicht umgesetzt**.
+Stand 09.11.2026. Analyse von `src/kern/RUNDOS.C` und `src/kern/RDSWAP.ASM`.
+
+**Umgesetzt (09.11.2026):** Hauptumgebung. Hat RD selbst kein COMSPEC (SHELL=RD.EXE), baut der Rest vor jedem DOS-Programm eine Umgebung aus den SET- und PATH-Zeilen der AUTOEXEC.BAT (Startlaufwerk) und setzt COMSPEC auf COMMAND.COM im RD2-Ordner; sonst erbt das Programm die Umgebung von RD. Platz: 512 Bytes im Rest (RunDos-Rest 152 statt 120 Paragraphen). Test: `obj/dbxenv` in DOSBox, `test/rundos.sh` 32 ok.
+**Offen:** alles Weitere, zuerst Rest nach unten.
 
 ## Heute
 
@@ -73,7 +76,7 @@ und Vergleich des freien Speichers mit reinem DOS.
 
 ## Reihenfolge
 
-1. Rest nach unten, Hauptumgebung
+1. Rest nach unten (offen), Hauptumgebung (erledigt 09.11.2026)
 2. Sauberer Ausgangszustand, .BAT
 3. Startart B mit Auswahl
 4. Testsatz

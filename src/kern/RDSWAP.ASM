@@ -337,10 +337,190 @@ st_exec:
         mov  ds, bx
         ret
 
+
+; Hauptumgebung (PLAN_DOS Schritt 1, 08.11.2026): Hat RD selbst kein COMSPEC (SHELL=RD.EXE,
+; niemand hat AUTOEXEC.BAT ausgefuehrt), baut der Rest ab ENVO eine Umgebung aus den SET- und
+; PATH-Zeilen der AUTOEXEC.BAT (Startlaufwerk, sonst C:) und setzt COMSPEC. Sonst erbt das Programm.
+ENVO    equ 1920
+ENVMAX  equ 500
+st_env: push bp                          ; bp gehoert dem Kern (C-Aufrufer)
+        mov  word ptr ds:[S_PB], 0
+        mov  es, ds:[S_PSP]
+        mov  es, es:[2Ch]
+        xor  di, di
+        call se_such
+        jne  se_bau
+        pop  bp
+        ret
+se_bau: push ds
+        pop  es
+        mov  di, ENVO
+        mov  ah, 48h                     ; Puffer fuer AUTOEXEC.BAT
+        mov  bx, 129
+        int  21h
+        jc   se_cs
+        mov  bp, ax
+        mov  ax, 3305h
+        int  21h
+        add  dl, '@'
+        mov  st_ae, dl
+        mov  dx, offset st_ae
+        mov  ax, 3D00h
+        int  21h
+        jc   se_fr
+        mov  bx, ax
+        push ds
+        mov  ds, bp
+        xor  dx, dx
+        mov  cx, 2048
+        mov  ah, 3Fh
+        int  21h
+        jnc  se_g
+        xor  ax, ax
+se_g:   mov  si, ax
+        mov  word ptr [si], 0Ah          ; LF, 0: Ende
+        xor  si, si
+        mov  ah, 3Eh
+        int  21h
+se_zl:  lodsb                            ; Zeilenanfang: Leerraum und @ ueberspringen
+        or   al, al
+        jz   se_ende
+        cmp  al, ' '
+        jbe  se_zl
+        cmp  al, '@'
+        je   se_zl
+        dec  si
+        mov  bx, offset st_wset
+        call se_cmp
+        je   se_set
+        mov  bx, offset st_wpath
+        call se_cmp
+        je   se_path
+se_rest: lodsb
+        or   al, al
+        jz   se_ende
+        cmp  al, 10
+        jne  se_rest
+        jmp  se_zl
+se_path: mov  bx, offset st_wpgr          ; "PATH="
+se_p1:  mov  al, cs:[bx]
+        inc  bx
+        or   al, al
+        jz   se_p2
+        call se_put
+        jmp  se_p1
+se_p2:  inc  si                           ; Leerzeichen oder '=' nach PATH
+        jmp  se_wert
+se_set:                                  ; Name gross bis '='
+se_s1:  lodsb
+        cmp  al, ' '
+        jb   se_wz
+        cmp  al, 'a'
+        jb   se_s2
+        cmp  al, 'z'
+        ja   se_s2
+        sub  al, 20h
+se_s2:  call se_put
+        cmp  al, '='
+        jne  se_s1
+se_wert: lodsb
+        cmp  al, ' '
+        jb   se_wz
+        call se_put
+        jmp  se_wert
+se_wz:  dec  si
+        xor  al, al
+        call se_put
+        jmp  se_rest
+se_ende: pop  ds
+se_fr:  push es
+        mov  es, bp
+        mov  ah, 49h
+        int  21h
+        pop  es
+se_cs:  mov  byte ptr es:[di], 0         ; Ende fuer die Suche
+        push di                          ; COMSPEC schon gesetzt?
+        mov  di, ENVO
+        call se_such
+        pop  di
+        je   se_fertig
+        mov  si, offset st_csp           ; COMSPEC=RD2-Ordner\COMMAND.COM (INSTALL legt es dort ab)
+        mov  cx, 8
+se_c0:  lodsb
+        call se_put
+        loop se_c0
+        mov  si, S_RDP                   ; S_RDP bis zum letzten '\' (bleibt unveraendert)
+        mov  bx, si
+se_c1:  lodsb
+        cmp  al, '\'
+        jne  se_c3
+        mov  bx, si
+se_c3:  or   al, al
+        jnz  se_c1
+        mov  si, S_RDP
+se_c4:  cmp  si, bx
+        jae  se_c5
+        lodsb
+        call se_put
+        jmp  se_c4
+se_c5:  mov  si, offset st_cpf
+        call se_puts
+        xor  al, al
+        call se_put
+se_fertig:
+        xor  al, al
+        stosb
+        mov  ax, cs
+        add  ax, ENVO / 16
+        mov  ds:[S_PB], ax
+        pop  bp
+        ret
+se_puts: lodsb                           ; ds:si (Rest) anhaengen, ohne 0
+        or   al, al
+        jz   sp_r
+        call se_put
+        jmp  se_puts
+sp_r:   ret
+se_put: cmp  di, ENVO + ENVMAX           ; ein Zeichen nach es:di, wenn Platz
+        jae  sp_r
+        stosb
+        ret
+; COMSPEC= in es:di.. suchen (Zeichenketten bis 00 00). ZF = 1: gefunden
+se_such: cmp  byte ptr es:[di], 0
+        je   ss_n
+        push di
+        mov  si, offset st_csp
+        mov  cx, 8
+        repe cmpsb
+        pop  di
+        je   sp_r
+ss_w:   inc  di
+        cmp  byte ptr es:[di - 1], 0
+        jne  ss_w
+        jmp  se_such
+ss_n:   inc  di                          ; ZF = 0
+        ret
+; Wort aus cs:bx (klein) mit ds:si vergleichen, ohne Gross/Klein. ZF = 1 und si dahinter
+se_cmp: push si
+sc_l:   mov  ah, cs:[bx]
+        or   ah, ah
+        jz   sc_ok
+        lodsb
+        or   al, 20h
+        inc  bx
+        cmp  al, ah
+        je   sc_l
+        pop  si
+        or   ah, ah                      ; ah <> 0: ZF = 0
+        ret
+sc_ok:  pop  ax
+        ret
+
 ; Programm S_PATH starten, Fehler/Code merken, auf Wunsch auf eine Taste warten
 st_prog:
         cmp  byte ptr ds:[S_PATH], 0      ; RD_DOS_NEU: kein Programm, nur RD neu starten
         je   sp_e
+        call st_env
         mov  dx, S_PATH
         call st_exec
         jnc  sp_ok
@@ -497,11 +677,17 @@ xf_err: stc
 
 st_rdexe db 'RD.EXE', 0
 st_swpn db 'RD2SWAP.$$$', 0
-st_smsg db 13, 10, 'RetroDesk ist beendet. Taste: neu starten$'
+st_smsg db 13, 10, 'RD2 beendet. Taste: neu starten$'
 st_msg  db 13, 10, 'Taste druecken...$'
 st_tmsg db 13, 10, 'RD2: Speicher belegt, RD2 endet.$'
 st_rmsg db 13, 10, 'RD2: residentes Programm entfernt. TSR vor RD2 laden.$'
 st_pic  db 0
 st_buf  dw 0
+st_ae   db 'C:\AUTOEXEC.BAT', 0
+st_wset db 'set ', 0
+st_wpath db 'path', 0
+st_wpgr db 'PATH=', 0
+st_csp  db 'COMSPEC='
+st_cpf  db 'COMMAND.COM', 0
 _TEXT ends
 end
