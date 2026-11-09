@@ -56,6 +56,8 @@ Stand 01.11.2026 (Aktualisierung nach 2.1)
   auch wenn alle 32 Plaetze schon einmal belegt waren (Beitrag von crazycusti).
 - DOS-Programme und Spiele starten im eigenen Ordner (vorher fanden z. B.
   SimCity oder Prince of Persia ihre Dateien nicht).
+- DOS-Programme bekommen PATH, COMSPEC und die SET-Variablen aus der
+  AUTOEXEC.BAT (z. B. BLASTER= fuer Spiele mit Sound Blaster).
 - Quelltext oeffentlich: github.com/Karre-ops/RetroDesk2 (Fehler bitte als Issue).
 
 Neu in 2.1 (31.10.2026)
