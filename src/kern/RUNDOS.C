@@ -1,7 +1,7 @@
 /* RUNDOS.C - RunDos (SPEC 14): DOS-Programm mit fast vollem Speicher starten.
  * Der Kern und der belegte Teil der Arena gehen in den XMS-Speicher oder, ohne XMS, in eine
- * Datei auf der Festplatte (RD2SWAP.$$$ im RD2-Verzeichnis). Ein kleiner Rest (SWAP.ASM)
- * ganz oben im Speicher startet das Programm und holt danach alles an dieselbe Adresse
+ * Datei auf der Festplatte (RD2SWAP.$$$ im RD2-Verzeichnis). Ein kleiner Rest (RDSWAP.ASM)
+ * zieht vor dem Start nach unten (UMB oder hinter den PSP), startet das Programm und holt danach alles an dieselbe Adresse
  * zurueck. Der Rest liegt als RDSWAP.BIN neben RD.EXE und kostet so keinen Kernspeicher.
  * Ohne XMS und ohne Festplatte (Neustart, nur ohne RD_DOS_KEEP): alle Programme enden, RD
  * beendet sich, der Rest startet das Programm und danach RD.EXE /W:seg neu. Ruft dieses RD
@@ -23,7 +23,7 @@ typedef struct {
     char path[80]; char tail[128]; BYTE fcb[32]; char rdp[80]; WORD spx;
 } STUB;
 #pragma pack()
-#define STUBP 152                                 /* Paragraphen: 120 Code und Stack, 32 Hauptumgebung (RDSWAP ENVO); passt in die Reserve von mem_init */
+#define STUBP 172                                 /* Paragraphen wie RDSWAP.ASM: Daten, Code, Stapel, Hauptumgebung (ENVO); passt in die Reserve von mem_init */
 
 static WORD d21(WORD ax, WORD bx, WORD cx, WORD dx)   /* INT 21h, DS = Kern; CARRY gilt danach */
 {
@@ -44,17 +44,18 @@ static WORD neustart(void)                        /* alle Programme beenden; mai
 }
 WORD k_stub(WORD mode)                            /* Block ganz oben, RDSWAP.BIN laden; 0 = Fehler (k_lasterr) */
 {
-    WORD seg, strat, h, n = 0; STUB __far *s;
+    WORD seg, strat, h, n = 0; STUB __far *s; WORD __far *w;
     strat = d21(0x5800, 0, 0, 0);
     d21(0x5801, 2, 0, 0);                         /* zuletzt passend: ganz oben */
     seg = d21(0x4800, STUBP, 0, 0); if (CARRY) seg = 0;
     d21(0x5801, strat, 0, 0);
     if (!seg) return FAIL(RD_ERR_NOMEM);
     h = d21(0x3D00, 0, 0, (WORD)k_hpath("RDSWAP.BIN"));
-    if (!CARRY) { kr.ax = 0x3F00; kr.bx = h; kr.cx = STUBP * 16 - 256; kr.dx = 0; kr.ds = seg; rd_int(0x21, &kr); n = CARRY ? 0 : kr.ax; d21(0x3E00, h, 0, 0); }
+    if (!CARRY) { kr.ax = 0x3F00; kr.bx = h; kr.cx = 2048; kr.dx = 400; kr.ds = seg; rd_int(0x21, &kr); n = CARRY ? 0 : kr.ax; d21(0x3E00, h, 0, 0); }   /* Datei ohne Datenbereich, ab S_DATA */
     if (n < 500) { kr.ax = 0x4900; kr.es = seg; rd_int(0x21, &kr); return FAIL(RD_ERR_NOTFOUND); }
     s = (STUB __far *)MK_FP(seg, 0);
-    s->top = 120 * 16; s->psp = d21(0x6200, 0, 0, 0), s->psp = kr.bx; s->mode = mode; s->xent = k_xmsent;
+    for (w = (WORD __far *)s; FP_OFF(w) < 400; ) *w++ = 0;
+    s->psp = d21(0x6200, 0, 0, 0), s->psp = kr.bx; s->mode = mode; s->xent = k_xmsent;
     cpy(s->rdp, k_home, 66);
     return seg;
 }

@@ -19,9 +19,11 @@ $W -fpi87 -fo=obj/kasm.obj src/kern/KASM.ASM
 $W -fo=obj/swap.obj src/kern/SWAP.ASM
 $W -fo=obj/rdswap.obj src/kern/RDSWAP.ASM
 wlink option quiet format raw bin name $O/RDSWAP.BIN file obj/rdswap.obj option offset=0 2>&1 | grep -v "W1014\|W1023" || true
+python3 -c "import sys; d=open('$O/RDSWAP.BIN','rb').read(); assert not any(d[:400]) and len(d)<=2240, 'RDSWAP: Code ueber CODEMAX'; open('$O/RDSWAP.BIN','wb').write(d[400:])"   # leeren Datenbereich abschneiden, Kern laedt nach S_DATA
 (cd obj && wasm -q -0 -fo=rdkeyb.obj ../src/drv/RDKEYB.ASM && wlink option quiet format dos com name ../$O/RDKEYB.COM file rdkeyb.obj) && python3 tools/mkkbd.py $O   # Tastatur DE/US, Belegungen DE/US/PC10.KBD
 (cd obj && wasm -q -0 -fo=rdmaus.obj ../src/drv/RDMAUS.ASM && wlink option quiet format dos com name ../$O/RDMAUS.COM file rdmaus.obj)   # Maus: Bus, InPort, PS/2, seriell
 nasm -f bin -o obj/ZTEST.COM test/dos/ZTEST.ASM   # Testprogramm fuer test/rdmaus.sh
+nasm -f bin -o obj/OBEN.COM test/dos/OBEN.ASM     # Testprogramm fuer test/rundos.sh: beschreibt den Speicher bis A000h
 # Kern: Small, SS != DS (API-Aufrufe kommen mit dem Stack des Programms)
 for c in RD MEM TASK FILE MOD RUNDOS; do wcc -0 -ms -zu -os -ol -s -zq -w4 -bt=dos -i=sdk -fo=obj/k_$c.obj src/kern/$c.C; done
 wlink option quiet system dos name $O/RD.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj/k_TASK.obj,obj/k_FILE.obj,obj/k_MOD.obj,obj/k_RUNDOS.obj,obj/kasm.obj,obj/swap.obj,obj/notsup.obj option map=obj/rd.map >/dev/null

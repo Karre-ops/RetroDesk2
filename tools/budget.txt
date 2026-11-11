@@ -7,7 +7,7 @@ RD.EXE          28864 44.4375 S  Kern: Speicher, Tasks, Nachrichten, Dateien, Pr
 RD2SETUP.EXE    34816    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier; +1 KB Sound Blaster 26.10.); +1 KB Mehrdisketten-Installation 27.10.; +1 KB Mausauswahl (12 Arten), Klang keine, Texte 29.10.; +1 KB I startet die grafische Installation (Installieren=1), T Text-Notweg 29.10.
 INSTALL.EXE     14336    0   S  Grafische Installation auf Festplatte (Variante B, 29.10.): Disketten 1-3 mit Fortschrittsbalken, CONFIG.SYS, RDSYS per RunDos; +1 KB Formatieren, Schlussmeldung nach RDSYS ohne XMS 31.10.
 RDSYS.EXE       24576    0   S  FreeDOS SYS 3.6 (GPL v2), unveraendert; RD2SETUP: Festplatte startfaehig (24.10.)
-RDSWAP.BIN       2048    0   S  RunDos: Auslager-Rest, laeuft ganz oben im Speicher (nicht im Kern)
+RDSWAP.BIN       2048    0   S  RunDos: Auslager-Rest (nicht im Kern); waehrend des Programms im UMB oder hinter dem PSP (10.11.: ohne leeren Datenbereich)
 RDKEYB.COM       2048    0   S  Tastaturtreiber DE/US + Belegungsdateien *.KBD (31.10.; Assembler, resident ca. 0,8 KB), INSTALL= in CONFIG.SYS (27.10.)
 DE.KBD            256    0   S  Belegung DE = eingebaute Tabelle (31.10.)
 US.KBD            256    0   S  Belegung US (31.10.)

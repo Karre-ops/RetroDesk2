@@ -146,7 +146,7 @@ int main(void)
     mod_api();
     k_out("RD: RetroDesk 2 Kern, API 2.0", 1);
     if (a >= argc) { k_out("Aufruf: RD [/x] programm", 1); return 1; }
-    mem_init(168);                                /* Reserve: DOS und der RunDos-Rest (152 Paragraphen) */
+    mem_init(188);                                /* Reserve: DOS und der RunDos-Rest (172 Paragraphen) */
     task_init();
     {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr(k_ini, "System", k_ms, "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF;
       { extern WORD k_dbl; k_dbl = ProfileGetInt(k_ini, k_ms, "Doppelklick", 500); } }

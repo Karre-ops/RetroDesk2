@@ -1,13 +1,14 @@
 ---
 title: Plan DOS-Kompatibilität
-summary: Wie RetroDesk 2 DOS-Programme so startet, dass sie wie unter reinem DOS laufen (Stand 08.11.2026, noch nicht umgesetzt)
+summary: Wie RetroDesk 2 DOS-Programme so startet, dass sie wie unter reinem DOS laufen (Stand 10.11.2026, Schritt 1 umgesetzt)
 ---
 # Plan: DOS-Programme 100 % kompatibel starten
 
-Stand 09.11.2026. Analyse von `src/kern/RUNDOS.C` und `src/kern/RDSWAP.ASM`.
+Stand 10.11.2026. Analyse von `src/kern/RUNDOS.C` und `src/kern/RDSWAP.ASM`.
 
 **Umgesetzt (09.11.2026):** Hauptumgebung. Hat RD selbst kein COMSPEC (SHELL=RD.EXE), baut der Rest vor jedem DOS-Programm eine Umgebung aus den SET- und PATH-Zeilen der AUTOEXEC.BAT (Startlaufwerk) und setzt COMSPEC auf COMMAND.COM im RD2-Ordner; sonst erbt das Programm die Umgebung von RD. Platz: 512 Bytes im Rest (RunDos-Rest 152 statt 120 Paragraphen). Test: `obj/dbxenv` in DOSBox, `test/rundos.sh` 32 ok.
-**Offen:** alles Weitere, zuerst Rest nach unten.
+**Umgesetzt (10.11.2026):** Rest nach unten. Nach dem Auslagern zieht der Rest in einen UMB (DOS=UMB) oder, ohne UMB, in den ersten freien Block gleich hinter dem PSP von RD; das Programm lädt darüber und darf den Speicher bis A000h beschreiben. Danach zieht der Rest (außer im UMB) wieder nach oben, damit Kern und Arena an ihre alte Adresse können. Bei Neustart und Shell (ohne XMS und Festplatte) bleibt er unten. Dabei behoben: Seit dem 09.11. lagen Stapel und Hauptumgebung im Code des Rests (Code 2046 Bytes, Stapel und ENVO bei 1920); jetzt Daten, Code (höchstens 2240), Stapel bis 2368, Umgebung 384 Bytes, zusammen 172 Paragraphen. RDSWAP.BIN enthält den leeren Datenbereich nicht mehr (1801 statt 2046 Bytes). Neuer Test: `test/dos/OBEN.COM` beschreibt den Speicher bis A000h, in `test/rundos.sh` mit XMS, Auslagerdatei und UMB (alter Stand: RD2 kommt nicht zurück, neuer Stand: ok).
+**Offen:** Schritte 2 bis 4.
 
 ## Heute
 
@@ -76,7 +77,7 @@ und Vergleich des freien Speichers mit reinem DOS.
 
 ## Reihenfolge
 
-1. Rest nach unten (offen), Hauptumgebung (erledigt 09.11.2026)
+1. Rest nach unten (erledigt 10.11.2026), Hauptumgebung (erledigt 09.11.2026)
 2. Sauberer Ausgangszustand, .BAT
 3. Startart B mit Auswahl
 4. Testsatz

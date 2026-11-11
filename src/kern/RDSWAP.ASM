@@ -1,6 +1,9 @@
-; RDSWAP.ASM - Auslager-Rest fuer RunDos (SPEC 14), wird zu RDSWAP.BIN (roh, ab Versatz 0).
-; Der Kern laedt die Datei in einen Block ganz oben im Speicher, fuellt den Datenbereich
-; (0..S_DATA-1) und springt nach S_DATA. Der Rest schreibt Kern und belegte Arena in den
+; RDSWAP.ASM - Auslager-Rest fuer RunDos (SPEC 14), wird zu RDSWAP.BIN (roh, ab Versatz S_DATA,
+; build.sh schneidet den leeren Datenbereich ab). Der Kern laedt die Datei nach S_DATA in einen
+; Block ganz oben im Speicher, loescht und fuellt den Datenbereich (0..S_DATA-1) und springt nach S_DATA.
+; Aufteilung des Blocks (STUBP in RUNDOS.C): Daten, Code bis CODEMAX, Stapel bis S_STK, Umgebung ab ENVO.
+; Vor dem Programmstart zieht der Rest nach unten (UMB, sonst gleich hinter den PSP, PLAN_DOS
+; Schritt 1 Teil 2): Programme, die bis A000h schreiben, treffen ihn nicht mehr. Der Rest schreibt Kern und belegte Arena in den
 ; XMS-Speicher oder in eine Datei, gibt den Speicher frei, startet das Programm (4B00h), holt
 ; alles an dieselbe Adresse zurueck und springt in den Kern (rd_swaprun) zurueck.
 .8086
@@ -35,6 +38,11 @@ S_FCB   equ 286
 S_RDP   equ 318     ; RD2-Verzeichnis (vom Kern), der Rest haengt RD.EXE bzw. RD2SWAP.$$$ an
 S_SPX   equ 398     ; Stack beim Programmstart
 S_DATA  equ 400     ; danach Code und Meldungen
+CODEMAX equ 2240    ; Code endet spaetestens hier (build.sh prueft)
+S_STK   equ 2368    ; Stapel-Ende
+ENVO    equ 2368    ; Hauptumgebung (Absatzgrenze)
+ENVMAX  equ 384
+STUBP   equ 172     ; Absaetze des Blocks = (ENVO + ENVMAX) / 16, wie RUNDOS.C
 
 
         org  0
@@ -43,7 +51,7 @@ st_code:
         mov  ax, cs
         cli
         mov  ss, ax
-        mov  sp, cs:[S_TOP]
+        mov  sp, S_STK
         sti
         mov  ds, ax
         push ds
@@ -97,8 +105,17 @@ st_frei:
         mov  bx, 16
         mov  ah, 4Ah
         int  21h
+        call st_tief
         call st_prog
-        call st_los                      ; residentes Programm? dann wieder entfernen
+        mov  ax, cs                      ; im UMB bleibt der Rest, sonst wieder nach oben,
+        cmp  ah, 0A0h                    ; damit Kern und Arena an ihre Adresse koennen
+        jae  st_ob
+        mov  bx, 2                       ; zuletzt passend, nur unten
+        xor  cx, cx
+        call st_blk
+        jc   st_tot
+        call st_umz
+st_ob:  call st_los                      ; residentes Programm? dann wieder entfernen
         jc   st_tot
         or   dl, dl
         jz   st_rein
@@ -192,6 +209,8 @@ sl_lp:  mov  es, ax
         dec  bx
         cmp  ax, bx                      ; beim Rest angekommen: fertig
         jae  sl_ok
+        cmp  ah, 0A0h                    ; Rest im UMB: nur bis 640 KB
+        jae  sl_ok
         mov  bx, es:[1]                  ; Besitzer
         cmp  ax, ds:[S_SWSEG]
         jb   sl_nx
@@ -252,6 +271,7 @@ st_neu: mov  es, ds:[S_PSP]
         mov  bx, 16
         mov  ah, 4Ah
         int  21h
+        call st_tief                     ; RD und Programme laden darueber
         cmp  word ptr ds:[S_MODE], 2     ; Shell: zuerst RD selbst
         je   st_rd
 st_lauf:
@@ -299,6 +319,68 @@ st_zeile:
         mov  ds:[S_PB + 12], ax
         ret
 
+; Rest nach unten: zuerst UMB, sonst der erste passende Block (gleich hinter dem PSP).
+; Kein Platz: bleibt oben wie bisher.
+st_tief:
+        mov  bx, 80h
+        mov  cx, 1
+        call st_blk
+        jc   sp_r
+; Rest samt Stapel nach DX umziehen, alten Block freigeben. Auf dem Stapel liegen nur Versaetze
+; (near-Aufrufe), sie gelten im neuen Block weiter. Segmente im Parameterblock nachziehen.
+st_umz: mov  es, dx
+        cld
+        xor  si, si
+        xor  di, di
+        mov  cx, STUBP * 8
+        rep  movsw
+        mov  es, ax                      ; ax = cs von st_blk: alter Block
+        cli
+        mov  ss, dx
+        mov  ds, dx
+        sti
+        push dx
+        mov  ax, offset su_w
+        push ax
+        retf
+su_w:   mov  ah, 49h
+        int  21h
+        mov  ax, cs
+        mov  ds:[S_PB + 4], ax
+        mov  ds:[S_PB + 8], ax
+        mov  ds:[S_PB + 12], ax
+        ret
+; Block mit STUBP Absaetzen holen: BX = Strategie (5801h), CX = UMB-Verbindung (5803h).
+; Strategie und Verbindung danach wie vorher. DX = Segment, AX = CS, CF = kein Platz.
+st_blk: push bx
+        mov  ax, 5802h
+        int  21h
+        mov  st_lnk, al
+        mov  ax, 5800h
+        int  21h
+        mov  st_str, ax
+        mov  bx, cx
+        mov  ax, 5803h
+        int  21h                         ; ohne UMB-Unterstuetzung: Fehler, egal
+        pop  bx
+        mov  ax, 5801h
+        int  21h
+        mov  bx, STUBP
+        mov  ah, 48h
+        int  21h
+        mov  dx, ax
+        pushf
+        mov  bx, st_str
+        mov  ax, 5801h
+        int  21h
+        mov  bl, st_lnk
+        xor  bh, bh
+        mov  ax, 5803h
+        int  21h
+        popf
+        mov  ax, cs
+        ret
+
 ; Text DS:SI (mit 0) nach ES:DI anhaengen
 st_cat: lodsb
         stosb
@@ -341,8 +423,6 @@ st_exec:
 ; Hauptumgebung (PLAN_DOS Schritt 1, 08.11.2026): Hat RD selbst kein COMSPEC (SHELL=RD.EXE,
 ; niemand hat AUTOEXEC.BAT ausgefuehrt), baut der Rest ab ENVO eine Umgebung aus den SET- und
 ; PATH-Zeilen der AUTOEXEC.BAT (Startlaufwerk, sonst C:) und setzt COMSPEC. Sonst erbt das Programm.
-ENVO    equ 1920
-ENVMAX  equ 500
 st_env: push bp                          ; bp gehoert dem Kern (C-Aufrufer)
         mov  word ptr ds:[S_PB], 0
         mov  es, ds:[S_PSP]
@@ -683,6 +763,8 @@ st_tmsg db 13, 10, 'RD2: Speicher belegt, RD2 endet.$'
 st_rmsg db 13, 10, 'RD2: residentes Programm entfernt. TSR vor RD2 laden.$'
 st_pic  db 0
 st_buf  dw 0
+st_str  dw 0
+st_lnk  db 0
 st_ae   db 'C:\AUTOEXEC.BAT', 0
 st_wset db 'set ', 0
 st_wpath db 'path', 0
