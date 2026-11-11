@@ -28,6 +28,8 @@ static struct { BYTE art; WORD xh, paras; DWORD off; } sl[NS];   /* art 0 frei, 
 static BLK FAR *blk; static WORD FAR *nblk; static HND FAR *hnd;
 static DWORD xent;                                /* XMS-Einsprung, 0 = keiner */
 static WORD fh = 0xFFFF, platte; static DWORD fend;
+static WORD swerr, maxkb, reservekb; static DWORD fsize;
+#define SWERR(e) (swerr = (e))
 static char pfad[80];
 #pragma pack(push, 1)
 static struct { DWORD len; WORD sh; DWORD so; WORD dh; DWORD dof; } mv;
@@ -42,6 +44,30 @@ extern WORD x43(void);
 extern DWORD x4310(void);
 #pragma aux x4310 = "mov ax, 4310h" "int 2Fh" "mov dx, es" "mov ax, bx" value [dx ax] modify [bx es]
 
+/* DOS 36h: physisch freie Cluster, keine RD2-Allokation im Speichermangelpfad. */
+static struct { WORD spc, frei, bps; } platz;
+extern void dplatz(WORD lw, void *p);
+#pragma aux dplatz = "mov ax,3600h" "int 21h" "mov [si],ax" "mov [si+2],bx" "mov [si+4],cx" \
+                    parm [dx] [si] modify [ax bx cx dx]
+
+static int wachsen(DWORD ende)
+{
+    DWORD cluster, frei, alt, neu, bedarf, reserve = (DWORD)reservekb << 10;
+    if (ende <= fsize) return 1;                 /* belegte Dateilaenge / passende Luecke weiter nutzbar */
+    if (ende > 0x7FFFFFFFUL || (maxkb && ende > ((DWORD)maxkb << 10))) { swerr = MEMERR_SWAPLIMIT; return 0; }
+    dplatz((WORD)((pfad[0] | 0x20) - 'a' + 1), &platz);
+    if (platz.spc == 0xFFFF || !platz.spc || !platz.bps) { swerr = MEMERR_DISK; return 0; }
+    cluster = (DWORD)platz.spc * platz.bps;
+    alt = fsize / cluster + (fsize % cluster != 0);
+    neu = ende / cluster + (ende % cluster != 0);
+    bedarf = (neu - alt) * cluster;
+    if (!bedarf) return 1;                       /* Wachstum innerhalb des schon belegten letzten Clusters */
+    frei = platz.frei && cluster > 0xFFFFFFFFUL / platz.frei ? 0xFFFFFFFFUL : cluster * platz.frei;
+    if (frei < reserve || frei - reserve < bedarf) { swerr = MEMERR_RESERVE; return 0; }
+    return 1;
+}
+
+
 #define OK(r) (!((r) >> 16))
 static int xmove(WORD sh, DWORD so, WORD dh, DWORD dof, WORD paras)
 {
@@ -52,11 +78,13 @@ static int datei(WORD fn, WORD seg, DWORD off, WORD paras)   /* fn 3Fh lesen, 40
 {
     WORD k, n; DWORD r;
     r = d21(0x4200, fh, (WORD)(off >> 16), (WORD)off, 0);
-    if (!OK(r)) return 0;
+    if (!OK(r)) { SWERR(MEMERR_DISK); return 0; }
     for (; paras; paras -= k, seg += k) {
         k = paras > CH ? CH : paras; n = k << 4;
         r = d21(fn << 8, fh, n, 0, seg);
-        if (!OK(r) || (WORD)r != n) return 0;
+        if (fn == 0x40 && OK(r) && off + (WORD)r > fsize) fsize = off + (WORD)r;
+        if (!OK(r) || (WORD)r != n) { SWERR(MEMERR_DISK); return 0; }
+        off += n;
     }
     return 1;
 }
@@ -71,6 +99,8 @@ static void frei(WORD i)
 static DWORD aus(void)
 {
     WORD i, best = 0xFFFF, h, p, s, k; DWORD bs = 0xFFFFFFFFUL, r; BLK FAR *b;
+    DWORD ende;
+    SWERR(MEMERR_RAM);
     for (i = 0; i < *nblk; i++) {
         b = &blk[i]; h = b->h;
         if (!h || (b->flags & (B_FREE | B_INTERN | B_MOD | MEM_NOEMS | MEM_DISCARDABLE)) || !(b->flags & MEM_MOVABLE) || hnd[h].lock) continue;
@@ -78,8 +108,8 @@ static DWORD aus(void)
     }
     if (best == 0xFFFF) return 0;
     b = &blk[best]; p = b->paras;
-    for (s = 0; s < NS && ((sl[s].art + 1) & 2); s++) ;   /* art 0 oder 3: frei oder Dateiluecke (wird wiederverwendet) */
-    if (s == NS) return 0;
+    for (s = 0; s < NS && ((sl[s].art + 1) & 2); s++) ;   /* art 0 oder 3: frei oder Dateiluecke */
+    if (s == NS) { SWERR(MEMERR_SLOTS); return 0; }
     if (xent) {                                   /* XMS: eigener Block */
         r = xc(0x0900, (p + 63) >> 6, 0, (WORD)&xent);
         if ((WORD)r == 1) {
@@ -91,16 +121,21 @@ static DWORD aus(void)
     if (!platte) return 0;
     if (fh == 0xFFFF) {
         r = d21(0x3C00, 0, 0, (WORD)pfad, FP_SEG((void FAR *)pfad));
-        if (!OK(r)) { platte = 0; return 0; }
+        if (!OK(r)) { SWERR(MEMERR_DISK); return 0; }
         fh = (WORD)r; fend = 0;
+        fsize = 0;
     }
     for (k = 0; k < NS && !(sl[k].art == 3 && sl[k].paras >= p); k++) ;   /* Luecke wiederverwenden */
+    ende = (k < NS ? sl[k].off : fend) + ((DWORD)p << 4);
+    if (ende < (k < NS ? sl[k].off : fend)) { SWERR(MEMERR_SWAPLIMIT); return 0; }
+    if (!wachsen(ende)) return 0;
     if (k < NS) s = k; else { sl[s].off = fend; sl[s].paras = p; }
-    sl[s].art = 0;                                /* s war evtl. eine zu kleine Luecke: gilt nicht mehr */
+    sl[s].art = 0;                                /* auch zu kleine alte Luecke vor dem Schreiben entwerten */
     if (!datei(0x40, b->seg, sl[s].off, p)) { if (k < NS) sl[s].art = 3; return 0; }
     if (k == NS) fend += (DWORD)p << 4;
     sl[s].art = 2;
 weg:
+    SWERR(MEMERR_NONE);
     if (sl[s].art == 1) sl[s].paras = p;
     h = b->h;
     hnd[h].seg = 0; hnd[h].flags |= HA; hnd[h].stamp = s + 1;
@@ -110,9 +145,10 @@ weg:
 static DWORD ein(WORD seg, WORD n)
 {
     WORD i = n - 1; int ok;
+    SWERR(MEMERR_DISK);
     if (n < 1 || n > NS || (sl[i].art != 1 && sl[i].art != 2)) return 0;
     ok = sl[i].art == 1 ? xmove(sl[i].xh, 0, 0, (DWORD)seg << 16, sl[i].paras) : datei(0x3F, seg, sl[i].off, sl[i].paras);
-    if (ok) frei(i);
+    if (ok) { frei(i); SWERR(MEMERR_NONE); }
     return ok;
 }
 static DWORD RDEXPORT Sw(WORD art, WORD seg, WORD n)
@@ -120,9 +156,17 @@ static DWORD RDEXPORT Sw(WORD art, WORD seg, WORD n)
     if (art == 0) return aus();
     if (art == 1) return ein(seg, n);
     if (art == 2) { if (n >= 1 && n <= NS && (sl[n - 1].art == 1 || sl[n - 1].art == 2)) frei(n - 1); return 1; }
+    if (art == 6) {
+        if (n) { n--; return sl[n].art == 2 ? sl[n].paras : 0; }
+        return xent ? xc(0x0800, 0, 0, (WORD)&xent) >> 16 : 0;
+    }
+    if (art == 5) return n ? ((DWORD)reservekb << 16) | maxkb : fsize;
+    if (art == 4) return swerr;                   /* Zusatzgrund, 0 bleibt mit alten Modulen kompatibel */
     if (art == 3) {                               /* Anmeldung: Zeiger aus dem Kern, Ziel suchen */
         SWI FAR *w = (SWI FAR *)MK_FP(seg, n); char FAR *h = (char FAR *)MK_FP(seg, w->home); WORD k = 0;
         if (!ProfileGetInt("RD2.INI", "System", "Auslagern", 1)) return 0;
+        { short v = ProfileGetInt("RD2.INI", "System", "SwapMaxKB", 0); maxkb = v < 0 ? 0 : (WORD)v;
+          v = ProfileGetInt("RD2.INI", "System", "SwapReserveKB", 64); reservekb = v < 0 ? 64 : (WORD)v; }
         blk = (BLK FAR *)MK_FP(seg, w->b); nblk = (WORD FAR *)MK_FP(seg, w->n); hnd = (HND FAR *)MK_FP(seg, w->h);
         if (x43() == 0x80) xent = x4310();
         platte = (h[0] | 0x20) >= 'c' && h[1] == ':';

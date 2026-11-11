@@ -48,7 +48,7 @@ modul apps/test/TESTMOD.C TESTMOD.MOD "Testmodul" 0x0080
 modul apps/test/TESTMOD.C TESTMOD2.MOD "Testmodul2" 0x0080
 modul src/gdi/RDGDI.C RDGDI.MOD "RDGDI" 0 M -i=gdi
 modul src/kern/RDKX.C RDKX.MOD "Kern Zusatz" 0x0080 M
-modul src/kern/RDAUSL.C RDAUSL.MOD "Auslagern" 0 M
+modul src/kern/RDAUSL.C RDAUSL.MOD "Auslagern" 0 M "-r -oa -ol"
 modul src/user/RDUSER.C RDUSER.MOD "RDUSER" 0 M "-i=gdi -ml -r -oa -ol"
 modul src/gdi/RDGDIX.C RDGDIX.MOD "RDGDI Zusatz" 0x0080 M -i=gdi
 modul src/ctl/RDCTL.C RDCTL.MOD "Steuerelemente" 0x0080 M "-ml -r"
@@ -136,6 +136,7 @@ APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 app apps/test/DOSTEST.C DOSTEST.EXE "DOSTEST"
 app apps/test/AUSLTEST.C AUSLTEST.EXE "AUSLTEST"
+app apps/test/SWAPTEST.C SWAPTEST.EXE "Speicher-Test"
 app apps/test/PRNTEST.C PRNTEST.EXE "PRNTEST"
 app apps/test/SNDTEST.C SNDTEST.EXE "SNDTEST"
 app apps/test/NETTEST.C NETTEST.EXE "NETTEST"

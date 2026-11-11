@@ -2,28 +2,38 @@
 SPRACHE DE
 TEXTE
   1 "Taskmanager"
-  2 "Programm beenden (nicht gespeicherte Daten gehen verloren): "
-  3 "Das ist die Oberfl„che (SHELL). Ohne sie gibt es keinen Schreibtisch mehr. Trotzdem beenden?"
-  4 "Frei: "
+  2 "Ungespeichertes geht verloren. Beenden: "
+  3 "SHELL ist der Desktop. Dennoch beenden?"
+  5 "RAM(RD2) belegt/frei: "
+  10 "aus"
+  11 "aktuell "
+  12 ", Puffer "
+  14 ", frei "
+  13 " KB Bild"
 ENDE
 DIALOG 10 "Taskmanager" 0 0 240 140
-  LIST                  40   8   8 224 92 WS_VSCROLL
-  STATIC   ""           41   8 104 224 10
-  BUTTON   "&Beenden"   21   8 118  70 14
-  BUTTON   "&Aktualisieren" 22  84 118  80 14
-  BUTTON   "Schlieáen"   2 170 118  62 14 STANDARD
+  LIST                  40   8   8 224 82 WS_VSCROLL
+  STATIC   ""           41   8  96 224 24
+  BUTTON   "&Beenden"   21   8 124  70 14
+  BUTTON   "&Aktualisieren" 22  84 124  80 14
+  BUTTON   "Schlieáen"   2 170 124  62 14 STANDARD
 ENDE
 SPRACHE EN
 TEXTE
   1 "Task manager"
-  2 "End program (unsaved data will be lost): "
-  3 "This is the desktop (SHELL). Without it there is no desktop. End it anyway?"
-  4 "Free: "
+  2 "Unsaved data will be lost. End: "
+  3 "SHELL is the desktop. Quit anyway?"
+  5 "RAM(RD2) used/free: "
+  10 "off"
+  11 "current "
+  12 ", buffer "
+  14 ", free "
+  13 " KB image"
 ENDE
 DIALOG 10 "Task manager" 0 0 240 140
-  LIST                  40   8   8 224 92 WS_VSCROLL
-  STATIC   ""           41   8 104 224 10
-  BUTTON   "&End task"  21   8 118  70 14
-  BUTTON   "&Refresh"   22  84 118  80 14
-  BUTTON   "Close"       2 170 118  62 14 STANDARD
+  LIST                  40   8   8 224 82 WS_VSCROLL
+  STATIC   ""           41   8  96 224 24
+  BUTTON   "&End task"  21   8 124  70 14
+  BUTTON   "&Refresh"   22  84 124  80 14
+  BUTTON   "Close"       2 170 124  62 14 STANDARD
 ENDE

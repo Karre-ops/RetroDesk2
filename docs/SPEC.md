@@ -274,6 +274,9 @@ Maus=DOS            ; DOS (INT 33h), KEINE; spaeter eigener Treiber MAUS.DRV
 MausHW=BUS:23C      ; erkannte Maus: BUS:23C, INPORT:23C, SERIELL:COM1, PS2, DOS, KEINE
 Sound=ADLIB         ; SPEAKER, ADLIB, AUS
 XMS=256             ; KB XMS-Ablage fuer Module, 0 = aus
+Auslagern=1        ; Datenblock-Swap, 0 = aus
+SwapMaxKB=0        ; maximale Swapdatei in KB, 0 = keine feste Grenze
+SwapReserveKB=64   ; freier Platz nach Dateiwachstum, 0 = keine Reserve
 Netz=PAKET          ; PAKET (Paketreiber), KEIN
 Sprache=DE
 Systemklang=1
@@ -375,3 +378,10 @@ Ziel: RetroDesk 2 ist für den Benutzer ein eigenes Betriebssystem, das DOS-Prog
 - Optional eine reine RD2-Bootdiskette ohne DOS (eigener Bootsektor, eigenes FAT12/16 über INT 13h) für den größten freien Speicher. Darauf laufen nur RD2-Programme.
 
 **Regel dafür:** RD2-Programme rufen DOS nie direkt auf (Abschnitt 1, Punkt 6, und 2.5). Dateien, Speicher und Programmstart gehen nur über die RD2-Funktionen. Deshalb laufen sie unverändert auch ohne DOS.
+
+### Auslagerungsoptionen und SDK 2.1
+
+Optionen > System stellt Swap, Dateigrenze und Freiplatzreserve ein. Die Werte gelten ab dem nächsten RD2-Start; laufende Handles werden nicht abgeschaltet. Freiplatz wird vor neuem Clusterbedarf geprüft. Vorhandene Dateilücken bleiben nutzbar. Fehlgeschlagene oder unvollständige Transfers geben den RAM-Block nicht frei. `LastError()` bleibt `RD_ERR_NOMEM`; `MemError()` an neuer Nummer `0x042` liefert pro Task `MEMERR_*`. Details und ein sicherer Fehlerpfad stehen in `docs/SDK.TXT` und `sdk/SWAPSAFE.C`.
+
+Der Taskmanager zeigt RAM der RD2-Arena (belegt/frei, einschließlich UMB) und danach nur „Swap: aktuell …, Puffer …, frei …“. Aktuell umfasst gültige Nutzdaten in Datei und XMS. Puffer sind ungenutzte Bereiche der bestehenden Datei, keine gültigen gecachten Kopien. Frei umfasst diesen Puffer, zusätzliches Dateiwachstum nach aktivem Limit/Reserve und freies XMS. `MemStats()` (`0x043`, unveröffentlichte API 2.1) ermittelt die Kapazität über DOS 36h und XMS, ohne Speicherallokation oder Änderung der Fehlerwerte bei Erfolg. Bei 32 belegten Plätzen ist frei 0; Fragmentierung/E/A können trotzdem Allokationen verhindern. Keine separate Datei-/Limit-/Reservezeile und keine Anzeige des freien Plattenplatzes. Belegung/Puffer werden aufgerundet, freie Kapazität abgerundet. Ein Timer aktualisiert einmal pro Sekunde. Programmwerte bleiben als Bild/image markierte Ladeblöcke. Der Dialog bleibt 240 × 140 Einheiten groß.
+Optionen > System: Swap-Checkbox links unter Start/Start-Hinweis; Größenlimit und Reserve darunter eingerückt. Alle drei offenen COMBOs enden bei 124 vor OK/Abbruch bei 130; die Diskettenrollen und 360-KiB-Grenzen bleiben erhalten.

@@ -80,6 +80,70 @@ M_CLOSE, M_DESTROY (then PostQuit).
 - Debug output with DbgPrint/DbgHex (COM1 or RD2DBG.TXT).
 
 
+3a. Memory failures and swapping (API 2.1)
+----------------------------------------
+MemAlloc and MemRealloc return 0 on failure; MemLock returns a null pointer.
+This may happen for a valid handle when its swapped data cannot be loaded.
+Check every return value before dereferencing. A FAR pointer is valid only
+until MemUnlock; do not retain locked pointers across TaskYield or waits.
+
+LastError remains RD_ERR_NOMEM for allocation/swap failures, preserving
+existing apps. After MemAlloc, MemLock, MemRealloc or MemFixed, MemError()
+returns a per-task detail:
+  MEMERR_NONE       successful operation / no memory failure
+  MEMERR_RAM        no suitable RAM block or handle
+  MEMERR_SWAPLIMIT  configured swap file limit
+  MEMERR_RESERVE    disk full or free-space reserve reached
+  MEMERR_DISK       read, write or free-space query failed
+  MEMERR_SLOTS      all 32 swap slots occupied
+Invalid handles still report RD_ERR_HANDLE; discarded data RD_ERR_NOTFOUND.
+Capture both errors before further memory operations replace the detail.
+MemFree/MemUnlock alone do not clear it. A successful allocation/access
+clears it to MEMERR_NONE. Other tasks have separate details.
+
+Cancel the requested action, release temporary buffers, and retain existing
+documents/handles. Store a MemRealloc result in a second variable: failure
+preserves the original handle. Do not retry indefinitely or allocate in
+the failure path. Even a message box may fail for lack of memory; log with
+DbgHex if needed. The SDK cannot protect an unchecked null dereference.
+See sdk/SWAPSAFE.C (C, -0 -mm). MemError uses new API slot 0x042 and requires
+kernel 2.1. Existing API slots/signatures are unchanged. The generated
+Pascal unit provides the same function and constants.
+
+Options > System provides swap on/off, maximum file KB (0 = no fixed limit)
+and free disk reserve KB (0 = no reserve). Changes apply at the next RD2
+start; current swapped data stays accessible until then. Defaults in
+[System]: Auslagern=1, SwapMaxKB=0, SwapReserveKB=64. A KB is 1024 bytes.
+Preset choices reach 16384 KB; existing INI values from 0 to 32767 KB are
+preserved when opening the dialog. XMS is preferred; file size and reserve
+limits do not apply to XMS. Existing file holes can be reused below the
+reserve; only growth requiring additional disk clusters is rejected.
+
+
+MemStats(MEMSTATS FAR *info), API 2.1 slot 0x043: current snapshot, returns
+0 on success, RD_ERR_HANDLE for NULL, RD_ERR_BUSY during a swap callback.
+Success preserves LastError/MemError and does not allocate memory.
+ram_total/ram_free: RD2 arena bytes including UMB, excluding DOS/kernel
+outside it. Used = total - free. Does not flush the profile cache.
+swap_used: valid swapped payload bytes, file and XMS combined.
+swap_file: written file extent, including holes and short writes; retained
+on swap-in/free. swap_cached: unused file extents retained for reuse as a
+buffer, without valid cached copies. Occupied file slots count at their
+full extent, so internal slack is not counted as reusable.
+swap_free: buffer plus possible file growth after the active limit and
+free-space reserve, plus free XMS. Uses DOS 36h to query capacity. No file
+growth on A:/B:. Only whole additional clusters count; existing last-cluster
+slack is conservatively omitted. Unknown cluster formats add no growth.
+Returns 0 with all 32 swap slots occupied. Fragmentation, block sizes and
+I/O errors can still prevent allocation; always handle failures.
+swap_maxkb/swap_reservekb: active startup settings in KiB, max=0 unlimited.
+flags & MS_SWAP means RDAUSL loaded; otherwise all swap fields are zero.
+Pending INI changes apply on restart. Task manager refreshes every second
+and only shows swap current, buffer and free after the RAM line. Free
+already includes the buffer. Usage/buffer round up, free rounds down to KiB.
+Per-program values remain the load image size, labelled Bild/image.
+
+
 4. Resources (.RC)
 ------------------
 

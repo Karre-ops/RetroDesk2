@@ -19,7 +19,7 @@ typedef struct {
 } FDS;
 
 static WORD slen(LPCSTR s) { WORD n = 0; while (s[n]) n++; return n; }
-static void scpy(LPSTR d, LPCSTR s, WORD max) { WORD i; for (i = 0; i + 1 < max && s[i]; i++) d[i] = s[i]; d[i] = 0; }
+static void scpy(LPSTR d, LPCSTR s, WORD max) { while (max > 1 && *s) { *d++ = *s++; max--; } *d = 0; }
 static void scat(LPSTR d, LPCSTR s, WORD max) { WORD n = slen(d); scpy(d + n, s, max - n); }
 static char gross(char c) { return (char)(c >= 'a' && c <= 'z' ? c - 32 : c); }
 
@@ -180,7 +180,7 @@ static int weiter(HWND h, WORD k, DWORD p2)       /* Tab, Esc, Alt+.. an den Dia
     return 0;
 }
 static void neu(HWND h) { InvalidateRect(h, 0, FALSE); }
-static WORD gesperrt(HWND h) { return (GetWindowData(h, WD_STIL) & WS_DISABLED) ? 1 : 0; }
+static WORD gesperrt(HWND h) { return (WORD)(GetWindowData(h, WD_STIL) & WS_DISABLED); }
 static void weiss(HDC d, const RECT FAR *r) { SetBrush(d, C_WHITE, PAT_SOLID); FillRect(d, r); }
 static void grau(HDC d, const RECT FAR *r) { SetRop(d, ROP_OR); SetBkColor(d, C_BLACK); SetBrush(d, C_WHITE, PAT_GRAY50); FillRect(d, r); SetRop(d, ROP_COPY); }
 static void punkte(HDC d, short l, short t, short r, short b)

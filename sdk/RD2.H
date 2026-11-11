@@ -18,7 +18,7 @@
 #define RD2_H
 
 #define RD2_API_MAJOR 2
-#define RD2_API_MINOR 0
+#define RD2_API_MINOR 1
 #define RD2_API_VERSION ((RD2_API_MAJOR << 8) | RD2_API_MINOR)
 
 #if defined(__386__) || defined(__FLAT__)
@@ -111,6 +111,19 @@ typedef struct {
     WORD  kb;                                     /* belegter Speicher */
     WORD  flags;                                  /* TI_* */
 } TASKINFO;
+
+/* MemStats: aktuelle Werte; Bytes, nicht KB. RAM = RD2-Arena einschliesslich UMB,
+ * ohne DOS/Kern ausserhalb der Arena; swap_used = gueltige Nutzdaten (Datei + XMS).
+ * swap_file = Dateilaenge. swap_cached = ungenutzter Dateipuffer, keine gueltigen Daten.
+ * swap_free = Puffer + moegliches Dateiwachstum nach Limit/Reserve + freies XMS.
+ * Kapazitaet ohne Fragmentierungs-/E/A-Garantie; 0 bei 32 belegten Swapplaetzen.
+ * Ermittelt freien Platz ueber DOS 36h; 0-Limit = unbegrenzt.
+ * Ohne geladenes RDAUSL sind flags/max/reserve/Swapwerte 0. Keine INI-Abfrage. */
+typedef struct {
+    DWORD ram_total, ram_free, swap_used, swap_file, swap_cached, swap_free;
+    WORD swap_maxkb, swap_reservekb, flags;
+} MEMSTATS;
+#define MS_SWAP 1
 
 typedef struct { WORD jahr; BYTE monat, tag, wtag, std, min, sek, hsek; } RDTIME;
 
@@ -247,6 +260,16 @@ typedef struct {
 #define MEMA_GROESSTER 1
 #define MEMA_EMS   2
 #define MEMA_EXT   3
+
+/* MemError: Zusatzgrund nach fehlgeschlagenem MemAlloc/MemLock/MemRealloc/MemFixed.
+ * LastError bleibt RD_ERR_NOMEM; nach erfolgreichem Speicherzugriff MEMERR_NONE.
+ * Vor weiteren Speicheraufrufen abfragen. Je Task getrennt (API 2.1). */
+#define MEMERR_NONE       0
+#define MEMERR_RAM        1                       /* kein geeigneter RAM-Bereich / Handle mehr frei */
+#define MEMERR_SWAPLIMIT  2                       /* eingestellte maximale Dateigroesse erreicht */
+#define MEMERR_RESERVE    3                       /* Freiplatzreserve auf dem Laufwerk */
+#define MEMERR_DISK       4                       /* Swapdatei nicht lesbar/schreibbar oder Laufwerk unbekannt */
+#define MEMERR_SLOTS      5                       /* alle 32 Auslagerplaetze belegt */
 
 /* Dateien */
 #define FO_READ   0x00
