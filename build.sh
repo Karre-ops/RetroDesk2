@@ -96,6 +96,7 @@ app apps/notiz/NOTIZ.C NOTIZ.EXE "Notizblock"
 app apps/net/RDNET.C RDNET.EXE "Netzwerk"
 app apps/net/RDFTP.C RDFTP.EXE "FTP"
 app apps/net/RDIRC.C RDIRC.EXE "IRC"
+wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/qr_QR.obj apps/net/QR.C && APPOBJ=",obj/qr_QR.obj" app apps/net/RDQR.C RDQR.EXE "Datei-Eingang"   # QR-Code, Upload vom Smartphone per HTTP
 app apps/dos/RDSHELL.C RDSHELL.EXE "DOS-Fenster"
 app apps/rechner/RECHNER.C RECHNER.EXE "Rechner"
 app apps/optionen/OPTIONEN.C OPTIONEN.EXE "Optionen"

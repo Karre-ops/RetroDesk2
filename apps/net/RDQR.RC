@@ -1,0 +1,49 @@
+; Ressourcen fuer RDQR.EXE
+SPRACHE DE
+TEXTE
+  1 "QR-Empfang"
+  2 "Datei vom Smartphone senden:"
+  3 "QR-Code scannen oder Adresse eingeben:"
+  4 "(kein Netz, RD > Netzwerk)"
+  5 "Ziel: "
+  6 "Zielordner w„hlen, dann OK"
+  7 "HIER"
+  8 "Empfange "
+  9 "Empfangen: "
+  10 "Datei nicht anlegbar: "
+  11 "Kein Platz mehr: "
+  12 "Port 80 nicht frei."
+  13 "Abgebrochen: "
+  14 "Warte auf das Netz ..."
+ENDE
+MENU 1
+  POPUP "&Datei"
+    ITEM "&Zielordner..."   101
+    TRENNER
+    ITEM "&Beenden"   109
+  ENDE
+ENDE
+SPRACHE EN
+TEXTE
+  1 "QR receive"
+  2 "Send a file from your phone:"
+  3 "Scan the QR code or enter the address:"
+  4 "(no network, RD > Network)"
+  5 "Target: "
+  6 "Choose target folder, then OK"
+  7 "HERE"
+  8 "Receiving "
+  9 "Received: "
+  10 "Cannot create file: "
+  11 "Disk full: "
+  12 "Port 80 not free."
+  13 "Cancelled: "
+  14 "Waiting for the network ..."
+ENDE
+MENU 1
+  POPUP "&File"
+    ITEM "&Target folder..."   101
+    TRENNER
+    ITEM "E&xit"   109
+  ENDE
+ENDE
