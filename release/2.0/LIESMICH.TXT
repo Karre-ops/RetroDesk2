@@ -64,6 +64,9 @@ Stand 01.11.2026 (Aktualisierung nach 2.1)
 - Optionen > System: Auslagern ein/aus, Hoechstgroesse von RD2.SWP und
   Mindestreserve an freiem Platz. Der Taskmanager zeigt RAM und Auslagerung
   (Beitrag von crazycusti).
+- Neu: Datei-Eingang (RDQR.EXE, Diskette 3). Zeigt einen QR-Code; das Smartphone
+  scannt ihn und laedt im Browser Dateien direkt auf den PC, ohne App. Zielordner
+  unter Datei > Zielordner (Vorgabe EINGANG). Braucht Netz und Port 80 frei.
 - Quelltext oeffentlich: github.com/Karre-ops/RetroDesk2 (Fehler bitte als Issue).
 
 Neu in 2.1 (31.10.2026)
