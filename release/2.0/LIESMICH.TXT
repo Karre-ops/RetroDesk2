@@ -61,6 +61,9 @@ Stand 01.11.2026 (Aktualisierung nach 2.1)
 - DOS-Programme duerfen den ganzen Speicher bis 640 KB beschreiben (manche
   Spiele tun das): RD2 legt seinen kleinen Rest vorher in einen UMB oder
   ganz nach unten und kommt danach sicher zurueck.
+- Optionen > System: Auslagern ein/aus, Hoechstgroesse von RD2.SWP und
+  Mindestreserve an freiem Platz. Der Taskmanager zeigt RAM und Auslagerung
+  (Beitrag von crazycusti).
 - Quelltext oeffentlich: github.com/Karre-ops/RetroDesk2 (Fehler bitte als Issue).
 
 Neu in 2.1 (31.10.2026)
