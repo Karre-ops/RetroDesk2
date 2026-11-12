@@ -1,4 +1,4 @@
-RetroDesk 2.1 - Release-Dateien
+RetroDesk 2.2 - Release-Dateien
 ================================
 
 RD2_1.IMG  Diskette 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern, RD2, Setup)  360 KB
@@ -35,7 +35,7 @@ Installation von der Festplatte (Universalpaket) auf einen Rechner mit DOS 5
 Zurueck zum alten Stand: CONFIG.RDA wieder in CONFIG.SYS umbenennen (von einer
 DOS-Bootdiskette aus).
 
-Stand 01.11.2026 (Aktualisierung nach 2.1)
+Neu in 2.2 (12.11.2026)
 ------------------------------------------------------------------------------
 - Kopieren: beim Ersetzen vorhandener Dateien gibt es "Alle" (Ja fuer alle),
   im Dateimanager und in den Ordnerfenstern.
@@ -80,6 +80,11 @@ Stand 01.11.2026 (Aktualisierung nach 2.1)
   RD2SETUP und Optionen ersetzen die alte Zeile SHELL=...RD.EXE in der CONFIG.SYS.
 - RD2 ohne Angabe startet den Schreibtisch (SHELL.EXE aus dem RD2-Ordner).
   Ein anderes Programm geht weiter mit RD2 programm.
+- Bei einem Update loescht INSTALL die alte RD.EXE aus dem RD2-Ordner.
+- Kern-API 2.2: IconDrawFile (Symbol aus einer Programmdatei) und SM_HALBE fuer
+  SndSamplePlay (Meldung je fertiger Blockhaelfte, damit Ringpuffer fuer
+  fortlaufenden Klang). Versionsliste der API in SDK.TXT. Programme fuer API 2.2
+  starten nicht auf einem aelteren Kern.
 - Quelltext oeffentlich: github.com/Karre-ops/RetroDesk2 (Fehler bitte als Issue).
 
 Neu in 2.1 (31.10.2026)
