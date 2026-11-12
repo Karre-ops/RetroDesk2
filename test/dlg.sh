@@ -5,8 +5,8 @@ cd "$(dirname "$0")/.."
 IMG=obj/dlg.img; SER=obj/dlg_com1.txt; SOCK=/tmp/qmon_dlg.sock
 cat > obj/ae_dlg.txt <<'AE'
 @echo off
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\DLGTEST.EXE
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\DLGTEST.EXE
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\DLGTEST.EXE
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\DLGTEST.EXE
 A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/ae_dlg.txt

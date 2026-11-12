@@ -1,5 +1,5 @@
 #!/bin/bash
-# RD.EXE als Shell (CONFIG.SYS: SHELL=A:\RD2\RD.EXE ..., kein COMMAND.COM), QEMU-Diskette ohne XMS.
+# RD2.EXE als Shell (CONFIG.SYS: SHELL=A:\RD2\RD2.EXE ..., kein COMMAND.COM), QEMU-Diskette ohne XMS.
 # RD legt den Rest (Modus 2) an und laeuft darunter. DOSTEST ruft zweimal RunDos (Neustart),
 # danach endet RD; der Rest zeigt "RetroDesk ist beendet", nach einer Taste startet RD wieder.
 # /P ist noetig: der FreeDOS-Kern traegt bei der Shell nicht sich selbst als Eltern ein (MS-DOS schon).
@@ -7,9 +7,9 @@ cd "$(dirname "$0")/.."
 F=0
 for lauf in "/P"; do
   IMG=obj/shell720.img; SER=obj/com1_shell.txt; rm -f $SER /tmp/qmon_s.sock
-  echo "=== SHELL=A:\\RD2\\RD.EXE ${lauf:-(ohne /P)}"
+  echo "=== SHELL=A:\\RD2\\RD2.EXE ${lauf:-(ohne /P)}"
   echo "@echo off" > obj/ae_shell.txt
-  SHELLZEILE="SHELL=A:\\RD2\\RD.EXE $lauf A:\\RD2\\DOSTEST.EXE A:\\RD2\\FREIMEM.EXE A:\\FREI.TXT N" bash tools/mkdisk.sh $IMG obj/ae_shell.txt
+  SHELLZEILE="SHELL=A:\\RD2\\RD2.EXE $lauf A:\\RD2\\DOSTEST.EXE A:\\RD2\\FREIMEM.EXE A:\\FREI.TXT N" bash tools/mkdisk.sh $IMG obj/ae_shell.txt
   mdel -i $IMG ::/COMMAND.COM
   timeout 300 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
     -serial file:$SER -monitor unix:/tmp/qmon_s.sock,server,nowait >/dev/null 2>&1 &

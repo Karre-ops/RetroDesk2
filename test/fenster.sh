@@ -6,7 +6,7 @@
 # Bilder obj/fen_{gross,min,tab}.ppm.
 cd "$(dirname "$0")/.."
 IMG=obj/fen.img; SER=obj/fen_com1.txt; SOCK=/tmp/qmon_fen.sock
-printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_fen.txt
+printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_fen.txt
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_fen.txt >/dev/null
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/fen_*.ppm; touch $SER

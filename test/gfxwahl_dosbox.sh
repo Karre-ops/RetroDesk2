@@ -8,12 +8,12 @@ for k in cga hgc vga; do
   case $k in vga) MACH=vgaonly; NEIN=h; JA=c; HJA=200;; hgc) MACH=hercules; NEIN=c; JA=h; HJA=348;; *) MACH=cga; NEIN=v; JA=c; HJA=200;; esac
   for cpu in ${CPUS:-8086 386}; do
     python3 -c "import shutil; shutil.rmtree('$R', True)"; mkdir -p $R/RD2
-    cp out/RD.EXE out/*.MOD out/*.DRV out/GDITEST.EXE out/GFXWAHL.EXE $R/RD2/
+    cp out/RD2.EXE out/*.MOD out/*.DRV out/GDITEST.EXE out/GFXWAHL.EXE $R/RD2/
     printf '[sdl]\nfullscreen=false\n[dosbox]\nmachine=%s\nmemsize=1\n[cpu]\ncore=normal\ncputype=%s\ncycles=fixed 3000\n[mixer]\nnosound=true\n[speaker]\npcspeaker=false\n' $MACH $cpu > $R/dbx.conf
     SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy timeout 200 dosbox -conf $R/dbx.conf -c "mount c $R" -c "c:" -c "cd \\RD2" \
-      -c "C:\\RD2\\RD.EXE /D GFXWAHL.EXE > \\L1.TXT" -c "C:\\RD2\\RD.EXE /D GFXWAHL.EXE $NEIN > \\L2.TXT" \
-      -c "C:\\RD2\\RD.EXE /D GFXWAHL.EXE $JA > \\L3.TXT" -c "C:\\RD2\\RD.EXE /D /NOMAUS GDITEST.EXE > \\L4.TXT" \
-      -c "C:\\RD2\\RD.EXE /D GFXWAHL.EXE a > \\L5.TXT" -c exit >/dev/null 2>&1
+      -c "C:\\RD2\\RD2.EXE /D GFXWAHL.EXE > \\L1.TXT" -c "C:\\RD2\\RD2.EXE /D GFXWAHL.EXE $NEIN > \\L2.TXT" \
+      -c "C:\\RD2\\RD2.EXE /D GFXWAHL.EXE $JA > \\L3.TXT" -c "C:\\RD2\\RD2.EXE /D /NOMAUS GDITEST.EXE > \\L4.TXT" \
+      -c "C:\\RD2\\RD2.EXE /D GFXWAHL.EXE a > \\L5.TXT" -c exit >/dev/null 2>&1
     echo "=== $k, cputype=$cpu"
     for n in 1 2 3 4 5; do tr -d '\r' < $R/L$n.TXT 2>/dev/null | sed -n '/^-$/,$p' | grep -E "GFXWAHL|Hoehe|RDGDI"; done
     tr -d '\r' < $R/L2.TXT | grep -q "Fehler 0x00000008" || { echo "FEHLER: unmoegliche Wahl nicht abgelehnt"; F=1; }

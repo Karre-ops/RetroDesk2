@@ -2,7 +2,7 @@
 # Dateien suchen (SHELL, Strg+F): ab A:\ nach *.DRV und RD?.EXE, Trefferzahl gegen mtools, "Ordner oeffnen" -> A:\RD2\.
 cd "$(dirname "$0")/.."
 IMG=obj/such.img; SER=obj/such_com1.txt; S=/tmp/qmon_such.sock; export QMON=$S; F=0
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_such.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_such.txt
 bash tools/mkdisk.sh $IMG obj/ae_such.txt >/dev/null 2>&1
 n1=$(mdir -i $IMG -/ -b :: 2>/dev/null | grep -ci '\.drv$'); n2=$(mdir -i $IMG -/ -b :: 2>/dev/null | grep -ciE '/RD.?\.EXE$')
 rm -f $SER $S; touch $SER

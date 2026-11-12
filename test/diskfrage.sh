@@ -4,8 +4,8 @@ cd "$(dirname "$0")/.."
 IMG=obj/dfrag.img; SER=obj/dfrag_com1.txt; SOCK=/tmp/qmon_dfrag.sock
 cat > obj/ae_dfrag.txt <<AE
 @echo off
-A:\\RD2\\RD.EXE /VGA A:\\RD2\\DISKFRAG.EXE
-A:\\RD2\\RD.EXE /CGA A:\\RD2\\DISKFRAG.EXE
+A:\\RD2\\RD2.EXE /VGA A:\\RD2\\DISKFRAG.EXE
+A:\\RD2\\RD2.EXE /CGA A:\\RD2\\DISKFRAG.EXE
 A:\\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/ae_dfrag.txt >/dev/null

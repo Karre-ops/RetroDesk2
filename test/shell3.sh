@@ -5,7 +5,7 @@
 # Bilder obj/sh3_{desk,zurueck,wechsel,alle}.ppm.
 cd "$(dirname "$0")/.."
 IMG=obj/sh3.img; IMG2=obj/sh3b.img; SER=obj/sh3_com1.txt; SOCK=/tmp/qmon_sh3.sock
-printf '@echo off\nREM FREIMEM.EXE\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_sh3.txt
+printf '@echo off\nREM FREIMEM.EXE\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_sh3.txt
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_sh3.txt >/dev/null   # 720 KB: Platz fuer die Sitzungsdatei (360 KB voll)
 rm -f $IMG2; mformat -C -f 360 -v ANDERE -i $IMG2 ::; printf 'x\r\n' > obj/sh3_x.txt
 for n in EINS ZWEI DREI; do mcopy -i $IMG2 obj/sh3_x.txt ::/$n.TXT; done

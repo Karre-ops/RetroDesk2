@@ -2,9 +2,9 @@
  * Der Kern und der belegte Teil der Arena gehen in den XMS-Speicher oder, ohne XMS, in eine
  * Datei auf der Festplatte (RD2SWAP.$$$ im RD2-Verzeichnis). Ein kleiner Rest (RDSWAP.ASM)
  * zieht vor dem Start nach unten (UMB oder hinter den PSP), startet das Programm und holt danach alles an dieselbe Adresse
- * zurueck. Der Rest liegt als RDSWAP.BIN neben RD.EXE und kostet so keinen Kernspeicher.
+ * zurueck. Der Rest liegt als RDSWAP.BIN neben RD2.EXE und kostet so keinen Kernspeicher.
  * Ohne XMS und ohne Festplatte (Neustart, nur ohne RD_DOS_KEEP): alle Programme enden, RD
- * beendet sich, der Rest startet das Programm und danach RD.EXE /W:seg neu. Ruft dieses RD
+ * beendet sich, der Rest startet das Programm und danach RD2.EXE /W:seg neu. Ruft dieses RD
  * wieder RunDos, traegt es das Programm in den Block seg ein und endet mit Code 0D5h.
  * RD_DOS_NEU (Optionen, Grafikwechsel): immer dieser Weg, ohne Programm; RD2 startet nur neu. */
 #include "KERN.H"
@@ -60,7 +60,7 @@ WORD k_stub(WORD mode)                            /* Block ganz oben, RDSWAP.BIN
     return seg;
 }
 /* Ende als Shell (29.10.2026, Karsten): statt "RetroDesk ist beendet" COMMAND.COM starten, EXIT holt RD2 zurueck.
- * Sucht (ohne COMSPEC: unter SHELL=RD.EXE unzuverlaessig) Startlaufwerk \ und \DOS, das RD2-Verzeichnis. 0xD5 = im Rest eingetragen, 0 = keins gefunden. */
+ * Sucht (ohne COMSPEC: unter SHELL=RD2.EXE unzuverlaessig) Startlaufwerk \ und \DOS, das RD2-Verzeichnis. 0xD5 = im Rest eingetragen, 0 = keins gefunden. */
 static int gibt(const char *p) { d21(0x4300, 0, 0, (WORD)p); return !CARRY; }
 WORD k_dosshell(void)
 {

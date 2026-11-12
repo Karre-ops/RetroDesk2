@@ -7,13 +7,13 @@ IMG=obj/farbe.img; SER=obj/farbe_com1.txt; SOCK=/tmp/qmon_farbe.sock; F=0
 cat > obj/ae_farbe.txt <<'AE'
 @echo off
 copy A:\RD2\INI16.TXT A:\RD2\RD2.INI > NUL
-A:\RD2\RD.EXE /NOMAUS A:\RD2\SHELL.EXE
+A:\RD2\RD2.EXE /NOMAUS A:\RD2\SHELL.EXE
 if exist A:\RD2\RD2.STA del A:\RD2\RD2.STA
 copy A:\RD2\INIEGA.TXT A:\RD2\RD2.INI > NUL
-A:\RD2\RD.EXE /NOMAUS A:\RD2\SHELL.EXE
+A:\RD2\RD2.EXE /NOMAUS A:\RD2\SHELL.EXE
 if exist A:\RD2\RD2.STA del A:\RD2\RD2.STA
 copy A:\RD2\INIVESA.TXT A:\RD2\RD2.INI > NUL
-A:\RD2\RD.EXE /NOMAUS A:\RD2\SHELL.EXE
+A:\RD2\RD2.EXE /NOMAUS A:\RD2\SHELL.EXE
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_farbe.txt

@@ -6,7 +6,7 @@
 # Graue Tasten (Pos1, Pfeile, Entf) kommen unter QEMU/SeaBIOS doppelt an, daher Ziffernblock (NumLock aus).
 cd "$(dirname "$0")/.."
 IMG=obj/desk2.img; SER=obj/desk2_com1.txt; SOCK=/tmp/qmon_desk2.sock
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_desk2.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_desk2.txt
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_desk2.txt   # 720 KB: Platz fuer die Kopien (360 KB hat nur noch ca. 3 KB frei)
 rm -f $SER $SOCK obj/desk2_ops.ppm; touch $SER
 timeout 240 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

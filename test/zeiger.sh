@@ -5,8 +5,8 @@ IMG=obj/zeig.img; SER=obj/zeig_com1.txt; SOCK=/tmp/qmon_zeig.sock
 cat > obj/ae_zeig.txt <<AE
 @echo off
 A:\\RDMAUS.COM
-A:\\RD2\\RD.EXE /CGA A:\\RD2\\ZEIGTEST.EXE
-A:\\RD2\\RD.EXE /VGA A:\\RD2\\ZEIGTEST.EXE
+A:\\RD2\\RD2.EXE /CGA A:\\RD2\\ZEIGTEST.EXE
+A:\\RD2\\RD2.EXE /VGA A:\\RD2\\ZEIGTEST.EXE
 A:\\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_zeig.txt

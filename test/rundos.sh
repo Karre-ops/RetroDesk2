@@ -13,10 +13,10 @@ LAEUFE=${LAEUFE:-"vgaonly,386,true,/D cga,8086,false,/D hercules,8086,false,- vg
 for lauf in $LAEUFE; do lauf=${lauf//,/ }
   set -- $lauf; D=$4; [ $D = - ] && D=""; P=FREIMEM; [ "$5" = TSR ] && P=TSRTEST; X=EXE; [ "$5" = OBEN ] && P=OBEN && X=COM; U=false; [ "$6" = umb ] && U=true
   python3 -c "import shutil; shutil.rmtree('$R', True)"; mkdir -p $R/RD2
-  cp out/RD.EXE out/*.MOD out/*.DRV out/RDSWAP.BIN out/DOSTEST.EXE out/FREIMEM.EXE out/TSRTEST.EXE obj/OBEN.COM $R/RD2/
+  cp out/RD2.EXE out/*.MOD out/*.DRV out/RDSWAP.BIN out/DOSTEST.EXE out/FREIMEM.EXE out/TSRTEST.EXE obj/OBEN.COM $R/RD2/
   printf '[sdl]\nfullscreen=false\n[dosbox]\nmachine=%s\nmemsize=4\n[cpu]\ncore=normal\ncputype=%s\ncycles=fixed 4000\n[mixer]\nnosound=true\n[speaker]\npcspeaker=false\n[serial]\nserial1=file file:'$PWD/$R'/com1.txt\n[dos]\nxms=%s\numb=%s\n' $1 $2 $3 $U > $R/dbx.conf
   SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy timeout -s KILL ${TO:-200} dosbox -conf $R/dbx.conf -c "mount c $R" -c "c:" -c "cd \\RD2" \
-    -c "C:\\RD2\\RD.EXE $D DOSTEST.EXE C:\\RD2\\$P.$X C:\\FREI.TXT > \\LOG.TXT" -c exit >/dev/null 2>&1
+    -c "C:\\RD2\\RD2.EXE $D DOSTEST.EXE C:\\RD2\\$P.$X C:\\FREI.TXT > \\LOG.TXT" -c exit >/dev/null 2>&1
   L=$(tr -d '\r' < $R/LOG.TXT); FR=$(tr -d '\r' < $R/FREI.TXT 2>/dev/null | head -1)
   chk() { if echo "$L" | grep -q "$1"; then echo "ok     $2"; else echo "FEHLER $2"; F=1; fi; }
   if [ $P = TSRTEST ]; then

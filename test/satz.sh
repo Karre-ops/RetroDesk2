@@ -23,11 +23,11 @@ waitscr "Diskette 3 (RD2 NETZ): [0-9]* Dateien" 120 || { echo "FEHLER Diskette 3
 T > obj/schirm_satz.txt; grep "Dateien kopiert\|startfaehig" obj/schirm_satz.txt | sed 's/^ */       /'
 sleep 2; Q "sendkey esc"; sleep 2; T | grep -q "(J/N)" && Q "sendkey j"; sleep 3; Q quit; wait $QP 2>/dev/null
 P=$HD@@32256
-for f in KERNEL.SYS CONFIG.SYS RD2/RD.EXE RD2/SHELL.EXE RD2/RDMAUS.COM RD2/RD2.INI RD2/FARBSYM.DAT RD2/VGA16.DRV RD2/RDFDISK.EXE RD2/RDNET.EXE RD2/RDFTP.EXE; do
+for f in KERNEL.SYS CONFIG.SYS RD2/RD2.EXE RD2/SHELL.EXE RD2/RDMAUS.COM RD2/RD2.INI RD2/FARBSYM.DAT RD2/VGA16.DRV RD2/RDFDISK.EXE RD2/RDNET.EXE RD2/RDFTP.EXE; do
   mdir -i $P ::/$f >/dev/null 2>&1 || { echo "FEHLER C:\\$f fehlt"; F=1; }
 done
 [ $F = 0 ] && echo "ok     Dateien aller drei Disketten auf C:"
-mtype -i $P ::/CONFIG.SYS | grep -q "SHELL=C:\\\\RD2\\\\RD.EXE" && echo "ok     CONFIG.SYS: RD2 ist die Shell" || { echo "FEHLER CONFIG.SYS"; F=1; }
+mtype -i $P ::/CONFIG.SYS | grep -q "SHELL=C:\\\\RD2\\\\RD2.EXE" && echo "ok     CONFIG.SYS: RD2 ist die Shell" || { echo "FEHLER CONFIG.SYS"; F=1; }
 # Start von C: ohne Diskette
 rm -f $S
 timeout 120 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$HD,format=raw,if=ide,index=0 -boot c \

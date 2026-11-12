@@ -3,11 +3,11 @@
 # danach muss das Ziel-Abbild byte-gleich mit der Quelle sein.
 cd "$(dirname "$0")/.."
 IMG=obj/dk.img; SRC=obj/dk_src.img; DST=obj/dk_dst.img; SER=obj/dk_com1.txt; S=/tmp/qmon_dk.sock; export QMON=$S; F=0
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\DKOPIE.EXE T\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_dk.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\DKOPIE.EXE T\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_dk.txt
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') DKOPIE.EXE RDDISK.MOD" bash tools/mkdisk.sh $IMG obj/ae_dk.txt >/dev/null 2>&1
 rm -f $SRC $DST; mformat -C -f 360 -v QUELLE -i $SRC ::; mformat -C -f 360 -v ZIEL -i $DST ::
 python3 -c "import random; random.seed(7); open('obj/dk_daten.bin','wb').write(bytes(random.randrange(256) for _ in range(200000)))"
-mcopy -i $SRC obj/dk_daten.bin ::/DATEN.BIN; mcopy -i $SRC out/RD.EXE ::/
+mcopy -i $SRC obj/dk_daten.bin ::/DATEN.BIN; mcopy -i $SRC out/RD2.EXE ::/
 rm -f $SER $S; touch $SER
 timeout 140 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -drive file=$SRC,format=raw,if=floppy,index=1 -boot a \
   -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &

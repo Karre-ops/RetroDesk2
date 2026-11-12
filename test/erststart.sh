@@ -1,12 +1,12 @@
 #!/bin/bash
-# Erster Start: Diskette ohne RD2.INI. RD.EXE muss RD2SETUP /ERST zeigen; Taste S speichert,
+# Erster Start: Diskette ohne RD2.INI. RD2.EXE muss RD2SETUP /ERST zeigen; Taste S speichert,
 # Esc beendet, danach startet der Kern LEER.EXE. Zweiter Start: kein Setup mehr (RD2.INI da).
 cd "$(dirname "$0")/.."
 IMG=obj/erst720.img; SER=obj/com1_erst.txt; F=0
 cat > obj/ae_erst.txt <<'AE'
 @echo off
-A:\RD2\RD.EXE A:\RD2\LEER.EXE eins > A:\E1.TXT
-A:\RD2\RD.EXE A:\RD2\LEER.EXE zwei > A:\E2.TXT
+A:\RD2\RD2.EXE A:\RD2\LEER.EXE eins > A:\E1.TXT
+A:\RD2\RD2.EXE A:\RD2\LEER.EXE zwei > A:\E2.TXT
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 SETUP=1 bash tools/mkdisk.sh $IMG obj/ae_erst.txt   # 720 KB: FreeDOS-Testdiskette + volle Systemdateien passen nicht mehr auf 360 KB (26.10.)

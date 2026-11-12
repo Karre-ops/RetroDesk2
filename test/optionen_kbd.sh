@@ -9,18 +9,18 @@ for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/
 cat > obj/ae_optkbd.txt <<'AE'
 @echo off
 A:\RD2\RDKEYB.COM DE
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\OPTIONEN.EXE T A:\T1\
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\OPTIONEN.EXE T A:\T1\
 A:\KEYTEST.COM
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\OPTIONEN.EXE T A:\T1\
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\OPTIONEN.EXE T A:\T1\
 A:\KEYTEST.COM
 copy A:\T2\PC10.INI A:\RD2\RD2.INI > NUL
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\OPTIONEN.EXE T A:\T2\
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\OPTIONEN.EXE T A:\T2\
 A:\KEYTEST.COM
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_optkbd.txt >/dev/null 2>&1
 for f in RDMAUS.COM RDFORMAT.EXE RDFDISK.EXE RDSYS.EXE RD2SETUP.EXE; do mdel -i $IMG ::/RD2/$f 2>/dev/null; done
-mkdir -p obj/optkbd; printf 'SHELL=A:\\RD2\\RD.EXE /P A:\\RD2\\SHELL.EXE\r\nINSTALL=A:\\RD2\\RDKEYB.COM DE\r\n' > obj/optkbd/CONFIG.SYS
+mkdir -p obj/optkbd; printf 'SHELL=A:\\RD2\\RD2.EXE /P A:\\RD2\\SHELL.EXE\r\nINSTALL=A:\\RD2\\RDKEYB.COM DE\r\n' > obj/optkbd/CONFIG.SYS
 mmd -i $IMG ::/T1; mcopy -i $IMG obj/optkbd/CONFIG.SYS ::/T1/; mmd -i $IMG ::/T2; mcopy -i $IMG obj/optkbd/CONFIG.SYS ::/T2/
 printf '[System]\r\nTastatur=PC10\r\n' > obj/optkbd/PC10.INI; mcopy -i $IMG obj/optkbd/PC10.INI ::/T2/; mcopy -o -i $IMG obj/keytest.com ::/KEYTEST.COM
 rm -f $SER $S

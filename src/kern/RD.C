@@ -115,7 +115,7 @@ int main(void)
         else if (c == 'w') for (s = argv[a] + 3; *s; s++) k_wseg = (k_wseg << 4) + (*s <= '9' ? *s - '0' : (*s | 0x20) - 'a' + 10);   /* /W:seg vom RunDos-Rest */
     }
     if (!k_home[0] && a < argc) {                 /* ohne Programmnamen (SHELL= unter DOS 3/4): Ordner des Programms, */
-        for (i = 0, s = argv[a]; *s && i < 64; s++) k_home[i++] = *s;   /* RD2SETUP schreibt SHELL=C:\RD2\RD.EXE /P C:\RD2\SHELL.EXE */
+        for (i = 0, s = argv[a]; *s && i < 64; s++) k_home[i++] = *s;   /* RD2SETUP schreibt SHELL=C:\RD2\RD2.EXE /P C:\RD2\SHELL.EXE */
         while (i > 0 && k_home[i - 1] != '\\' && k_home[i - 1] != ':') i--;
         k_home[i] = 0;
     }

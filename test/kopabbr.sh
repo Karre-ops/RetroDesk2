@@ -4,7 +4,7 @@
 # Original unveraendert, danach Umschalt+F10 an FDAPM.COM (Bild obj/kopabbr_menu.ppm: Menue Datei an der Auswahl), danach normales Kopieren von FDAPM.COM geht noch (Shell nicht verklemmt), Speicher zurueck.
 cd "$(dirname "$0")/.."
 IMG=obj/kopabbr.img; SER=obj/kopabbr_com1.txt; SOCK=/tmp/qmon_kopabbr.sock
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_kopabbr.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_kopabbr.txt
 FMT=2880 bash tools/mkdisk.sh $IMG obj/ae_kopabbr.txt
 head -c 1048576 /dev/urandom > obj/gross.dat; mcopy -o -i $IMG obj/gross.dat ::/GROSS.DAT || { echo "FEHLER GROSS.DAT passt nicht"; exit 0; }
 rm -f $SER $SOCK obj/kopabbr_menu.ppm; touch $SER

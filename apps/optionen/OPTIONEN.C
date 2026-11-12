@@ -80,9 +80,9 @@ static WORD lesen(LPCSTR n, char FAR *b)
 static const char FAR *sp(const char FAR *a) { while (*a == ' ' || *a == '\t') a++; return a; }
 static BYTE shellz(const char FAR *a) { a = sp(a); return beginnt(a, "SHELL") && (*sp(a + 5) == '='); }
 static WORD zlen(const char FAR *a) { WORD n = 0; while (a[n] && a[n] != '\n') n++; return n; }
-static BYTE rdz(const char FAR *a) { return suche(a, zlen(a), "RD.EXE") != 0; }
+static BYTE rdz(const char FAR *a) { return suche(a, zlen(a), "RD2.EXE") || suche(a, zlen(a), "RD.EXE"); }
 #define ZEILEN(a) for (a = ein; *a; a += zlen(a) + (a[zlen(a)] != 0))
-static BYTE an(void)                              /* aktive SHELL=-Zeile mit RD.EXE? */
+static BYTE an(void)                              /* aktive SHELL=-Zeile mit RD2.EXE? */
 {
     const char FAR *a;
     ZEILEN(a) if (shellz(a) && rdz(a)) return 1;
@@ -145,7 +145,7 @@ static WORD schalten(BYTE soll)
     }
     if (soll && !neu) {                           /* keine RD-Zeile mehr da: neu anlegen wie RD2SETUP */
         if (o && aus[o - 1] != '\n') o = put(o, "\r\n", 2);
-        o = put(o, "SHELL=", 6); o = put(o, home, slen(home)); o = put(o, "RD.EXE /P ", 10);
+        o = put(o, "SHELL=", 6); o = put(o, home, slen(home)); o = put(o, "RD2.EXE /P ", 10);
         o = put(o, home, slen(home)); o = put(o, "SHELL.EXE\r\n", 11);
     }
     if (!soll && !alt) { scpy(p, ord, sizeof p); scat(p, "COMMAND.COM", sizeof p); if (!gibts(p)) return 2; }

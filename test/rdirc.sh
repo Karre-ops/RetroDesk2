@@ -9,8 +9,8 @@ cat > obj/ae_rdirc.txt <<'AE'
 @echo off
 rem RDTCP.MOD (fuer mkdisk)
 A:\NE2000.COM 0x60 3 0x300
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\RDIRC.EXE T
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RDIRC.EXE T
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\RDIRC.EXE T
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\RDIRC.EXE T
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_rdirc.txt >/dev/null

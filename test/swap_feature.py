@@ -44,7 +44,7 @@ for name, maximum, reserve, enabled, fault, expected in CASES:
     with zipfile.ZipFile(SRC / 'release/2.0/RD2_HDD.ZIP') as archive:
         archive.extractall(case / 'payload')
     rd = case / 'payload/RD2'
-    for file in ['RD.EXE', 'RDAUSL.MOD', 'RDCTLX.MOD', 'SWAPTEST.EXE', 'SWFAULT.COM']:
+    for file in ['RD2.EXE', 'RDAUSL.MOD', 'RDCTLX.MOD', 'SWAPTEST.EXE', 'SWFAULT.COM']:
         shutil.copy2(SRC / 'out' / file, rd / file)
     (rd / 'RD2.INI').write_bytes(f'[System]\r\nGrafik=VGA\r\nXMS=0\r\nAuslagern={int(enabled)}\r\nSwapMaxKB={maximum}\r\nSwapReserveKB={reserve}\r\n'.encode())
     subprocess.run(['mcopy', '-s', '-i', fat, str(rd), '::/'], check=True)
@@ -63,7 +63,7 @@ for name, maximum, reserve, enabled, fault, expected in CASES:
     config = ''
     if fault in ('shortwrite', 'readerror'):
         config += 'INSTALL=C:\\RD2\\SWFAULT.COM' + (' R' if fault == 'readerror' else '') + '\r\n'
-    config += 'SHELL=C:\\RD2\\RD.EXE /D C:\\RD2\\SWAPTEST.EXE ' + ('S' if name == 'slots' else 'T') + '\r\n'
+    config += 'SHELL=C:\\RD2\\RD2.EXE /D C:\\RD2\\SWAPTEST.EXE ' + ('S' if name == 'slots' else 'T') + '\r\n'
     (case / 'CONFIG.SYS').write_bytes(config.encode())
     subprocess.run(['mcopy', '-o', '-i', str(boot), str(case / 'CONFIG.SYS'), '::/CONFIG.SYS'], check=True)
     serial = case / 'serial.log'

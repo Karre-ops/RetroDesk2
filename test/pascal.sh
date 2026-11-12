@@ -29,7 +29,7 @@ for x in "tp/PTEST.EXE PTESTT" "tp/PHALLO.EXE PHALLOT" "fp/PTEST.exe PTESTF" "fp
 done
 # Lauf: vier Programme nacheinander, Klicks ins PHALLO-Fenster (100,100)-(540,300)
 IMG=obj/pas.img; SER=obj/com1_pas.txt; SOCK=/tmp/qmon_pas.sock
-printf '@echo off\r\nA:\\RDMAUS.COM\r\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\PTESTT.EXE eins zwei\r\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\PTESTF.EXE eins zwei\r\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\PHALLOT.EXE T\r\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\PHALLOF.EXE T\r\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\HALLO.EXE T\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ae_pas.txt
+printf '@echo off\r\nA:\\RDMAUS.COM\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\PTESTT.EXE eins zwei\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\PTESTF.EXE eins zwei\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\PHALLOT.EXE T\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\PHALLOF.EXE T\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\HALLO.EXE T\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ae_pas.txt
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_pas.txt >/dev/null 2>&1
 mcopy -o -i $IMG out/RDMAUS.COM ::/; for p in PTESTT PTESTF PHALLOT PHALLOF; do mcopy -o -i $IMG $T/$p.EXE ::/RD2/; done; mcopy -o -i $IMG out/HALLO.EXE ::/RD2/
 for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done

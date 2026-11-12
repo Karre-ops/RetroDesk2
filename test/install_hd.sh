@@ -47,6 +47,6 @@ for f in SDK/RD2.H SDK/RD2.LIB SDK/BEISPIEL/HALLO.C LIZENZ.TXT; do
   mtype $C ::/RD2/$f 2>/dev/null | cmp -s - obj/ihd/RD2/$f && echo "ok     C:\\RD2\\$f" || { echo "FEHLER C:\\RD2\\$f fehlt oder anders"; F=1; }
 done
 mtype $C ::/CONFIG.SYS | tr -d '\r' > obj/ihd_cfg.txt
-grep -qi "SHELL=C:\\\\RD2\\\\RD.EXE" obj/ihd_cfg.txt && echo "ok     CONFIG.SYS: SHELL=C:\\RD2\\RD.EXE" || { echo "FEHLER CONFIG.SYS"; cat obj/ihd_cfg.txt; F=1; }
+grep -qi "SHELL=C:\\\\RD2\\\\RD2.EXE" obj/ihd_cfg.txt && echo "ok     CONFIG.SYS: SHELL=C:\\RD2\\RD2.EXE" || { echo "FEHLER CONFIG.SYS"; cat obj/ihd_cfg.txt; F=1; }
 grep -qi "RD2NEU" obj/ihd_cfg.txt && { echo "FEHLER CONFIG.SYS zeigt auf C:\\RD2NEU"; F=1; }
 exit $F

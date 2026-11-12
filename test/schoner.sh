@@ -3,7 +3,7 @@
 # (Sternenfeld: schwarzer Schirm mit hellen Punkten), eine Taste beendet ihn und der Schreibtisch ist wieder da.
 cd "$(dirname "$0")/.."
 IMG=obj/schoner.img; SER=obj/schoner_com1.txt; SOCK=/tmp/qmon_schoner.sock; F=0
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_schoner.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_schoner.txt
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') SCHONER.EXE" bash tools/mkdisk.sh $IMG obj/ae_schoner.txt >/dev/null 2>&1
 printf '[Schoner]\r\nZeit=5\r\nArt=0\r\n' > obj/schoner_ini.txt; mcopy -o -i $IMG obj/schoner_ini.txt ::/RD2/RD2.INI
 rm -f $SER $SOCK; touch $SER

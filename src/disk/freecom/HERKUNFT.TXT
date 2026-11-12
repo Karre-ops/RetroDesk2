@@ -2,5 +2,5 @@ FreeCOM 0.85a deutsch (COMMAND.COM, Borland-C-Build mit XMS-Swap, laeuft auch oh
 unveraendert aus bc/lang/bc-German.zip (xmsswap/command.com) von
 ibiblio.org/pub/micro/pc-stuff/freedos/files/dos/command/0.85a/ .
 Lizenz GPL v2 oder spaeter (COPYING). Quelltext: freecom-0.85a-src.zip (com085a.zip vom selben Ort).
-RD2 (31.10.2026): liegt auf Diskette 3 im Ordner RD2, INSTALL kopiert es nach C:\RD2; RD.EXE startet es beim Beenden
+RD2 (31.10.2026): liegt auf Diskette 3 im Ordner RD2, INSTALL kopiert es nach C:\RD2; RD2.EXE startet es beim Beenden
 und beim Notausgang (Umschalt beim Start), EXIT holt RD2 zurueck. Damit laufen auch .BAT-Dateien.

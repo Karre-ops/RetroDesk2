@@ -323,7 +323,7 @@ static void fehler(LPCSTR was, WORD e)
 static int praefix(LPCSTR a, LPCSTR b) { while (*a && (*a | 0x20) == (*b | 0x20)) a++, b++; return !*a && (*b == '\\' || !*b); }
 /* Systemdateien: Startdateien in der Wurzel, alles mit Attribut System, das RD2-Verzeichnis samt Inhalt
  * und die Ordner darueber. Loeschen, Ersetzen, Verschieben und Umbenennen fragen dann noch einmal (Nein vorgewaehlt). */
-static const char sysn[] = "CONFIG.SYS\0AUTOEXEC.BAT\0KERNEL.SYS\0IO.SYS\0MSDOS.SYS\0IBMBIO.COM\0IBMDOS.COM\0COMMAND.COM\0RD.EXE\0RD2.INI\0";
+static const char sysn[] = "CONFIG.SYS\0AUTOEXEC.BAT\0KERNEL.SYS\0IO.SYS\0MSDOS.SYS\0IBMBIO.COM\0IBMDOS.COM\0COMMAND.COM\0RD2.EXE\0RD2.INI\0";
 static int gleichi(LPCSTR a, LPCSTR b) { while (*a && (*a | 0x20) == (*b | 0x20)) a++, b++; return !*a && !*b; }
 static int wichtig(LPCSTR p, WORD attr)
 {

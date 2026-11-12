@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 IMG=obj/rdisk720.img; F=0
 cat > obj/ae_rdisk.txt <<'AE'
 @echo off
-A:\RD2\RD.EXE /D A:\RD2\DOSTEST.EXE A:\RD2\FREIMEM.EXE A:\FREI.TXT N > A:\R1.TXT
+A:\RD2\RD2.EXE /D A:\RD2\DOSTEST.EXE A:\RD2\FREIMEM.EXE A:\FREI.TXT N > A:\R1.TXT
 echo ENDE %ERRORLEVEL% > A:\R2.TXT
 A:\FDAPM.COM POWEROFF
 AE

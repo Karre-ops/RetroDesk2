@@ -21,7 +21,7 @@ python3 -c "open('$H','wb').write(bytes(40*16*63*512))"
 NUR0="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDDISK.MOD"
 
 # ---- 1. Partitionieren ----
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\RDFDISK.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_k1.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\RDFDISK.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_k1.txt
 NUR="$NUR0 RDFDISK.EXE" bash tools/mkdisk.sh obj/kette_a1.img obj/ae_k1.txt >/dev/null 2>&1
 S=obj/kette1_com1.txt; starten obj/kette_a1.img $S
 if waitn "RDFDISK: Liste bereit" $S; then
@@ -41,7 +41,7 @@ PY
 OFS=$((63*512)); NSEK=$(python3 -c "import struct;print(struct.unpack('<I',open('$H','rb').read(512)[458:462])[0])")
 
 # ---- 2. Formatieren ----
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\RDFORMAT.EXE C:\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_k2.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\RDFORMAT.EXE C:\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_k2.txt
 NUR="$NUR0 RDFORMAT.EXE" bash tools/mkdisk.sh obj/kette_a2.img obj/ae_k2.txt >/dev/null 2>&1
 S=obj/kette2_com1.txt; starten obj/kette_a2.img $S
 if waitn "RDFORMAT: bereit" $S; then
@@ -63,9 +63,9 @@ waitscr "Einrichtung" 120 && { Q "sendkey t" sleep2 "sendkey ret"; waitscr "star
 wait $QP
 C="-i $H@@$OFS"
 mdir $C -b ::/RD2 > obj/kette_dir.txt 2>&1
-for d in RD.EXE RDGDI.MOD RDSWAP.BIN RDMAUS.COM RD2SETUP.EXE RD2.INI SHELL.EXE; do pruef "3 C:\\RD2\\$d" "grep -qi '/$d' obj/kette_dir.txt"; done
+for d in RD2.EXE RDGDI.MOD RDSWAP.BIN RDMAUS.COM RD2SETUP.EXE RD2.INI SHELL.EXE; do pruef "3 C:\\RD2\\$d" "grep -qi '/$d' obj/kette_dir.txt"; done
 mtype $C ::/CONFIG.SYS 2>/dev/null | tr -d '\r' > obj/kette_cs.txt
-pruef "3 CONFIG.SYS SHELL=C:\\RD2\\RD.EXE /P" "grep -q '^SHELL=C:\\\\RD2\\\\RD.EXE /P C:\\\\RD2\\\\SHELL.EXE$' obj/kette_cs.txt"
+pruef "3 CONFIG.SYS SHELL=C:\\RD2\\RD2.EXE /P" "grep -q '^SHELL=C:\\\\RD2\\\\RD2.EXE /P C:\\\\RD2\\\\SHELL.EXE$' obj/kette_cs.txt"
 pruef "3 CONFIG.SYS INSTALL=RDMAUS /P" "grep -q '^INSTALL=C:\\\\RD2\\\\RDMAUS.COM /P$' obj/kette_cs.txt"
 dd if=$H of=obj/kette_part.img bs=512 skip=63 count=$NSEK 2>/dev/null
 pruef "3 FAT16 sauber nach Installation" "fsck.fat -n obj/kette_part.img >/dev/null 2>&1"

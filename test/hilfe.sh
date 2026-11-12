@@ -5,8 +5,8 @@ cd "$(dirname "$0")/.."
 IMG=obj/hilfe.img; SER=obj/hilfe_com1.txt; S=/tmp/qmon_hilfe.sock; export QMON=$S; F=0
 cat > obj/ae_hilfe.txt <<'AE'
 @echo off
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\HILFE.EXE T RD2.HLP 0
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\NOTIZ.EXE
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\HILFE.EXE T RD2.HLP 0
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\NOTIZ.EXE
 A:\FDAPM.COM POWEROFF
 AE
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') HILFE.EXE RD2.HLP RDPRN.MOD NOTIZ.EXE VGA16.DRV" FMT=720 bash tools/mkdisk.sh $IMG obj/ae_hilfe.txt >/dev/null 2>&1

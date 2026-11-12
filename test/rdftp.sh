@@ -12,8 +12,8 @@ cat > obj/ae_rdftp.txt <<'AE'
 @echo off
 rem RDTCP.MOD (fuer mkdisk)
 A:\NE2000.COM 0x60 3 0x300
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\RDFTP.EXE T A:\T1\
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RDFTP.EXE T A:\T1\
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\RDFTP.EXE T A:\T1\
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\RDFTP.EXE T A:\T1\
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_rdftp.txt >/dev/null

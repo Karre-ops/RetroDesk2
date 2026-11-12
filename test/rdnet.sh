@@ -8,13 +8,13 @@ IMG=obj/rdnet.img; SER=obj/rdnet_com1.txt; SOCK=/tmp/qmon_rdnet.sock; HOSTLOG=ob
 cat > obj/ae_rdnet.txt <<'AE'
 @echo off
 A:\NE2000.COM 0x60 3 0x300
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\RDNET.EXE T A:\T1\
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RDNET.EXE T A:\T1\
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\RDNET.EXE T A:\T1\
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\RDNET.EXE T A:\T1\
 A:\FDAPM.COM POWEROFF
 AE
-NUR="RD.EXE RDGDI.MOD RDUSER.MOD RDKX.MOD RDCTL.MOD RDCTLX.MOD RDSND.MOD SPEAKER.DRV VGAM.DRV CGA.DRV SYS16.FNT SYS8.FNT SYS14.FNT DE.LNG RDTCP.MOD RDNET.EXE" bash tools/mkdisk.sh $IMG obj/ae_rdnet.txt
+NUR="RD2.EXE RDGDI.MOD RDUSER.MOD RDKX.MOD RDCTL.MOD RDCTLX.MOD RDSND.MOD SPEAKER.DRV VGAM.DRV CGA.DRV SYS16.FNT SYS8.FNT SYS14.FNT DE.LNG RDTCP.MOD RDNET.EXE" bash tools/mkdisk.sh $IMG obj/ae_rdnet.txt
 mcopy -o -i $IMG test/qemu/pkt/NE2000.COM ::/
-mkdir -p obj/rdn/T1; printf 'FILES=20\r\nSHELL=A:\\RD2\\RD.EXE /P A:\\RD2\\SHELL.EXE\r\n' > obj/rdn/T1/CONFIG.SYS
+mkdir -p obj/rdn/T1; printf 'FILES=20\r\nSHELL=A:\\RD2\\RD2.EXE /P A:\\RD2\\SHELL.EXE\r\n' > obj/rdn/T1/CONFIG.SYS
 mmd -i $IMG ::/T1 2>/dev/null; mcopy -o -i $IMG obj/rdn/T1/CONFIG.SYS ::/T1/
 rm -f $SER $SOCK $HOSTLOG obj/rdnet?_*.ppm
 python3 - > $HOSTLOG 2>&1 <<'PY' &

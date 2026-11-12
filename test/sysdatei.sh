@@ -8,7 +8,7 @@
 #   4. FDAPM.COM loeschen: keine Systemwarnung.
 cd "$(dirname "$0")/.."
 IMG=obj/sysd.img; SER=obj/sysd_com1.txt; SOCK=/tmp/qmon_sysd.sock
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_sysd.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_sysd.txt
 bash tools/mkdisk.sh $IMG obj/ae_sysd.txt >/dev/null 2>&1
 mcopy -o -i $IMG obj/ae_sysd.txt ::/FDAPM.TXT     # Opfer fuer Fall 4 (FDAPM.COM braucht der Test zum Ausschalten)
 rm -f $SER $SOCK obj/sysd_*.ppm; touch $SER
@@ -33,7 +33,7 @@ sleep 3; kill $QP 2>/dev/null; wait $QP 2>/dev/null   # AUTOEXEC.BAT ist geloesc
 S=$(tr -d '\r' < $SER)
 chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; ok=0; fi; }
 chk "1 KERNEL.SYS bleibt (Nein vorgewaehlt)"  "mdir -i $IMG ::/KERNEL.SYS >/dev/null 2>&1"
-chk "2 Ordner RD2 heisst noch RD2"             "mdir -i $IMG ::/RD2/RD.EXE >/dev/null 2>&1"
+chk "2 Ordner RD2 heisst noch RD2"             "mdir -i $IMG ::/RD2/RD2.EXE >/dev/null 2>&1"
 chk "3 AUTOEXEC.BAT nach Ja geloescht"         "! mdir -i $IMG ::/AUTOEXEC.BAT >/dev/null 2>&1"
 chk "4 FDAPM.TXT ohne Systemwarnung geloescht" "! mdir -i $IMG ::/FDAPM.TXT >/dev/null 2>&1"
 chk "genau 3 Systemwarnungen"                  "[ \$(echo \"\$S\" | grep -c 'SHELL: Systemwarnung') = 3 ]"

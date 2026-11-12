@@ -1,5 +1,5 @@
 #!/bin/bash
-# RD2 bauen: SDK (RD2START.OBJ, RD2LIB.OBJ), Kern RD.EXE, Programme; Ergebnis in rd2/out, Budgetpruefung.
+# RD2 bauen: SDK (RD2START.OBJ, RD2LIB.OBJ), Kern RD2.EXE, Programme; Ergebnis in rd2/out, Budgetpruefung.
 set -e
 cd "$(dirname "$0")"
 export WATCOM=${WATCOM:-/opt/ow} PATH=/opt/ow/binl64:/opt/ow/binl:$PATH INCLUDE=/opt/ow/h
@@ -26,7 +26,7 @@ nasm -f bin -o obj/ZTEST.COM test/dos/ZTEST.ASM   # Testprogramm fuer test/rdmau
 nasm -f bin -o obj/OBEN.COM test/dos/OBEN.ASM     # Testprogramm fuer test/rundos.sh: beschreibt den Speicher bis A000h
 # Kern: Small, SS != DS (API-Aufrufe kommen mit dem Stack des Programms)
 for c in RD MEM TASK FILE MOD RUNDOS; do wcc -0 -ms -zu -os -ol -s -zq -w4 -bt=dos -i=sdk -fo=obj/k_$c.obj src/kern/$c.C; done
-wlink option quiet system dos name $O/RD.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj/k_TASK.obj,obj/k_FILE.obj,obj/k_MOD.obj,obj/k_RUNDOS.obj,obj/kasm.obj,obj/swap.obj,obj/notsup.obj option map=obj/rd.map >/dev/null
+wlink option quiet system dos name $O/RD2.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj/k_TASK.obj,obj/k_FILE.obj,obj/k_MOD.obj,obj/k_RUNDOS.obj,obj/kasm.obj,obj/swap.obj,obj/notsup.obj option map=obj/rd.map >/dev/null
 # Programme: Medium, ohne Watcom-Startcode
 app() {   # $1 Quelle  $2 EXE  $3 Anzeigename
   wcc -0 -mm $APPFLAGS -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/$2.obj $1

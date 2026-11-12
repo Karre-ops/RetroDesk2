@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 SER=obj/klang_com1.txt; SOCK=/tmp/qmon_klang.sock; : > obj/klang_alle.txt
 lauf() {  # $1 Name  $2 Befehl  $3 RD2.INI-Inhalt (leer = keine)  $4 QEMU-Zusatz
   local IMG=obj/klang_$1.img
-  printf '@echo off\r\nA:\\RD2\\RD.EXE /NOMAUS /CGA A:\\RD2\\SNDTEST.EXE %s\r\nA:\\RD2\\RD.EXE /NOMAUS /CGA A:\\RD2\\SNDTEST.EXE %s\r\nA:\\FDAPM.COM POWEROFF\r\n' $2 $2 > obj/ae_klang.txt
+  printf '@echo off\r\nA:\\RD2\\RD2.EXE /NOMAUS /CGA A:\\RD2\\SNDTEST.EXE %s\r\nA:\\RD2\\RD2.EXE /NOMAUS /CGA A:\\RD2\\SNDTEST.EXE %s\r\nA:\\FDAPM.COM POWEROFF\r\n' $2 $2 > obj/ae_klang.txt
   FMT=720 bash tools/mkdisk.sh $IMG obj/ae_klang.txt   # 720 KB: Testmusik und WAV passen nicht auf 360 KB
   mcopy -i $IMG test/klang/* ::/RD2/
   if [ -n "$3" ]; then printf "$3" > obj/klang_ini.txt; mcopy -o -i $IMG obj/klang_ini.txt ::/RD2/RD2.INI; fi

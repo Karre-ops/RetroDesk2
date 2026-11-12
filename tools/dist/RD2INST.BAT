@@ -4,7 +4,7 @@ REM (z. B. nach dem Laden per FTP mit RetroDesk 1). Aufruf: RD2INST [Quellordner
 REM Ohne Angabe ist der Quellordner C:\RD2NEU. Ordner ohne \ am Ende angeben.
 SET Q=%1
 IF "%Q%"=="" SET Q=C:\RD2NEU
-IF NOT EXIST %Q%\RD.EXE GOTO FEHLT
+IF NOT EXIST %Q%\RD2.EXE GOTO FEHLT
 IF NOT EXIST %Q%\INSTALL.EXE GOTO FEHLT
 IF NOT EXIST %Q%\RD2SETUP.EXE GOTO FEHLT
 IF EXIST %Q%\RD2.INI GOTO SETUP
@@ -15,7 +15,7 @@ GOTO START
 ECHO Einrichtung: Werte pruefen und I druecken.
 %Q%\RD2SETUP.EXE
 :START
-%Q%\RD.EXE %Q%\SHELL.EXE
+%Q%\RD2.EXE %Q%\SHELL.EXE
 GOTO ENDE
 :FEHLT
 ECHO RetroDesk 2 nicht vollstaendig in %Q% gefunden.

@@ -2,7 +2,7 @@
 # Taskmanager: SHELL startet UHR, dann RD > Taskmanager: 2 Programme (SHELL, UHR), UHR beenden -> 1 Programm.
 cd "$(dirname "$0")/.."
 IMG=obj/tm.img; SER=obj/tm_com1.txt; S=/tmp/qmon_tm.sock; export QMON=$S; F=0
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\TASKMAN.EXE T\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_tm.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\TASKMAN.EXE T\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_tm.txt
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') TASKMAN.EXE UHR.EXE" bash tools/mkdisk.sh $IMG obj/ae_tm.txt >/dev/null 2>&1
 rm -f $SER $S; touch $SER
 timeout 130 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

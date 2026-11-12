@@ -8,8 +8,8 @@ IMG=obj/rdshell.img; SER=obj/rdshell_com1.txt; SOCK=/tmp/qmon_rdsh.sock; F=0
 cat > obj/ae_rdshell.txt <<'AE'
 @echo off
 rem RDSHELL.EXE FREIMEM.EXE (fuer mkdisk)
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\RDSHELL.EXE T A:\SK.TXT
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RDSHELL.EXE T A:\SK2.TXT
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\RDSHELL.EXE T A:\SK.TXT
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\RDSHELL.EXE T A:\SK2.TXT
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_rdshell.txt >/dev/null

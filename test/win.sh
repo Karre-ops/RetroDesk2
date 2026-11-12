@@ -5,8 +5,8 @@ cd "$(dirname "$0")/.."
 IMG=obj/win.img; SER=obj/win_com1.txt; SOCK=/tmp/qmon_win.sock
 cat > obj/ae_win.txt <<'AE'
 @echo off
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\WINTEST.EXE
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\WINTEST.EXE
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\WINTEST.EXE
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\WINTEST.EXE
 A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/ae_win.txt

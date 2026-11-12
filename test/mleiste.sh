@@ -4,7 +4,7 @@
 # Maus: QEMU mouse_button 1 = links, 2 = rechts. RDMAUS: 1 QEMU-Einheit = 1 Pixel waagrecht, 0,5 senkrecht (Wege unten = 3x die CTMOUSE-Werte); jeder Weg beginnt oben links (0,0).
 cd "$(dirname "$0")/.."
 IMG=obj/mleiste.img; SER=obj/mleiste_com1.txt; SOCK=/tmp/qmon_mleiste.sock
-printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_mleiste.txt
+printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_mleiste.txt
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_mleiste.txt >/dev/null
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/mleiste?.ppm; touch $SER

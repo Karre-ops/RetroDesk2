@@ -7,7 +7,7 @@ IMG=obj/pk.img; HD=obj/pk_hd.img; SER=obj/pk_com1.txt; S=/tmp/qmon_pk.sock; expo
 cp obj/satz_hd.img $HD
 O=$(python3 -c "import struct;d=open('$HD','rb').read(512);print(struct.unpack('<I',d[454:458])[0]*512)")
 C="-i $HD@@$O"; echo weg > obj/WEG.TXT; mcopy -o $C obj/WEG.TXT ::/; mdeltree $C ::/PAPIERK 2>/dev/null
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\PAPIERK.EXE C\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_pk.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\PAPIERK.EXE C\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_pk.txt
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') PAPIERK.EXE" bash tools/mkdisk.sh $IMG obj/ae_pk.txt >/dev/null 2>&1
 rm -f $SER $S; touch $SER
 timeout 140 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -drive file=$HD,format=raw,if=ide,index=0 -boot a \

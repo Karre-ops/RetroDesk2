@@ -12,7 +12,7 @@ from PIL import Image, ImageChops
 a=Image.open('$1').convert('L'); b=Image.open('$2').convert('L'); print(sum(1 for v in ImageChops.difference(a,b).tobytes() if v))"; }
 lauf() {   # $1 Name, $2 RDMAUS-Schalter, $3 QEMU-Zusatz
   IMG=obj/rdm_$1.img; SER=obj/rdm_$1_com1.txt; SOCK=/tmp/qmon_rdm.sock
-  printf '@echo off\nA:\\RDMAUS.COM %s\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' "$2" > obj/ae_rdm.txt
+  printf '@echo off\nA:\\RDMAUS.COM %s\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' "$2" > obj/ae_rdm.txt
   NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ')" bash tools/mkdisk.sh $IMG obj/ae_rdm.txt >/dev/null 2>&1
   mcopy -o -i $IMG out/RDMAUS.COM ::/ 2>/dev/null || mcopy -o -i $IMG obj/rdm_t.com ::/RDMAUS.COM
   rm -f $SER $SOCK; touch $SER
@@ -36,7 +36,7 @@ lauf() {   # $1 Name, $2 RDMAUS-Schalter, $3 QEMU-Zusatz
 grafik() {   # Treiberzeiger fuer DOS-Programme: ZTEST.COM setzt Modus 3, 6, 4, 13h, 12h und zeigt den Zeiger
   IMG=obj/rdm_grafik.img; SOCK=/tmp/qmon_rdm.sock
   printf '@echo off\nA:\\RDMAUS.COM\nA:\\ZTEST.COM\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_rdmg.txt
-  NUR="RD.EXE" bash tools/mkdisk.sh $IMG obj/ae_rdmg.txt >/dev/null 2>&1
+  NUR="RD2.EXE" bash tools/mkdisk.sh $IMG obj/ae_rdmg.txt >/dev/null 2>&1
   mcopy -o -i $IMG out/RDMAUS.COM ::/; mcopy -o -i $IMG obj/ZTEST.COM ::/
   rm -f $SOCK
   timeout 70 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

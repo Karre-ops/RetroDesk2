@@ -6,7 +6,7 @@ RetroDesk 2 ist freie Software.
 1. Ganz RetroDesk 2 steht unter der GNU General Public License
    Version 2 oder (nach Ihrer Wahl) jeder spaeteren Version, die die
    Free Software Foundation veroeffentlicht (Text: COPYING).
-   Das gilt fuer Kern (RD.EXE), Module (.MOD), Treiber (.DRV, .COM),
+   Das gilt fuer Kern (RD2.EXE), Module (.MOD), Treiber (.DRV, .COM),
    Shell, alle mitgelieferten Programme, Schriften, Symbole, Hilfe,
    Installation und das SDK (RD2.H, RD2API.H, RD2DRV.H, RD2ORD.H,
    RD2START.ASM, RD2MOD.ASM, RD2PAS.ASM, RD2.LIB, RD2.PAS).

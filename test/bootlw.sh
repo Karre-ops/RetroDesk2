@@ -8,8 +8,8 @@ Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
 for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
 [ -f obj/inst_hd.img ] || { echo "FEHLER obj/inst_hd.img fehlt (erst test/install.sh)"; exit 1; }
 HD=obj/blw_hd.img; cp obj/inst_hd.img $HD; P="-i $HD@@32256"
-mcopy -o $P out/RD.EXE ::/RD2/RD.EXE
-printf 'SHELL=C:\\RD2\\RD.EXE /P /NOMAUS /VGA C:\\RD2\\OPTIONEN.EXE T\r\n' > obj/blw_cs.tmp; mcopy -o $P obj/blw_cs.tmp ::/CONFIG.SYS
+mcopy -o $P out/RD2.EXE ::/RD2/RD2.EXE
+printf 'SHELL=C:\\RD2\\RD2.EXE /P /NOMAUS /VGA C:\\RD2\\OPTIONEN.EXE T\r\n' > obj/blw_cs.tmp; mcopy -o $P obj/blw_cs.tmp ::/CONFIG.SYS
 rm -f $S $SER; touch $SER
 timeout 60 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$HD,format=raw,if=ide,index=0 -boot c \
   -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &

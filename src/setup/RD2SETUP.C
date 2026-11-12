@@ -1,10 +1,10 @@
 /* RD2SETUP.C - Einrichtung und Installation von RetroDesk 2.
  * Eigenes DOS-Programm (Textmodus, laeuft ab DOS 3 ohne RetroDesk). Erkennt die Hardware
  * EINMAL, zeigt sie als Liste, laesst jeden Wert aendern und schreibt [System] in RD2.INI.
- * RD.EXE selbst tastet nichts mehr ab, es liest nur RD2.INI (und ruft dieses Programm
+ * RD2.EXE selbst tastet nichts mehr ab, es liest nur RD2.INI (und ruft dieses Programm
  * beim allerersten Start auf, wenn RD2.INI fehlt).
  *   RD2SETUP          Liste, Aendern, Speichern, Installieren
- *   RD2SETUP /ERST    wie oben, mit Hinweis "erster Start" (ruft RD.EXE)
+ *   RD2SETUP /ERST    wie oben, mit Hinweis "erster Start" (ruft RD2.EXE)
  *   RD2SETUP /AUTO    nur erkennen und speichern, ohne Rueckfrage (Tests, Stapeldateien)
  * Maus: heute nutzt RD2 den DOS-Treiber (INT 33h). Die Maus-Hardware wird trotzdem schon
  * erkannt und als MausHW= gespeichert, fuer den eigenen Treiber MAUS.DRV. */
@@ -428,7 +428,7 @@ static int finden(const char *w, char *aus, char lw)   /* Programm mit vollem Pf
 static WORD janein(int y, const char *frage) { WORD t; zeile(y, frage); t = taste() & 0xFF; return t == 'j' || t == 'J' || t == 'y' || t == 'Y'; }
 static const char *nicht[] = { "REM", "ECHO", "SET", "PATH", "PROMPT", "CLS", "GOTO", "IF", "CALL", "PAUSE", "FOR", "SHIFT",
                                "VER", "CD", "CHDIR", "COMMAND", "WIN", "DOSSHELL", "EXIT", 0 };
-/* G21: RD.EXE als Shell (SHELL= in CONFIG.SYS). Ohne CONFIG.SYS und AUTOEXEC.BAT (neues System) ohne Rueckfrage,
+/* G21: RD2.EXE als Shell (SHELL= in CONFIG.SYS). Ohne CONFIG.SYS und AUTOEXEC.BAT (neues System) ohne Rueckfrage,
    sonst Sicherung CONFIG.RDA und Rueckfrage je Programmzeile der AUTOEXEC.BAT (wird als INSTALL= uebernommen).
    Rueckgabe: 1 geaendert (Sicherung CONFIG.RDA), 3 neu angelegt, 2 schon eingetragen, 0 Fehler, -1 Datei zu gross, -2 abgelehnt */
 static int shell_eintragen(const char *ziel, int y, int *verloren)
@@ -437,7 +437,7 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
     sprintf(cs, "%c:\\CONFIG.SYS", ziel[0]); sprintf(z, "%c:\\AUTOEXEC.BAT", ziel[0]);
     alt = gibts(cs) || gibts(z); *verloren = 0;
     n = lesen(cs); if (n == sizeof buf - 1) return -1;
-    strcpy(neu, buf); strupr(neu); kbda = strstr(neu, "KEYB") != 0; sprintf(z, "%sRD.EXE", ziel);   /* Tastaturtreiber schon in CONFIG.SYS */
+    strcpy(neu, buf); strupr(neu); kbda = strstr(neu, "KEYB") != 0; sprintf(z, "%sRD2.EXE", ziel);   /* Tastaturtreiber schon in CONFIG.SYS */
     if (strstr(neu, z)) return 2;
     if (alt && !janein(y, "RD2 als Shell in CONFIG.SYS eintragen (J/N)?")) return -2;
     if (n) { sprintf(z, "%c:\\CONFIG.RDA", ziel[0]); if (!kopieren(cs, z)) return 0; lesen(cs); }
@@ -451,7 +451,7 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
         c = *e; *e = 0; NEU(a); *e = c;
     }
     if (o && neu[o - 1] != '\n') NEU("\r\n");
-    sprintf(z, "SHELL=%sRD.EXE /P %sSHELL.EXE\r\n", ziel, ziel); NEU(z);   /* Startprogramm: ohne es meldet RD nur den Aufruf */
+    sprintf(z, "SHELL=%sRD2.EXE /P %sSHELL.EXE\r\n", ziel, ziel); NEU(z);   /* Startprogramm: ohne es meldet RD nur den Aufruf */
     if (alt) {                                    /* Programme aus AUTOEXEC.BAT uebernehmen? */
         sprintf(z, "%c:\\AUTOEXEC.BAT", ziel[0]); n = lesen(z);
         for (a = buf; *a; a = e) {
@@ -468,7 +468,7 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
             memcpy(w, q, m); w[m] = 0; strupr(w);
             for (i = 0; nicht[i] && stricmp(w, nicht[i]); i++) ;
             if (nicht[i]) { if (i == 3 || i == 2) *verloren = 1; continue; }   /* SET/PATH gelten ohne COMMAND.COM nicht */
-            if (strstr(w, "RD.EXE") || strstr(w, "RD2SETUP")) continue;
+            if (strstr(w, "RD2.EXE") || strstr(w, "RD.EXE") || strstr(w, "RD2SETUP")) continue;
             if (!finden(w, pf, ziel[0])) continue;
             sprintf(z, "Uebernehmen (J/N)? %.58s", q);
             if (!janein(y, z)) continue;

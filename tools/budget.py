@@ -28,7 +28,7 @@ for f in sorted(os.listdir(out)):
     if f.upper() == f and f not in lim and f.endswith((".EXE", ".MOD", ".DRV", ".FNT", ".LNG")):
         print(f"FEHLER {f:13} fehlt in budget.txt"); err += 1
 # Profil Schnell (8088, 640 KB): was immer im Speicher liegt. Verwerfbares und Schriften zaehlen nicht.
-fest = ["RD.EXE", "RDGDI.MOD", "RDUSER.MOD", "RDSND.MOD", "SPEAKER.DRV"]
+fest = ["RD2.EXE", "RDGDI.MOD", "RDUSER.MOD", "RDSND.MOD", "SPEAKER.DRV"]
 drv = max([belegt.get(d, 0) for d in ("CGA.DRV", "HGC.DRV", "VGAM.DRV")] or [0])
 summe = sum(belegt.get(f, 0) for f in fest) + drv
 ok = summe <= lim.get("@RESIDENT_SCHNELL", 1 << 30); err += not ok

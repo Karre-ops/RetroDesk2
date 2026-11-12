@@ -4,7 +4,7 @@
 # gegen mdir), Haken im Menue umgeschaltet, Bildvergleich obj/liste_{auf,runter}.ppm.
 cd "$(dirname "$0")/.."
 IMG=obj/liste.img; SER=obj/liste_com1.txt; SOCK=/tmp/qmon_liste.sock
-printf '@echo off\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_liste.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_liste.txt
 bash tools/mkdisk.sh $IMG obj/ae_liste.txt >/dev/null
 rm -f $SER $SOCK obj/liste_*.ppm; touch $SER
 timeout 150 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

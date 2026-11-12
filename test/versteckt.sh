@@ -2,7 +2,7 @@
 # Ansicht > Versteckte Dateien (SHELL): GEHEIM.TXT (versteckt) erscheint erst nach dem Schalter, Zahl gegen mtools.
 cd "$(dirname "$0")/.."
 IMG=obj/verst.img; SER=obj/verst_com1.txt; S=/tmp/qmon_verst.sock; export QMON=$S; F=0
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_verst.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_verst.txt
 bash tools/mkdisk.sh $IMG obj/ae_verst.txt >/dev/null 2>&1
 echo geheim > obj/GEHEIM.TXT; mcopy -o -i $IMG obj/GEHEIM.TXT ::/; mattrib -i $IMG +h ::/GEHEIM.TXT
 alle=$(mdir -i $IMG -a -b :: | wc -l); sicht=$(mdir -i $IMG -b :: | wc -l)

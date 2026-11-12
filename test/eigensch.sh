@@ -3,7 +3,7 @@
 # Schreibgeschuetzt ankreuzen (Alt+S), OK -> Attribut auf der Diskette gesetzt. Dann Ordner: Groesse "Ordner".
 cd "$(dirname "$0")/.."
 IMG=obj/eig.img; SER=obj/eig_com1.txt; S=/tmp/qmon_eig.sock; export QMON=$S; F=0
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_eig.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_eig.txt
 bash tools/mkdisk.sh $IMG obj/ae_eig.txt >/dev/null 2>&1
 G=$(mdir -i $IMG ::/AUTOEXEC.BAT | awk '/AUTOEXEC/{print $3}')
 rm -f $SER $S

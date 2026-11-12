@@ -7,7 +7,7 @@ SER=obj/prn_com1.txt; F=0; : > obj/prn_alle.txt; SOCK=/tmp/qmon_prn.sock
 sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_prn.py
 lauf() {  # $1 Name  $2 PRNTEST-Befehl  $3 RD2.INI  $4 QEMU-Zusatz
   local IMG=obj/prn_$1.img
-  printf '@echo off\r\nA:\\RD2\\RD.EXE /NOMAUS /CGA A:\\RD2\\PRNTEST.EXE %s\r\nA:\\FDAPM.COM POWEROFF\r\n' "$2" > obj/ae_prn.txt
+  printf '@echo off\r\nA:\\RD2\\RD2.EXE /NOMAUS /CGA A:\\RD2\\PRNTEST.EXE %s\r\nA:\\FDAPM.COM POWEROFF\r\n' "$2" > obj/ae_prn.txt
   FMT=720 bash tools/mkdisk.sh $IMG obj/ae_prn.txt
   printf "$3" > obj/prn_ini.txt; mcopy -o -i $IMG obj/prn_ini.txt ::/RD2/RD2.INI
   rm -f $SER obj/prn_$1.out

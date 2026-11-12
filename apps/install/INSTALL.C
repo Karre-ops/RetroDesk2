@@ -175,7 +175,7 @@ static short config(void)                         /* 1 eingetragen (alt gesicher
     alt = gibts(cs) || gibts(ab); verloren = 0;
     if ((n = lesen(cs)) == 0xFFFF) return -1;
     strcpy(neu, buf); strupr(neu); kbda = strstr(neu, "KEYB") != 0;
-    cpy(z, ziel); cat(z, "RD.EXE"); if (strstr(neu, z)) return 2;
+    cpy(z, ziel); cat(z, "RD2.EXE"); if (strstr(neu, z)) return 2;
     if (alt && !frage(StrGet(hi, 9))) return -2;
     if (n) { cpy(z, cs); z[strlen(z) - 3] = 0; cat(z, "RDA"); if (!kopieren(cs, z, 0)) return 0; lesen(cs); }
     #define NEU(t) do { m = (WORD)strlen(t); if (o + m >= sizeof neu) return -1; memcpy(neu + o, t, m); o += m; } while (0)
@@ -188,7 +188,7 @@ static short config(void)                         /* 1 eingetragen (alt gesicher
         c = *e; *e = 0; NEU(a); *e = c;
     }
     if (o && neu[o - 1] != '\n') NEU("\r\n");
-    cpy(z, "SHELL="); cat(z, ziel); cat(z, "RD.EXE /P "); cat(z, ziel); cat(z, "SHELL.EXE\r\n"); NEU(z);
+    cpy(z, "SHELL="); cat(z, ziel); cat(z, "RD2.EXE /P "); cat(z, ziel); cat(z, "SHELL.EXE\r\n"); NEU(z);
     if (alt) {                                    /* Programme aus AUTOEXEC.BAT uebernehmen? */
         lesen(ab); pathz[0] = 0;
         for (a = buf; *a; a = e) {
@@ -209,7 +209,7 @@ static short config(void)                         /* 1 eingetragen (alt gesicher
             memcpy(w, q, m); w[m] = 0; strupr(w);
             for (i = 0; nicht[i] && stricmp(w, nicht[i]); i++) ;
             if (nicht[i]) { if (i == 3 || i == 2) verloren = 1; continue; }   /* SET/PATH gelten ohne COMMAND.COM nicht */
-            if (strstr(w, "RD.EXE") || strstr(w, "RD2SETUP")) continue;
+            if (strstr(w, "RD2.EXE") || strstr(w, "RD.EXE") || strstr(w, "RD2SETUP")) continue;
             if (!finden(w, pf)) continue;
             cpy(z, StrGet(hi, 10)); strncat(z, q, 60);
             if (!frage(z)) continue;
@@ -268,7 +268,7 @@ static BOOL formatieren(void)                     /* C: mit RDFORMAT (Diskette 2
         TaskYield();
     }
     ShowWindow(dl, SW_SHOW); SetActive(dl); malen();
-    einlegen("RD.EXE", 6);
+    einlegen("RD2.EXE", 6);
     return FileFindFirst("C:\\*.*", FA_DIR | FA_HIDDEN | FA_SYSTEM | FA_RDONLY, &fd) != 0;   /* nichts mehr auf C: */
 }
 static void install2(void)
@@ -305,7 +305,7 @@ static void install2(void)
             if (einlegen(mk[n], 4 + n)) { CursorBusy(TRUE); diskette(); } else CursorBusy(TRUE);
         }
         CursorBusy(FALSE);
-        einlegen("RD.EXE", 6);                    /* RD2 laeuft von Diskette 1: zurueck, bevor es weitergeht */
+        einlegen("RD2.EXE", 6);                    /* RD2 laeuft von Diskette 1: zurueck, bevor es weitergeht */
         CursorBusy(TRUE);
     }
     dnr = 3; gesamt = fertig = 0; balken();

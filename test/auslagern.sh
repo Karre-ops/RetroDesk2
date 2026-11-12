@@ -7,12 +7,12 @@ R=obj/dbxa; F=0
 for lauf in "386 true c ja" "8086 false c ja" "8086 false a nein" "8086 false c aus"; do
   set -- $lauf
   python3 -c "import shutil; shutil.rmtree('$R', True)"; mkdir -p $R/RD2
-  cp out/RD.EXE out/*.MOD out/*.DRV out/*.FNT out/*.LNG out/RDSWAP.BIN out/AUSLTEST.EXE $R/RD2/
+  cp out/RD2.EXE out/*.MOD out/*.DRV out/*.FNT out/*.LNG out/RDSWAP.BIN out/AUSLTEST.EXE $R/RD2/
   [ $4 = aus ] && printf '[System]\r\nAuslagern=0\r\n' > $R/RD2/RD2.INI || printf '[System]\r\nGrafik=VGAM\r\n' > $R/RD2/RD2.INI
   printf '[sdl]\nfullscreen=false\n[dosbox]\nmachine=vgaonly\nmemsize=4\n[cpu]\ncore=normal\ncputype=%s\ncycles=fixed 20000\n[mixer]\nnosound=true\n[speaker]\npcspeaker=false\n[dos]\nxms=%s\numb=false\n' $1 $2 > $R/dbx.conf
   if [ $3 = a ]; then M=(-c "mount a $R -t floppy" -c "a:"); else M=(-c "mount c $R" -c "c:"); fi
   SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy timeout -s KILL ${TO:-200} dosbox -conf $R/dbx.conf "${M[@]}" -c "cd \\RD2" \
-    -c "$3:\\RD2\\RD.EXE /D AUSLTEST.EXE > \\LOG.TXT" -c exit >/dev/null 2>&1
+    -c "$3:\\RD2\\RD2.EXE /D AUSLTEST.EXE > \\LOG.TXT" -c exit >/dev/null 2>&1
   L=$(tr -d '\r' < $R/LOG.TXT 2>/dev/null)
   chk() { if echo "$L" | grep -q "$1"; then echo "ok     $2"; else echo "FEHLER $2"; F=1; fi; }
   echo "=== $1 xms=$2 Laufwerk $3 Auslagern $4: $(echo "$L" | grep -a "angelegt" | awk '{print $NF}') Bloecke, $(echo "$L" | grep -a "Auslagern nach" | sed 's/, Platte.*//; s/.*Auslagern //')"

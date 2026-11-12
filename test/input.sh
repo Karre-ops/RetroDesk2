@@ -7,7 +7,7 @@ IMG=obj/inp.img; SER=obj/inp_com1.txt; SOCK=/tmp/qmon_inp.sock
 cat > obj/ae_inp.txt <<AE
 @echo off
 A:\\RDMAUS.COM
-A:\\RD2\\RD.EXE /$K A:\\RD2\\INPTEST.EXE
+A:\\RD2\\RD2.EXE /$K A:\\RD2\\INPTEST.EXE
 A:\\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_inp.txt

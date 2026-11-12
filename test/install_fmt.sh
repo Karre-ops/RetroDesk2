@@ -41,9 +41,9 @@ schritt "SHELL: bereit" "RDSYS gelaufen, RD2 wieder da" 2 90
 schritt "INSTALL: Schluss" "nach dem Neustart: Schlussmeldung mit Neustart-Frage" 1 30
 sleep 2; Q quit; wait $QP 2>/dev/null
 P=$HD@@32256
-for f in KERNEL.SYS CONFIG.SYS RD2/RD.EXE RD2/SHELL.EXE RD2/RDFORMAT.EXE RD2/RDNET.EXE; do mdir -i $P ::/$f >/dev/null 2>&1 || { echo "FEHLER C:\\$f fehlt"; F=1; }; done
+for f in KERNEL.SYS CONFIG.SYS RD2/RD2.EXE RD2/SHELL.EXE RD2/RDFORMAT.EXE RD2/RDNET.EXE; do mdir -i $P ::/$f >/dev/null 2>&1 || { echo "FEHLER C:\\$f fehlt"; F=1; }; done
 for f in IO.SYS SPIELE; do mdir -i $P ::/$f >/dev/null 2>&1 && { echo "FEHLER C:\\$f noch da"; F=1; }; done
-mtype -i $P ::/CONFIG.SYS | tr -d '\r' | grep -q "^SHELL=C:.RD2.RD.EXE" && ! mtype -i $P ::/CONFIG.SYS | grep -q COMMAND && echo "ok     CONFIG.SYS neu, RD2 ist die Shell" || { echo "FEHLER CONFIG.SYS"; F=1; }
+mtype -i $P ::/CONFIG.SYS | tr -d '\r' | grep -q "^SHELL=C:.RD2.RD2.EXE" && ! mtype -i $P ::/CONFIG.SYS | grep -q COMMAND && echo "ok     CONFIG.SYS neu, RD2 ist die Shell" || { echo "FEHLER CONFIG.SYS"; F=1; }
 rm -f $S
 timeout 100 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$HD,format=raw,if=ide,index=0 -boot c -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!; ok=0

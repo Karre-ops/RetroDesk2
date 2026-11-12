@@ -35,7 +35,7 @@ S_MODE  equ 76      ; 0 = auslagern und zurueck, 1 = Neustart (ohne XMS und Fest
 S_PATH  equ 78      ; Programmname
 S_TAIL  equ 158     ; Befehlszeile (DOS-Form)
 S_FCB   equ 286
-S_RDP   equ 318     ; RD2-Verzeichnis (vom Kern), der Rest haengt RD.EXE bzw. RD2SWAP.$$$ an
+S_RDP   equ 318     ; RD2-Verzeichnis (vom Kern), der Rest haengt RD2.EXE bzw. RD2SWAP.$$$ an
 S_SPX   equ 398     ; Stack beim Programmstart
 S_DATA  equ 400     ; danach Code und Meldungen
 CODEMAX equ 2240    ; Code endet spaetestens hier (build.sh prueft)
@@ -263,7 +263,7 @@ iv_1:   mov  ds:[S_CUR], bx
         jc   xf_err
         jmp  xf_loop
 ; Neustart: Kern und Arena sind schon frei (RD hat sich beendet). Schleife: Programm,
-; dann RD.EXE /W:seg + alte Befehlszeile. Endet dieses RD mit Code 0D5h, hat es hier das
+; dann RD2.EXE /W:seg + alte Befehlszeile. Endet dieses RD mit Code 0D5h, hat es hier das
 ; naechste Programm eingetragen.
 st_neu0:
         call st_cat
@@ -420,7 +420,7 @@ st_exec:
         ret
 
 
-; Hauptumgebung (PLAN_DOS Schritt 1, 08.11.2026): Hat RD selbst kein COMSPEC (SHELL=RD.EXE,
+; Hauptumgebung (PLAN_DOS Schritt 1, 08.11.2026): Hat RD selbst kein COMSPEC (SHELL=RD2.EXE,
 ; niemand hat AUTOEXEC.BAT ausgefuehrt), baut der Rest ab ENVO eine Umgebung aus den SET- und
 ; PATH-Zeilen der AUTOEXEC.BAT (Startlaufwerk, sonst C:) und setzt COMSPEC. Sonst erbt das Programm.
 st_env: push bp                          ; bp gehoert dem Kern (C-Aufrufer)
@@ -619,7 +619,7 @@ sp_ok:  mov  ah, 4Dh
         int  16h
 sp_e:   ret
 
-; RD.EXE neu starten: Befehlszeile " /W:ssss" + alte Befehlszeile aus dem PSP
+; RD2.EXE neu starten: Befehlszeile " /W:ssss" + alte Befehlszeile aus dem PSP
 st_rdneu:
         push ds
         pop  es
@@ -755,7 +755,7 @@ xf_ok:  clc
 xf_err: stc
         ret
 
-st_rdexe db 'RD.EXE', 0
+st_rdexe db 'RD2.EXE', 0
 st_swpn db 'RD2SWAP.$$$', 0
 st_smsg db 13, 10, 'RD2 beendet. Taste: neu starten$'
 st_msg  db 13, 10, 'Taste druecken...$'

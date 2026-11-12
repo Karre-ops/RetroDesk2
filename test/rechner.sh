@@ -6,8 +6,8 @@ IMG=obj/rechner.img; SER=obj/rechner_com1.txt; SOCK=/tmp/qmon_rechner.sock
 cat > obj/ae_rechner.txt <<'AE'
 @echo off
 A:\RDMAUS.COM
-A:\RD2\RD.EXE /VGA A:\RD2\RECHNER.EXE T
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\RECHNER.EXE T
+A:\RD2\RD2.EXE /VGA A:\RD2\RECHNER.EXE T
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\RECHNER.EXE T
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_rechner.txt

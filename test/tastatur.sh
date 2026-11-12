@@ -9,7 +9,7 @@ cat > obj/ae_tast.txt <<'AE'
 A:\RD2\RDKEYB.COM DE > A:\K1.TXT
 A:\RD2\RDKEYB.COM DE > A:\K2.TXT
 A:\KEYTEST.COM
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\INPTEST.EXE
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\INPTEST.EXE
 A:\FDAPM.COM POWEROFF
 AE
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') INPTEST.EXE" FMT=720 bash tools/mkdisk.sh $IMG obj/ae_tast.txt >/dev/null 2>&1

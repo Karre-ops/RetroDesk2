@@ -2,7 +2,7 @@
 # Audit M4: RDFORMAT zweimal gestartet. Das zweite meldet Text 34 und endet, das erste laeuft weiter.
 cd "$(dirname "$0")/.."
 IMG=obj/dfmt.img; SER=obj/dfmt_com1.txt; SOCK=/tmp/qmon_dfmt.sock
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\DOPPFMT.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_dfmt.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\DOPPFMT.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_dfmt.txt
 NUR="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDDISK.MOD DOPPFMT.EXE" FMT=720 bash tools/mkdisk.sh $IMG obj/ae_dfmt.txt >/dev/null 2>&1
 rm -f $SER $SOCK obj/dfmt_*.ppm obj/dfmt_b.img
 mformat -C -f 360 -v ALTDISK -i obj/dfmt_b.img :: && echo "alte Daten" > obj/alt.txt && mcopy -i obj/dfmt_b.img obj/alt.txt ::/ALT.TXT
@@ -34,7 +34,7 @@ f.write(mbr); f.close()
 PY
 for FALL in F G; do
   [ $FALL = F ] && M="RDFORMAT: Meldung 35" || M="RDFDISK: Meldung 24"
-  printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\DOPPFMT.EXE %s\nA:\\FDAPM.COM POWEROFF\n' $FALL > obj/ae_dfmt.txt
+  printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\DOPPFMT.EXE %s\nA:\\FDAPM.COM POWEROFF\n' $FALL > obj/ae_dfmt.txt
   NUR="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDFDISK.EXE RDDISK.MOD DOPPFMT.EXE" FMT=720 bash tools/mkdisk.sh $IMG obj/ae_dfmt.txt >/dev/null || { echo "FEHLER Diskette"; F=1; }
   rm -f $SER $SOCK
   timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 \

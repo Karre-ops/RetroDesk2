@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 SOCK=/tmp/qmon_fmt.sock
 cat > obj/ae_fmt.txt <<'AE'
 @echo off
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\RDFORMAT.EXE B:
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\RDFORMAT.EXE B:
 A:\FDAPM.COM POWEROFF
 AE
 NUR="$(awk '$4=="S" && $1!="RDSYS.EXE"{print $1}' tools/budget.txt | tr '\n' ' ') RDFORMAT.EXE RDDISK.MOD" FMT=720 bash tools/mkdisk.sh obj/fmt.img obj/ae_fmt.txt >/dev/null

@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 IMG=obj/rdfo.img; SER=obj/rdfo_com1.txt; SOCK=/tmp/qmon_rdfo.sock; HOSTLOG=obj/rdfo_host.txt; R=obj/rdfo_root; F=0
 for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
 for p in /proc/[0-9]*; do case "$(tr '\0' ' ' < $p/cmdline 2>/dev/null)" in "python3 test/ftpserver.py "*) kill ${p#/proc/} 2>/dev/null;; esac; done
-printf '@echo off\r\nrem RDTCP.MOD (fuer mkdisk)\r\nA:\\NE2000.COM 0x60 3 0x300\r\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\RDFTP.EXE T A:\\T1\\\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ae_rdfo.txt
+printf '@echo off\r\nrem RDTCP.MOD (fuer mkdisk)\r\nA:\\NE2000.COM 0x60 3 0x300\r\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\RDFTP.EXE T A:\\T1\\\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ae_rdfo.txt
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_rdfo.txt >/dev/null 2>&1
 mcopy -o -i $IMG test/qemu/pkt/NE2000.COM ::/
 rm -rf obj/rdfo_root obj/rdfo_t1 obj/rdfo_aus; mkdir -p "obj/rdfo_root/srvdir/sub dir" obj/rdfo_t1/ORD/UNTER obj/rdfo_aus

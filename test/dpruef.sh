@@ -4,11 +4,11 @@
 # Funde; danach FAT 1 = FAT 2, Cluster 300 frei, Dateien unversehrt.
 cd "$(dirname "$0")/.."
 IMG=obj/dp.img; DSK=obj/dp_b.img; SER=obj/dp_com1.txt; S=/tmp/qmon_dp.sock; export QMON=$S; F=0
-printf '@echo off\nA:\\RD2\\RD.EXE /NOMAUS /VGA A:\\RD2\\DPRUEF.EXE T B:\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_dp.txt
+printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\DPRUEF.EXE T B:\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_dp.txt
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') DPRUEF.EXE RDDISK.MOD" bash tools/mkdisk.sh $IMG obj/ae_dp.txt >/dev/null 2>&1
 rm -f $DSK; mformat -C -f 360 -v PRUEF -i $DSK ::; mmd -i $DSK ::/SPIELE; mmd -i $DSK ::/SPIELE/ALT
-mcopy -i $DSK out/RD.EXE ::/SPIELE/; mcopy -i $DSK out/SHELL.EXE ::/SPIELE/ALT/; mcopy -i $DSK tools/budget.txt ::/
-md5a=$(mtype -i $DSK ::/SPIELE/RD.EXE | md5sum)
+mcopy -i $DSK out/RD2.EXE ::/SPIELE/; mcopy -i $DSK out/SHELL.EXE ::/SPIELE/ALT/; mcopy -i $DSK tools/budget.txt ::/
+md5a=$(mtype -i $DSK ::/SPIELE/RD2.EXE | md5sum)
 python3 - $DSK <<'PY'
 import sys
 f=open(sys.argv[1],'r+b'); d=bytearray(f.read())
@@ -37,5 +37,5 @@ f1=d[512:512+1024]; f2=d[512+1024:512+2048]
 c=300; o=c*3//2; v=(f1[o]|(f1[o+1]<<8)); v = v>>4 if c&1 else v&0xFFF
 sys.exit(0 if f1==f2 and v==0 else 1)
 PY
-[ "$(mtype -i $DSK ::/SPIELE/RD.EXE | md5sum)" = "$md5a" ] && echo "ok     Dateien unversehrt" || { echo "FEHLER Datei veraendert"; F=1; }
+[ "$(mtype -i $DSK ::/SPIELE/RD2.EXE | md5sum)" = "$md5a" ] && echo "ok     Dateien unversehrt" || { echo "FEHLER Datei veraendert"; F=1; }
 [ $F = 0 ] && echo "Datentraeger pruefen: alles ok"; exit $F

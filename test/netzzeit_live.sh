@@ -9,7 +9,7 @@ IMG=obj/nzlive.img; SER=obj/nzlive_com1.txt; SOCK=/tmp/qmon_nzl.sock; HOSTLOG=ob
 cat > obj/ae_nzl.txt <<'AE'
 @echo off
 rem RDTCP.MOD A:\RD2\UHR.EXE A:\RD2\RDNET.EXE (fuer mkdisk)
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\SHELL.EXE
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\SHELL.EXE
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_nzl.txt >/dev/null   # 360 KB reichen nicht fuer Shell, Netz und Paketreiber

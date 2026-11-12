@@ -6,7 +6,7 @@
 # Danach ZIEL oeffnen, CONFIG.SYS auf "A:" der Laufwerksleiste ziehen (zurueck nach A:\), Klick auf "A:" in der Laufwerksleiste: Ordner A:\ wird neu gelesen. Bilder obj/desk3_zug.ppm, obj/desk3_lw.ppm.
 cd "$(dirname "$0")/.."
 IMG=obj/desk3.img; SER=obj/desk3_com1.txt; SOCK=/tmp/qmon_desk3.sock
-printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_desk3.txt
+printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_desk3.txt
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_desk3.txt >/dev/null
 mcopy -i $IMG out/RDMAUS.COM ::/
 rm -f $SER $SOCK obj/desk3_zug.ppm obj/desk3_lw.ppm; touch $SER

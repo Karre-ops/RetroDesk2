@@ -5,8 +5,8 @@ cd "$(dirname "$0")/.."
 IMG=obj/menu.img; SER=obj/menu_com1.txt; SOCK=/tmp/qmon_menu.sock
 cat > obj/ae_menu.txt <<'AE'
 @echo off
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\MENUTEST.EXE
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\MENUTEST.EXE
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\MENUTEST.EXE
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\MENUTEST.EXE
 A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/ae_menu.txt

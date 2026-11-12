@@ -5,8 +5,8 @@ cd "$(dirname "$0")/.."
 IMG=obj/uhr.img; SER=obj/uhr_com1.txt; SOCK=/tmp/qmon_uhr.sock
 cat > obj/ae_uhr.txt <<'AE'
 @echo off
-A:\RD2\RD.EXE /NOMAUS /CGA A:\RD2\UHR.EXE T
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\UHR.EXE T
+A:\RD2\RD2.EXE /NOMAUS /CGA A:\RD2\UHR.EXE T
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\UHR.EXE T
 A:\FDAPM.COM POWEROFF
 AE
 bash tools/mkdisk.sh $IMG obj/ae_uhr.txt

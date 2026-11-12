@@ -7,10 +7,10 @@ R=obj/dbx; F=0
 for k in ${KARTEN:-cga hgc vga}; do
   case $k in vga) MACH=vgaonly; OPT=/VGA;; hgc) MACH=hercules; OPT=/HGC;; *) MACH=cga; OPT=/CGA;; esac
   python3 -c "import shutil; shutil.rmtree('$R', True)"; mkdir -p $R/RD2
-  cp out/RD.EXE out/*.MOD out/*.DRV out/*.FNT out/$P.EXE $R/RD2/
+  cp out/RD2.EXE out/*.MOD out/*.DRV out/*.FNT out/$P.EXE $R/RD2/
   printf '[sdl]\nfullscreen=false\n[dosbox]\nmachine=%s\nmemsize=1\n[cpu]\ncore=normal\ncputype=8086\ncycles=fixed 2000\n[mixer]\nnosound=true\n[speaker]\npcspeaker=false\n[serial]\nserial1=file file:%s/com1.txt\n' $MACH $PWD/$R > $R/dbx.conf
   SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy timeout 240 dosbox -conf $R/dbx.conf -c "mount c $R" -c "c:" -c "cd \\RD2" \
-    -c "C:\\RD2\\RD.EXE /D /NOMAUS $OPT $P.EXE $STUFE > \\LOG.TXT" -c exit >/dev/null 2>&1
+    -c "C:\\RD2\\RD2.EXE /D /NOMAUS $OPT $P.EXE $STUFE > \\LOG.TXT" -c exit >/dev/null 2>&1
   echo "--- $k"
   tr -d '\r' < $R/LOG.TXT | sed -n '/^-$/,$p' | grep -E "$P|RDGDI|SPEICHER|Speicher voll|Fehler"
   rm -f obj/${B}_$k.ppm obj/${B}_${k}_gross.png   # kein altes Bild vergleichen

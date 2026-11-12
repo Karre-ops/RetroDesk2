@@ -60,15 +60,15 @@ fi
 sleep 2; Q quit; wait $QP 2>/dev/null
 P=$HD@@32256
 K=KERNEL.SYS; [ $FALL = 2 ] && K=
-for f in $K CONFIG.SYS RD2/RD.EXE RD2/SHELL.EXE RD2/RDMAUS.COM RD2/RD2.INI RD2/FARBSYM.DAT RD2/VGA16.DRV RD2/RDFDISK.EXE RD2/RDNET.EXE RD2/RDFTP.EXE RD2/INSTALL.EXE; do
+for f in $K CONFIG.SYS RD2/RD2.EXE RD2/SHELL.EXE RD2/RDMAUS.COM RD2/RD2.INI RD2/FARBSYM.DAT RD2/VGA16.DRV RD2/RDFDISK.EXE RD2/RDNET.EXE RD2/RDFTP.EXE RD2/INSTALL.EXE; do
   mdir -i $P ::/$f >/dev/null 2>&1 || { echo "FEHLER C:\\$f fehlt"; F=1; }
 done
 [ $F = 0 ] && echo "ok     Dateien aller drei Disketten${K:+ und KERNEL.SYS} auf C:"
 mtype -i $P ::/CONFIG.SYS | tr -d '\r' > obj/inst_config.sys
 if [ $FALL = 1 ]; then
-  grep -q "SHELL=C:\\\\RD2\\\\RD.EXE" obj/inst_config.sys && grep -q "RDMAUS.COM" obj/inst_config.sys && echo "ok     CONFIG.SYS: RD2 ist die Shell, RDMAUS" || { echo "FEHLER CONFIG.SYS"; cat obj/inst_config.sys; F=1; }
+  grep -q "SHELL=C:\\\\RD2\\\\RD2.EXE" obj/inst_config.sys && grep -q "RDMAUS.COM" obj/inst_config.sys && echo "ok     CONFIG.SYS: RD2 ist die Shell, RDMAUS" || { echo "FEHLER CONFIG.SYS"; cat obj/inst_config.sys; F=1; }
 else
-  grep -q "^FILES=20" obj/inst_config.sys && grep -q "^REM SHELL=C:.COMMAND.COM" obj/inst_config.sys && grep -q "^SHELL=C:.RD2.RD.EXE /P C:.RD2.SHELL.EXE" obj/inst_config.sys \
+  grep -q "^FILES=20" obj/inst_config.sys && grep -q "^REM SHELL=C:.COMMAND.COM" obj/inst_config.sys && grep -q "^SHELL=C:.RD2.RD2.EXE /P C:.RD2.SHELL.EXE" obj/inst_config.sys \
     && grep -q "^INSTALL=C:.TREIBER.MOUSE.COM /S50" obj/inst_config.sys && ! grep -q "RDMAUS" obj/inst_config.sys \
     && echo "ok     CONFIG.SYS: alte Zeilen, alte Shell als REM, RD2 Shell, Maustreiber uebernommen, kein RDMAUS" || { echo "FEHLER CONFIG.SYS"; cat obj/inst_config.sys; F=1; }
   mtype $C ::/CONFIG.RDA | tr -d '\r' | grep -q "^SHELL=C:.COMMAND.COM" && echo "ok     Sicherung CONFIG.RDA" || { echo "FEHLER keine CONFIG.RDA"; F=1; }

@@ -10,10 +10,10 @@ cat > obj/ae_nz.txt <<'AE'
 @echo off
 rem RDTCP.MOD (fuer mkdisk)
 A:\NE2000.COM 0x60 3 0x300
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\UHR.EXE T
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\UHR.EXE N
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\UHR.EXE N
-A:\RD2\RD.EXE /NOMAUS /VGA A:\RD2\SHELL.EXE
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\UHR.EXE T
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\UHR.EXE N
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\UHR.EXE N
+A:\RD2\RD2.EXE /NOMAUS /VGA A:\RD2\SHELL.EXE
 A:\FDAPM.COM POWEROFF
 AE
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_nz.txt >/dev/null   # 360 KB reichen nicht fuer Shell, Netz und Paketreiber

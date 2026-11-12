@@ -4,7 +4,7 @@
 # 600 ms (ueber den alten 500 ms) oeffnen das Laufwerk als Doppelklick. Tempo 5 = doppelt so schnell: halber Weg (6 15 statt 12 31).
 cd "$(dirname "$0")/.."
 IMG=obj/maus.img; SER=obj/maus_com1.txt; SOCK=/tmp/qmon_maus.sock; F=0
-printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_maus.txt
+printf '@echo off\nA:\\RDMAUS.COM\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_maus.txt
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ')" bash tools/mkdisk.sh $IMG obj/ae_maus.txt >/dev/null 2>&1
 printf '[Maus]\r\nTempo=5\r\nDoppelklick=700\r\nTasten=1\r\n' > obj/maus_ini.txt; mcopy -o -i $IMG obj/maus_ini.txt ::/RD2/RD2.INI
 mcopy -i $IMG out/RDMAUS.COM ::/
