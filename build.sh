@@ -96,7 +96,6 @@ app apps/notiz/NOTIZ.C NOTIZ.EXE "Notizblock"
 app apps/net/RDNET.C RDNET.EXE "Netzwerk"
 app apps/net/RDFTP.C RDFTP.EXE "FTP"
 app apps/net/RDIRC.C RDIRC.EXE "IRC"
-wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/qr_QR.obj apps/net/QR.C && APPOBJ=",obj/qr_QR.obj" app apps/net/RDQR.C RDQR.EXE "Datei-Eingang"   # QR-Code, Upload vom Smartphone per HTTP
 app apps/dos/RDSHELL.C RDSHELL.EXE "DOS-Fenster"
 app apps/rechner/RECHNER.C RECHNER.EXE "Rechner"
 app apps/optionen/OPTIONEN.C OPTIONEN.EXE "Optionen"
@@ -111,8 +110,6 @@ app apps/edit/RDEDIT.C RDEDIT.EXE "Editor"
 app apps/rdtron/RDTRON.C RDTRON.EXE "H-Tron"   # Spiel nach H-TRON (RobertK 2016, MRalser 2026); RDTRON statt HTRON, damit es nicht mit der DOS-Fassung Htron.exe kollidiert; GPL, auf Diskette 3
 for z in INFLATE DEFLATE CRC; do wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/zk_$z.obj apps/zip/$z.C || exit 1; done   # ZIP-Kern (auch test/zip_kern.c)
 APPOBJ=",obj/zk_INFLATE.obj,obj/zk_DEFLATE.obj,obj/zk_CRC.obj" app apps/zip/RDZIP.C RDZIP.EXE "ZIP"
-for z in BLESER JPEG; do wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/bk_$z.obj apps/bild/$z.C || exit 1; done   # Bilddecoder (auch test/bild_kern.c)
-APPOBJ=",obj/bk_BLESER.obj,obj/bk_JPEG.obj" app apps/bild/RDBILD.C RDBILD.EXE "Bild"
 # RDFORMAT: RD2-Oberflaeche + FreeDOS FORMAT 0.92a (GPL v2); FreeDOS-Dateien mit src/disk/fdshim.h (DOS ueber RDDISK.MOD)
 FDF="createfs floppy hdisk main savefs bcread prf userint driveio getopt init recordbc uformat msghlpr"
 for f in $FDF; do wcc -0 -mm -zp1 -os -s -zq -w0 -bt=dos -zl -fi=src/disk/fdshim.h -dRD2 -dNOCATS -i=src/disk/fdformat -fo=obj/fdf_$f.obj src/disk/fdformat/$f.c || exit 1; done

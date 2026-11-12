@@ -24,7 +24,7 @@ Von Diskette: mit `RD2_1.IMG` starten, Installation im Menü. Von der Festplatte
 | Ordner | Inhalt |
 |---|---|
 | `src/` | System: `kern` (RD.EXE), `gdi`, `user`, `ctl`, `shell`, `drv` (Grafik, Maus, Tastatur), `snd`, `net`, `prn`, `disk` (FORMAT, FDISK, SYS auf FreeDOS-Grundlage), `setup`, `lng` |
-| `apps/` | Programme: Editor, Rechner, Bildbetrachter, ZIP, Netz, Uhr, Optionen, H-Tron und weitere |
+| `apps/` | Programme: Editor, Rechner, ZIP, Netz, Uhr, Optionen, H-Tron und weitere |
 | `sdk/` | Header, Startcode und `RD2.LIB` für eigene Programme in C und Pascal |
 | `tools/` | Bauwerkzeuge (Ressourcen, Schriften, Disketten, Größenprüfung `budget.txt`) |
 | `test/` | automatische Tests in QEMU und DOSBox, Referenzbilder `test/ref/` |
@@ -49,3 +49,6 @@ Dokumentation: [Spezifikation](docs/SPEC.md), [alle Funktionen](docs/FUNKTIONEN.
 RetroDesk 2 ist freie Software unter der **GNU General Public License Version 2 oder später** (siehe [`COPYING`](COPYING),
 Übersicht [`docs/LIZENZ.TXT`](docs/LIZENZ.TXT)). FreeDOS-Teile (Kern, SYS, FORMAT, FDISK, FreeCOM, CuteMouse) stehen unter
 ihrer eigenen GPL. Fehler bitte als Issue melden.
+
+## Eigene Repos für Zusatzprogramme
+Nicht im Diskettensatz, getrennt entwickelt: [RDBILD](https://github.com/Karre-ops/RDBILD) (Bildbetrachter), [RDQRCODE](https://github.com/Karre-ops/RDQRCODE) (Datei-Eingang per QR-Code), [H-TRON](https://github.com/Karre-ops/H-TRON) (Spiel), [RDCALC](https://github.com/Karre-ops/RDCALC) (Rechner mit Funktionsplotter).
