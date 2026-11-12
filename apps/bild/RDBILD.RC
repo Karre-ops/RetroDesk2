@@ -57,3 +57,5 @@ MENU 1
     ITEM "&Original size\t1"        202
   ENDE
 ENDE
+SPRACHE ALLE
+SYMBOL 1 "RDBILD.ICO"

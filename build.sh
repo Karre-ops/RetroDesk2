@@ -60,7 +60,7 @@ modul src/drv/VGA16.C VGA16.DRV "VGA 16 Farben" 0 D -dVGA16
 modul src/drv/VGA16.C EGA.DRV "EGA 16 Farben" 0 D -dEGA
 modul src/drv/VGA16.C EGA320.DRV "EGA 320x200 16 Farben" 0 D -dEGA320
 modul src/drv/VESA.C VESA.DRV "VESA 256 Farben" 0 D -3
-python3 tools/mkfarbsym.py $O/FARBSYM.DAT SHELL:1:src/shell/farbe/FLOPPY.TXT SHELL:2:src/shell/farbe/HDISK.TXT SHELL:3:src/shell/farbe/ORDNER.TXT SHELL:4:src/shell/farbe/PROG.TXT SHELL:5:src/shell/farbe/DOK.TXT >/dev/null || exit 1   # farbige Symbole (Diskette 2)
+python3 tools/mkfarbsym.py $O/FARBSYM.DAT SHELL:1:src/shell/farbe/FLOPPY.TXT SHELL:2:src/shell/farbe/HDISK.TXT SHELL:3:src/shell/farbe/ORDNER.TXT SHELL:4:src/shell/farbe/PROG.TXT SHELL:5:src/shell/farbe/DOK.TXT RDEDIT:1:src/shell/farbe/prog/RDEDIT.TXT NOTIZ:1:src/shell/farbe/prog/NOTIZ.TXT RECHNER:1:src/shell/farbe/prog/RECHNER.TXT UHR:1:src/shell/farbe/prog/UHR.TXT RDZIP:1:src/shell/farbe/prog/RDZIP.TXT RDFTP:1:src/shell/farbe/prog/RDFTP.TXT RDIRC:1:src/shell/farbe/prog/RDIRC.TXT RDNET:1:src/shell/farbe/prog/RDNET.TXT RDSHELL:1:src/shell/farbe/prog/RDSHELL.TXT TASKMAN:1:src/shell/farbe/prog/TASKMAN.TXT DPRUEF:1:src/shell/farbe/prog/DPRUEF.TXT DKOPIE:1:src/shell/farbe/prog/DKOPIE.TXT HILFE:1:src/shell/farbe/prog/HILFE.TXT OPTIONEN:1:src/shell/farbe/prog/OPTIONEN.TXT RDBILD:1:src/shell/farbe/prog/RDBILD.TXT RDQR:1:src/shell/farbe/prog/RDQR.TXT RDTRON:1:src/shell/farbe/prog/RDTRON.TXT >/dev/null || exit 1   # farbige Symbole (Diskette 2)
 modul src/drv/GFX1.C VGAM.DRV "VGA mono" 0 D "-dVGAM -oa"   # -oa: 11 Bytes, haelt VGAM.DRV bei 4 KB (ein Cluster auf der Systemdiskette)
 modul src/drv/GFX1.C EGAM.DRV "EGA mono" 0 D "-dEGAM -oa"
 modul src/drv/VGA16.C EGA4.DRV "EGA 4 Farben" 0 D -dEGA4

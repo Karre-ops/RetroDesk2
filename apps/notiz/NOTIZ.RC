@@ -37,3 +37,5 @@ MENU 1
     ITEM "E&xit"               109
   ENDE
 ENDE
+SPRACHE ALLE
+SYMBOL 1 "NOTIZ.ICO"

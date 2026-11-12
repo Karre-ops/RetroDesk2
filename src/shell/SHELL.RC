@@ -65,7 +65,7 @@ MENU 2
     ITEM "-----------" 430
     ITEM "-----------" 431
     ITEM "-----------" 432
-    ITEM "(leer)-----" 433 GRAU
+    ITEM "-" 433 GRAU
   ENDE
   POPUP "&RD2-Programme"
     ITEM "-----------" 401
@@ -80,7 +80,7 @@ MENU 2
     ITEM "-----------" 410
     ITEM "-----------" 411
     ITEM "-----------" 412
-    ITEM "(leer)-----" 413 GRAU
+    ITEM "-" 413 GRAU
   ENDE
 ENDE
 MENU 3
@@ -162,7 +162,6 @@ TEXTE
   38 "Nichts gefunden."
   39 "%s Eintrag/EintrÑge in den MÅll legen?\n(Ordner werden gelîscht, Umschalt+Entf lîscht sofort.)"
   40 "MÅll"
-  41 "(leer)"
 ENDE
 SPRACHE EN
 MENU 1
@@ -231,7 +230,7 @@ MENU 2
     ITEM "-----------" 430
     ITEM "-----------" 431
     ITEM "-----------" 432
-    ITEM "(empty)----" 433 GRAU
+    ITEM "-" 433 GRAU
   ENDE
   POPUP "&RD2 programs"
     ITEM "-----------" 401
@@ -246,7 +245,7 @@ MENU 2
     ITEM "-----------" 410
     ITEM "-----------" 411
     ITEM "-----------" 412
-    ITEM "(empty)----" 413 GRAU
+    ITEM "-" 413 GRAU
   ENDE
 ENDE
 MENU 3
@@ -328,7 +327,6 @@ TEXTE
   38 "Nothing found."
   39 "Move %s item(s) to the trash?\n(Folders are deleted, Shift+Del deletes at once.)"
   40 "Trash"
-  41 "(empty)"
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"

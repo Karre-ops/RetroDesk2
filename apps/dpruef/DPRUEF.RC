@@ -51,3 +51,5 @@ DIALOG 10 "Check disk" 0 0 280 150
   BUTTON   "&Repair"    21  86 130  80 14
   BUTTON   "Close"       2 202 130  70 14
 ENDE
+SPRACHE ALLE
+SYMBOL 1 "DPRUEF.ICO"

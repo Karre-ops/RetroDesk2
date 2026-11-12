@@ -88,10 +88,24 @@ static WORD RDEXPORT k_LangGet(void)
 }
 
 /* ---- Ressourcen ---------------------------------------------------------------- */
+/* Symbol aus einer Programmdatei (IconDrawFile): Pfad in xf, Block aus der Kennung "RD2!" am Dateiende */
+#define XFILE ((HINST)0xFFFE)
+static LPCSTR xf;
+static DWORD ires(HINST i, LPSTR p, WORD len)
+{
+    struct { char k[4]; DWORD off; } t; short f; WORD n;
+    if (i != XFILE) return InstRes(i, p, len);
+    for (n = 0; n + 1 < len && xf[n]; n++) p[n] = xf[n];
+    p[n] = 0;
+    if ((f = FileOpen(p, FO_READ | FO_DENYNONE)) < 0) return 0;
+    n = FileSeek(f, -16L, 2) >= 0 && FileRead(f, &t, sizeof t) == sizeof t && t.k[0] == 'R' && t.k[1] == 'D' && t.k[2] == '2' && t.k[3] == '!';
+    FileClose(f);
+    return n ? t.off : 0;
+}
 /* Eintrag suchen: Datei offen lassen (f), Position und Laenge zurueck. 0 = nicht gefunden. */
 static short rfind(HINST i, WORD typ, WORD nr, DWORD FAR *pos, WORD FAR *len)
 {
-    DWORD blk = InstRes(i, pfad, sizeof pfad);
+    DWORD blk = ires(i, pfad, sizeof pfad);
     static struct { char sig[4]; WORD api, flags, stack, kb; char name[16]; WORD ver, nexp, nres, oexp, ores; } rb;
     RESDIR d; WORD k, best = 0, w, l = k_LangGet(); short f;
     if (!blk) return -1;
@@ -303,7 +317,7 @@ static struct { HINST i; WORD id, cga; HBMP w, s; } ic[8]; static WORD icn;
 static WORD farbsym(HINST i, WORD id, WORD bpp, HBMP FAR *a, HBMP FAR *b)
 {
     struct { char n[8]; WORD nr, len; } e; char nm[8]; WORD k = 0; short f; long pos = 0; HMEM h; const char *q;
-    if (bpp < 4 || !InstRes(i, pfad, sizeof pfad)) return 0;
+    if (bpp < 4 || !ires(i, pfad, sizeof pfad)) return 0;
     for (q = pfad; *q; q++) if (*q == '\\' || *q == ':') k = (WORD)(q - pfad + 1);
     for (q = pfad + k, k = 0; k < 8; k++) nm[k] = *q && *q != '.' ? *q++ : 0;
     if ((f = hopen("FARBSYM.DAT")) < 0) return 0;
@@ -320,34 +334,47 @@ static WORD farbsym(HINST i, WORD id, WORD bpp, HBMP FAR *a, HBMP FAR *b)
     FileClose(f);
     return 0;
 }
-static void RDEXPORT x_IconDraw(HDC dc, short x, short y, HINST i, WORD id)
+static WORD xkey, neg[8], negn;                   /* xkey: Pruefsumme des Pfads (Ablage), neg: ohne Symbol */
+static WORD RDEXPORT x_IconDraw(HDC dc, short x, short y, HINST i, WORD id)
 {
     WORD k, cga = GetCaps(dc, CAPS_H) <= 200, bpp = GetCaps(dc, CAPS_BPP);   /* Schirm-DC: Werte des Schirms */ HDC s; COLOR alt; WORD FAR *bh, bw, bhh, fb;   /* fb: Bit pro Punkt des Bildes */
+    WORD key = i == XFILE ? id ^ xkey : id;
     for (k = 0; k < 8; k++)
-        if (ic[k].w && ic[k].i == i && ic[k].id == id && ic[k].cga == cga && MemSize(ic[k].w)) break;
+        if (ic[k].w && ic[k].i == i && ic[k].id == key && ic[k].cga == cga && MemSize(ic[k].w)) break;
     if (k == 8) {
+        if (i == XFILE) for (k = 0; k < 8; k++) if (neg[k] == key) return 0;
         k = icn++ & 7;
         if (ic[k].w) { BmpFree(ic[k].w); if (ic[k].s) BmpFree(ic[k].s); ic[k].w = 0; ic[k].s = 0; }
-        if (!farbsym(i, id, bpp, &ic[k].w, &ic[k].s) && !fromres(i, RT_ICON, id, cga, &ic[k].w, &ic[k].s)) { ic[k].w = 0; return; }
-        ic[k].i = i; ic[k].id = id; ic[k].cga = cga;
+        if (!farbsym(i, id, bpp, &ic[k].w, &ic[k].s) && !fromres(i, RT_ICON, id, cga, &ic[k].w, &ic[k].s)) { ic[k].w = 0; if (i == XFILE) neg[negn++ & 7] = key; return 0; }
+        ic[k].i = i; ic[k].id = key; ic[k].cga = cga;
     }
     bh = (WORD FAR *)MemLock(ic[k].w); bw = bh[0]; bhh = bh[1]; fb = bh[2]; MemUnlock(ic[k].w);   /* Kopf: w, h, bpp, bpr */
     if (fb > 1 && (fb & BMP_MASKE)) {             /* farbig mit Maske im Bild: der Treiber setzt nur deckende Punkte */
         if ((s = BmpDC(ic[k].w)) != 0) { BitBlt(dc, x, y, bw, bhh, s, 0, 0, ROP_COPY); DCFree(s); }
-        return;
+        return 1;
     }
     if (fb > 1) {                                 /* farbig: zeichnet RDGDIX (Nr. 5), Bild im Geraeteformat + Maske */
         HMOD gx = ModLoad("RDGDIX.MOD"); FARPROC f;   /* je Aufruf laden und freigeben (wie RDPRN) */
-        if (!gx) return;
+        if (!gx) return 0;
         if ((f = ModProc(gx, 5)) != 0) ((void (RDAPI *)(HDC, short, short, HBMP, HBMP))f)(dc, x, y, ic[k].w, ic[k].s);
         ModFree(gx);
-        return;
+        return 1;
     }
     alt = SetTextColor(dc, C_WHITE);
     if ((s = BmpDC(ic[k].w)) != 0) { BitBlt(dc, x, y, bw, bhh, s, 0, 0, ROP_MASK); DCFree(s); }
     SetTextColor(dc, C_BLACK);
     if ((s = BmpDC(ic[k].s)) != 0) { BitBlt(dc, x, y, bw, bhh, s, 0, 0, ROP_MASK); DCFree(s); }
     SetTextColor(dc, alt);
+    return 1;
+}
+
+/* Symbol id aus einer RD2-Programmdatei (Ordner, Schreibtisch); 0 = keins, dann zeichnet der Aufrufer sein eigenes */
+static WORD RDEXPORT x_IconDrawFile(HDC dc, short x, short y, LPCSTR d, WORD id)
+{
+    WORD h = 0; LPCSTR q;
+    for (q = d; *q; q++) h = (h << 3 | h >> 13) ^ (BYTE)(*q & 0xDF);
+    xf = d; xkey = h | 1;
+    return x_IconDraw(dc, x, y, XFILE, id);
 }
 
 static void RDEXPORT k_ende(void) { }
@@ -375,9 +402,9 @@ static void RDEXPORT k_PrnAbort(HDC dc) { prn(5, dc, 0); }
 /* F1-Hilfe: RDPRN.MOD Nr. 6 startet HILFE.EXE (eigenes Modul passte nicht mehr in RDKX). pascal: t liegt vor d auf
  * dem Stapel, &t zeigt also auf { WORD t; LPCSTR d; } (HARG in RDPRN) */
 static BOOL RDEXPORT k_HelpShow(HWND w, LPCSTR d, WORD t) { (void)d; return (BOOL)prn(6, w, (PRNJOB FAR *)&t); }
-static struct { WORD n; FARPROC f[18]; } ext = { 18, {
+static struct { WORD n; FARPROC f[19]; } ext = { 19, {
     (FARPROC)k_ende, (FARPROC)k_TimeGet, (FARPROC)k_TimeSet, (FARPROC)k_LangGet, (FARPROC)k_ResLoad,
     (FARPROC)k_ResFree, (FARPROC)k_StrLoad, (FARPROC)k_StrGet, (FARPROC)k_DbgBreak,
     (FARPROC)x_BmpLoad, (FARPROC)x_BmpLoadFile, (FARPROC)x_IconDraw, (FARPROC)k_NetStart,
-    (FARPROC)k_PrnOpen, (FARPROC)k_PrnPage, (FARPROC)k_PrnClose, (FARPROC)k_PrnAbort, (FARPROC)k_HelpShow } };
+    (FARPROC)k_PrnOpen, (FARPROC)k_PrnPage, (FARPROC)k_PrnClose, (FARPROC)k_PrnAbort, (FARPROC)k_HelpShow, (FARPROC)x_IconDrawFile } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

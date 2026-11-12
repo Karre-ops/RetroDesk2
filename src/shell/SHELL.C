@@ -104,6 +104,13 @@ static WORD symbol(const EINTRAG FAR *e)
     if (e->attr & FA_DIR) return IC_ORDNER;
     return endung(e->name, "EXE") || endung(e->name, "COM") || endung(e->name, "BAT") ? IC_PROG : IC_DOK;
 }
+/* Symbol zeichnen: .EXE mit eigenem Symbol (RD2-Programm, SYMBOL 1) sonst das allgemeine; p = Ordner oder 0 */
+static void symmal(HDC d, short x, short y, LPCSTR p, LPCSTR n, WORD id)
+{
+    char t[80];
+    if (id == IC_PROG && endung(n, "EXE")) { scpy(t, p ? p : "", sizeof t); scat(t, n, sizeof t); if (IconDrawFile(d, x, y, t, 1)) return; }
+    IconDraw(d, x, y, inst, id);
+}
 /* Beschriftung mittig unter dem Symbol, gewaehlt invertiert */
 static void schild(HDC d, short x, short y, short b, LPCSTR t, int gew)
 {
@@ -657,8 +664,7 @@ static void prgladen(void)                        /* PROGRAMM.LST lesen, Menue P
     }
     for (k = npm; k < MAXP; k++) MenuText(mbar, CM_PRG + k, 0);
     for (k = ndm; k < MAXP; k++) MenuText(mbar, CM_DPRG + k, 0);
-    MenuText(mbar, CM_PLEER, npm ? 0 : StrGet(inst, 41));   /* leer: Platzhalter grau */
-    MenuText(mbar, CM_DLEER, ndm ? 0 : StrGet(inst, 41));
+    MenuText(mbar, CM_PLEER, 0); MenuText(mbar, CM_DLEER, 0);   /* kein Platzhalter */
     if (lsel >= nlw + nps) lsel = nlw + nps - 1;
     if (desk) InvalidateRect(desk, 0, FALSE);
 }
@@ -708,7 +714,7 @@ static DWORD RDCALLBACK ordproc(HWND w, WORD msg, WORD p1, DWORD p2)
                 x = (i % o->spalten) * ZB; y = (i / o->spalten - o->oben) * zh + LB;
                 if (y >= r.b || y >= ps.neu.b) break;
                 if (y + zh <= ps.neu.t || x >= ps.neu.r || x + ZB <= ps.neu.l) continue;   /* ausserhalb: nicht zeichnen */
-                IconDraw(d, x + (ZB - 32) / 2, y + 2, inst, symbol(&e[i]));
+                symmal(d, x + (ZB - 32) / 2, y + 2, o->pfad, e[i].name, symbol(&e[i]));
                 schild(d, x, y + ih + 3, ZB, e[i].name, i == o->sel);
                 if ((e[i].attr & (FA_HIDDEN | FA_SYSTEM)) && i != o->sel) grau_ueber(d, x, y, (short)(x + ZB), (short)(y + zh));
                 if (e[i].mark) { RECT m; m.l = x + 4; m.t = y + 2; m.r = m.l + 6; m.b = m.t + 6; SetBrush(d, C_BLACK, PAT_SOLID); FillRect(d, &m); }
@@ -911,7 +917,7 @@ static void lwmal(HDC d, short k)
     RECT r; char t[3];
     lwfeld(k, &r);
     if (k >= nlw) { short m = muell(psy[k - nlw]);   /* Muell (PAPIERK.EXE): leer Deckel zu, voll Deckel schief (30.10.2026) */
-        IconDraw(d, r.l + (56 - 32) / 2, r.t + 2, inst, m ? (mvoll ? 7 : 6) : IC_PROG);
+        if (m) IconDraw(d, r.l + (56 - 32) / 2, r.t + 2, inst, mvoll ? 7 : 6); else symmal(d, r.l + (56 - 32) / 2, r.t + 2, 0, prg[psy[k - nlw]], IC_PROG);
         schild(d, r.l, r.t + ih + 3, 56, m ? StrGet(inst, 40) : prgn[psy[k - nlw]], k == lsel); return; }
     IconDraw(d, r.l + (56 - 32) / 2, r.t + 2, inst, lt[k] == DT_FLOPPY ? IC_FLOPPY : IC_HDISK);
     t[0] = lw[k]; t[1] = ':'; t[2] = 0;

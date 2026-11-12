@@ -14,7 +14,7 @@ US.KBD            256    0   S  Belegung US (31.10.)
 PC10.KBD          256    0   S  Belegung Commodore PC10-III wie aufgedruckt (31.10.)
 RDMAUS.COM       5120    0   S  Maustreiber PS/2, seriell MS/Logitech/Mouse Systems (Assembler, resident ca. 3,4 KB mit Grafikzeiger und Funktion 10h), Bus/InPort/PS2/seriell, ersetzt CTMOUSE, INSTALL= in CONFIG.SYS (28.10.)
 RDGDI.MOD       17920 20.5   S  (30.10.: 20,5 KB fuer Symbole mit Maske im Treiber) (30.10.: 17 KB Datei fuer Hintergrund roh) (30.10.: 20 KB Speicher fuer den schnellen Weg der schmalen Schrift) (30.10.: 16,5 KB Datei fuer 8 weitere Grafikarten in der Kandidatenliste) Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5); 23.10.: 18,5 KB fuer schnelle Textausgabe (statt Auslagern, Text wird staendig gebraucht); 27.10.: 19,5 KB fuer 16 Farben (Farbindex, Muster zweifarbig, 4-Bit-Hintergrund)
-RDKX.MOD         6656    6.5   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.)
+RDKX.MOD         7168 7   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.); 12.11.2026: eigenes Symbol
 RDAUSL.MOD       3072    3.5 S  Auslagern bei Speichermangel nach XMS oder RD2.SWP (nur Festplatte), bleibt geladen, nur wenn es ein Ziel gibt (25.10.)
 RDGDIX.MOD       4608    4.5 S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf); 28.10.: 4,5 KB fuer Grafikwahl (Liste/Auswahl aus RDGDI)
 RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
@@ -37,7 +37,7 @@ VESA800.DRV     6144    7   P  VESA 800x600 256 Farben, Modus 103h (30.10.)
 VESA1024.DRV    6144    7   P  VESA 1024x768 256 Farben, Modus 105h (30.10.)
 CGA4.DRV        6144    6.5 P  (30.10.: ohne Tabellen) CGA 320x200 4 Farben, Modus 4, byteweise mit Tabellen und Assembler-Schleifen, 1,7 KB Tabellen (30.10.)
 VESA.DRV         6144    6   P  VESA 640x480 256 Farben, Modus 101h, Bankumschaltung (Punkt 9, 27.10.)
-FARBSYM.DAT      4096    0   P  farbige Symbole (16 Farben, Maske) fuer SHELL, nur bei buntem Schirm; fehlt sie: S/W
+FARBSYM.DAT     16384 0   P  farbige Symbole (16 Farben, Maske) fuer SHELL, nur bei buntem Schirm; fehlt sie: S/W; 12.11.2026: eigenes Symbol
 VGAM.DRV         6144    6   S
 SPEAKER.DRV      2048    2   S
 ADLIB.DRV        2048    2   P
@@ -51,15 +51,15 @@ DE.LNG           4096    2   S
 EN.LNG           4096    0   S
 SHELL.EXE       40960   31   S  Desktop, Dateimanager (Teile verwerfbar) (29.10.: 31 KB fuer Sortieren, Programme-Zuordnung, Editor im RD-Menue)
 SHELLX.MOD       8192    6   S  Info, Laufwerksinfo, Eigenschaften, Suchen fuer SHELL (verwerfbar, 30.10.)
-UHR.EXE          8192   12   P  Zubehoer (4 KB Stapel: Nachladen laeuft darauf), Netzzeit per SNTP (Datumsrechnung mit long: +2,6 KB)
+UHR.EXE          9216 12   P  Zubehoer (4 KB Stapel: Nachladen laeuft darauf), Netzzeit per SNTP (Datumsrechnung mit long: +2,6 KB); 12.11.2026: eigenes Symbol
 NOTIZ.EXE       10240   10   P  Zubehoer
 RECHNER.EXE      8192   10   P  Zubehoer, kleiner Rechner (4 KB Stapel wie UHR, Rechenkern Dezimalziffern)
 SCHONER.EXE      3072    8   P  Bildschirmschoner (Sterne, Uhr, Schwarz; RD2.INI [Schoner] Zeit= Sekunden, Art=; Einstellungen seit 29.10. in OPTIONEN)
-DPRUEF.EXE       7168   10   P  Datentraeger pruefen (wie CHKDSK, FAT12/16, INT 25h/26h ueber RDDISK.MOD)
+DPRUEF.EXE       8192 10   P  Datentraeger pruefen (wie CHKDSK, FAT12/16, INT 25h/26h ueber RDDISK.MOD); 12.11.2026: eigenes Symbol
 DKOPIE.EXE       5120    8   P  Diskette kopieren (wie DISKCOPY, RDDISK.MOD/INT 13h), Zylinderpuffer beim Lauf
 TASKMAN.EXE      4096    8   P  Zubehoer Taskmanager: Ladeblock, RAM und Swap aktuell/Puffer/frei (1s), Beenden; weiter 3 Cluster
 PAPIERK.EXE      6144    8   P  Zubehoer Papierkorb (RD-Menue): X:\PAPIERK\PAPIERK.LST, wiederherstellen/loeschen/leeren, 8 KB Tabelle beim Lauf
-OPTIONEN.EXE    21504   16   P  (31.10.: 21 KB Datei, RDKEYB-Zeile wird auch ohne Aenderung gerichtet) (31.10.: 16 KB fuer Belegungsliste *.KBD) (30.10.: 15 KB Speicher fuer 16 Grafikarten) Optionen (30.10.: 20 KB fuer CGA-Farbe und Schreibtischfarbe, 16 Farbnamen DE/EN): Karteikarten Grafik, Klang, Maus, Tastatur, Schoner, System (29.10.: +12 KB fuer alle Einstellungen, 12 Kartendialoge DE/EN, Grafik sofort mit Rueckfrage "Behalten?" 15 s, Maus- und Schonerdialog hierher; beim Lauf 24 KB Puffer fuer CONFIG.SYS/AUTOEXEC.BAT, nur solange offen)
+OPTIONEN.EXE    22528 16.5   P  (31.10.: 21 KB Datei, RDKEYB-Zeile wird auch ohne Aenderung gerichtet) (31.10.: 16 KB fuer Belegungsliste *.KBD) (30.10.: 15 KB Speicher fuer 16 Grafikarten) Optionen (30.10.: 20 KB fuer CGA-Farbe und Schreibtischfarbe, 16 Farbnamen DE/EN): Karteikarten Grafik, Klang, Maus, Tastatur, Schoner, System (29.10.: +12 KB fuer alle Einstellungen, 12 Kartendialoge DE/EN, Grafik sofort mit Rueckfrage "Behalten?" 15 s, Maus- und Schonerdialog hierher; beim Lauf 24 KB Puffer fuer CONFIG.SYS/AUTOEXEC.BAT, nur solange offen); 12.11.2026: eigenes Symbol
 HALLO.EXE        4096    0   T  SDK-Beispiel in C (Quelle auf Diskette 4, test/pascal.sh)
 LEER.EXE         2048    0   T  Testprogramm Phase 1 (faellt spaeter weg)
 UEBER.EXE        2048    0   T  G12-Test: LEER.EXE mit minalloc FFFFh (beim Bauen erzeugt)
@@ -81,7 +81,7 @@ TESTMOD2.MOD     2048    0   T
 RDTCP.MOD       20480   22   N  TCP/IP, DHCP, DNS (Punkt 8; RDKX laedt es beim ersten NetStart; 18 -> 22 KB: Empfangsring 4 x 1518 Bytes fuer den Paketreiber)
 RDNET.EXE       24576   20   N  Netzwerk-Einstellungen: Karte, Adresse, Zeit, Dienste, Netztest (Punkt 8)
 COMMAND.COM     99328    0   N  FreeCOM 0.85a deutsch (GPL v2), unveraendert; INSTALL kopiert es nach C:\RD2, RD.EXE startet es beim Beenden (31.10.: fehlte auf frisch eingerichteten Platten)
-RDFTP.EXE       18944   22   N  (01.11.: 4-KB-Schreibpuffer im Heap, Datenkanal 8 KB Fenster: 22 KB Speicher. 31.10. abends: KB/s, Endmeldung mit Bytes, verlorene Netzmeldungen nachholen: 18,5 KB Datei. 31.10.: Ordner kopieren/loeschen samt Inhalt, auch FTP: 18 KB Datei, 21 KB Speicher, Auftragsliste 3 KB im Heap) FTP als zweites Dateifenster: links Platte, rechts Server (Punkt 8)
+RDFTP.EXE       19968 22   N  (01.11.: 4-KB-Schreibpuffer im Heap, Datenkanal 8 KB Fenster: 22 KB Speicher. 31.10. abends: KB/s, Endmeldung mit Bytes, verlorene Netzmeldungen nachholen: 18,5 KB Datei. 31.10.: Ordner kopieren/loeschen samt Inhalt, auch FTP: 18 KB Datei, 21 KB Speicher, Auftragsliste 3 KB im Heap) FTP als zweites Dateifenster: links Platte, rechts Server (Punkt 8); 12.11.2026: eigenes Symbol
 RDIRC.EXE       12288   20   N  IRC: Verlauf 120 Zeilen, UTF-8/CP437, ZNC-Kennwort (Punkt 8)
 RDQR.EXE        12288 20   L  Datei-Eingang: QR-Code mit Adresse, kleiner HTTP-Server, Upload vom Smartphone in Zielordner ([QR] Ordner=, Datei > Zielordner) (11.11.) (12.11.2026: eigenes Repo, nicht mehr im Diskettensatz)
 RDSHELL.EXE     14336   20   P  DOS-Fenster: DIR CD COPY DEL TYPE ... eingebaut, sonst RunDos (Punkt 8)

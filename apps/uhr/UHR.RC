@@ -39,3 +39,5 @@ TEXTE
   17 "No network. Set up card and driver in RD > Network."
   18 "The time server does not answer."
 ENDE
+SPRACHE ALLE
+SYMBOL 1 "UHR.ICO"

@@ -125,3 +125,5 @@ DIALOG 10 "Replace" 0 0 250 70
   BUTTON   "&All"               6  88  48  72 14
   BUTTON   "Cancel"             2 168  48  74 14
 ENDE
+SPRACHE ALLE
+SYMBOL 1 "RDEDIT.ICO"

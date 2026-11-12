@@ -101,3 +101,5 @@ MENU 1
     ITEM "&Mark all\tCtrl+A"        116
   ENDE
 ENDE
+SPRACHE ALLE
+SYMBOL 1 "RDZIP.ICO"
