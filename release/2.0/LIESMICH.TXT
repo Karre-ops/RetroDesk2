@@ -21,7 +21,7 @@ Installation von der Festplatte (Universalpaket) auf einen Rechner mit DOS 5
 2. RetroDesk 1 beenden und am DOS-Prompt starten:
      C:\RD2NEU\RD2INST
    (anderer Ordner: C:\ORDNER\RD2INST C:\ORDNER). Ohne Batchdatei geht es auch mit
-     C:\RD2NEU\RD.EXE C:\RD2NEU\SHELL.EXE
+     C:\RD2NEU\RD2.EXE C:\RD2NEU\SHELL.EXE
    Die Batchdatei heisst nicht INSTALL.BAT, weil DOS sonst INSTALL.EXE im selben
    Ordner zuerst startet.
 3. Beim ersten Start erscheint die Einrichtung (Hardware-Erkennung). Werte pruefen,
@@ -75,6 +75,9 @@ Stand 01.11.2026 (Aktualisierung nach 2.1)
   QR-Code RDQR (github.com/Karre-ops/RDQRCODE), H-Tron
   (github.com/Karre-ops/H-TRON). Bilddateien oeffnet die Shell weiter mit
   RDBILD, wenn es installiert ist.
+- Der Kern heisst jetzt RD2.EXE (bisher RD.EXE). Am DOS-Prompt startet RD2 mit
+  RD2; "RD" ist in DOS der Befehl zum Loeschen von Verzeichnissen. INSTALL,
+  RD2SETUP und Optionen ersetzen die alte Zeile SHELL=...RD.EXE in der CONFIG.SYS.
 - Quelltext oeffentlich: github.com/Karre-ops/RetroDesk2 (Fehler bitte als Issue).
 
 Neu in 2.1 (31.10.2026)
@@ -92,7 +95,7 @@ Neu in 2.1 (31.10.2026)
   DOS-Eingabe.
 - Installation: Option "C: vorher formatieren", Ablauf ohne XMS mit klarer
   Meldung und Neustart-Frage, RD2.STA wird bei Neuinstallation geloescht.
-- RD > Beenden schliesst offene Programme nach Rueckfrage; RD.EXE startet im
+- RD > Beenden schliesst offene Programme nach Rueckfrage; RD2.EXE startet im
   DOS-Fenster nicht doppelt.
 - Systemklaenge wie bei RetroDesk 1 (Start, Frage, Fehler, Ende).
 - Kern-API 2.0 mit weniger Speicherbedarf (RD.EXE 2,7 KB kleiner, SHELLX.MOD).
