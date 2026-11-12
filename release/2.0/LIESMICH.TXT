@@ -78,6 +78,8 @@ Stand 01.11.2026 (Aktualisierung nach 2.1)
 - Der Kern heisst jetzt RD2.EXE (bisher RD.EXE). Am DOS-Prompt startet RD2 mit
   RD2; "RD" ist in DOS der Befehl zum Loeschen von Verzeichnissen. INSTALL,
   RD2SETUP und Optionen ersetzen die alte Zeile SHELL=...RD.EXE in der CONFIG.SYS.
+- RD2 ohne Angabe startet den Schreibtisch (SHELL.EXE aus dem RD2-Ordner).
+  Ein anderes Programm geht weiter mit RD2 programm.
 - Quelltext oeffentlich: github.com/Karre-ops/RetroDesk2 (Fehler bitte als Issue).
 
 Neu in 2.1 (31.10.2026)

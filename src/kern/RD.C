@@ -145,7 +145,11 @@ int main(void)
     file_api();
     mod_api();
     k_out("RD: RetroDesk 2 Kern, API 2.0", 1);
-    if (a >= argc) { k_out("Aufruf: RD [/x] programm", 1); return 1; }
+    if (a >= argc) {                              /* ohne Programm: SHELL.EXE aus dem RD2-Verzeichnis */
+        static char ksh[80]; char *q = k_hpath("SHELL.EXE");
+        for (i = 0; (ksh[i] = q[i]) != 0; i++) ;
+        argv[a = argc++] = ksh;
+    }
     mem_init(188);                                /* Reserve: DOS und der RunDos-Rest (172 Paragraphen) */
     task_init();
     {  /* RD2.INI erst nach mem_init lesen (Dateischicht braucht den Speicher) */ char m[6]; ProfileGetStr(k_ini, "System", k_ms, "DOS", m, sizeof m); if ((m[0] | 0x20) == 'k') k_maus = 0xFFFF;
