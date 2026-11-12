@@ -52,20 +52,35 @@ MENU 2
     TRENNER
     ITEM "&Neu einlesen"       201
   ENDE
-  POPUP "&Programme"
-    ITEM "--------------------" 401
-    ITEM "--------------------" 402
-    ITEM "--------------------" 403
-    ITEM "--------------------" 404
-    ITEM "--------------------" 405
-    ITEM "--------------------" 406
-    ITEM "--------------------" 407
-    ITEM "--------------------" 408
-    ITEM "--------------------" 409
-    ITEM "--------------------" 410
-    ITEM "--------------------" 411
-    ITEM "--------------------" 412
-    ITEM "(leer)--------------" 413 GRAU
+  POPUP "D&OS-Programme"
+    ITEM "-----------" 421
+    ITEM "-----------" 422
+    ITEM "-----------" 423
+    ITEM "-----------" 424
+    ITEM "-----------" 425
+    ITEM "-----------" 426
+    ITEM "-----------" 427
+    ITEM "-----------" 428
+    ITEM "-----------" 429
+    ITEM "-----------" 430
+    ITEM "-----------" 431
+    ITEM "-----------" 432
+    ITEM "(leer)-----" 433 GRAU
+  ENDE
+  POPUP "&RD2-Programme"
+    ITEM "-----------" 401
+    ITEM "-----------" 402
+    ITEM "-----------" 403
+    ITEM "-----------" 404
+    ITEM "-----------" 405
+    ITEM "-----------" 406
+    ITEM "-----------" 407
+    ITEM "-----------" 408
+    ITEM "-----------" 409
+    ITEM "-----------" 410
+    ITEM "-----------" 411
+    ITEM "-----------" 412
+    ITEM "(leer)-----" 413 GRAU
   ENDE
 ENDE
 MENU 3
@@ -147,6 +162,7 @@ TEXTE
   38 "Nichts gefunden."
   39 "%s Eintrag/EintrÑge in den MÅll legen?\n(Ordner werden gelîscht, Umschalt+Entf lîscht sofort.)"
   40 "MÅll"
+  41 "(leer)"
 ENDE
 SPRACHE EN
 MENU 1
@@ -202,20 +218,35 @@ MENU 2
     TRENNER
     ITEM "&Refresh"            201
   ENDE
-  POPUP "&Programs"
-    ITEM "--------------------" 401
-    ITEM "--------------------" 402
-    ITEM "--------------------" 403
-    ITEM "--------------------" 404
-    ITEM "--------------------" 405
-    ITEM "--------------------" 406
-    ITEM "--------------------" 407
-    ITEM "--------------------" 408
-    ITEM "--------------------" 409
-    ITEM "--------------------" 410
-    ITEM "--------------------" 411
-    ITEM "--------------------" 412
-    ITEM "(empty)-------------" 413 GRAU
+  POPUP "D&OS programs"
+    ITEM "-----------" 421
+    ITEM "-----------" 422
+    ITEM "-----------" 423
+    ITEM "-----------" 424
+    ITEM "-----------" 425
+    ITEM "-----------" 426
+    ITEM "-----------" 427
+    ITEM "-----------" 428
+    ITEM "-----------" 429
+    ITEM "-----------" 430
+    ITEM "-----------" 431
+    ITEM "-----------" 432
+    ITEM "(empty)----" 433 GRAU
+  ENDE
+  POPUP "&RD2 programs"
+    ITEM "-----------" 401
+    ITEM "-----------" 402
+    ITEM "-----------" 403
+    ITEM "-----------" 404
+    ITEM "-----------" 405
+    ITEM "-----------" 406
+    ITEM "-----------" 407
+    ITEM "-----------" 408
+    ITEM "-----------" 409
+    ITEM "-----------" 410
+    ITEM "-----------" 411
+    ITEM "-----------" 412
+    ITEM "(empty)----" 413 GRAU
   ENDE
 ENDE
 MENU 3
@@ -297,6 +328,7 @@ TEXTE
   38 "Nothing found."
   39 "Move %s item(s) to the trash?\n(Folders are deleted, Shift+Del deletes at once.)"
   40 "Trash"
+  41 "(empty)"
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"

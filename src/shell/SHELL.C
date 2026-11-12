@@ -36,7 +36,9 @@
 #define CM_LSUCH  304                             /* Dateien suchen auf dem Laufwerk */
 #define CM_DKOP   305                             /* Diskette kopieren (DKOPIE.EXE) */
 #define CM_PRUEF  306                             /* Datentraeger pruefen (DPRUEF.EXE X:) */
-#define CM_PRG    401                             /* 401..412: angeheftete Programme */
+#define CM_PRG    401                             /* 401..412: angeheftete RD2-Programme, 421..432: DOS-Programme */
+#define CM_DPRG   421
+#define CM_DLEER  433
 static WORD szeit; static BYTE slauf;                /* RD2.INI [Schoner] Zeit= Sekunden (0 = aus), laeuft schon */
 #define CM_PLEER  413
 #define MAXP      12
@@ -62,7 +64,7 @@ static char lw[26], lt[26]; static short nlw, lsel;   /* Laufwerke: Buchstabe, T
 static ORDNER od[MAXO];
 static char buf[200], qv[80], qn[80];            /* Text; Quelle und Ziel beim Kopieren */
 static HWND letzt; static HMENU mlw, mps;
-static char prg[MAXP][68], prgn[MAXP][9]; static BYTE nprg, psy[MAXP], nps, pm[MAXP], npm;   /* psy: Programme auf dem Schreibtisch */   /* PROGRAMM.LST: Datei, Abschnitt */
+static char prg[MAXP][68], prgn[MAXP][9]; static BYTE nprg, psy[MAXP], nps, pm[MAXP], npm, dm[MAXP], ndm;   /* psy: Programme auf dem Schreibtisch */   /* PROGRAMM.LST: Datei, Abschnitt */
 static char heim[66];                             /* RD2-Verzeichnis ohne \ am Ende, "" = Wurzel */
 static BYTE wl[26];                               /* Wechsel je Laufwerk: 1 = eben gelesen, 2 = Abfrage aus (kein Signal / keine Diskette) */
 static HWND zw; static short zx, zy; static BYTE zieht, liste;   /* liste: Listenansicht in allen Ordnern */   /* Ziehen: Quelle, Startpunkt, 1 = gedrueckt, 2 = zieht */
@@ -609,6 +611,15 @@ static int schl(const char FAR *b, WORD n, LPCSTR k)   /* Zeile beginnt mit Schl
     return 1;
 }
 static short muell(short i);
+static BYTE rd2prg(LPCSTR p)                      /* RD2-Programm: .EXE mit Kennung "RD2!" in den letzten 16 Bytes */
+{
+    char k[4]; short f; long n; BYTE r = 0;
+    if (!endung(p, "EXE") || (f = FileOpen(p, 0)) < 0) return 0;
+    n = FileSeek(f, 0, 2);
+    if (n > 16 && FileSeek(f, n - 16, 0) == n - 16 && FileRead(f, k, 4) == 4) r = k[0] == 'R' && k[1] == 'D' && k[2] == '2' && k[3] == '!';
+    FileClose(f);
+    return r;
+}
 static void prgladen(void)                        /* PROGRAMM.LST lesen, Menue Programme fuellen */
 {
     char p[80], t[24], sec[9]; HMEM h; char FAR *b; short f; WORD n = 0, i, k; BYTE ds = 0;
@@ -636,15 +647,18 @@ static void prgladen(void)                        /* PROGRAMM.LST lesen, Menue P
         if (h) MemFree(h);
         FileClose(f);
     }
-    for (i = k = 0; i < nprg; i++) {              /* Papierkorb steht im RD-Menue (Symbol bleibt) */
-        LPCSTR b = prg[i], q; for (q = b; *q; q++) if (*q == '\\' || *q == ':') b = q + 1;
+    npm = ndm = 0;
+    for (i = 0; i < nprg; i++) {                  /* Papierkorb steht im RD-Menue (Symbol bleibt) */
+        BYTE r, *z; WORD id;
         if (muell(i)) continue;
-        t[0] = '&'; t[1] = (char)(k < 9 ? '1' + k : 'A' + k - 9); t[2] = ' '; scpy(t + 3, prgn[i], sizeof t - 3);
-        pm[k] = (BYTE)i; MenuText(mbar, CM_PRG + k++, t);
+        r = rd2prg(prg[i]); z = r ? &npm : &ndm; id = (r ? CM_PRG : CM_DPRG) + *z;   /* RD2-Programm: eigenes Menue */
+        t[0] = '&'; t[1] = (char)(*z < 9 ? '1' + *z : 'A' + *z - 9); t[2] = ' '; scpy(t + 3, prgn[i], sizeof t - 3);
+        (r ? pm : dm)[*z] = (BYTE)i; (*z)++; MenuText(mbar, id, t);
     }
-    npm = (BYTE)k;
-    for (; k < MAXP; k++) MenuText(mbar, CM_PRG + k, 0);
-    MenuText(mbar, CM_PLEER, 0);                  /* kein Platzhalter */
+    for (k = npm; k < MAXP; k++) MenuText(mbar, CM_PRG + k, 0);
+    for (k = ndm; k < MAXP; k++) MenuText(mbar, CM_DPRG + k, 0);
+    MenuText(mbar, CM_PLEER, npm ? 0 : StrGet(inst, 41));   /* leer: Platzhalter grau */
+    MenuText(mbar, CM_DLEER, ndm ? 0 : StrGet(inst, 41));
     if (lsel >= nlw + nps) lsel = nlw + nps - 1;
     if (desk) InvalidateRect(desk, 0, FALSE);
 }
@@ -1020,6 +1034,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
         else if (p1 >= CM_SORT && p1 < CM_SORT + 4) sortwahl((BYTE)(p1 - CM_SORT));
         else if (p1 == CM_VERST) { verst ^= 1; MenuCheck(mbar, CM_VERST, verst); dbgh("versteckte", verst); alle_neu(); }
         else if (p1 >= CM_PRG && p1 < CM_PRG + npm) starten(prg[pm[p1 - CM_PRG]]);
+        else if (p1 >= CM_DPRG && p1 < CM_DPRG + ndm) starten(prg[dm[p1 - CM_DPRG]]);
         return 0;
     case M_TIMER:
         if (!slauf) uhr();                        /* Uhr in der Menueleiste ruht, solange der Schoner laeuft */

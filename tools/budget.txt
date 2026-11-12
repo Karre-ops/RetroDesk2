@@ -83,13 +83,13 @@ RDNET.EXE       24576   20   N  Netzwerk-Einstellungen: Karte, Adresse, Zeit, Di
 COMMAND.COM     99328    0   N  FreeCOM 0.85a deutsch (GPL v2), unveraendert; INSTALL kopiert es nach C:\RD2, RD.EXE startet es beim Beenden (31.10.: fehlte auf frisch eingerichteten Platten)
 RDFTP.EXE       18944   22   N  (01.11.: 4-KB-Schreibpuffer im Heap, Datenkanal 8 KB Fenster: 22 KB Speicher. 31.10. abends: KB/s, Endmeldung mit Bytes, verlorene Netzmeldungen nachholen: 18,5 KB Datei. 31.10.: Ordner kopieren/loeschen samt Inhalt, auch FTP: 18 KB Datei, 21 KB Speicher, Auftragsliste 3 KB im Heap) FTP als zweites Dateifenster: links Platte, rechts Server (Punkt 8)
 RDIRC.EXE       12288   20   N  IRC: Verlauf 120 Zeilen, UTF-8/CP437, ZNC-Kennwort (Punkt 8)
-RDQR.EXE        12288   20   N  Datei-Eingang: QR-Code mit Adresse, kleiner HTTP-Server, Upload vom Smartphone in Zielordner ([QR] Ordner=, Datei > Zielordner) (11.11.)
+RDQR.EXE        12288 20   L  Datei-Eingang: QR-Code mit Adresse, kleiner HTTP-Server, Upload vom Smartphone in Zielordner ([QR] Ordner=, Datei > Zielordner) (11.11.) (12.11.2026: eigenes Repo, nicht mehr im Diskettensatz)
 RDSHELL.EXE     14336   20   P  DOS-Fenster: DIR CD COPY DEL TYPE ... eingebaut, sonst RunDos (Punkt 8)
 RDCALC.EXE      90112   80   L
 RDEDIT.EXE      65536   60   P
 RDZIP.EXE       24576   36   P  ZIP: Liste, Entpacken, Pruefen, Packen (Deflate, Fenster 8 KB); Puffer 36/68 KB nur waehrend der Arbeit (30.10.)
-RDBILD.EXE      28672   40   P  Bildbetrachter BMP/PCX/GIF/JPEG (Baseline, 1/2..1/8), Rastern, Exif-Lage; Bild in Streifen nur waehrend der Anzeige (31.10.)
-RDTRON.EXE      12288   24   N  H-Tron (Tron-Spiel nach RobertK/MRalser, github.com/marralser/H-TRON), Fenster, Demo/1/2 Spieler, Joystick; GPL (Karsten, 01.11.2026)
+RDBILD.EXE      28672 40   L  Bildbetrachter BMP/PCX/GIF/JPEG (Baseline, 1/2..1/8), Rastern, Exif-Lage; Bild in Streifen nur waehrend der Anzeige (31.10.) (12.11.2026: eigenes Repo, nicht mehr im Diskettensatz)
+RDTRON.EXE      12288 24   L  H-Tron (Tron-Spiel nach RobertK/MRalser, github.com/marralser/H-TRON), Fenster, Demo/1/2 Spieler, Joystick; GPL (Karsten, 01.11.2026) (12.11.2026: eigenes Repo, nicht mehr im Diskettensatz)
 RDPRN.MOD        6144    8   P  Drucken (und HelpShow -> HILFE.EXE): Druckdialog, Baender (48 Zeilen), LPT direkt/Datei (Punkt 7; RDKX laedt es bei PrnOpen, 27.10.)
 HILFE.EXE        8192   16   P  Hilfeanzeige (F1, Punkt 10): Themen, Verweise, Zurueck; startet ueber HelpShow
 RD2.HLP         16384    0   P  Hilfetext RD2 (deutsch), Format docs/HILFE.md
