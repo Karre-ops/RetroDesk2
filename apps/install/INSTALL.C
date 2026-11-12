@@ -314,6 +314,7 @@ static void install2(void)
     CursorBusy(FALSE);
     SendMessage(DlgItem(dl, ID_BALKEN), C_SETPOS, 0, 4L * TEIL);   /* fertig: Balken ganz voll */
     cpy(z2, ziel); cat(z2, "RD2.STA"); FileDelete(z2);   /* alter Fensterzustand der vorigen Installation weg */
+    cpy(z2, ziel); cat(z2, "RD.EXE"); FileDelete(z2);    /* alter Kern (bis 12.11.2026 RD.EXE, jetzt RD2.EXE) */
     cpy(pfad, ziel); cat(pfad, "PAPIERK.EXE");    /* Papierkorb auf den Schreibtisch (nur neue PROGRAMM.LST) */
     cpy(z2, ziel); cat(z2, "PROGRAMM.LST");
     if (gibts(pfad) && !gibts(z2)) { ProfileSetStr(z2, "Papierk", "Datei", pfad); ProfileSetStr(z2, "Papierk", "Schreibtisch", "1"); }
