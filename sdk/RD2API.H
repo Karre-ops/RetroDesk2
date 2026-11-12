@@ -1,4 +1,4 @@
-/* RD2API.H - Liste aller RD2-Funktionen mit fester Nummer (API 2.0)
+/* RD2API.H - Liste aller RD2-Funktionen mit fester Nummer (API 2.2)
  * SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
  *
  * Diese Datei ist die einzige Quelle fuer Nummern und Signaturen.
@@ -162,7 +162,7 @@ RDF(0x09D, COLOR,   ColorNearest,   (HDC dc, COLOR c))
 RDF(0x09E, WORD,    PaletteSet,     (HDC dc, WORD first, WORD n, const COLOR FAR *c)) /* nur 16/256 Farben */
 RDF(0x09F, WORD,    GfxList,        (GFXINFO FAR *l, WORD max))   /* Grafikarten, die diese Hardware kann */
 RDF(0x0A0, WORD,    GfxSelect,      (WORD typ))                   /* GFX_*, 0 = automatisch; gilt ab naechstem Start */
-RDF(0x0A1, WORD,    IconDrawFile,   (HDC dc, short x, short y, LPCSTR datei, WORD id)) /* Symbol aus einer RD2-Programmdatei, 0 = keins */
+RDF(0x0A1, WORD,    IconDrawFile,   (HDC dc, short x, short y, LPCSTR datei, WORD id)) /* Symbol aus einer RD2-Programmdatei, 0 = keins, API 2.2 */
 
 /* ---- Oberflaeche (RDUSER) ---------------------------------------------- */
 RDF(0x0A9, WORD,    RegisterClass,  (const WNDCLASS FAR *wc))

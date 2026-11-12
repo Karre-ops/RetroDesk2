@@ -18,7 +18,7 @@
 #define RD2_H
 
 #define RD2_API_MAJOR 2
-#define RD2_API_MINOR 1
+#define RD2_API_MINOR 2
 #define RD2_API_VERSION ((RD2_API_MAJOR << 8) | RD2_API_MINOR)
 
 #if defined(__386__) || defined(__FLAT__)

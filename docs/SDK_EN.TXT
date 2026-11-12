@@ -206,6 +206,20 @@ unit RD2 (\SDK\PASCAL\RD2.PAS):
 7. More
 -------
 
+
+Kernel API versions
+-------------------
+KernVersion() returns (major << 8) | minor, RD2_API_VERSION in RD2.H.
+Programs check KernVersion() >= ... before using new features.
+  2.0  Function numbers reassigned (30.10.2026).
+  2.1  MemError (0x042), MemStats (0x043): memory errors and swapping.
+  2.2  IconDrawFile (0x0A1): draw the icon of an RD2 program file,
+       WORD IconDrawFile(dc, x, y, file, id), 0 = file has no icon id.
+       SM_HALBE for SndSamplePlay: message for each finished half of the
+       block (M_SOUNDDONE, p1 = 3, p2 = half), see section 5.
+A program built for a newer API does not start on an older kernel
+(RD_ERR_VERSION).
+
 The full description (program format, modules, drivers, memory, limits) is in
 docs/SPEC.md (German) in the RetroDesk 2 sources:
 https://github.com/Karre-ops/RetroDesk2

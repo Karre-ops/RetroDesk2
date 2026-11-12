@@ -195,6 +195,20 @@ winzige Luecke, weil der Treiber jedes Stueck neu startet.
 6. Weitere Quellen
 ------------------
 
+
+Versionen der Kern-API
+----------------------
+KernVersion() liefert (Haupt << 8) | Neben, RD2_API_VERSION in RD2.H.
+Programme pruefen Neuerungen mit KernVersion() >= ..., bevor sie sie nutzen.
+  2.0  Nummern neu vergeben (30.10.2026).
+  2.1  MemError (0x042), MemStats (0x043): Speicherfehler und Auslagerung.
+  2.2  IconDrawFile (0x0A1): Symbol aus einer RD2-Programmdatei zeichnen,
+       WORD IconDrawFile(dc, x, y, datei, id), 0 = Datei hat kein Symbol id.
+       SM_HALBE fuer SndSamplePlay: Meldung je fertiger Blockhaelfte
+       (M_SOUNDDONE, p1 = 3, p2 = Haelfte), siehe Abschnitt 5.
+Ein Programm, das mit einer neueren API gebaut ist, startet auf einem
+aelteren Kern nicht (RD_ERR_VERSION).
+
 Die vollstaendige Beschreibung (Programmformat, Module, Treiber, Speicher,
 Grenzen) steht in docs/SPEC.md im Quelltext von RetroDesk 2:
 https://github.com/Karre-ops/RetroDesk2

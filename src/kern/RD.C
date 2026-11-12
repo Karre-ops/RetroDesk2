@@ -144,7 +144,7 @@ int main(void)
     task_api();
     file_api();
     mod_api();
-    k_out("RD: RetroDesk 2 Kern, API 2.0", 1);
+    k_out("RD: RetroDesk 2 Kern, API 2.2", 1);
     if (a >= argc) {                              /* ohne Programm: SHELL.EXE aus dem RD2-Verzeichnis */
         static char ksh[80]; char *q = k_hpath("SHELL.EXE");
         for (i = 0; (ksh[i] = q[i]) != 0; i++) ;
