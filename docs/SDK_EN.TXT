@@ -170,7 +170,20 @@ button, AN = checked, GRAU = disabled. Start a dialog with DialogRun(inst, n,
 owner, proc, param); MenuSet(window, MenuLoad(inst, n)) sets a menu.
 
 
-5. Pascal
+5. Refilling samples (ring buffer)
+----------------------------------
+
+SndSamplePlay(window, block, rate, SM_LOOP | SM_HALBE) plays the block in a
+loop and reports every finished half as M_SOUNDDONE with p1 = 3 and p2 = 0
+(first half) or 1 (second half). That half is then free to be refilled while
+the other one plays. Without SM_LOOP the block ends as before with
+M_SOUNDDONE p1 = 2. The message arrives through the message loop, not from
+the interrupt. Make each half at least 1/10 s long (about 2 KB at 11025 Hz).
+On the Sound Blaster there is a tiny gap at the middle of the block because
+the driver restarts each chunk.
+
+
+6. Pascal
 ---------
 
 Turbo Pascal 5.5-7.0 and Free Pascal (i8086-msdos, -WmLarge) work with the
@@ -190,7 +203,7 @@ unit RD2 (\SDK\PASCAL\RD2.PAS):
   gives the Pascal runtime the DOS start it expects.
 
 
-6. More
+7. More
 -------
 
 The full description (program format, modules, drivers, memory, limits) is in

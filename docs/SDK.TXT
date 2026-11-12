@@ -178,7 +178,21 @@ AN = angehakt, GRAU = gesperrt. Dialoge startet DialogRun(inst, n, owner,
 proc, param); MenuSet(fenster, MenuLoad(inst, n)) setzt ein Menue.
 
 
-5. Weitere Quellen
+5. Samples nachfuellen (Ringpuffer)
+-----------------------------------
+
+SndSamplePlay(fenster, block, rate, SM_LOOP | SM_HALBE) spielt den Block
+endlos und meldet jede fertig gespielte Haelfte als M_SOUNDDONE mit p1 = 3
+und p2 = 0 (erste Haelfte) oder 1 (zweite). Diese Haelfte ist dann frei und
+kann mit neuen Daten gefuellt werden, waehrend die andere klingt. Ohne
+SM_LOOP endet der Block wie bisher mit M_SOUNDDONE p1 = 2. Die Meldung kommt
+aus der Nachrichtenschleife, nicht aus dem Interrupt. Jede Haelfte sollte
+mindestens 1/10 s lang sein (bei 11025 Hz rund 2 KB), damit Zeit zum
+Nachfuellen bleibt. Auf dem Sound Blaster entsteht an der Blockmitte eine
+winzige Luecke, weil der Treiber jedes Stueck neu startet.
+
+
+6. Weitere Quellen
 ------------------
 
 Die vollstaendige Beschreibung (Programmformat, Module, Treiber, Speicher,

@@ -328,7 +328,7 @@ typedef struct {
 #define M_BUTTONUP    0x0202
 #define M_DBLCLK      0x0203
 #define M_DROPFILES   0x0233                      /* p2 = HMEM mit Dateiliste (0-getrennt, 00 am Ende) */
-#define M_SOUNDDONE   0x0300                      /* p1 = 1 Musik, 2 Sample zu Ende (nicht nach ...Stop) */
+#define M_SOUNDDONE   0x0300                      /* p1 = 1 Musik, 2 Sample zu Ende (nicht nach ...Stop), 3 Haelfte p2 (0/1) gespielt (SM_HALBE) */
 #define M_NETSTATE    0x0310                      /* p1 = NS_* des Netzes */
 #define M_NETRESOLVED 0x0311                      /* p1 = 0 ok, p2 = IP */
 #define M_NETCONNECT  0x0312                      /* p1 = HSOCK, p2 = Fehler */
@@ -544,6 +544,7 @@ typedef struct {
 #define SM_LOOP    0x0001                         /* SndMusicPlay: endlos wiederholen */
 #define SM_IMF700  0x0002                         /* IMF mit 700 Hz (Wolfenstein 3D), sonst 560 Hz (Keen) */
 #define SM_IMF280  0x0004                         /* IMF mit 280 Hz (Duke Nukem II) */
+#define SM_HALBE   0x0008                         /* SndSamplePlay: jede Blockhaelfte melden (M_SOUNDDONE p1 = 3), mit SM_LOOP Ringpuffer */
 
 /* Netz */
 #define NO_TCP 0
