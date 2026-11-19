@@ -21,7 +21,7 @@ A:\RD2\RD2.EXE A:\RD2\HAENGT.EXE
 A:\RD2\RD2.EXE A:\RD2\STRESS.EXE
 A:\FDAPM.COM POWEROFF
 AE
-SYS=$(awk '$4=="S" && $1!="RDSYS.EXE" && $1!="SHELL.EXE"{print $1}' tools/budget.txt | tr '\n' ' ')   # ohne SHELL (hier nicht gebraucht), damit es mit FreeDOS auf 360 KB passt
+SYS=$(awk '$4=="S" && $1!="RDSYS.EXE" && $1!="SHELL.EXE" && $1!="SHELLX.MOD" && $1!="RDCTLX.MOD"{print $1}' tools/budget.txt | tr '\n' ' ')   # ohne SHELL, SHELLX und RDCTLX (hier nicht gebraucht): FILETEST braucht 17 KB frei fuer GROSS.INI
 NUR="$SYS LEER.EXE PING.EXE PONG.EXE RECHNE.EXE MEMTEST.EXE FILETEST.EXE RESTEST.EXE RESTEST.RDB MODTEST.EXE TESTMOD.MOD TESTMOD2.MOD HAENGT.EXE STRESS.EXE WURM.EXE" \
   FMT=360 bash tools/mkdisk.sh $IMG obj/autoexec.txt   # prueft das Verteilformat (DriveInfo 360 KB)
 rm -f obj/andere.img; # andere Diskette absichtlich mit DERSELBEN Seriennummer (passiert real, wenn zwei Disketten
@@ -48,7 +48,7 @@ echo "qemu rc=$?"
 F=0; chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; F=$((F+1)); fi; }
 D=$(mtype -i $IMG ::/DIREKT.TXT 2>/dev/null | tr -d '\r')
 S=$(tr -d '\r' < $SER 2>/dev/null)
-P1=${S%%RD2: RetroDesk 2 Kern (Phase 2)*}               # bis zum zweiten Kernstart: LEER
+P1=${S%%RD2: RetroDesk 2 Kern, API*}                # bis zum Kernstart (Start-Text seit API 2.2)
 REST=${S#*Zeitscheiben an}; P2=${REST%%RD2: nur kooperativ*}; P3=${S#*RD2: nur kooperativ}
 echo "--- Phase 1"
 chk "LEER.EXE unter DOS meldet 'benoetigt RetroDesk 2'" '[[ "$D" == *"tigt RetroDesk 2."* ]]'
