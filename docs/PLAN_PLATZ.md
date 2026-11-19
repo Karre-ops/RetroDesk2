@@ -25,7 +25,7 @@ Stand 19.11.2026 (main 83e5a38), Zahlen aus build.sh und dem Diskettensatz.
 | D4 | COPYING bleibt auf Diskette 1 (GPL: Lizenztext gehört zum Programm) | – | – |
 
 ## Maßnahmen Kern (RD2.EXE)
-Größte Teile laut obj/rd.map: main 2,8 KB, Ablage für 8087-Zustände 4,3 KB (Daten), mod_xdone 1,4 KB,
+Größte Teile laut obj/rd.map: main 2,8 KB, Tabellen der Speicherverwaltung 4,4 KB (Daten, in der Map fälschlich hinter `_k_fpuseg` gezählt), mod_xdone 1,4 KB,
 mem_done 1,3 KB, input_poll 1,1 KB, task_load 1,0 KB, Funktionstabelle 1,4 KB, Stummel für fehlende
 Funktionen 1,0 KB.
 
@@ -33,7 +33,8 @@ Funktionen 1,0 KB.
 |---|---|---|---|
 | K1 | Selten gebrauchte Funktionen nach RDKX.MOD (verwerfbar, wird bei Bedarf geladen): MemStats, DriveInfo, KernInfo, ProfileSetStr. Weiterleitung über die vorhandene kx-Tabelle (4 Bytes je Funktion). RDKX-Grenze dafür auf 9 KB. | 1,5 bis 2 KB Datei und Speicher | mittel |
 | K2 | Startcode (main, die *_api-Anmeldungen, k_imgload) als RD2INIT.BIN wie RDSWAP.BIN: einmal laden, ausführen, freigeben | 4 bis 5 KB Speicher, RD2.EXE entsprechend kleiner | hoch |
-| K3 | 8087-Ablage nur anlegen, wenn ein 8087 da ist (heute fest 4,3 KB) | bis 4,3 KB Speicher ohne 8087 | mittel |
+| K3 | ~~8087-Ablage nur mit 8087~~: schon so umgesetzt (TASK.C holt die 12 x 94 Bytes nur mit 8087 per mem_get). Die 4,3 KB hinter `_k_fpuseg` in der Map sind die Tabellen der Speicherverwaltung (siehe K5). | 0 | – |
+| K5 | Tabellen der Speicherverwaltung verkleinern: hnd[201] je 14 Bytes = 2,8 KB, blk[160] je 10 Bytes = 1,6 KB (MEM.C, MAXH/MAXB). Erst den Höchststand im Betrieb messen (Zähler in MemStats), dann z. B. MAXH 200 -> 128 (1 KB) | bis 1,5 KB Speicher | mittel (zu wenig Handles = MemAlloc scheitert) |
 | K4 | Dateigrenze RD2.EXE von 29 auf 30 KB, sobald D1 Platz schafft | +1 KB Spielraum | klein |
 
 ## Umgesetzt
@@ -49,6 +50,7 @@ Funktionen 1,0 KB.
   Optionen (Liste aller *.KBD, eigene Belegungen als Datei), RD2SETUP und INSTALL umgebaut werden, und alte
   CONFIG.SYS-Zeilen wie `RDKEYB.COM C:\RD2\PC10.KBD` müssten weiter gehen. Nach D1 hat Diskette 1 31 KB frei,
   2 KB rechtfertigen das Risiko nicht. Wieder aufgreifen, wenn Diskette 1 erneut knapp wird.
+- K3 (19.11.2026) entfällt: Der 8087-Puffer wird schon nur mit 8087 angelegt. Die Zahl im Plan war ein Lesefehler der Map.
 - D3 ebenfalls zurückgestellt: Schriften gebündelt 11 statt 12 KB, nur 1 KB Gewinn.
 
 ## Vorschlag Reihenfolge
