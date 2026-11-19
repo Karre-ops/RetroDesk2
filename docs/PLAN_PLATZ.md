@@ -57,6 +57,6 @@ Funktionen 1,0 KB.
 1. D1 (schafft 20 KB auf Diskette 1, dann ist K4 sofort möglich)
 2. K1 (kleinster Kerneingriff mit spürbarem Gewinn)
 3. D2
-4. K3, danach K2 erst, wenn PLAN_32BIT mehr Kernplatz braucht
+4. K5 nach einer Messung, danach K2 erst, wenn PLAN_32BIT mehr Kernplatz braucht
 
 Entscheidungen von Karsten offen: Reihenfolge, ob D1 sofort, ob K2 überhaupt.
