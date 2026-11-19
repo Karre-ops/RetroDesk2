@@ -39,6 +39,11 @@ Funktionen 1,0 KB.
 ## Umgesetzt
 - D1 (19.11.2026): RDSYS.EXE auf Diskette 3, Diskette 1 hat 20 KB mehr frei.
 - K4 (19.11.2026): Dateigrenze RD2.EXE 30 KB.
+- K1 (19.11.2026), anders als geplant: Die Tabelle der Stummel für fehlende Funktionen (NOTSUP.ASM, erzeugt von
+  tools/mkapi.py) hat jetzt ein Halbbyte je API-Platz statt 4 Bytes je Funktion. RD2.EXE 640 Bytes kleiner,
+  im Speicher ebenso (29.026 Bytes Datei, 43.426 Bytes Speicher). MemStats, KernInfo und ProfileSetStr
+  hängen an inneren Daten des Kerns und bleiben. DriveInfo bleibt ebenfalls: die Shell fragt damit laufend
+  die Wechselleitung ab, aus dem verwerfbaren RDKX würde das bei fremder Diskette nach RD2SYSTEM fragen.
 
 ## Vorschlag Reihenfolge
 1. D1 (schafft 20 KB auf Diskette 1, dann ist K4 sofort möglich)
