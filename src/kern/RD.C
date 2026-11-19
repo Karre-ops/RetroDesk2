@@ -34,12 +34,13 @@ static void con(char c) { kr.ax = 0x0200; kr.dx = (BYTE)c; rd_int(0x21, &kr); }
 #define DBUF 1536                                 /* nur mit /D, eigener DOS-Block */
 static WORD dlog; static char __far *dbuf; static WORD dn;
 static void dput(char c) { if (dbuf && dn < DBUF) dbuf[dn++] = c; }
-static void k_ch(char c, int scr) { ser(c); dput(c); if (scr) con(c); }
+static void k_ch(char c, int scr) { ser(c); dput(c); if (scr & 1) con(c); }
 void k_txt(LPCSTR s, int scr) { while (*s) k_ch(*s++, scr); }
-void k_out(LPCSTR s, int scr) { k_txt(s, scr); k_txt("\r\n", scr); }
+void k_out(LPCSTR s, int scr) { if (scr & 2) k_txt("RD2: ", scr); k_txt(s, scr); k_txt("\r\n", scr); }   /* scr: 1 auch auf den Schirm, 2 mit "RD2: " davor */
 void k_hex(LPCSTR s, DWORD v, int scr)
 {
     WORD i;
+    if (scr & 2) k_txt("RD2: ", scr);
     k_txt(s, scr); k_txt(" 0x", scr);
     for (i = 0; i < 8; i++) k_ch("0123456789ABCDEF"[(WORD)(v >> (28 - 4 * i)) & 15], scr);
     k_txt("\r\n", scr);
@@ -132,7 +133,7 @@ int main(void)
         k_hpath("RD2SETUP.EXE");
         pb.cmd = tail;
         kr.ax = 0x4B00; kr.dx = (WORD)cmdline; kr.bx = (WORD)&pb; kr.ds = kr.es = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
-        if (CARRY) k_out("RD: ohne RD2SETUP", 1);
+        if (CARRY) k_out("ohne RD2SETUP", 3);
     }
     if (dlog) { kr.ax = 0x4800; kr.bx = DBUF / 16; rd_int(0x21, &kr); if (!(kr.flags & 1)) dbuf = (char __far *)MK_FP(kr.ax, 0); }
     k_fpu = (BYTE)rd_fpudet();
@@ -144,7 +145,7 @@ int main(void)
     task_api();
     file_api();
     mod_api();
-    k_out("RD: RetroDesk 2 Kern, API 2.2", 1);
+    k_out("RetroDesk 2 Kern, API 2.2", 3);
     if (a >= argc) {                              /* ohne Programm: SHELL.EXE aus dem RD2-Verzeichnis */
         static char ksh[80]; char *q = k_hpath("SHELL.EXE");
         for (i = 0; (ksh[i] = q[i]) != 0; i++) ;
@@ -165,7 +166,7 @@ int main(void)
     }
     if (k_maus == 0xFFFF) k_maus = 0;
     if (k_maus) k_maus |= (ProfileGetInt(k_ini, k_ms, "Tempo", 3) | (ProfileGetInt(k_ini, k_ms, "Tasten", 0) ? 0x80 : 0)) << 8;   /* Hochbyte fuer RDGDI: Tempo 1..5, Bit 7 Tasten tauschen */
-    if (k_umb_paras) k_hex("RD: UMB", (DWORD)k_umb_paras << 4, 1);
+    if (k_umb_paras) k_hex("UMB", (DWORD)k_umb_paras << 4, 3);
     mod_xinit();
     if ((ausm = ModLoad("RDAUSL.MOD")) != 0) {   /* Auslagern (XMS, RD2.SWP); RD2.INI Auslagern=0 prueft das Modul */
         mem_sw = (DWORD (__far __pascal *)(WORD, WORD, WORD))k_modraw(ausm, 2);
@@ -174,7 +175,7 @@ int main(void)
     vor = mem_free_bytes(0);                      /* schreibt den INI-Zwischenspeicher vorher */
     kxm = k_sysmod("RDKX.MOD", 0, 0, kx);                 /* Zeit, Sprache, Ressourcen, Texte (verwerfbar) */
     gdi = k_sysmod("RDGDI.MOD", RDO_GetCaps, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
-    if (!gdi) k_hex("RD: ohne RDGDI", k_lasterr, 1);
+    if (!gdi) k_hex("ohne RDGDI", k_lasterr, 3);
     if (gdi) k_mausget = (WORD (__far __pascal *)(WORD __far *))k_modraw(gdi, 0x3C + 5);
     if (gdi) k_gdipause = (void (__far __pascal *)(WORD))k_modraw(gdi, 0x3C + 6);
     if (gdi && (user = k_sysmod("RDUSER.MOD", RDO_RegisterClass, 0x42, ux)) != 0) {   /* Oberflaeche: Fenster, Eingabe */
@@ -186,10 +187,10 @@ int main(void)
         k_sndpause = (void (__far __pascal *)(WORD))k_modraw(snd, 0x0F);
         k_sndtick = (void (__far __pascal *)(void))k_modraw(snd, 0x0E);
     }
-    k_hex("RD: Speicher frei", vor, 1);
-    k_hex("RD: CPU", k_cpu, 1);
-    k_hex("RD: 8087", k_fpu, 1);
-    k_out(koop ? "RD: nur kooperativ" : "RD: Zeitscheiben an", 1);
+    k_hex("Speicher frei", vor, 3);
+    k_hex("CPU", k_cpu, 3);
+    k_hex("8087", k_fpu, 3);
+    k_out(koop ? "nur kooperativ" : "Zeitscheiben an", 3);
     rd_preempt = koop ? 0 : 1;
     rd_timer_on(16384);
     rd_api[RDO_NETHAKEN] = (FARPROC)(void __far *)&k_netpause;
@@ -200,7 +201,7 @@ int main(void)
     }
     cmdline[h] = 0;
     h = task_load(argv[a], cmdline, SW_SHOW);
-    if (!h) { rd_timer_off(); k_hex("RD: Fehler beim Laden", k_lasterr, 1); mem_done(); return 2; }
+    if (!h) { rd_timer_off(); k_hex("Fehler beim Laden", k_lasterr, 3); mem_done(); return 2; }
     task_run_all();
     profile_flush();
     clip_done();                                  /* Zwischenablage gehoert dem Kern */
@@ -215,8 +216,8 @@ int main(void)
     k_sysend(kxm);
     k_modrest(ausm);
     nach = mem_free_bytes(0);
-    k_hex("RD: alle Programme beendet, Speicher frei", nach, 1);
-    k_out(vor == nach ? "RD: Speicher vollstaendig zurueck" : "RD: SPEICHERLECK", 1);
+    k_hex("alle Programme beendet, Speicher frei", nach, 3);
+    k_out(vor == nach ? "Speicher vollstaendig zurueck" : "SPEICHERLECK", 3);
     mem_sw = 0; k_sysend(ausm);
     if (dbuf) {
         WORD i; con('-'); con('\r'); con('\n'); for (i = 0; i < dn; i++) con(dbuf[i]);

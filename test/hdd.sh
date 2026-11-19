@@ -49,7 +49,7 @@ for FALL in ${FAELLE:-schnell voll nein heim gross}; do
   else echo "FEHLER: RDFORMAT kommt nicht ($FALL)"; fi
   wait $QP
   echo "--- $FALL: Protokoll"
-  tr -d '\r' < $SER | grep -vE "^I[0-9A-F]{2} |^A:.RD2.|^RD: (Speicher|Modul)" | sed -n '/RDFORMAT: \(Festplatte\|Meldung 31\)/,$p' | head -45
+  tr -d '\r' < $SER | grep -vE "^I[0-9A-F]{2} |^A:.RD2.|^RD2: (Speicher|Modul)" | sed -n '/RDFORMAT: \(Festplatte\|Meldung 31\)/,$p' | head -45
   echo "--- $FALL: Platte"; mdir -i $H@@$OFS :: 2>&1 | head -5
   case $FALL in
     heim)  grep -q "RDFORMAT: Meldung 31" $SER && mdir -i $H@@$OFS ::/ALT.TXT >/dev/null 2>&1;;

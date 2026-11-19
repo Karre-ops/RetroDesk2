@@ -178,8 +178,8 @@ static void notbeenden(WORD cs)
     if (best && best == k_cur && (cs < k_task[best].base || cs >= k_task[best].base + k_task[best].paras))
         return;                                   /* steckt gerade im Kern/BIOS: Kernzustand nicht zerstoeren, spaeter */
     rd_killreq = 0;
-    if (!best) { k_out("RD: Notbeenden: keins", 0); return; }
-    k_hex("RD: Notbeenden Task", best, 0);
+    if (!best) { k_out("Notbeenden: keins", 2); return; }
+    k_hex("Notbeenden Task", best, 2);
     TaskKill(best, 0xFFFF);                       /* bei k_cur: schaltet um, kehrt nicht zurueck */
 }
 
@@ -262,7 +262,7 @@ static void task_start(void)                      /* laeuft auf dem Startstack d
     /* Programm ist zurueckgekehrt. Aufraeumen erledigt reap() im naechsten Task. */
     t = &k_task[k_cur];
     t->quitcode = res;
-    k_hex("RD: Task beendet:", ((DWORD)k_cur << 16) | (WORD)res, 0);
+    k_hex("Task beendet:", ((DWORD)k_cur << 16) | (WORD)res, 2);
     t->state = T_ZOMBIE;
     schedule(1);                                  /* kehrt nie zurueck */
 }
@@ -393,7 +393,7 @@ WORD RDK TaskKill(HTASK n, WORD code)
     t = &k_task[n];
     t->quitcode = code;
     t->state = T_ZOMBIE;
-    k_hex("RD: Task beendet (Kill):", ((DWORD)n << 16) | code, 0);
+    k_hex("Task beendet (Kill):", ((DWORD)n << 16) | code, 2);
     if (n == k_cur) schedule(1);                  /* kehrt nie zurueck; reap() raeumt im naechsten Task auf */
     reap();
     return 0;

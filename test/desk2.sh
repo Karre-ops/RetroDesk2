@@ -28,7 +28,7 @@ waitn "SHELL: kopiert" 2 && sleep 2 && Q "sendkey kp_7" sleep0.3 "sendkey kp_6" 
 waitn "SHELL: geloescht" 1 && sleep 2 && Q "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sendkey ret"
 waitn "SHELL: Ende" 1 || ok=0
 wait $QP
-tr -d '\r' < $SER | grep -E "SHELL|A:\\\\|RD: (alle|Speicher voll|Fehler)"
+tr -d '\r' < $SER | grep -E "SHELL|A:\\\\|RD2: (alle|Speicher voll|Fehler)"
 chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; ok=0; fi; }
 chk "Ordner TEST geloescht"              "! mdir -i $IMG ::/TEST >/dev/null 2>&1"
 chk "RD2\\TEST\\FDAPM.BAK kopiert"       "mdir -i $IMG ::/RD2/TEST/FDAPM.BAK >/dev/null 2>&1"

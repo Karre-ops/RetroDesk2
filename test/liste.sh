@@ -22,7 +22,7 @@ sleep 1.5; Q "sendkey alt-f4" sleep1.5 "sendkey alt-spc" sleep0.8 "sendkey b" sl
 waitn "SHELL: Ende" 1 || ok=0
 wait $QP
 L=$(tr -d '\r' < $SER)
-echo "$L" | grep -A2 "SHELL: Ordner" | head -3; echo "$L" | grep -E "SHELL: (Ansicht|Ende)|RD: (Speicher voll|Fehler)"
+echo "$L" | grep -A2 "SHELL: Ordner" | head -3; echo "$L" | grep -E "SHELL: (Ansicht|Ende)|RD2: (Speicher voll|Fehler)"
 # erwartet: Ordner vorn, dann Dateien, je nach Namen
 mapfile -t N < <(echo "$L" | grep -B2 -m1 'SHELL: Ordner A:\\ ' | sed -n 1,2p)   # Shell meldet ersten und letzten Eintrag vor "Ordner"
 DIRS=$(mdir -i $IMG ::/ | awk '$2=="<DIR>"{print $1}' | LC_ALL=C sort)

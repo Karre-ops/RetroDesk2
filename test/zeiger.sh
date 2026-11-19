@@ -28,5 +28,5 @@ for n in 1 2; do
   waitn "ZEIGTEST: fertig" $n || echo "FEHLER: kein Ende"
 done
 wait $QP
-tr -d '\r' < $SER | grep -E "ZEIGTEST|RD: (Speicher|SPEICHER|alle|Fehler)"
+tr -d '\r' < $SER | grep -E "ZEIGTEST|RD2: (Speicher|SPEICHER|alle|Fehler)"
 python3 test/zeiger_pruef.py $SER

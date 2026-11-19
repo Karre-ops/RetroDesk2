@@ -22,7 +22,7 @@ waitn "SHELL: kopiert" 1 && sleep 2 && Q "sendkey f" sleep0.3 "sendkey f5" sleep
 waitn "SHELL: kopiert" 2 && sleep 2 && Q "sendkey f" sleep0.5 "sendkey shift-f10" sleep1.5 "screendump obj/kopabbr_menu.ppm" sleep0.3 "sendkey esc" sleep1 "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sendkey ret"
 waitn "SHELL: Ende" 1 || ok=0
 wait $QP
-tr -d '\r' < $SER | grep -E "SHELL|RD: (alle|Speicher voll|Fehler)"
+tr -d '\r' < $SER | grep -E "SHELL|RD2: (alle|Speicher voll|Fehler)"
 chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; ok=0; fi; }
 chk "Esc erkannt"                        "tr -d '\r' < $SER | grep -q 'SHELL: Abbruch (Esc)'"
 chk "keine halbe Kopie RD2\\GROSS.DAT"    "! mdir -i $IMG ::/RD2/GROSS.DAT >/dev/null 2>&1"

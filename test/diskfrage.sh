@@ -27,7 +27,7 @@ for n in 1 2; do
 done
 wait $QP
 S=$(tr -d '\r' < $SER)
-echo "$S" | grep -E "DISKFRAG|Bitte Diskette|RD: (Esc|Enter)" | head -12
+echo "$S" | grep -E "DISKFRAG|Bitte Diskette|RD2: (Esc|Enter)" | head -12
 [[ "$S" == *"DISKFRAG: Esc -> 0x00000005"* ]] && echo "ok     Esc liefert RD_ERR_NODISK" || { echo "FEHLER Esc-Ergebnis"; F=1; }
 python3 - <<'PY' || F=1
 import sys

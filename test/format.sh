@@ -35,7 +35,7 @@ for FALL in ${FAELLE:-360 720 abbruch wp}; do
   else echo "FEHLER: RDFORMAT kommt nicht ($KB)"; fi
   wait $QP
   echo "--- $FALL: Protokoll"
-  tr -d '\r' < $SER | grep -vE "^RD: (Speicher|Modul)" | grep -vE "^I[0-9A-F]{2} |^A:.RD2.|^RD: " | sed -n '/^\/[UQ]/,$p' | head -40
+  tr -d '\r' < $SER | grep -vE "^RD2: (Speicher|Modul)" | grep -vE "^I[0-9A-F]{2} |^A:.RD2.|^RD2: " | sed -n '/^\/[UQ]/,$p' | head -40
   echo "--- $FALL: Ergebnis"
   mdir -i $B :: 2>&1 | head -8
   case $FALL in

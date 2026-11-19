@@ -20,5 +20,5 @@ waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -
 waitn "WINTEST: bild" 1 && sleep 0.5 && Q "screendump obj/win_cga.ppm" "pmemsave 0xb8000 16384 obj/win_cga.vram"
 waitn "WINTEST: bild" 2 && sleep 0.5 && Q "screendump obj/win_vga.ppm"
 wait $QP
-tr -d '\r' < $SER | grep -E "WINTEST|-> |RD: (Speicher|SPEICHER|alle|Fehler)"
+tr -d '\r' < $SER | grep -E "WINTEST|-> |RD2: (Speicher|SPEICHER|alle|Fehler)"
 [ -f test/ref/win_cga.png ] && python3 test/bildvergleich.py obj/win_cga.ppm test/ref/win_cga.png obj/win_vga.ppm test/ref/win_vga.png

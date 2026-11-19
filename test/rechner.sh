@@ -42,6 +42,6 @@ lauf() {
 }
 lauf
 wait $QP
-tr -d '\r' < $SER | grep -E "RD: (Speicher vollstaendig|SPEICHER|Fehler)"
+tr -d '\r' < $SER | grep -E "RD2: (Speicher vollstaendig|SPEICHER|Fehler)"
 [ -f test/ref/rechner1_vga.png ] && python3 test/bildvergleich.py obj/rechner1_vga.ppm test/ref/rechner1_vga.png obj/rechner2_cga.ppm test/ref/rechner2_cga.png
 exit 0

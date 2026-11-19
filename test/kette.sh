@@ -80,7 +80,7 @@ timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$H,format
 QP=$!
 if waitn "SHELL: bereit\|Aufruf: RD" $S 600; then sleep 5; Q "screendump obj/kette4.ppm"; fi
 sleep 1; kill $QP 2>/dev/null; wait $QP 2>/dev/null
-pruef "4 RD2 startet von Festplatte" "grep -aq 'RD: Zeitscheiben an' $S"
+pruef "4 RD2 startet von Festplatte" "grep -aq 'RD2: Zeitscheiben an' $S"
 pruef "4 Desktop (SHELL) laeuft" "grep -aq 'SHELL: bereit' $S"
 [ $F = 0 ] && echo "kette.sh: alles ok" || echo "kette.sh: FEHLER"
 exit $F

@@ -37,7 +37,7 @@ sleep 1; Q "sendkey alt-f4" sleep1.5 "sendkey alt-spc" sleep0.8 "sendkey b" slee
 waitn "SHELL: Ende" 1 || ok=0
 wait $QP
 L=$(tr -d '\r' < $SER)
-echo "$L" | grep -E "SHELL: (Ordner|angeheftet|geloest|Start|Zustand|Diskettenwechsel|kein Wechsel|Ende)|RD: (Speicher voll|Fehler)"
+echo "$L" | grep -E "SHELL: (Ordner|angeheftet|geloest|Start|Zustand|Diskettenwechsel|kein Wechsel|Ende)|RD2: (Speicher voll|Fehler)"
 LST=$(mtype -i $IMG ::/RD2/PROGRAMM.LST 2>/dev/null | tr -d '\r'); echo "$LST"
 chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; ok=0; fi; }
 chk "angeheftet, Eintrag in PROGRAMM.LST"   "echo \"\$LST\" | grep -qi 'Datei=A:.RD2.FREIMEM.EXE'"

@@ -29,6 +29,6 @@ Q "mouse_move 180 180" sleep0.8                                                 
 Q "screendump obj/inp_${K}.ppm" sleep0.3 "sendkey esc"
 waitn "INPTEST: fertig" 1 || echo "FEHLER: kein Ende"
 wait $QP
-tr -d '\r' < $SER | grep -E "INPTEST|RD: (Speicher|SPEICHER|Fehler)" > obj/inp_log.txt
+tr -d '\r' < $SER | grep -E "INPTEST|RD2: (Speicher|SPEICHER|Fehler)" > obj/inp_log.txt
 cat obj/inp_log.txt
 python3 test/input_pruef.py obj/inp_log.txt obj/inp_${K}.ppm

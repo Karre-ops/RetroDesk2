@@ -17,7 +17,7 @@ lauf() {  # $1 Name  $2 Befehl  $3 RD2.INI-Inhalt (leer = keine)  $4 QEMU-Zusatz
     -audiodev none,id=a0 -machine pcspk-audiodev=a0 $4 -serial file:$SER >/dev/null 2>&1
   echo "== $1" >> obj/klang_alle.txt; tr -d '\r' < $SER >> obj/klang_alle.txt
   local f=$(tr -d '\r' < $SER | grep -c "^SNDTEST: ^^^ FALSCH"); local n=$(tr -d '\r' < $SER | grep -c "^SNDTEST: fertig")
-  local sp=$(tr -d '\r' < $SER | grep -c "RD: Speicher vollstaendig zurueck")
+  local sp=$(tr -d '\r' < $SER | grep -c "RD2: Speicher vollstaendig zurueck")
   [ "$f" = 0 ] && [ "$n" = 2 ] && [ "$sp" = 2 ] && echo "ok     $1 (2 Laeufe, Speicher zurueck)" || { echo "FEHLER $1: $f falsch, $n fertig, $sp Speicher"; tr -d '\r' < $SER | grep -B1 "FALSCH" | head -6; }
 }
 lauf lautsprecher S ""

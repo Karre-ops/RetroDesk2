@@ -43,7 +43,7 @@ lauf() {
 }
 lauf
 wait $QP
-tr -d '\r' < $SER | grep -A1 -E "NOTIZ|RD: (Speicher|SPEICHER|alle|Fehler)" | grep -v "^--"
+tr -d '\r' < $SER | grep -A1 -E "NOTIZ|RD2: (Speicher|SPEICHER|alle|Fehler)" | grep -v "^--"
 pr() { [ "$2" = "$3" ] && echo "ok     $1" || { echo "FEHLER $1"; echo "  ist:  $(printf %q "$2")"; echo "  soll: $(printf %q "$3")"; }; }
 X=$(printf 'x%.0s' $(seq 60))
 pr "NEU.TXT: Text, 60 Spalten, Rueckfrage speichert" "$(mtype -i $IMG ::/NEU.TXT | od -An -c | tr -s ' ' | tr -d '\n')" "$(printf "zHallo\r\nWelt\r\n$X" | od -An -c | tr -s ' ' | tr -d '\n')"

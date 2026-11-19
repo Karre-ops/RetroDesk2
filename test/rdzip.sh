@@ -43,7 +43,7 @@ waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null || true)" -
 if waitn "RDZIP: Eintraege" 4; then sleep 2; Q "screendump obj/rdzip1_vga.ppm" sleep0.3 "sendkey esc"; else echo "FEHLER: Liste kommt nicht"; fi
 waitn "RDZIP: Ende" 5 || echo "FEHLER: Esc schliesst die Liste nicht"
 wait $QP
-tr -d '\r' < $SER | grep -E "RDZIP|RD: (Fehler|SPEICHER)" | grep -v "bereit" | head -40
+tr -d '\r' < $SER | grep -E "RDZIP|RD2: (Fehler|SPEICHER)" | grep -v "bereit" | head -40
 python3 -c "import shutil; shutil.rmtree('obj/rdzip_d/aus', True); shutil.rmtree('obj/rdzip_d/neu', True)"
 mkdir -p $D/aus $D/neu
 mcopy -s -n -i $IMG ::/AUS $D/aus/ 2>/dev/null; mcopy -n -i $IMG ::/NEU.ZIP ::/QUELLE/TEXT.ZIP $D/neu/ 2>/dev/null

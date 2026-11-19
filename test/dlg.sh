@@ -42,6 +42,6 @@ for n in 1 2; do
   waitn "DLGTEST: Fehler" $n || echo "FEHLER: kein Ende"
 done
 wait $QP
-tr -d '\r' < $SER | grep -E "DLGTEST|RD: (Speicher|SPEICHER|alle|Fehler|Modul)"
+tr -d '\r' < $SER | grep -E "DLGTEST|RD2: (Speicher|SPEICHER|alle|Fehler|Modul)"
 [ -f test/ref/dlg1_cga.png ] && python3 test/bildvergleich.py obj/dlg1_cga.ppm test/ref/dlg1_cga.png obj/dlg1_vga.ppm test/ref/dlg1_vga.png obj/dlg2_cga.ppm test/ref/dlg2_cga.png obj/dlg2_vga.ppm test/ref/dlg2_vga.png obj/dlg3_cga.ppm test/ref/dlg3_cga.png obj/dlg3_vga.ppm test/ref/dlg3_vga.png obj/dlg4_cga.ppm test/ref/dlg4_cga.png obj/dlg4_vga.ppm test/ref/dlg4_vga.png obj/dlg5_cga.ppm test/ref/dlg5_cga.png obj/dlg5_vga.ppm test/ref/dlg5_vga.png obj/dlg6_cga.ppm test/ref/dlg6_cga.png obj/dlg6_vga.ppm test/ref/dlg6_vga.png obj/dlg7_cga.ppm test/ref/dlg7_cga.png obj/dlg7_vga.ppm test/ref/dlg7_vga.png obj/dlg8_cga.ppm test/ref/dlg8_cga.png obj/dlg8_vga.ppm test/ref/dlg8_vga.png obj/dlg9_cga.ppm test/ref/dlg9_cga.png obj/dlg9_vga.ppm test/ref/dlg9_vga.png
 exit 0

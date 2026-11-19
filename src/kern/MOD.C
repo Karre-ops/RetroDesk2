@@ -62,7 +62,7 @@ void mod_xinit(void)
     if (fr < kb) kb = fr;
     if (kb < 16 || rd_xms(0x0900, kb, 0) != 1) { k_xmsent = 0; return; }
     xh = k_xdx; xsize = (DWORD)kb << 10;
-    k_hex("RD: XMS-Ablage", xsize, 1);
+    k_hex("XMS-Ablage", xsize, 3);
 }
 void mod_xdone(void)
 {
@@ -110,7 +110,7 @@ static WORD load2(WORD m)
 {
     MODUL *x = &md[m]; WORD i, e; static WORD seg, paras; DWORD tab;
     WORD __far *t;
-    if (x->xp) { if ((e = xload(x, &seg)) != 0) return e; paras = x->paras; k_out("RD: Modul aus XMS", 0); }
+    if (x->xp) { if ((e = xload(x, &seg)) != 0) return e; paras = x->paras; k_out("Modul aus XMS", 2); }
     else {
         if ((e = k_imgload(x->path, "MD", &seg, &paras)) != 0) return e;
         x->cs = k_mz.cs; x->ip = k_mz.ip; x->flags = k_rb.flags; x->paras = paras;
@@ -149,7 +149,7 @@ static int mdiscard(WORD m)
 {
     if (m < 1 || m > MAXMOD || !md[m].loaded || md[m].lock) return 0;
     md[m].loaded = 0;
-    k_txt("RD: Modul verworfen: ", 0); k_out(md[m].name, 0);
+    k_txt("RD2: Modul verworfen: ", 0); k_out(md[m].name, 0);
     return 1;
 }
 
@@ -160,7 +160,7 @@ static WORD reload(WORD m)
     if (x->xp) { if (!(e = load(m))) return 0; if (e == RD_ERR_NOMEM) return e; x->xp = 0; }   /* XMS kaputt: von Diskette */
     for (;;) {
         if (x->drive && DiskRequest(x->drive, x->serial, x->label)) return RD_ERR_NODISK;
-        if (!(e = load(m))) { k_out("RD: Modul nachgeladen", 0); return 0; }
+        if (!(e = load(m))) { k_out("Modul nachgeladen", 2); return 0; }
         if (e == RD_ERR_NOMEM) return e;
         if (!x->drive) return e;
         /* Diskette passte, Laden ging trotzdem schief: ausdruecklich fragen, nie still im Kreis */
@@ -236,7 +236,7 @@ DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs)
     TASK *t = &k_task[k_cur]; WORD m = th[idx].mod, nr = th[idx].nr; MODUL *x = &md[m];
     /* ungueltig, Stapel voll, nicht nachladbar oder Funktion fehlt (Grund: RD /D, Modulliste) */
     if (!m || !x->used || t->rsp >= 12 || (!x->loaded && reload(m)) || nr > x->nexp || !x->tab[nr - 1]) {
-        k_out("RD: Modulaufruf scheitert", 0);
+        k_out("Modulaufruf scheitert", 2);
         TaskKill(k_cur, 0xFFFE);
     }
     t->rs[t->rsp].ip = ip; t->rs[t->rsp].cs = cs; t->rs[t->rsp].mod = m; t->rsp++;

@@ -26,7 +26,7 @@ Q "mouse_move 60 0" sleep0.6 "mouse_button 1" sleep0.2 "mouse_button 0" sleep1.0
 Q "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sendkey ret"
 waitn "SHELL: Ende" 1 || ok=0
 wait $QP
-tr -d '\r' < $SER | grep -E "RD: (alle|Speicher voll|Fehler)"
+tr -d '\r' < $SER | grep -E "RD2: (alle|Speicher voll|Fehler)"
 chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; ok=0; fi; }
 chk "Speicher zurueck"                    "tr -d '\r' < $SER | grep -q 'Speicher vollstaendig zurueck'"
 [ -f test/ref/mleiste1.png ] && { python3 test/bildvergleich.py obj/mleiste1.ppm test/ref/mleiste1.png obj/mleiste2.ppm test/ref/mleiste2.png obj/mleiste3.ppm test/ref/mleiste3.png obj/mleiste4.ppm test/ref/mleiste4.png || ok=0; }

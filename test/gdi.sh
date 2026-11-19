@@ -20,5 +20,5 @@ waitn() { for i in $(seq 600); do [ "$(grep -c "$1" $SER 2>/dev/null)" -ge "$2" 
 waitn "GDITEST: fertig" 1 && sleep 0.5 && Q "screendump obj/gdi_cga.ppm" "pmemsave 0xb8000 16384 obj/gdi_cga.vram"
 waitn "GDITEST: fertig" 2 && sleep 0.5 && Q "screendump obj/gdi_vga.ppm"
 wait $QP
-tr -d '\r' < $SER | grep -E "GDITEST|RD: (Speicher|SPEICHER|alle|Fehler)"
+tr -d '\r' < $SER | grep -E "GDITEST|RD2: (Speicher|SPEICHER|alle|Fehler)"
 python3 test/bildvergleich.py obj/gdi_cga.ppm test/ref/gdi_cga.png obj/gdi_vga.ppm test/ref/gdi_vga.png

@@ -46,7 +46,7 @@ Q "sendkey alt-f4" sleep1.5 "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sen
 waitn "SHELL: Ende" 1 || ok=0
 wait $QP
 L=$(tr -d '\r' < $SER)
-echo "$L" | grep -E "SHELL: (Groesse|aktiv|Ende)|RD: (alle|Speicher voll|Fehler)"
+echo "$L" | grep -E "SHELL: (Groesse|aktiv|Ende)|RD2: (alle|Speicher voll|Fehler)"
 chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; ok=0; fi; }
 G=$(echo "$L" | grep "SHELL: Groesse" | sed -n 1p | awk '{print $NF}')   # vorher Client etwa 302 x 215
 chk "Groesse geaendert ($G), breiter und hoeher" "[ -n \"$G\" ] && [ \$(( ($G & 0xFFFF) > 340 && ($G >> 16) > 225 )) = 1 ]"

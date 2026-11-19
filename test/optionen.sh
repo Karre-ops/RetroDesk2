@@ -38,7 +38,7 @@ lauf() {
 }
 lauf
 wait $QP
-tr -d '\r' < $SER | grep -A1 -E "OPTIONEN|RD: (Speicher vollstaendig|SPEICHER|Fehler)" | grep -v "^--"
+tr -d '\r' < $SER | grep -A1 -E "OPTIONEN|RD2: (Speicher vollstaendig|SPEICHER|Fehler)" | grep -v "^--"
 pr() { [ "$2" = "$3" ] && echo "ok     $1" || { echo "FEHLER $1"; echo "  ist:  $(printf %q "$2")"; echo "  soll: $(printf %q "$3")"; }; }
 z=$(tr -d '\r' < $SER | grep -c "^OPTIONEN: bereit, Start an")
 pr "Start dreimal richtig erkannt (an, aus, an)" "$(tr -d '\r' < $SER | grep '^OPTIONEN: bereit' | cut -c19- | tr '\n' ' ')" "Start an Start aus Start an "

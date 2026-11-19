@@ -33,6 +33,6 @@ for n in 1 2; do
   waitn "SHELL: Ende" $n || { echo "FEHLER: Shell endet nicht"; break; }
 done
 wait $QP
-tr -d '\r' < $SER | grep -E "SHELL|RD: (Speicher|SPEICHER|alle|Fehler|Modul)"
+tr -d '\r' < $SER | grep -E "SHELL|RD2: (Speicher|SPEICHER|alle|Fehler|Modul)"
 [ -f test/ref/desk1_cga.png ] && for k in cga vga; do for b in 1 2 3 4 5 6; do python3 test/bildvergleich.py obj/desk${b}_$k.ppm test/ref/desk${b}_$k.png; done; done
 exit 0

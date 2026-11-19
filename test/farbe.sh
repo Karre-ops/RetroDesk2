@@ -39,7 +39,7 @@ for n in 1 2 3; do
   Q "screendump obj/farbe5_$K.ppm" sleep0.3 "sendkey ret" sleep1 "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sendkey ret"
 done
 wait $QP 2>/dev/null
-grep -a "RD: Grafik\|VGA16\|EGA.DRV\|Speicher vollst\|SPEICHERLECK" $SER | tr -d '\r' | head
+grep -a "RD2: Grafik\|VGA16\|EGA.DRV\|Speicher vollst\|SPEICHERLECK" $SER | tr -d '\r' | head
 for K in vga16 ega vesa; do
   [ -f obj/farbe2_$K.ppm ] && [ -f obj/farbe4_$K.ppm ] && { python3 -c "
 from PIL import Image, ImageChops, ImageDraw; import sys

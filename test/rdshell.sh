@@ -61,5 +61,5 @@ mdir -i $IMG ::/RD2/TEST >/dev/null 2>&1 && { echo "FEHLER TEST liegt noch da"; 
 for b in rdsh1_vga rdsh2_vga rdsh3_cga; do
   if [ -f test/ref/$b.png ]; then python3 test/bildvergleich.py obj/$b.ppm test/ref/$b.png || F=1; else [ -f obj/$b.ppm ] && echo "neu    obj/$b.ppm (keine Referenz)" || { echo "FEHLER $b fehlt"; F=1; }; fi
 done
-[ $F = 0 ] && echo "RDSHELL: ok" || { echo "RDSHELL: FEHLER"; echo "$L" | grep "RDSHELL\|RD: Fehler" | tail -50; }
+[ $F = 0 ] && echo "RDSHELL: ok" || { echo "RDSHELL: FEHLER"; echo "$L" | grep "RDSHELL\|RD2: Fehler" | tail -50; }
 exit $F

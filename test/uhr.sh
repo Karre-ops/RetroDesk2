@@ -29,7 +29,7 @@ for n in 1 2; do
   Q "screendump obj/uhr2_$K.ppm" sleep0.3 "sendkey esc"
 done
 wait $QP
-tr -d '\r' < $SER | grep -A1 -E "UHR|RD: (Speicher|SPEICHER|alle|Fehler)" | grep -v "^--"
+tr -d '\r' < $SER | grep -A1 -E "UHR|RD2: (Speicher|SPEICHER|alle|Fehler)" | grep -v "^--"
 [ "$(tr -d '\r' < $SER | grep -A1 "UHR: gestellt" | grep -cE "^08:1[45] 01.02")" = 2 ] && echo "ok     Zeit in DOS gestellt (CGA, VGA)" || echo "FEHLER Zeit nicht in DOS"
 [ -f test/ref/uhr1_cga.png ] && python3 test/bildvergleich.py obj/uhr1_cga.ppm test/ref/uhr1_cga.png obj/uhr1_vga.ppm test/ref/uhr1_vga.png obj/uhr2_cga.ppm test/ref/uhr2_cga.png obj/uhr2_vga.ppm test/ref/uhr2_vga.png
 exit 0

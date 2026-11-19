@@ -173,7 +173,7 @@ static DWORD RDEXPORT Sw(WORD art, WORD seg, WORD n)
         while (h[k] && k < sizeof pfad - 8) { pfad[k] = h[k]; k++; }
         pfad[k++] = 'R'; pfad[k++] = 'D'; pfad[k++] = '2'; pfad[k++] = '.'; pfad[k++] = 'S'; pfad[k++] = 'W'; pfad[k++] = 'P'; pfad[k] = 0;
         if (!xent && !platte) return 0;
-        DbgHex(xent ? "RD: Auslagern nach XMS, Platte" : "RD: Auslagern nach RD2.SWP, Platte", platte);
+        DbgHex(xent ? "RD2: Auslagern nach XMS, Platte" : "RD2: Auslagern nach RD2.SWP, Platte", platte);
         return 1;
     }
     return 0;

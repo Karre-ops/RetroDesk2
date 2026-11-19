@@ -45,7 +45,7 @@ for FALL in F G; do
   sleep 3; kill $QP 2>/dev/null; wait $QP 2>/dev/null       # erstes Programm laeuft weiter, Ende pruefen M4/rundos
   S=$(tr -d '\r' < $SER)
   [ "$(echo "$S" | grep -c "$M")" = 1 ] && echo "ok     $FALL: $M" || { echo "FEHLER $FALL: $M"; F=1; }
-  [ "$(echo "$S" | grep -c "RD: Task beendet")" -ge 2 ] && echo "ok     $FALL: zweites Programm beendet" || { echo "FEHLER $FALL: zweites laeuft"; F=1; }
+  [ "$(echo "$S" | grep -c "RD2: Task beendet")" -ge 2 ] && echo "ok     $FALL: zweites Programm beendet" || { echo "FEHLER $FALL: zweites laeuft"; F=1; }
 done
 mdir -i obj/dfmt_hd.img@@32256 :: >/dev/null 2>&1 && echo "ok     Festplatte unveraendert lesbar" || { echo "FEHLER Festplatte"; F=1; }
 [ $F = 0 ] && echo "G23: alles ok" || echo "G23: Fehler"

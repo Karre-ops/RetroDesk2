@@ -48,8 +48,8 @@ echo "qemu rc=$?"
 F=0; chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; F=$((F+1)); fi; }
 D=$(mtype -i $IMG ::/DIREKT.TXT 2>/dev/null | tr -d '\r')
 S=$(tr -d '\r' < $SER 2>/dev/null)
-P1=${S%%RD: RetroDesk 2 Kern (Phase 2)*}               # bis zum zweiten Kernstart: LEER
-REST=${S#*Zeitscheiben an}; P2=${REST%%RD: nur kooperativ*}; P3=${S#*RD: nur kooperativ}
+P1=${S%%RD2: RetroDesk 2 Kern (Phase 2)*}               # bis zum zweiten Kernstart: LEER
+REST=${S#*Zeitscheiben an}; P2=${REST%%RD2: nur kooperativ*}; P3=${S#*RD2: nur kooperativ}
 echo "--- Phase 1"
 chk "LEER.EXE unter DOS meldet 'benoetigt RetroDesk 2'" '[[ "$D" == *"tigt RetroDesk 2."* ]]'
 chk "LEER.EXE unter DOS endet mit Fehlercode 1"       '[[ "$D" == *FEHLERCODE1* ]]'
@@ -85,14 +85,14 @@ echo "--- Phase 2 Module und Diskettenwechsel"
 chk "Modul: Quadrat(7) = 49"             '[[ "$S" == *"MODTEST: Quadrat(7) 0x00000031"* ]]'
 chk "Reserve: Fuellen verdraengt Modul nicht" '[[ "$S" == *"MODTEST: Modul nach Fuellen noch da"* ]]'
 chk "zweites Modul laeuft in der Reserve"  '[[ "$S" == *"MODTEST: zweites Modul 0x00000019"* ]]'
-chk "es verdraengt das erste"            'echo "$S" | tr -d "\r" | grep -qx "RD: Modul verworfen: Testmodul"'
+chk "es verdraengt das erste"            'echo "$S" | tr -d "\r" | grep -qx "RD2: Modul verworfen: Testmodul"'
 chk "Speicher voll: Nachladen klappt trotzdem" '[[ "$S" == *"MODTEST: Quadrat(8) 0x00000040"* ]]'
 chk "Kern fragt nach Diskette RD2SYSTEM" '[ "$SAWASK" = 1 ]'
 chk "leeres Laufwerk: keine DOS-Meldung" '[ "$SAWDOS" != 1 ]'
-chk "nachgeladen, Quadrat(8) = 64"       '[[ "$S" == *"RD: Modul nachgeladen"* ]] && [[ "$S" == *"MODTEST: Quadrat(8) 0x00000040"* ]]'
+chk "nachgeladen, Quadrat(8) = 64"       '[[ "$S" == *"RD2: Modul nachgeladen"* ]] && [[ "$S" == *"MODTEST: Quadrat(8) 0x00000040"* ]]'
 chk "Moduldaten nach Nachladen neu"      '[[ "$S" == *"MODTEST: Aufrufe nach Nachladen 0x00000001"* ]]'
 echo "--- Phase 2 Notbeenden"
-chk "Strg+Alt+Rueckschritt beendet HAENGT" '[[ "$S" == *"RD: Notbeenden Task 0x00000001"* ]] && [[ "$S" == *"Task beendet (Kill): 0x0001FFFF"* ]]'
+chk "Strg+Alt+Rueckschritt beendet HAENGT" '[[ "$S" == *"RD2: Notbeenden Task 0x00000001"* ]] && [[ "$S" == *"Task beendet (Kill): 0x0001FFFF"* ]]'
 T=${S##*HAENGT: haenge jetzt}
 chk "danach Speicher vollstaendig zurueck" '[[ "$T" == *"Speicher vollstaendig zurueck"* ]]'
 echo "--- Dauertest (5 Tasks: Speicher, Nachrichten, 8087)"

@@ -24,5 +24,5 @@ for n in 1 2; do
   Q "sendkey f10" sleep0.4 "sendkey n" sleep0.6 "sendkey f10" sleep0.4 "sendkey esc" sleep0.3
 done
 wait $QP
-tr -d '\r' < $SER | grep -E "MENUTEST|-> |RD: (Speicher|SPEICHER|alle|Fehler)"
+tr -d '\r' < $SER | grep -E "MENUTEST|-> |RD2: (Speicher|SPEICHER|alle|Fehler)"
 [ -f test/ref/menu_cga.png ] && python3 test/bildvergleich.py obj/menu_cga.ppm test/ref/menu_cga.png obj/menu_vga.ppm test/ref/menu_vga.png

@@ -49,7 +49,7 @@ lauf() {
 }
 lauf
 wait $QP
-tr -d '\r' < $SER | grep -A1 -E "RDEDIT|RD: (Speicher|SPEICHER|alle|Fehler)" | grep -v "^--"
+tr -d '\r' < $SER | grep -A1 -E "RDEDIT|RD2: (Speicher|SPEICHER|alle|Fehler)" | grep -v "^--"
 pr() { [ "$2" = "$3" ] && echo "ok     $1" || { echo "FEHLER $1"; echo "  ist:  $(printf %q "$2" | cut -c1-300)"; echo "  soll: $(printf %q "$3" | cut -c1-300)"; }; }
 pr "NEU.TXT: Tippen, Kopieren, Einfuegen, Verbinden" "$(mtype -i $IMG ::/NEU.TXT | od -An -c | tr -s ' ' | tr -d '\n')" "$(printf 'Hallo Welt\r\nZweite\r\nZweiteab' | od -An -c | tr -s ' ' | tr -d '\n')"
 SOLL=$(python3 -c "

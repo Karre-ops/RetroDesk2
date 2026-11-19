@@ -50,7 +50,7 @@ timeout 160 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,form
   -netdev user,id=n0,hostfwd=tcp:127.0.0.1:12121-:2121 -device ne2k_isa,iobase=0x300,irq=3,netdev=n0 -object filter-dump,id=f1,netdev=n0,file=obj/netz.pcap \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1
 kill $HP 2>/dev/null; wait $HP 2>/dev/null
-tr -d '\r' < $SER | grep -A1 -E "NETTEST|RDTCP|RD: (Fehler|SPEICHER|alle)" | grep -v "^--"
+tr -d '\r' < $SER | grep -A1 -E "NETTEST|RDTCP|RD2: (Fehler|SPEICHER|alle)" | grep -v "^--"
 cat $HOSTLOG
 S=$(tr -d '\r' < $SER)
 ok() { grep -q "$2" <<< "$S" && echo "ok     $1" || echo "FEHLER $1"; }

@@ -20,7 +20,7 @@ downs = v('DOWN bei'); ups = v('UP'); dbl = v('DBLCLK')
 ok(len(downs) == 3, 'Tastendruecke: %d (erwartet 3, der vierte ist Doppelklick)' % len(downs))
 ok(len(dbl) == 1, 'Doppelklick: %d' % len(dbl))
 ok(len(ups) == 4, 'Loslassen: %d' % len(ups))
-ok('RD: Speicher vollstaendig zurueck' in '\n'.join(log), 'Speicher zurueck')
+ok('RD2: Speicher vollstaendig zurueck' in '\n'.join(log), 'Speicher zurueck')
 W, H = im.size
 sy = 2 if H == 400 else 1                      # QEMU zeigt CGA 640x200 mit doppelten Zeilen
 for d in (downs[0], downs[2]) if len(downs) == 3 else []:

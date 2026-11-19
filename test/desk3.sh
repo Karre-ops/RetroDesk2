@@ -43,7 +43,7 @@ sleep 3; Q "screendump obj/desk3_lw.ppm" sleep0.3 "sendkey ret"
 sleep 1.5; Q "sendkey alt-spc" sleep0.8 "sendkey b" sleep1.5 "sendkey ret"
 waitn "SHELL: Ende" 1 || ok=0
 wait $QP
-tr -d '\r' < $SER | grep -E "SHELL|^A:\\\\[A-Z]*\\\\?$|RD: (alle|Speicher voll|Fehler)"
+tr -d '\r' < $SER | grep -E "SHELL|^A:\\\\[A-Z]*\\\\?$|RD2: (alle|Speicher voll|Fehler)"
 chk() { if eval "$2"; then echo "ok     $1"; else echo "FEHLER $1"; ok=0; fi; }
 chk "Ziel A:\\ZIEL\\ gemeldet"            "tr -d '\r' < $SER | grep -qx 'A:\\\\ZIEL\\\\'"
 chk "CONFIG.SYS nach ZIEL verschoben"     "tr -d '\r' < $SER | grep -q 'SHELL: verschoben'"

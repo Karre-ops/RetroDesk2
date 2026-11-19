@@ -49,7 +49,7 @@ PY
   else echo "FEHLER: RDFDISK kommt nicht ($FALL)"; fi
   wait $QP
   echo "--- $FALL: Protokoll"
-  tr -d '\r' < $SER | grep -vE "^A:.RD2.|^RD: (Speicher|Modul)" | sed -n '/RDFDISK: bereit/,$p' | head -30
+  tr -d '\r' < $SER | grep -vE "^A:.RD2.|^RD2: (Speicher|Modul)" | sed -n '/RDFDISK: bereit/,$p' | head -30
   python3 - $H $FALL <<'PY'
 import sys, struct
 f, fall = sys.argv[1], sys.argv[2]

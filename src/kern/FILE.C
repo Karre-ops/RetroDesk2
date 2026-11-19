@@ -40,7 +40,7 @@ static int ask_insert(WORD drive, LPCSTR label)  /* drive 0 = A: */
     }
     if (g) k_wnd(4, 0, 0, 0, 0);
     g = (kr.ax & 0xFF) == 13;
-    k_out(g ? "RD: Enter" : "RD: Esc", 0);
+    k_out(g ? "Enter" : "Esc", 2);
     return g;
 }
 
