@@ -51,6 +51,7 @@ Funktionen 1,0 KB.
   CONFIG.SYS-Zeilen wie `RDKEYB.COM C:\RD2\PC10.KBD` müssten weiter gehen. Nach D1 hat Diskette 1 31 KB frei,
   2 KB rechtfertigen das Risiko nicht. Wieder aufgreifen, wenn Diskette 1 erneut knapp wird.
 - K3 (19.11.2026) entfällt: Der 8087-Puffer wird schon nur mit 8087 angelegt. Die Zahl im Plan war ein Lesefehler der Map.
+- K5 (19.11.2026) verworfen: Gemessen im vollen Testsatz (Belastungstest) höchstens 127 von 160 Blöcken und 114 von 200 Handles. Die Blocktabelle lässt sich nicht kürzen, bei den Handles brächte 200 -> 160 nur 0,5 KB bei wenig Reserve. Messzähler wieder entfernt.
 - D3 ebenfalls zurückgestellt: Schriften gebündelt 11 statt 12 KB, nur 1 KB Gewinn.
 
 ## Vorschlag Reihenfolge
