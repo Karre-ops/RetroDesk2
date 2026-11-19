@@ -8,7 +8,7 @@
 cd "$(dirname "$0")/.."
 IMG=obj/inst720.img; HD=obj/inst_hd.img; F=0
 printf '@echo off\r\nA:\\RD2\\RD2SETUP.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' | tr -d '\r' > obj/ae_inst.txt
-SETUP=1 bash tools/mkdisk.sh $IMG obj/ae_inst.txt
+NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') RDSYS.EXE" SETUP=1 bash tools/mkdisk.sh $IMG obj/ae_inst.txt   # RDSYS (Diskette 3) mit drauf: SYS ohne Diskettenwechsel
 Q="python3 test/qemu/qmon.py"
 waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
 starten() {
@@ -18,9 +18,10 @@ starten() {
   QP=$!; export QMON=/tmp/qmon_i.sock
   waitscr "Einrichtung" 120 || { echo "FEHLER keine Einrichtung"; F=1; }
 }
-ende() { waitscr "CONFIG.SYS" 30; waitscr "startfaehig machen" 30 && { $Q "sendkey n" >/dev/null 2>&1; waitscr "nicht startfaehig gemacht" 10 || { echo "FEHLER Frage startfaehig ($1)"; F=1; }; } || { echo "FEHLER keine Frage startfaehig ($1)"; F=1; }; sleep 1; $Q text > obj/schirm_install$1.txt 2>/dev/null
-  # Disketten 2/3 fehlen auf der Testdiskette: Frage "einlegen" mit Esc auslassen (je Diskette eine)
-  for i in 1 2; do $Q text 2>/dev/null | grep -q "einlegen: Enter" || break; $Q "sendkey esc" >/dev/null 2>&1; sleep 1; done
+ende() { waitscr "CONFIG.SYS" 30
+  # Disketten 2/3 fehlen auf der Testdiskette: Frage "einlegen" mit Esc auslassen (je Diskette eine), erst danach SYS (19.11.2026: RDSYS liegt auf Diskette 3)
+  for i in 1 2; do waitscr "einlegen: Enter" 15 || break; $Q "sendkey esc" >/dev/null 2>&1; sleep 1.5; done
+  waitscr "startfaehig machen" 30 && { $Q "sendkey n" >/dev/null 2>&1; waitscr "nicht startfaehig gemacht" 10 || { echo "FEHLER Frage startfaehig ($1)"; F=1; }; } || { echo "FEHLER keine Frage startfaehig ($1)"; F=1; }; sleep 1
   $Q text > obj/schirm_install$1.txt 2>/dev/null; $Q "sendkey esc" sleep2 "sendkey n" >/dev/null 2>&1; wait $QP; }
 dateien() { mdir $C -b ::/$1 > obj/inst_dir.txt 2>&1
   for d in RD2.EXE RDGDI.MOD RDSWAP.BIN RDMAUS.COM RD2SETUP.EXE RD2.INI; do grep -qi "/$d" obj/inst_dir.txt && echo "ok     $1/$d" || { echo "FEHLER $1/$d fehlt"; F=1; }; done; }

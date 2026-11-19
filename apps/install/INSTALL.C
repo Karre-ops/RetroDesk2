@@ -248,9 +248,8 @@ static BOOL sys_moeglich(BOOL leer)               /* leer: C: wird vorher format
     cpy(p, "C:\\IO.SYS"); if (gibts(p)) return FALSE;
     cpy(p, "C:\\IBMBIO.COM"); if (gibts(p)) return FALSE;
     }
-    p[0] = quelle[0]; p[1] = ':'; p[2] = '\\'; p[3] = 0; cat(p, "KERNEL.SYS"); if (!gibts(p)) return FALSE;
-    cpy(pfad, quelle); cat(pfad, "RDSYS.EXE");
-    return gibts(pfad);
+    p[0] = quelle[0]; p[1] = ':'; p[2] = '\\'; p[3] = 0; cat(p, "KERNEL.SYS");
+    return gibts(p);                              /* RDSYS.EXE kommt mit Diskette 3 in den Zielordner */
 }
 
 static BOOL lebt(HTASK t) { TASKINFO ti; HTASK h; for (h = TaskFirst(&ti); h; h = TaskNext(h, &ti)) if (h == t) return TRUE; return FALSE; }
@@ -323,12 +322,13 @@ static void install2(void)
     text(t);
     DbgHex("INSTALL: Dateien", ndat); DbgHex("INSTALL: Fehler", nfehl); DbgHex("INSTALL: CONFIG", (WORD)c);
     if (verloren) meldung(15, MB_INFO);
+    cpy(pfad, ziel); cat(pfad, "RDSYS.EXE");      /* von Diskette 3 kopiert; KERNEL.SYS von Diskette 1 (liegt wieder im Laufwerk) */
+    if (sys && !gibts(pfad)) { DbgPrint("INSTALL: RDSYS fehlt"); sys = FALSE; }
     if (sys) {                                    /* zuletzt: RD2 verlaesst kurz die Grafik (ohne XMS: Neustart von RD2) */
         char a[8];
         meldung(13, MB_INFO); malen();
         a[0] = quelle[0]; a[1] = ':'; a[2] = '\\'; a[3] = ' '; a[4] = ziel[0]; a[5] = ':'; a[6] = 0;
         cpy(t, a); cat(t, " /UPDATE");
-        cpy(pfad, quelle); cat(pfad, "RDSYS.EXE");
         DbgPrint("INSTALL: RDSYS");
         if (RunDos(pfad, t, RD_DOS_KEEP) == 0xFFFF && LastError() == RD_ERR_NOTSUP) {
             meldung(14, MB_INFO);                 /* ohne XMS: RD2 endet, RDSYS laeuft, RD2 startet neu */

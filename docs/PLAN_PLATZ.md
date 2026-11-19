@@ -36,6 +36,10 @@ Funktionen 1,0 KB.
 | K3 | 8087-Ablage nur anlegen, wenn ein 8087 da ist (heute fest 4,3 KB) | bis 4,3 KB Speicher ohne 8087 | mittel |
 | K4 | Dateigrenze RD2.EXE von 29 auf 30 KB, sobald D1 Platz schafft | +1 KB Spielraum | klein |
 
+## Umgesetzt
+- D1 (19.11.2026): RDSYS.EXE auf Diskette 3, Diskette 1 hat 20 KB mehr frei.
+- K4 (19.11.2026): Dateigrenze RD2.EXE 30 KB.
+
 ## Vorschlag Reihenfolge
 1. D1 (schafft 20 KB auf Diskette 1, dann ist K4 sofort möglich)
 2. K1 (kleinster Kerneingriff mit spürbarem Gewinn)

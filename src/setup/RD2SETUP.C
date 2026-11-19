@@ -503,15 +503,20 @@ static int ordner(const char *ziel)               /* G22: Ebene fuer Ebene anleg
     for (i = 3; ziel[i]; i++) if (ziel[i] == '\\') { memcpy(d, ziel, i); d[i] = 0; mkdir(d); }
     return !_dos_getfileattr(d, &a) && (a & _A_SUBDIR);
 }
-static int startfaehig(char lw, int y)            /* Variante A: leere Platte mit FreeDOS SYS startfaehig machen */
+static int hatsys(char lw)                        /* Platte hat schon ein System */
 {
-    char p[80], k[8], d[4]; int h, alt, e;
-    sprintf(p, "%c:\\KERNEL.SYS", lw); if (gibts(p)) return 0;          /* hat schon ein System */
-    sprintf(p, "%c:\\IO.SYS", lw); if (gibts(p)) return 0;
-    sprintf(p, "%c:\\IBMBIO.COM", lw); if (gibts(p)) return 0;
-    sprintf(k, "%c:\\", quelle[0]); sprintf(p, "%sKERNEL.SYS", k);
+    char p[16];
+    sprintf(p, "%c:\\KERNEL.SYS", lw); if (gibts(p)) return 1;
+    sprintf(p, "%c:\\IO.SYS", lw); if (gibts(p)) return 1;
+    sprintf(p, "%c:\\IBMBIO.COM", lw); return gibts(p);
+}
+static int startfaehig(char lw, int y, const char *k)   /* Variante A: leere Platte mit FreeDOS SYS startfaehig machen */
+{                                                 /* k: Zielordner mit KERNEL.SYS (von Diskette 1) und RDSYS.EXE (Diskette 3) */
+    char p[80], d[4]; int h, alt, e;
+    if (hatsys(lw)) return 0;
+    sprintf(p, "%sKERNEL.SYS", k);
     if (!gibts(p)) return 0;                      /* Diskette mit eigenem DOS (SYS A:): kein FreeDOS-Kern da */
-    sprintf(p, "%sRDSYS.EXE", quelle); if (!gibts(p)) return 0;
+    sprintf(p, "%sRDSYS.EXE", k); if (!gibts(p)) return 0;
     if (!janein(y, "Festplatte startfaehig machen (FreeDOS-Kern) (J/N)?")) { zeile(y, "Festplatte nicht startfaehig gemacht."); return 0; }
     zeile(y, "Uebertrage FreeDOS-Kern ...");
     d[0] = lw; d[1] = ':'; d[2] = 0;
@@ -571,8 +576,11 @@ static void installieren(void)
                : i == -1 ? "CONFIG.SYS ueber 6 KB: nicht geaendert." : !i ? "CONFIG.SYS: FEHLER"
                : i == 1 ? "CONFIG.SYS: RD2 ist die Shell, alte Fassung: CONFIG.RDA." : "CONFIG.SYS angelegt, RD2 ist die Shell.");
     if (i == 1 && k) zeile(y + 3, "Hinweis: SET- und PATH-Zeilen der AUTOEXEC.BAT gelten mit RD2 als Shell nicht.");
-    if ((ziel[0] & 0xDF) == 'C' && i != -2) startfaehig('C', y + 4);   /* G24: nur C: startet (aktive Partition der 1. Platte) */
-    weitere(ziel, y + 5);                         /* erst nach SYS: Kern und RDSYS liegen auf Diskette 1 */
+    sprintf(z, "%sKERNEL.SYS", ziel);            /* FreeDOS-Kern von Diskette 1 mitnehmen, RDSYS kommt mit Diskette 3 */
+    if ((ziel[0] & 0xDF) == 'C' && i != -2 && !hatsys('C')) { sprintf(nach, "%c:\\KERNEL.SYS", quelle[0]); if (!gibts(nach) || !kopieren(nach, z)) z[0] = 0; } else z[0] = 0;
+    weitere(ziel, y + 5);
+    if (z[0]) { startfaehig('C', y + 4, ziel); remove(z); }   /* G24: nur C: startet (aktive Partition der 1. Platte) */
+    sprintf(nach, "%sRD2.INI", ziel);
     sprintf(z, "%sPAPIERK.EXE", ziel);           /* Papierkorb-Symbol auf den Schreibtisch (nur neue PROGRAMM.LST) */
     if (gibts(z)) { FILE *f; sprintf(z, "%sPROGRAMM.LST", ziel); if (!gibts(z) && (f = fopen(z, "w")) != NULL) { fprintf(f, "[Papierk]\nDatei=%sPAPIERK.EXE\nSchreibtisch=1\n", ziel); fclose(f); } }
     strcpy(ini, nach);
