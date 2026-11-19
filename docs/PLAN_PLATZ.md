@@ -1,0 +1,45 @@
+# Platzplan RetroDesk 2
+
+Stand 19.11.2026 (main 83e5a38), Zahlen aus build.sh und dem Diskettensatz.
+
+## Lage
+- **Diskette 1** (RD2SYSTEM): Die S-Dateien belegen 271 KB (auf 1-KB-Cluster gerundet). Mit DOS 5
+  (IO.SYS + MSDOS.SYS, 72 KB) sind das genau die erlaubten 343 KB (`@SYSTEM_DISK`). Die restlichen
+  11 KB bleiben für RD2.INI, RD2.STA und Daten frei. Mit dem FreeDOS-Kern sind physisch auch 11 KB frei.
+- **RD2.EXE**: Datei 29.666 von 29.696 Bytes (30 Bytes Luft), Speicher 44.066 von 45.504 Bytes (1,4 KB Luft).
+- **Weitere enge Dateien**: RDGDI 52 Bytes Speicher, RDCTL 8 Bytes Speicher, RDUSER 194 Bytes Speicher,
+  RDAUSL 3 Bytes Datei, RDSND 7 Bytes Datei, OPTIONEN 596 Bytes Datei.
+- Verschnitt durch die 1-KB-Cluster auf Diskette 1: 14 KB.
+
+## Wofür der Platz gebraucht wird
+- Fehlerkorrekturen und kleine Erweiterungen am Kern (jede neue API-Funktion kostet Bytes in RD2.EXE).
+- PLAN_DOS Schritt 2 und 3 (Kern und RDSWAP.BIN).
+- PLAN_32BIT Schritt 1 und 2 (Bedarf, SysInfo, Vollbild-API). RD32.MOD und RD3D.MOD liegen nicht auf Diskette 1.
+
+## Maßnahmen Diskette 1
+| Nr. | Maßnahme | Gewinn | Risiko |
+|---|---|---|---|
+| D1 | RDSYS.EXE (FreeDOS SYS, nur für "Festplatte startfähig") auf Diskette 2. INSTALL kopiert es mit den anderen Dateien nach C:\RD2, KERNEL.SYS kommt von Diskette 1, dann `C:\RD2\RDSYS C:\RD2 C: /UPDATE`. Textweg in RD2SETUP genauso. | 20 KB | mittel (Installationskette testen: kette.sh, install_hd.sh) |
+| D2 | DE/US/PC10.KBD in eine Datei RDKEYB.KBD mit Abschnitten (RDKEYB und Optionen lesen den Abschnitt), DE.LNG und EN.LNG in eine Datei RD2.LNG | 3 KB | klein bis mittel |
+| D3 | Schriften SYS8/14/16.FNT in eine Datei | 1 KB | mittel (RDGDI-Laden) |
+| D4 | COPYING bleibt auf Diskette 1 (GPL: Lizenztext gehört zum Programm) | – | – |
+
+## Maßnahmen Kern (RD2.EXE)
+Größte Teile laut obj/rd.map: main 2,8 KB, Ablage für 8087-Zustände 4,3 KB (Daten), mod_xdone 1,4 KB,
+mem_done 1,3 KB, input_poll 1,1 KB, task_load 1,0 KB, Funktionstabelle 1,4 KB, Stummel für fehlende
+Funktionen 1,0 KB.
+
+| Nr. | Maßnahme | Gewinn | Risiko |
+|---|---|---|---|
+| K1 | Selten gebrauchte Funktionen nach RDKX.MOD (verwerfbar, wird bei Bedarf geladen): MemStats, DriveInfo, KernInfo, ProfileSetStr. Weiterleitung über die vorhandene kx-Tabelle (4 Bytes je Funktion). RDKX-Grenze dafür auf 9 KB. | 1,5 bis 2 KB Datei und Speicher | mittel |
+| K2 | Startcode (main, die *_api-Anmeldungen, k_imgload) als RD2INIT.BIN wie RDSWAP.BIN: einmal laden, ausführen, freigeben | 4 bis 5 KB Speicher, RD2.EXE entsprechend kleiner | hoch |
+| K3 | 8087-Ablage nur anlegen, wenn ein 8087 da ist (heute fest 4,3 KB) | bis 4,3 KB Speicher ohne 8087 | mittel |
+| K4 | Dateigrenze RD2.EXE von 29 auf 30 KB, sobald D1 Platz schafft | +1 KB Spielraum | klein |
+
+## Vorschlag Reihenfolge
+1. D1 (schafft 20 KB auf Diskette 1, dann ist K4 sofort möglich)
+2. K1 (kleinster Kerneingriff mit spürbarem Gewinn)
+3. D2
+4. K3, danach K2 erst, wenn PLAN_32BIT mehr Kernplatz braucht
+
+Entscheidungen von Karsten offen: Reihenfolge, ob D1 sofort, ob K2 überhaupt.
