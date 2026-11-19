@@ -44,6 +44,12 @@ Funktionen 1,0 KB.
   im Speicher ebenso (29.026 Bytes Datei, 43.426 Bytes Speicher). MemStats, KernInfo und ProfileSetStr
   hängen an inneren Daten des Kerns und bleiben. DriveInfo bleibt ebenfalls: die Shell fragt damit laufend
   die Wechselleitung ab, aus dem verwerfbaren RDKX würde das bei fremder Diskette nach RD2SYSTEM fragen.
+- D2 (19.11.2026) zurückgestellt: Nachgerechnet bringt nur das Bündeln der .KBD-Dateien etwas (3 KB -> 1 KB,
+  also 2 KB). DE.LNG und EN.LNG belegen auch zusammen 2 Cluster, Gewinn 0. Dafür müssten RDKEYB (Assembler),
+  Optionen (Liste aller *.KBD, eigene Belegungen als Datei), RD2SETUP und INSTALL umgebaut werden, und alte
+  CONFIG.SYS-Zeilen wie `RDKEYB.COM C:\RD2\PC10.KBD` müssten weiter gehen. Nach D1 hat Diskette 1 31 KB frei,
+  2 KB rechtfertigen das Risiko nicht. Wieder aufgreifen, wenn Diskette 1 erneut knapp wird.
+- D3 ebenfalls zurückgestellt: Schriften gebündelt 11 statt 12 KB, nur 1 KB Gewinn.
 
 ## Vorschlag Reihenfolge
 1. D1 (schafft 20 KB auf Diskette 1, dann ist K4 sofort möglich)
