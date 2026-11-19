@@ -12,7 +12,7 @@ Fertige Disketten stehen unter [Releases](../../releases) und im Ordner [`releas
 |---|---|
 | `RD2_1.IMG` | System, bootfähig (360 KB) |
 | `RD2_2.IMG` | Programme und Treiber |
-| `RD2_3.IMG` | Netz, FreeCOM, H-Tron |
+| `RD2_3.IMG` | Netz, FreeCOM |
 | `RD2_4.IMG` | SDK |
 | `RD2_HDD.ZIP` | alle vier Disketten als ein Ordner für die Installation von der Festplatte |
 
@@ -51,4 +51,4 @@ RetroDesk 2 ist freie Software unter der **GNU General Public License Version 2 
 ihrer eigenen GPL. Fehler bitte als Issue melden.
 
 ## Eigene Repos für Zusatzprogramme
-Nicht im Diskettensatz, getrennt entwickelt: [RDBILD](https://github.com/Karre-ops/RDBILD) (Bildbetrachter), [RDQRCODE](https://github.com/Karre-ops/RDQRCODE) (Datei-Eingang per QR-Code), [H-TRON](https://github.com/Karre-ops/H-TRON) (Spiel), [RDCALC](https://github.com/Karre-ops/RDCALC) (Rechner mit Funktionsplotter).
+Nicht im Diskettensatz, getrennt entwickelt: [RDBILD](https://github.com/Karre-ops/RDBILD) (Bildbetrachter), [RDQRCODE](https://github.com/Karre-ops/RDQRCODE) (Datei-Eingang per QR-Code), [RDTRON](https://github.com/Karre-ops/RDTRON) (Spiel), [RDCALC](https://github.com/Karre-ops/RDCALC) (Rechner mit Funktionsplotter).
