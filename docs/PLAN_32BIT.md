@@ -23,7 +23,7 @@ Stand 12.11.2026, Entscheidungen von Karsten:
 
 Stand 20.11.2026: `SysInfo` (API 2.3, 0x02F, in RDKX.MOD) und die 3D-Erkennung in RD2SETUP sind fertig
 (RD2.INI [System] `3D=`, `3DPCI=Hersteller:Geraet`, Test `test/sysinfo.sh` mit QEMU ati-vga). Der Speicher
-der Karte wird noch nicht ermittelt. Offen: Ressource `BEDARF` mit Pruefung in der Shell, RDSETUP mit `SETUP.INF`.
+der Karte wird noch nicht ermittelt. Ebenfalls fertig: `BEDARF` in der .RC (rdrc.py und RDRC.EXE), `BedarfCheck` (0x030), Meldung beim Start in der Shell und graue Eintraege im Menue "RD2-Programme". Offen: RDSETUP mit `SETUP.INF`.
 Auf Rechnern unter 386 kopiert die Installation keine 32-Bit-Teile (Karsten, 20.11.2026).
 
 ## Schritt 2: Vollbild, unterbrechbar (alle CPUs)

@@ -1,4 +1,4 @@
-/* SYSTEST.C - prueft SysInfo (API 2.3): gibt alle Felder ueber DbgHex aus und endet mit 0 (ok) oder 1 */
+/* SYSTEST.C - prueft SysInfo und BedarfCheck (API 2.3): gibt alle Felder ueber DbgHex aus und endet mit 0 (ok) oder 1 */
 /* SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING */
 #include "RD2.H"
 
@@ -17,6 +17,10 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     DbgHex("SYSTEST: grafik", d.grafik); DbgHex("SYSTEST: sound", d.sound); DbgHex("SYSTEST: netz", d.netz);
     DbgHex("SYSTEST: festplatte", d.festplatte); DbgHex("SYSTEST: d3", d.d3);
     DbgHex("SYSTEST: d3_hersteller", d.d3_hersteller); DbgHex("SYSTEST: d3_geraet", d.d3_geraet);
+    {   static const char *const n[] = { "A:\\RD2\\XB1.EXE", "A:\\RD2\\XB2.EXE", "A:\\RD2\\LEER.EXE", "A:\\FDAPM.COM", "A:\\GIBTSNICHT.EXE" };
+        WORD i;
+        for (i = 0; i < 5; i++) { DbgPrint(n[i]); DbgHex("SYSTEST: Bedarf", BedarfCheck(n[i])); }
+    }
     DbgPrint("SYSTEST: Ende");
     return e ? 1 : 0;
 }

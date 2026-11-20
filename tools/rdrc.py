@@ -9,6 +9,8 @@ Quelltext (CP437, ; leitet Kommentare ein, "..." mit \\t \\n \\" \\\\):
   TEXTE            id "Text" ...  ENDE      (wird RT_STRING Nummer 1)
   ACCEL n          Taste Umschalt id ... ENDE
   SYMBOL|BITMAP|CURSOR|SCHRIFT|DATEN n "datei"   (Datei wird unveraendert uebernommen)
+  BEDARF [CPU 8088|8086|186|286|386|486|586] [FPU] [FARBEN 4|16|256] [RAM kb] [XMS kb]
+         [KLANG LAUTSPRECHER|OPL2|OPL3|PCM|MIDI ...] [NETZ] [3D SOFTWARE|BESCHLEUNIGER]   (eine Zeile, API 2.3)
 
 Stile: Namen aus sdk/RD2.H (WS_*, ES_*), STANDARD = ES_DEFAULT, AN = ES_CHECKED, GRAU = WS_DISABLED,
 oder Zahlen. Klassen: BUTTON CHECK RADIO STATIC EDIT TEXT LIST COMBO SCROLL PROGRESS GROUP.
@@ -17,6 +19,11 @@ oder Zahlen. Klassen: BUTTON CHECK RADIO STATIC EDIT TEXT LIST COMBO SCROLL PROG
 import sys, os, re, struct
 
 RT = dict(MENU=1, DIALOG=2, STRING=3, SYMBOL=4, ICON=4, BITMAP=5, CURSOR=6, SCHRIFT=7, FONT=7, DATEN=8, DATA=8, ACCEL=9)
+RT_BEDARF = 10
+B_CPU = {"8088": 0, "8086": 1, "186": 3, "286": 4, "386": 5, "486": 6, "586": 7, "PENTIUM": 7}
+B_FARBEN = {"4": 1, "16": 2, "256": 3}
+B_KLANG = dict(LAUTSPRECHER=1, OPL2=2, ADLIB=2, OPL3=4, PCM=8, MIDI=16)
+B_3D = dict(SOFTWARE=1, BESCHLEUNIGER=2)
 LANG = dict(DE=0x0407, EN=0x0409, ALLE=0)
 MF_POPUP, MF_SEP, MF_END, MF_GRAY, MF_CHECK = 1, 2, 4, 8, 16
 KLASSEN = "BUTTON CHECK RADIO STATIC EDIT TEXT LIST COMBO SCROLL PROGRESS GROUP".split()
@@ -150,6 +157,29 @@ def uebersetze(pfad):
                 for id_ in ids: tab += struct.pack("<HH", id_, kopf + len(b)); b += tx[id_]
                 if kopf + len(b) > 0xFFF0: raise Fehler("TEXTE zu gross (64 KB)")
                 res.append((RT["STRING"], 1, sprache, tab + b))
+            elif w == "BEDARF":
+                cpu = fpu = farben = netz = d3 = ram = xms = klang = 0; i = 1
+                def wert(tab, name):
+                    if i + 1 >= len(t): raise Fehler(f"{name}: Wert fehlt")
+                    v = t[i + 1][1].upper()
+                    if v not in tab: raise Fehler(f"{name}: {', '.join(tab)}")
+                    return tab[v]
+                while i < len(t):
+                    k = t[i][1].upper()
+                    if k == "CPU": cpu = wert(B_CPU, "CPU"); i += 2
+                    elif k == "FPU": fpu = 1; i += 1
+                    elif k == "FARBEN": farben = wert(B_FARBEN, "FARBEN"); i += 2
+                    elif k == "NETZ": netz = 1; i += 1
+                    elif k == "3D": d3 = wert(B_3D, "3D"); i += 2
+                    elif k == "KLANG": klang |= wert(B_KLANG, "KLANG"); i += 2
+                    elif k in ("RAM", "XMS"):
+                        if i + 1 >= len(t): raise Fehler(f"{k}: KB fehlen")
+                        v = zahl(t[i + 1])
+                        if k == "RAM": ram = v
+                        else: xms = v
+                        i += 2
+                    else: raise Fehler(f"BEDARF: unbekannt: {t[i][1]}")
+                res.append((RT_BEDARF, 1, 0, struct.pack("<HBBBBBBHHH", 1, cpu, fpu, farben, netz, d3, 0, ram, xms, klang)))
             elif w == "ACCEL":
                 nr = zahl(t[1]); b = b""
                 while True:

@@ -611,6 +611,29 @@ typedef struct {
 #define RT_FONT 7
 #define RT_DATA 8
 #define RT_ACCEL 9
+#define RT_BEDARF 10                              /* BEDARF-Zeile in der .RC (API 2.3), Nr. 1, RDBEDARF */
+#pragma pack(push, 1)
+typedef struct {
+    WORD  version;                                /* 1 */
+    BYTE  cpu;                                    /* mindestens CPU_* */
+    BYTE  fpu;                                    /* 1 = 8087 noetig */
+    BYTE  farben;                                 /* 0 egal, 1 = 4, 2 = 16, 3 = 256 Farben */
+    BYTE  netz;                                   /* 1 = Paketreiber noetig */
+    BYTE  d3;                                     /* 0 egal, 1 = Software-3D, 2 = 3D-Karte */
+    BYTE  frei;
+    WORD  kb_ram;                                 /* freier Speicher in KB */
+    WORD  kb_xms;                                 /* freies XMS in KB */
+    WORD  klang;                                  /* SC_*, alle noetig */
+} RDBEDARF;
+#pragma pack(pop)
+#define BD_CPU    0x0001                          /* BedarfCheck: was fehlt */
+#define BD_FPU    0x0002
+#define BD_FARBEN 0x0004
+#define BD_RAM    0x0008
+#define BD_XMS    0x0010
+#define BD_KLANG  0x0020
+#define BD_NETZ   0x0040
+#define BD_3D     0x0080
 
 /* ---- Funktionen ------------------------------------------------------------ */
 #ifndef RD2_KERNEL                                /* der Kern deklariert selbst (mit __loadds) */

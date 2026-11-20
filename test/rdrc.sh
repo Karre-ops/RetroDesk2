@@ -8,7 +8,7 @@ python3 -c "import shutil; shutil.rmtree('$W', True)"; mkdir -p $W
 [ -f out/RDRC.EXE ] || { echo "rdrc: out/RDRC.EXE fehlt (build.sh)"; exit 1; }
 cp out/RDRC.EXE $W/; B=out/LEER.EXE
 TYP=(P M D); i=0; : > $W/T.BAT
-for rc in $(find apps disk lng shell -name "*.RC" | sort); do
+for rc in $(find apps src test/daten -name "*.RC" | sort); do
   i=$((i+1)); d=$(printf "D%02d" $i); mkdir $W/$d; cp $(dirname $rc)/* $W/$d/ 2>/dev/null
   r=$(basename $rc); t=${TYP[$((i % 3))]}; s=$((2048 + i * 16)); n="Test $i ÄÖÜ"
   cp $B $W/$d/P.EXE; cp $B $W/$d/R.EXE

@@ -295,6 +295,37 @@ static void accel(W nr, W sp)
     fertig(9, nr, sp);
 }
 
+/* BEDARF (API 2.3): eine Zeile, Ressource Typ 10 Nr. 1, wie rdrc.py */
+static int bwert(int i, const char *const *w, const unsigned char *v, const char *name)
+{
+    int k;
+    if (i + 1 >= ntok) fehler("%s: Wert fehlt", name);
+    for (k = 0; w[k]; k++) if (gleich(i + 1, w[k])) return v[k];
+    fehler("%s: Wert unbekannt", name); return 0;
+}
+static void bedarf(void)
+{
+    static const char *const cw[] = { "8088", "8086", "186", "286", "386", "486", "586", "PENTIUM", 0 };
+    static const unsigned char cv[] = { 0, 1, 3, 4, 5, 6, 7, 7 };
+    static const char *const fw[] = { "4", "16", "256", 0 }; static const unsigned char fv[] = { 1, 2, 3 };
+    static const char *const kw[] = { "LAUTSPRECHER", "OPL2", "ADLIB", "OPL3", "PCM", "MIDI", 0 }; static const unsigned char kv[] = { 1, 2, 2, 4, 8, 16 };
+    static const char *const dw[] = { "SOFTWARE", "BESCHLEUNIGER", 0 }; static const unsigned char dv[] = { 1, 2 };
+    unsigned char b[6]; W ram = 0, xms = 0, klang = 0; int i = 1;
+    memset(b, 0, sizeof b);                       /* cpu, fpu, farben, netz, 3d, frei */
+    while (i < ntok) {
+        if (gleich(i, "CPU")) { b[0] = (unsigned char)bwert(i, cw, cv, "CPU"); i += 2; }
+        else if (gleich(i, "FPU")) { b[1] = 1; i++; }
+        else if (gleich(i, "FARBEN")) { b[2] = (unsigned char)bwert(i, fw, fv, "FARBEN"); i += 2; }
+        else if (gleich(i, "NETZ")) { b[3] = 1; i++; }
+        else if (gleich(i, "3D")) { b[4] = (unsigned char)bwert(i, dw, dv, "3D"); i += 2; }
+        else if (gleich(i, "KLANG")) { klang |= (W)bwert(i, kw, kv, "KLANG"); i += 2; }
+        else if (gleich(i, "RAM") || gleich(i, "XMS")) { mind(i + 2); if (gleich(i, "RAM")) ram = (W)zahl(i + 1); else xms = (W)zahl(i + 1); i += 2; }
+        else fehler("BEDARF: unbekannt: %s", tok[i]);
+    }
+    rausw(1); raus(b, 6); rausw(ram); rausw(xms); rausw(klang);
+    fertig(10, 1, 0);
+}
+
 static void datei(W typ, W nr, W sp, const char *rcpfad)
 {
     char p[128]; const char *e; FILE *f; unsigned n;
@@ -325,6 +356,7 @@ static void uebersetze(const char *pfad)
             else if (gleich(1, "ALLE")) sp = 0;
             else fehler("SPRACHE DE, EN oder ALLE", 0);
         } else if (gleich(0, "TEXTE")) texte(sp);
+        else if (gleich(0, "BEDARF")) bedarf();
         else {
             static const struct { char *w; W t; } dt[] = { {"SYMBOL",4}, {"ICON",4}, {"BITMAP",5}, {"CURSOR",6},
                 {"SCHRIFT",7}, {"FONT",7}, {"DATEN",8}, {"DATA",8}, {"STRING",3}, {0,0} };

@@ -162,6 +162,15 @@ TEXTE
   38 "Nichts gefunden."
   39 "%s Eintrag/EintrÑge in den MÅll legen?\n(Ordner werden gelîscht, Umschalt+Entf lîscht sofort.)"
   40 "MÅll"
+  41 "%s braucht, was hier fehlt:\n%s"
+  42 "einen schnelleren Prozessor"
+  43 "einen 8087"
+  44 "mehr Farben (Grafik in Optionen)"
+  45 "mehr freien Speicher"
+  46 "mehr XMS"
+  47 "eine Klangkarte"
+  48 "ein Netz (Paketreiber)"
+  49 "3D (3D-Karte oder 386)"
 ENDE
 SPRACHE EN
 MENU 1
@@ -327,6 +336,15 @@ TEXTE
   38 "Nothing found."
   39 "Move %s item(s) to the trash?\n(Folders are deleted, Shift+Del deletes at once.)"
   40 "Trash"
+  41 "%s needs what is missing here:\n%s"
+  42 "a faster processor"
+  43 "an 8087"
+  44 "more colours (graphics in Options)"
+  45 "more free memory"
+  46 "more XMS"
+  47 "a sound card"
+  48 "a network (packet driver)"
+  49 "3D (3D card or 386)"
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"

@@ -231,6 +231,16 @@ static void sta_schreiben(BYTE dos);
 static void wechsel(char l);
 static WORD werkzeug(char *p, LPCSTR n);
 static char altdir[68];
+static WORD bedarf(LPCSTR p)                      /* BEDARF der Programmdatei (API 2.3): melden, was fehlt; 0 = starten */
+{
+    WORD m = BedarfCheck(p), i; char l[160];
+    if (!m) return 0;
+    l[0] = 0;
+    for (i = 0; i < 8; i++) if (m & (1 << i)) { if (l[0]) scat(l, ",\n", sizeof l); scat(l, StrGet(inst, 42 + i), sizeof l); }
+    dbgh("Bedarf fehlt", m);
+    fmt(buf, StrGet(inst, 41), p, l); MsgBox(0, buf, "RD", MB_OK | MB_WARN);
+    return m;
+}
 static void starten(LPCSTR p)
 {
     BYTE dos;
@@ -241,6 +251,7 @@ static void starten(LPCSTR p)
     {   static const char zu[] = "ZIPRDZIP.EXE\0BMPRDBILD.EXE\0PCXRDBILD.EXE\0GIFRDBILD.EXE\0JPGRDBILD.EXE\0";   /* Dateizuordnung: Endung, Programm */
         char n[80]; WORD i;
         for (i = 0; i < sizeof zu - 1; i += slen(zu + i) + 1) if (endung(p, zu + i) && werkzeug(n, zu + i + 3) && TaskExec(n, p, SW_SHOW)) return; }
+    if (endung(p, "EXE") && bedarf(p)) return;
     if (endung(p, "EXE") && TaskExec(p, "", SW_SHOW)) return;
     dos = !endung(p, "EXE") || LastError() == RD_ERR_FORMAT;   /* merken: sta_schreiben aendert LastError */
     if (dos) {                                     /* DOS-Programm im eigenen Ordner starten: Spiele laden ihre Dateien von dort (08.11.2026) */
@@ -661,6 +672,7 @@ static void prgladen(void)                        /* PROGRAMM.LST lesen, Menue P
         r = rd2prg(prg[i]); z = r ? &npm : &ndm; id = (r ? CM_PRG : CM_DPRG) + *z;   /* RD2-Programm: eigenes Menue */
         t[0] = '&'; t[1] = (char)(*z < 9 ? '1' + *z : 'A' + *z - 9); t[2] = ' '; scpy(t + 3, prgn[i], sizeof t - 3);
         (r ? pm : dm)[*z] = (BYTE)i; (*z)++; MenuText(mbar, id, t);
+        if (r) MenuEnable(mbar, id, !(BedarfCheck(prg[i]) & ~BD_RAM));   /* passt nicht: grau (RAM erst beim Start) */
     }
     for (k = npm; k < MAXP; k++) MenuText(mbar, CM_PRG + k, 0);
     for (k = ndm; k < MAXP; k++) MenuText(mbar, CM_DPRG + k, 0);

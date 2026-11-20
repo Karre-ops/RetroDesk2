@@ -469,9 +469,39 @@ static WORD RDEXPORT k_SysInfo(RDSYSDATA FAR *sd)
     for (i = 2; i < n; i++) ((BYTE FAR *)sd)[i] = ((BYTE *)&d)[i];
     return 0;
 }
-static struct { WORD n; FARPROC f[20]; } ext = { 20, {
+/* BedarfCheck (API 2.3): BEDARF-Ressource einer Programmdatei gegen SysInfo; BD_* was fehlt */
+static WORD farbstufe(WORD g)
+{
+    if (g == GFX_VESA || g == GFX_MCGA || g == GFX_VESA800 || g == GFX_VESA1024) return 3;
+    if (g == GFX_EGA || g == GFX_VGA16 || g == GFX_EGA320 || g == GFX_EGA200 || g == GFX_SVGA16) return 2;
+    if (g == GFX_CGA4 || g == GFX_EGA4 || g == GFX_VGA4) return 1;
+    return 0;
+}
+static WORD RDEXPORT k_BedarfCheck(LPCSTR datei)
+{
+    static RDBEDARF b; static RDSYSDATA s; DWORD pos; WORD len, i, m = 0; short f;
+    if (!datei) return 0;
+    xf = datei;
+    if ((f = rfind(XFILE, RT_BEDARF, 1, &pos, &len)) < 0) return 0;     /* kein BEDARF: laeuft ueberall */
+    for (i = 0; i < sizeof b; i++) ((BYTE *)&b)[i] = 0;
+    if (len > sizeof b) len = sizeof b;
+    if (FileSeek(f, (long)pos, 0) < 0 || FileRead(f, &b, len) != len) len = 0;
+    FileClose(f);
+    if (!len || b.version != 1) return 0;
+    s.groesse = sizeof s; k_SysInfo(&s);
+    if (s.cpu < b.cpu) m |= BD_CPU;
+    if (b.fpu && !s.fpu) m |= BD_FPU;
+    if (farbstufe(s.grafik) < b.farben) m |= BD_FARBEN;
+    if (s.kb_frei < b.kb_ram) m |= BD_RAM;
+    if (s.kb_xms < b.kb_xms) m |= BD_XMS;
+    if ((s.sound & b.klang) != b.klang) m |= BD_KLANG;
+    if (b.netz && !s.netz) m |= BD_NETZ;
+    if ((b.d3 == 2 && !s.d3) || (b.d3 == 1 && s.cpu < CPU_386)) m |= BD_3D;   /* Software-3D ab 386 */
+    return m;
+}
+static struct { WORD n; FARPROC f[21]; } ext = { 21, {
     (FARPROC)k_ende, (FARPROC)k_TimeGet, (FARPROC)k_TimeSet, (FARPROC)k_LangGet, (FARPROC)k_ResLoad,
     (FARPROC)k_ResFree, (FARPROC)k_StrLoad, (FARPROC)k_StrGet, (FARPROC)k_DbgBreak,
     (FARPROC)x_BmpLoad, (FARPROC)x_BmpLoadFile, (FARPROC)x_IconDraw, (FARPROC)k_NetStart,
-    (FARPROC)k_PrnOpen, (FARPROC)k_PrnPage, (FARPROC)k_PrnClose, (FARPROC)k_PrnAbort, (FARPROC)k_HelpShow, (FARPROC)x_IconDrawFile, (FARPROC)k_SysInfo } };
+    (FARPROC)k_PrnOpen, (FARPROC)k_PrnPage, (FARPROC)k_PrnClose, (FARPROC)k_PrnAbort, (FARPROC)k_HelpShow, (FARPROC)x_IconDrawFile, (FARPROC)k_SysInfo, (FARPROC)k_BedarfCheck } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

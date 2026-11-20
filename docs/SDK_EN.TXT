@@ -217,7 +217,8 @@ Programs check KernVersion() >= ... before using new features.
        WORD IconDrawFile(dc, x, y, file, id), 0 = file has no icon id.
        SM_HALBE for SndSamplePlay: message for each finished half of the
        block (M_SOUNDDONE, p1 = 3, p2 = half), see section 5.
-  2.3  SysInfo (0x02F): machine information for programs, see below.
+  2.3  SysInfo (0x02F): machine information; BedarfCheck (0x030) and
+       BEDARF in the .RC, see below.
 A program built for a newer API does not start on an older kernel
 (RD_ERR_VERSION).
 
@@ -234,6 +235,19 @@ again to redetect. Detected: 3dfx Voodoo 1 to 5, ATI Rage, Rage 128 and
 newer, nVidia Riva 128, TNT and newer. groesse < 4 gives RD_ERR_HANDLE.
 Later versions only append fields; older programs with a smaller groesse
 get only their part.
+
+BEDARF (API 2.3)
+----------------
+One line in the .RC states what the program needs:
+  BEDARF CPU 386 FPU FARBEN 16 RAM 300 XMS 1024 KLANG PCM NETZ 3D BESCHLEUNIGER
+Everything is optional. CPU 8088|8086|186|286|386|486|586, FPU = 8087 needed,
+FARBEN 4|16|256 colours, RAM and XMS free KB, KLANG LAUTSPRECHER|OPL2|OPL3|PCM|
+MIDI (may repeat, all needed), NETZ = packet driver, 3D SOFTWARE (386 and up)
+or BESCHLEUNIGER (3D card as detected by RD2SETUP). The shell checks before
+starting and says what is missing; in the "RD2 programs" menu a program is
+greyed out when anything but memory is missing (memory counts at start).
+BedarfCheck(file) returns the same check as a BD_* mask, 0 = fits or no
+BEDARF. Programs without BEDARF run everywhere as before.
 
 The full description (program format, modules, drivers, memory, limits) is in
 docs/SPEC.md (German) in the RetroDesk 2 sources:

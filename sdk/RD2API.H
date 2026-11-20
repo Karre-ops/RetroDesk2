@@ -86,6 +86,7 @@ RDF(0x02E, void,    DbgBreak,       (void))                       /* INT 3 wenn 
 
 /* ---- Kern: Rechner (API 2.3) --------------------------------------------- */
 RDF(0x02F, WORD,    SysInfo,        (RDSYSDATA FAR *sd))          /* 0 = ok; vorher sd->groesse setzen */
+RDF(0x030, WORD,    BedarfCheck,    (LPCSTR datei))               /* BD_* was fehlt, 0 = passt oder kein BEDARF */
 
 /* ---- Speicher ------------------------------------------------------------ */
 RDF(0x037, HMEM,    MemAlloc,       (DWORD size, WORD flags))     /* MEM_* */

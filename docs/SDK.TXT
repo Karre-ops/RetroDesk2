@@ -206,7 +206,8 @@ Programme pruefen Neuerungen mit KernVersion() >= ..., bevor sie sie nutzen.
        WORD IconDrawFile(dc, x, y, datei, id), 0 = Datei hat kein Symbol id.
        SM_HALBE fuer SndSamplePlay: Meldung je fertiger Blockhaelfte
        (M_SOUNDDONE, p1 = 3, p2 = Haelfte), siehe Abschnitt 5.
-  2.3  SysInfo (0x02F): Rechner fuer Programme, siehe unten.
+  2.3  SysInfo (0x02F): Rechner fuer Programme; BedarfCheck (0x030) und
+       BEDARF in der .RC, siehe unten.
 Ein Programm, das mit einer neueren API gebaut ist, startet auf einem
 aelteren Kern nicht (RD_ERR_VERSION).
 
@@ -223,6 +224,19 @@ mit RD2SETUP. Erkannt werden 3dfx Voodoo 1 bis 5, ATI Rage, Rage 128 und
 neuer, nVidia Riva 128, TNT und neuer. groesse < 4 ergibt RD_ERR_HANDLE.
 Spaetere Fassungen haengen Felder nur hinten an; aeltere Programme mit
 kleinerem groesse bekommen nur ihren Teil.
+
+BEDARF (API 2.3)
+----------------
+Eine Zeile in der .RC sagt, was das Programm braucht:
+  BEDARF CPU 386 FPU FARBEN 16 RAM 300 XMS 1024 KLANG PCM NETZ 3D BESCHLEUNIGER
+Alles ist freiwillig. CPU 8088|8086|186|286|386|486|586, FPU = 8087 noetig,
+FARBEN 4|16|256, RAM und XMS in KB frei, KLANG LAUTSPRECHER|OPL2|OPL3|PCM|MIDI
+(mehrfach erlaubt, alle noetig), NETZ = Paketreiber, 3D SOFTWARE (ab 386)
+oder BESCHLEUNIGER (3D-Karte laut RD2SETUP). Die Shell prueft vor dem Start
+und meldet, was fehlt; im Menue "RD2-Programme" steht ein Programm grau, wenn
+etwas ausser dem Speicher fehlt (der zaehlt erst beim Start).
+BedarfCheck(datei) liefert dieselbe Pruefung als BD_*-Maske, 0 = passt oder
+kein BEDARF. Programme ohne BEDARF laufen wie bisher ueberall.
 
 Die vollstaendige Beschreibung (Programmformat, Module, Treiber, Speicher,
 Grenzen) steht in docs/SPEC.md im Quelltext von RetroDesk 2:
