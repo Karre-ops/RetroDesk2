@@ -97,5 +97,10 @@ ok "zweiseitig: F7 Ordner SUB, zwei markierte Dateien mit F5 nach SUB kopiert" "
 ok "Rechtsklickmenue (Umschalt+F10): Neue Textdatei LIES.TXT" "grep -q LIES.TXT <<< \"\$T1\""
 ok "Server: zwei markierte Dateien nacheinander geladen" "[ \$(grep -c 'RDFTP: geladen' <<< \"\$S\") -eq 4 ]"
 ok "Speicher zurueck (2 Laeufe)" "[ \$(grep -c 'Speicher vollstaendig zurueck' <<< \"\$S\") -ge 2 ]"
+# rdftp4: KB/s in der Statuszeile haengt vom Takt ab, dort die Referenz einsetzen (x 240-400, y 304-322)
+[ -f obj/rdftp4_cga.ppm ] && python3 -c "
+from PIL import Image
+a = Image.open('obj/rdftp4_cga.ppm').convert('RGB'); r = Image.open('test/ref/rdftp4_cga.png').convert('RGB')
+a.paste(r.crop((240, 304, 400, 322)), (240, 304)); a.save('obj/rdftp4_cga.ppm')"
 [ -f test/ref/rdftp1_vga.png ] && python3 test/bildvergleich.py obj/rdftp1_vga.ppm test/ref/rdftp1_vga.png obj/rdftp2_vga.ppm test/ref/rdftp2_vga.png obj/rdftp3_vga.ppm test/ref/rdftp3_vga.png obj/rdftp4_cga.ppm test/ref/rdftp4_cga.png
 exit 0

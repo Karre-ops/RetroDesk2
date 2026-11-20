@@ -45,7 +45,7 @@ chk "auf dem Schreibtisch (Schreibtisch=1)" "echo \"\$LST\" | grep -q 'Schreibti
 chk "Start aus dem Menue Programme"         "echo \"\$L\" | grep -A1 'SHELL: Start' | grep -qi FREIMEM"
 chk "RD2.STA vor RunDos, danach geladen"    "echo \"\$L\" | grep -q 'Zustand geladen'"
 chk "Ordner A:\\RD2\\ wiederhergestellt"     "[ \$(echo \"\$L\" | grep -c 'SHELL: Ordner A:.RD2. ') -ge 2 ]"
-chk "ohne Wechselsignal erkannt, kein Dauerlesen" "echo \"\$L\" | grep -q 'kein Wechselsignal' && [ \$(echo \"\$L\" | grep -c 'SHELL: Ordner A:') -le 6 ]"
+chk "ohne Wechselsignal erkannt, kein Dauerlesen" "echo \"\$L\" | grep -q 'kein Wechselsignal' && [ \$(echo \"\$L\" | grep -c 'SHELL: Ordner A:') -le 7 ]"   # 7: Ordner A:\RD2\ wird nach dem Anlegen von PROGRAMM.LST einmal neu gelesen (zeigt die neue Datei)
 chk "andere Diskette gelesen (3 Dateien)"   "echo \"\$L\" | grep -q 'Ordner A:. 3$'"
 chk "RD2.STA beim Beenden geschrieben"      "mdir -i $IMG ::/RD2/RD2.STA >/dev/null 2>&1"
 chk "Speicher vollstaendig zurueck"         "echo \"\$L\" | grep -q 'Speicher vollstaendig zurueck'"

@@ -17,7 +17,7 @@ for rc in $(find apps disk lng shell -name "*.RC" | sort); do
 done
 N=$i
 # zweimal: zweiter Lauf ersetzt den Anhang; "-" ohne Ressourcen; Fehler
-mkdir $W/X; cp apps/notiz/NOTIZ.RC $W/X/; cp $B $W/X/Z.EXE; cp $B $W/X/O.EXE; cp $B $W/X/PO.EXE; cp $B $W/X/PZ.EXE
+mkdir $W/X; cp apps/notiz/NOTIZ.RC apps/notiz/NOTIZ.ICO $W/X/; cp $B $W/X/Z.EXE; cp $B $W/X/O.EXE; cp $B $W/X/PO.EXE; cp $B $W/X/PZ.EXE
 python3 tools/rdrc.py apps/notiz/NOTIZ.RC $W/X/z.res >/dev/null; python3 tools/rd2link.py $W/X/PZ.EXE "Notiz" --res $W/X/z.res >/dev/null
 python3 tools/rd2link.py $W/X/PO.EXE "Ohne" >/dev/null
 printf 'MENU 1\r\n  POPUP "Datei"\r\n    ITEM "Ende" 10 BLAU\r\n  ENDE\r\nENDE\r\n' > $W/X/BOES.RC

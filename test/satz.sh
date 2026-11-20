@@ -16,10 +16,11 @@ timeout 400 qemu-system-i386 -m 1 -display none -no-reboot -drive file=obj/satz1
 QP=$!
 waitscr "Erster Start" 90 && echo "ok     Diskette 1 startet, Einrichtung erscheint" || { echo "FEHLER keine Einrichtung"; F=1; }
 sleep 1; Q "sendkey t"; sleep 2; Q "sendkey ret"   # T: Text-Installation (Notweg); grafisch: test/install.sh
-waitscr "startfaehig machen" 120 && Q "sendkey j"
 waitscr "Diskette 2 (RD2 PROG) einlegen" 120 && { echo "ok     fragt nach Diskette 2"; Q "change floppy0 obj/satz2.img"; sleep 2; Q "sendkey ret"; } || { echo "FEHLER keine Frage nach Diskette 2"; F=1; }
 waitscr "Diskette 3 (RD2 NETZ) einlegen" 180 && { echo "ok     fragt nach Diskette 3"; Q "change floppy0 obj/satz3.img"; sleep 2; Q "sendkey ret"; } || { echo "FEHLER keine Frage nach Diskette 3"; F=1; }
 waitscr "Diskette 3 (RD2 NETZ): [0-9]* Dateien" 120 || { echo "FEHLER Diskette 3 nicht kopiert"; F=1; }
+waitscr "startfaehig machen" 60 && Q "sendkey j"   # seit 19.11.2026 nach Diskette 3 (RDSYS liegt dort)
+waitscr "Festplatte ist startfaehig\|FEHLER: Festplatte" 90
 T > obj/schirm_satz.txt; grep "Dateien kopiert\|startfaehig" obj/schirm_satz.txt | sed 's/^ */       /'
 sleep 2; Q "sendkey esc"; sleep 2; T | grep -q "(J/N)" && Q "sendkey j"; sleep 3; Q quit; wait $QP 2>/dev/null
 P=$HD@@32256

@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 gcc -O1 -o obj/rechner_kern test/rechner_kern.c -x c apps/rechner/RKERN.C && obj/rechner_kern || exit 1
 [ -f docs/rd1ref/calc.c ] || { echo "(RD1 calc.c fehlt, kein Vergleich)"; exit 0; }
 sed 's|#include "calc.h"|#include "calc.h"|' docs/rd1ref/calc.c > obj/rd1calc.c
-gcc -O1 -Ird1ref -o obj/rechner_alt test/rechner_vgl.c obj/rd1calc.c && gcc -O1 -o obj/rechner_neu test/rechner_vgl.c -x c apps/rechner/RKERN.C || exit 1
+gcc -O1 -Idocs/rd1ref -o obj/rechner_alt test/rechner_vgl.c obj/rd1calc.c && gcc -O1 -o obj/rechner_neu test/rechner_vgl.c -x c apps/rechner/RKERN.C || exit 1
 python3 -c "
 import random; random.seed(7)
 K='0123456789.+-*/=%SNCb'; W=[8]*10+[1,2,2,2,2,3,1,1,1,0.3,0.5]

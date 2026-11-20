@@ -16,7 +16,7 @@ for lauf in "/P"; do
   QP=$!
   Q="python3 test/qemu/qmon.py"; export QMON=/tmp/qmon_s.sock
   waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
-  if waitscr "RetroDesk ist beendet" 200; then echo "ok     Rest meldet das Ende und wartet"; else echo "FEHLER keine Meldung vom Rest"; F=1; fi
+  if waitscr "RD2 beendet" 200; then echo "ok     Rest meldet das Ende und wartet"; else echo "FEHLER keine Meldung vom Rest"; F=1; fi
   N1=$(grep -c "DOSTEST: mit KEEP" $SER)
   $Q "sendkey spc" >/dev/null 2>&1
   for i in $(seq 60); do [ $(grep -c "DOSTEST: mit KEEP" $SER) -gt $N1 ] && break; sleep 1; done
