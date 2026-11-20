@@ -9,11 +9,12 @@ cd "$(dirname "$0")/.."
 IMG=obj/inst720.img; HD=obj/inst_hd.img; F=0
 printf '@echo off\r\nA:\\RD2\\RD2SETUP.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' | tr -d '\r' > obj/ae_inst.txt
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') RDSYS.EXE" SETUP=1 bash tools/mkdisk.sh $IMG obj/ae_inst.txt   # RDSYS (Diskette 3) mit drauf: SYS ohne Diskettenwechsel
+. test/xbedarf.sh; xbedarf $IMG
 Q="python3 test/qemu/qmon.py"
 waitscr() { for i in $(seq ${2:-30}); do $Q text 2>/dev/null | grep -q "$1" && return 0; sleep 1; done; return 1; }
 starten() {
   rm -f /tmp/qmon_i.sock
-  timeout 250 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -drive file=$HD,format=raw,index=0,media=disk -boot a \
+  timeout 250 qemu-system-i386 -cpu 486 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -drive file=$HD,format=raw,index=0,media=disk -boot a \
     -monitor unix:/tmp/qmon_i.sock,server,nowait >/dev/null 2>&1 &
   QP=$!; export QMON=/tmp/qmon_i.sock
   waitscr "Einrichtung" 120 || { echo "FEHLER keine Einrichtung"; F=1; }
@@ -39,7 +40,7 @@ for k in s p i e l e backslash r d 2 ret; do $Q "sendkey $k" >/dev/null 2>&1; do
 waitscr "als Shell in CONFIG.SYS eintragen" 90 && $Q "sendkey j" sleep1 >/dev/null 2>&1 || { echo "FEHLER keine Rueckfrage Shell"; F=1; }
 waitscr "MOUSE.COM /S50" 20 && $Q "sendkey j" sleep1 >/dev/null 2>&1 || { echo "FEHLER keine Rueckfrage Maustreiber"; F=1; }
 ende 1
-dateien SPIELE/RD2
+dateien SPIELE/RD2; xbpruef "$C" SPIELE/RD2
 mtype $C ::/CONFIG.SYS | tr -d '\r' > obj/inst_cs.txt
 pruef "^FILES=20" "alte Zeile bleibt"
 pruef "^REM SHELL=C:\\\\COMMAND.COM" "alte Shell als REM"
@@ -62,7 +63,7 @@ $Q "sendkey t" sleep2 "sendkey ret" >/dev/null 2>&1
 ende 2
 grep -q "Uebernehmen\|eintragen (J/N)" obj/schirm_install2.txt && { echo "FEHLER Rueckfrage bei Neuinstallation"; F=1; } || echo "ok     keine Rueckfrage"
 grep -q "CONFIG.SYS angelegt" obj/schirm_install2.txt && echo "ok     Meldung CONFIG.SYS angelegt" || { echo "FEHLER Meldung"; F=1; }
-dateien RD2
+dateien RD2; xbpruef "$C" RD2
 mtype $C ::/CONFIG.SYS | tr -d '\r' > obj/inst_cs.txt
 pruef "^SHELL=C:\\\\RD2\\\\RD2.EXE /P C:\\\\RD2\\\\SHELL.EXE$" "SHELL=RD2.EXE /P"
 pruef "^INSTALL=C:\\\\RD2\\\\RDMAUS.COM /P$" "RDMAUS /P fuer die PS/2-Maus"

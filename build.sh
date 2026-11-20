@@ -13,7 +13,7 @@ rm -f obj/lib_*.obj $O/RD2.LIB
 for a in sdk/lib/F*.ASM; do b=$(basename $a .ASM); case $b in F12F|F130) continue;; esac; $W -fo=obj/lib_$b.obj $a; done   # F12F/F130 (JoyRead/JoyCalibrate): Joystick in C (JOY.C)
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_WAV.obj sdk/WAV.C   # Hilfen in C (laufen im Programm)
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_JOY.obj sdk/JOY.C   # Joystick (Gameport 201h, PIT)
-wlib -q -n $O/RD2.LIB obj/lib_*.obj
+wlib -q -n -p=16 $O/RD2.LIB obj/lib_*.obj   # Seitengroesse 16 statt 512: Bibliothek ca. 4x kleiner (SDK-Diskette, 20.11.2026)
 $W -fo=obj/notsup.obj   src/kern/NOTSUP.ASM
 $W -fpi87 -fo=obj/kasm.obj src/kern/KASM.ASM
 $W -fo=obj/swap.obj src/kern/SWAP.ASM
@@ -102,6 +102,7 @@ app apps/optionen/OPTIONEN.C OPTIONEN.EXE "Optionen"
 app apps/papierk/PAPIERK.C PAPIERK.EXE "Muell"
 app apps/taskman/TASKMAN.C TASKMAN.EXE "Taskmanager"
 app apps/dkopie/DKOPIE.C DKOPIE.EXE "Diskette kopieren"
+app apps/rdsetup/RDSETUP.C RDSETUP.EXE "Paket installieren"   # SETUP.INF (PLAN_32BIT Schritt 1, 20.11.2026)
 app apps/install/INSTALL.C INSTALL.EXE "Installation"
 app apps/hallo/HALLO.C HALLO.EXE "Hallo"
 app apps/dpruef/DPRUEF.C DPRUEF.EXE "Datentraeger pruefen"

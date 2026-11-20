@@ -230,6 +230,7 @@ static void sichtbar(ORDNER *o)
 static void sta_schreiben(BYTE dos);
 static void wechsel(char l);
 static WORD werkzeug(char *p, LPCSTR n);
+static int gleichi(LPCSTR a, LPCSTR b);
 static char altdir[68];
 static WORD bedarf(LPCSTR p)                      /* BEDARF der Programmdatei (API 2.3): melden, was fehlt; 0 = starten */
 {
@@ -245,10 +246,12 @@ static void starten(LPCSTR p)
 {
     BYTE dos;
     dbg("Start"); DbgPrint(p);
+    {   char n[80], c[84]; WORD l = slen(p);   /* RDSETUP.LST im Paketordner: Paket entfernen (PLAN_32BIT) */
+        if (l >= 11 && gleichi(p + l - 11, "RDSETUP.LST") && werkzeug(n, "RDSETUP.EXE")) { scpy(c, "/D ", sizeof c); scat(c, p, sizeof c); if (TaskExec(n, c, SW_SHOW)) return; } }
     {   static const char tx[] = "TXT\0INI\0DOC\0NFO\0DIZ\0LOG\0";   /* Textdateien: RDEDIT (Programmdiskette), sonst Notizblock */
         char n[80]; WORD i;
         for (i = 0; i < sizeof tx - 1; i += 4) if (endung(p, tx + i) && ((werkzeug(n, "RDEDIT.EXE") && TaskExec(n, p, SW_SHOW)) || (werkzeug(n, "NOTIZ.EXE") && TaskExec(n, p, SW_SHOW)))) return; }
-    {   static const char zu[] = "ZIPRDZIP.EXE\0BMPRDBILD.EXE\0PCXRDBILD.EXE\0GIFRDBILD.EXE\0JPGRDBILD.EXE\0";   /* Dateizuordnung: Endung, Programm */
+    {   static const char zu[] = "ZIPRDZIP.EXE\0BMPRDBILD.EXE\0PCXRDBILD.EXE\0GIFRDBILD.EXE\0JPGRDBILD.EXE\0INFRDSETUP.EXE\0";   /* Dateizuordnung: Endung, Programm */
         char n[80]; WORD i;
         for (i = 0; i < sizeof zu - 1; i += slen(zu + i) + 1) if (endung(p, zu + i) && werkzeug(n, zu + i + 3) && TaskExec(n, p, SW_SHOW)) return; }
     if (endung(p, "EXE") && bedarf(p)) return;
@@ -638,6 +641,7 @@ static BYTE rd2prg(LPCSTR p)                      /* RD2-Programm: .EXE mit Kenn
     FileClose(f);
     return r;
 }
+static WORD mprg;
 static void prgladen(void)                        /* PROGRAMM.LST lesen, Menue Programme fuellen */
 {
     char p[80], t[24], sec[9]; HMEM h; char FAR *b; short f; WORD n = 0, i, k; BYTE ds = 0;
@@ -1104,8 +1108,10 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
       if (werkzeug(p, "RD2.INI") && ProfileGetStr(p, "System", "GrafikAlt", "", u, 4) && werkzeug(u, "OPTIONEN.EXE")) TaskExec(u, "B", SW_SHOW); }   /* neue Grafik: "Behalten?" */
     if (klang0) SndSystem("START");
     dbg("bereit");
+    mprg = MsgRegister("RD2_PROGRAMME");          /* RDSETUP: PROGRAMM.LST geaendert */
     while (GetMessage(&m)) {
         WORD __near *z = (WORD __near *)&stkbot, f;      /* nie benutzter Stapel (Startcode loescht ihn): neuer Tiefstwert -> COM1 */
+        if (m.msg == mprg && mprg) { dbg("Programme neu"); prgladen(); continue; }
         DispatchMessage(&m);
         for (f = 0; !z[f]; f++) ;
         if (f < stkmin) { stkmin = f; dbgh("Stapel frei", (DWORD)f * 2); }

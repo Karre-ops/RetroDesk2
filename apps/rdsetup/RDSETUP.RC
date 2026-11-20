@@ -1,0 +1,43 @@
+; Ressourcen fuer RDSETUP.EXE (Pakete installieren, PLAN_32BIT Schritt 1)
+SPRACHE DE
+TEXTE
+  1 "Paket installieren"
+  2 "Wo liegt SETUP.INF?"
+  3 "%s ist nicht lesbar oder kein Paket."
+  4 "%s installieren nach:"
+  5 "%s braucht, was hier fehlt:\n%s\n\nTrotzdem installieren?"
+  6 "%s: %s Dateien installiert."
+  7 "%s lieá sich nicht kopieren."
+  8 "%s entfernen?"
+  9 "%s ist entfernt."
+  10 "einen schnelleren Prozessor"
+  11 "einen 8087"
+  12 "mehr Farben"
+  13 "mehr freien Speicher"
+  14 "mehr XMS"
+  15 "eine Klangkarte"
+  16 "ein Netz (Paketreiber)"
+  17 "3D (3D-Karte oder 386)"
+  18 "Ordner %s l„át sich nicht anlegen."
+ENDE
+SPRACHE EN
+TEXTE
+  1 "Install package"
+  2 "Where is SETUP.INF?"
+  3 "%s cannot be read or is no package."
+  4 "Install %s to:"
+  5 "%s needs what is missing here:\n%s\n\nInstall anyway?"
+  6 "%s: %s files installed."
+  7 "Could not copy %s."
+  8 "Remove %s?"
+  9 "%s has been removed."
+  10 "a faster processor"
+  11 "an 8087"
+  12 "more colours"
+  13 "more free memory"
+  14 "more XMS"
+  15 "a sound card"
+  16 "a network (packet driver)"
+  17 "3D (3D card or 386)"
+  18 "Cannot create folder %s."
+ENDE

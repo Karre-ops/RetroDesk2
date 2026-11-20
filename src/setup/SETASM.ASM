@@ -64,6 +64,18 @@ cd_286:
     test al, 20h
     mov  ax, 6
     jz   cd_ende
+    push bx                         ; CPUID da: Familie entscheidet (spaete 486 wie DX4 haben auch CPUID, 20.11.2026)
+    push cx
+    push dx
+    db 66h, 0B8h, 1, 0, 0, 0        ; mov eax, 1
+    db 0Fh, 0A2h                    ; cpuid
+    pop  dx
+    pop  cx
+    pop  bx
+    and  ah, 0Fh                    ; Familie (Bits 8..11)
+    cmp  ah, 5
+    mov  ax, 6
+    jb   cd_ende
     mov  ax, 7
 cd_ende:
     popf

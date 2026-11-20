@@ -238,6 +238,18 @@ etwas ausser dem Speicher fehlt (der zaehlt erst beim Start).
 BedarfCheck(datei) liefert dieselbe Pruefung als BD_*-Maske, 0 = passt oder
 kein BEDARF. Programme ohne BEDARF laufen wie bisher ueberall.
 
+Pakete: RDSETUP und SETUP.INF (API 2.3)
+---------------------------------------
+Ein Paketordner mit SETUP.INF wird mit RDSETUP installiert (Doppelklick auf
+SETUP.INF in der Shell), entfernt wird es ueber RDSETUP.LST im Zielordner.
+  [Paket]   Name=  Version=  Ziel=C:\SPIELE\X  Programm=X.EXE
+            Programm386=X32.EXE  Schreibtisch=1  Setup=EIGEN.EXE
+  [Dateien] 1=X.EXE  2=X32.EXE 386  3=MUSIK.DAT KLANG  4=BILD.DAT FARBE
+            5=GLIDE.DXE 3D  6=RECHNEN.DAT 8087
+Dateien mit nicht erfuellter Bedingung werden nicht kopiert (32-Bit-Teile
+kommen so nie auf Rechner unter 386). Das Programm traegt RDSETUP in
+PROGRAMM.LST ein.
+
 Die vollstaendige Beschreibung (Programmformat, Module, Treiber, Speicher,
 Grenzen) steht in docs/SPEC.md im Quelltext von RetroDesk 2:
 https://github.com/Karre-ops/RetroDesk2

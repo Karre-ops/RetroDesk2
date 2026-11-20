@@ -15,6 +15,7 @@ png() { python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" 
 for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
 bash tools/mkset.sh >/dev/null 2>&1 || { echo "FEHLER mkset"; exit 1; }
 for i in 1 2 3; do cp out/set/RD2_$i.IMG obj/inst$i.img; done
+. test/xbedarf.sh; xbedarf obj/inst2.img
 HD=obj/inst_hd.img; bash tools/mkhd.sh $HD >/dev/null
 dd if=test/daten/mbr_rdfdisk.bin of=$HD conv=notrunc 2>/dev/null
 FALL=${FALL:-1}; C="-i $HD@@32256"
@@ -25,7 +26,7 @@ if [ $FALL = 2 ]; then
   printf 'x' > obj/io.tmp; mcopy $C obj/io.tmp ::/IO.SYS   # Platte hat schon ein DOS: kein SYS
 fi
 rm -f $S $SER; touch $SER
-timeout 200 qemu-system-i386 -m 1 -display none -no-reboot -drive file=obj/inst1.img,format=raw,if=floppy,index=0 \
+timeout 200 qemu-system-i386 -cpu 486 -m 1 -display none -no-reboot -drive file=obj/inst1.img,format=raw,if=floppy,index=0 \
   -drive file=$HD,format=raw,if=ide,index=0 -boot a -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!
 waitscr "Erster Start" 90 && echo "ok     Diskette 1 startet, Einrichtung erscheint" || { echo "FEHLER keine Einrichtung"; F=1; }
@@ -64,6 +65,8 @@ for f in $K CONFIG.SYS RD2/RD2.EXE RD2/SHELL.EXE RD2/RDMAUS.COM RD2/RD2.INI RD2/
   mdir -i $P ::/$f >/dev/null 2>&1 || { echo "FEHLER C:\\$f fehlt"; F=1; }
 done
 [ $F = 0 ] && echo "ok     Dateien aller drei Disketten${K:+ und KERNEL.SYS} auf C:"
+xbpruef "-i $P" RD2
+grep -q "INSTALL: weggelassen" <(tr -d '\r' < $SER) && echo "ok     INSTALL meldet weggelassen" || { echo "FEHLER keine Meldung weggelassen"; F=1; }
 mtype -i $P ::/CONFIG.SYS | tr -d '\r' > obj/inst_config.sys
 if [ $FALL = 1 ]; then
   grep -q "SHELL=C:\\\\RD2\\\\RD2.EXE" obj/inst_config.sys && grep -q "RDMAUS.COM" obj/inst_config.sys && echo "ok     CONFIG.SYS: RD2 ist die Shell, RDMAUS" || { echo "FEHLER CONFIG.SYS"; cat obj/inst_config.sys; F=1; }

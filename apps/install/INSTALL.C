@@ -87,8 +87,13 @@ static void diskette(void)                        /* alle RD2-Dateien aus quelle
             cpy(pfad, quelle); cat(pfad, muster[i]);
             if (FileFindFirst(pfad, 0, &fd)) continue;
             do {
+                cpy(pfad, quelle); cat(pfad, fd.name);
+                if (i < 3 && (BedarfCheck(pfad) & BD_CPU)) {   /* EXE/MOD/DRV fuer neuere CPU (32-Bit-Teile unter 386) nicht mitkopieren */
+                    if (pass) { DbgPrint("INSTALL: weggelassen"); DbgPrint(fd.name); }
+                    continue;
+                }
                 if (!pass) { gesamt += fd.groesse; continue; }
-                cpy(pfad, quelle); cat(pfad, fd.name); cpy(z2, ziel); cat(z2, fd.name);
+                cpy(z2, ziel); cat(z2, fd.name);
                 { char t[48]; cpy(t, StrGet(hi, 3)); cat(t, fd.name); text(t); }
                 if (kopieren(pfad, z2, fd.groesse)) ndat++; else { nfehl++; DbgPrint("INSTALL: Fehler"); DbgPrint(fd.name); }
             } while (!FileFindNext(&fd));

@@ -57,6 +57,7 @@ RECHNER.EXE      8192   10   P  Zubehoer, kleiner Rechner (4 KB Stapel wie UHR, 
 SCHONER.EXE      3072    8   P  Bildschirmschoner (Sterne, Uhr, Schwarz; RD2.INI [Schoner] Zeit= Sekunden, Art=; Einstellungen seit 29.10. in OPTIONEN)
 DPRUEF.EXE       8192 10   P  Datentraeger pruefen (wie CHKDSK, FAT12/16, INT 25h/26h ueber RDDISK.MOD); 12.11.2026: eigenes Symbol
 DKOPIE.EXE       5120    8   P  Diskette kopieren (wie DISKCOPY, RDDISK.MOD/INT 13h), Zylinderpuffer beim Lauf
+RDSETUP.EXE      8192   12   N  Pakete mit SETUP.INF installieren/entfernen, 32-Bit-Teile nur ab 386 (PLAN_32BIT Schritt 1, 20.11.2026; Diskette 3, Diskette 2 ist voll)
 TASKMAN.EXE      4096    8   P  Zubehoer Taskmanager: Ladeblock, RAM und Swap aktuell/Puffer/frei (1s), Beenden; weiter 3 Cluster
 PAPIERK.EXE      6144    8   P  Zubehoer Papierkorb (RD-Menue): X:\PAPIERK\PAPIERK.LST, wiederherstellen/loeschen/leeren, 8 KB Tabelle beim Lauf
 OPTIONEN.EXE    22528 16.5   P  (31.10.: 21 KB Datei, RDKEYB-Zeile wird auch ohne Aenderung gerichtet) (31.10.: 16 KB fuer Belegungsliste *.KBD) (30.10.: 15 KB Speicher fuer 16 Grafikarten) Optionen (30.10.: 20 KB fuer CGA-Farbe und Schreibtischfarbe, 16 Farbnamen DE/EN): Karteikarten Grafik, Klang, Maus, Tastatur, Schoner, System (29.10.: +12 KB fuer alle Einstellungen, 12 Kartendialoge DE/EN, Grafik sofort mit Rueckfrage "Behalten?" 15 s, Maus- und Schonerdialog hierher; beim Lauf 24 KB Puffer fuer CONFIG.SYS/AUTOEXEC.BAT, nur solange offen); 12.11.2026: eigenes Symbol

@@ -575,6 +575,19 @@ static int startfaehig(char lw, int y, const char *k)   /* Variante A: leere Pla
     return e == 0 ? 1 : -1;
 }
 static const char *muster[] = { "*.EXE", "*.MOD", "*.DRV", "*.FNT", "*.LNG", "*.BIN", "*.DAT", "*.HLP", "*.COM", "*.KBD", 0 };   /* BIN: RDSWAP.BIN, DAT: FARBSYM.DAT, HLP: Hilfe, COM: RDKEYB */
+/* BEDARF CPU einer RD2-Datei (Ressource 10 im RD2-Block, PLAN_32BIT): 32-Bit-Teile nicht auf Rechner unter 386 (Karsten, 20.11.2026) */
+static int zu_neu(const char *p)
+{
+    struct { char k[4]; unsigned long off; } t; struct { unsigned typ, nr, sp, fl; unsigned long off, len; } d;
+    unsigned h[19], i;   /* RD2-Block: "RD2!", api, flags, stack, kb, name[16], ver, nexp, nres (h[16]), oexp, ores (h[18]) */ unsigned char b[3]; int f, r = 0;
+    if ((f = open(p, O_RDONLY | O_BINARY)) < 0) return 0;
+    if (lseek(f, -16L, SEEK_END) >= 0 && read(f, &t, 8) == 8 && !memcmp(t.k, "RD2!", 4) &&
+        lseek(f, (long)t.off, SEEK_SET) >= 0 && read(f, h, 38) == 38 && lseek(f, (long)(t.off + h[18]), SEEK_SET) >= 0)
+        for (i = 0; i < h[16] && read(f, &d, 16) == 16; i++)
+            if (d.typ == 10 && d.nr == 1) { if (lseek(f, (long)(t.off + d.off), SEEK_SET) >= 0 && read(f, b, 3) == 3 && b[2] > cpu) r = 1; break; }
+    close(f);
+    return r;
+}
 static void alle(const char *ziel, int y, int *k, int *fehl)       /* alle RD2-Dateien aus quelle nach ziel */
 {
     char von[80], nach[80], z[80]; struct find_t ft; int i;
@@ -583,6 +596,7 @@ static void alle(const char *ziel, int y, int *k, int *fehl)       /* alle RD2-D
         if (_dos_findfirst(von, _A_NORMAL, &ft)) continue;
         do {
             sprintf(von, "%s%s", quelle, ft.name); sprintf(nach, "%s%s", ziel, ft.name);
+            if (i < 3 && zu_neu(von)) { sprintf(z, "%s braucht eine neuere CPU, weggelassen", ft.name); zeile(y, z); continue; }
             sprintf(z, "kopiere %s", ft.name); zeile(y, z);
             if (kopieren(von, nach)) (*k)++; else (*fehl)++;
         } while (!_dos_findnext(&ft));

@@ -249,6 +249,17 @@ greyed out when anything but memory is missing (memory counts at start).
 BedarfCheck(file) returns the same check as a BD_* mask, 0 = fits or no
 BEDARF. Programs without BEDARF run everywhere as before.
 
+Packages: RDSETUP and SETUP.INF (API 2.3)
+-----------------------------------------
+A package folder with SETUP.INF is installed with RDSETUP (double-click
+SETUP.INF in the shell) and removed via RDSETUP.LST in the target folder.
+  [Paket]   Name=  Version=  Ziel=C:\GAMES\X  Programm=X.EXE
+            Programm386=X32.EXE  Schreibtisch=1  Setup=OWN.EXE
+  [Dateien] 1=X.EXE  2=X32.EXE 386  3=MUSIC.DAT KLANG  4=PIC.DAT FARBE
+            5=GLIDE.DXE 3D  6=CALC.DAT 8087
+Files whose condition is not met are not copied (so 32-bit parts never land
+on machines below a 386). RDSETUP adds the program to PROGRAMM.LST.
+
 The full description (program format, modules, drivers, memory, limits) is in
 docs/SPEC.md (German) in the RetroDesk 2 sources:
 https://github.com/Karre-ops/RetroDesk2
