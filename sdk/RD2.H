@@ -371,6 +371,8 @@ typedef struct {
 #define M_SETTINGS    0x0321                      /* Einstellungen geaendert (Farben, Sprache) */
 #define M_INITDIALOG  0x0330
 #define M_SYSMENU     0x0331                      /* an den Schreibtisch: Menue "RD" angeklickt, p1 = 1 Maus */
+#define M_SCREENLOST  0x0322                      /* Vollbild (API 2.3): Alt+Tab, der Schirm gehoert RD2; nicht zeichnen, Klang still */
+#define M_SCREENBACK  0x0323                      /* Vollbild zurueck: ScreenRestore() und Bild neu zeichnen */
 #define M_USER        0x0400                      /* ab hier eigene */
 
 /* Steuerelement-Meldungen (M_COMMAND hi-Wort von p2) */
@@ -611,6 +613,20 @@ typedef struct {
 #define RT_FONT 7
 #define RT_DATA 8
 #define RT_ACCEL 9
+/* Vollbild (API 2.3, PLAN_32BIT Schritt 2): ScreenAcquire(fenster), dann ScreenMode; Alt+Tab schickt M_SCREENLOST,
+   zurueck M_SCREENBACK (dann ScreenRestore). ScreenMode/ScreenPalette/ScreenRestore/ScreenBank liegen in RD2.LIB (VOLL.C). */
+#define SM_TEXT   0                               /* 80x25 Text, B800 */
+#define SM_CGA4   1                               /* 320x200 4 Farben (BIOS 04h), B800, Zeilen verschraenkt */
+#define SM_EGA    2                               /* 320x200 16 Farben (0Dh), A000, 4 Ebenen */
+#define SM_VGA16  3                               /* 640x480 16 Farben (12h), A000, 4 Ebenen */
+#define SM_13H    4                               /* 320x200 256 Farben (13h), A000, linear */
+#define SM_X      5                               /* 320x240 256 Farben (Mode X), A000, 4 Ebenen */
+#define SM_VESA   6                               /* 640x480 256 Farben (VESA 101h), A000, 64-KB-Fenster (ScreenBank) */
+typedef struct { WORD modus, w, h, bpp, zeilenbytes, seg, ebenen; } SCREENINFO;
+WORD RDAPI ScreenMode(WORD modus, SCREENINFO FAR *si);   /* 1 = ok; merkt den Modus fuer ScreenRestore */
+void RDAPI ScreenPalette(WORD erste, WORD n, const BYTE FAR *rgb);   /* je 3 Bytes 0..63 (VGA-DAC), gemerkt */
+void RDAPI ScreenRestore(void);                   /* nach M_SCREENBACK: Modus und Palette wie zuletzt */
+void RDAPI ScreenBank(WORD bank);                 /* SM_VESA: 64-KB-Fenster waehlen */
 #define RT_BEDARF 10                              /* BEDARF-Zeile in der .RC (API 2.3), Nr. 1, RDBEDARF */
 #pragma pack(push, 1)
 typedef struct {

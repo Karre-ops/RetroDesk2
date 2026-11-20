@@ -260,6 +260,21 @@ SETUP.INF in the shell) and removed via RDSETUP.LST in the target folder.
 Files whose condition is not met are not copied (so 32-bit parts never land
 on machines below a 386). RDSETUP adds the program to PROGRAMM.LST.
 
+Full screen (API 2.3)
+---------------------
+  if (ScreenAcquire(window) && ScreenMode(SM_13H, &si)) { ... draw at si.seg ... }
+ScreenAcquire gives the program the whole screen: RD2 stops drawing, all keys
+and mouse events go to the window. ScreenMode (RD2.LIB) sets SM_TEXT, SM_CGA4,
+SM_EGA, SM_VGA16, SM_13H, SM_X (320x240) or SM_VESA (640x480, 64 KB window via
+ScreenBank) and returns size, segment, bytes per line and planes. ScreenPalette
+sets VGA colours (0..63) and remembers them. Alt+Tab or Alt+F6: RD2 parks the
+window at the bottom, shows the desktop and sends M_SCREENLOST. From then on do
+not draw, stop sound and only call GetMessage. Click on the parked window or
+Alt+Tab: M_SCREENBACK, then ScreenRestore() (mode and palette as before) and
+redraw from your own data. RD2 keeps no copy of the screen. ScreenRelease(window)
+returns the screen (DestroyWindow and program exit do this too).
+Example: apps/test/VOLLTEST.C.
+
 The full description (program format, modules, drivers, memory, limits) is in
 docs/SPEC.md (German) in the RetroDesk 2 sources:
 https://github.com/Karre-ops/RetroDesk2

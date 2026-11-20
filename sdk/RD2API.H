@@ -214,6 +214,8 @@ RDF(0x0DC, void,    MenuEnable,     (HMENU m, WORD id, BOOL an))
 RDF(0x0DD, void,    MenuFree,       (HMENU m))
 RDF(0x0DE, WORD,    MenuPopup,      (HWND w, HMENU m, WORD sub, short x, short y)) /* Rechtsklickmenue */
 RDF(0x0DF, WORD,    MenuText,       (HMENU m, WORD id, LPCSTR s))
+RDF(0x0E0, WORD,    ScreenAcquire,  (HWND w))                     /* Vollbild: Schirm fuer das Programm, 1 = ok (API 2.3) */
+RDF(0x0E1, void,    ScreenRelease,  (HWND w))                     /* Vollbild beenden, Schreibtisch neu */
 RDF(0x0E9, WORD,    KeyState,       (WORD taste))                 /* Shift/Strg/Alt, KS_* */
 
 /* ---- Dialoge ------------------------------------------------------------ */

@@ -60,6 +60,9 @@ static struct { BYTE w; short v[2][3]; } sbt[NSB]; /* v: pos, max, seite */
 static short bx[14]; static BYTE bn;              /* Menueleiste: Anfang je Titel, bx[bn] = Ende */               /* Aufdecken: nur hier zeichnen */
 
 void RDEXPORT u_ShowWindow(HWND h, WORD art);
+static HWND vw; static BYTE vweg;                 /* Vollbild-Fenster; 1 = gerade auf dem Schreibtisch (Alt+Tab) */
+static void (FAR __pascal *gpause)(WORD);
+void RDEXPORT u_ScreenRelease(HWND h);
 HWND RDEXPORT u_SetActive(HWND h);
 void RDEXPORT u_MoveWindow(HWND h, short x, short y, short b, short hh, BOOL neu);
 static void desk(void);
@@ -470,6 +473,7 @@ BOOL RDEXPORT u_DestroyWindow(HWND h)
 {
     WORD i = idx(h), war; RECT r;
     if (!i) return bad();
+    if (h == vw) u_ScreenRelease(h);
     war = w_[i].vis && sichtbar(i); wrect(i, &r);
     if (svweg(i)) war = 0;                        /* Hintergrund aus dem Bildspeicher zurueck */
     weg(i, 1);
@@ -481,6 +485,11 @@ void RDEXPORT u_ShowWindow(HWND h, WORD art)
 {
     WORD i = idx(h); RECT r;
     if (!i) { bad(); return; }
+    if (h == vw && vweg && art != SW_MIN && art != SW_HIDE) {   /* Vollbild-Programm wieder vorn: Schirm zurueck */
+        vweg = 0; vw = 0; u_ShowWindow(h, art); vw = h;
+        u_SetActive(h); gpause(0); PostMessage(h, M_SCREENBACK, 0, 0);
+        return;
+    }
     if (art == SW_HIDE) {
         if (!w_[i].vis) return;
         wrect(i, &r); w_[i].vis = 0; if (!svweg(i)) aufdecken(&r);
@@ -1270,12 +1279,35 @@ static DWORD frage(WORD lw, WORD an, LPCSTR l)
     DCFree(d);
     return 1;
 }
+/* ---- Vollbild (PLAN_32BIT Schritt 2, API 2.3): Programm hat den Schirm, Alt+Tab bringt den Schreibtisch ---- */
+static void allesneu(void) { RECT r; r.l = r.t = 0; r.r = r.b = 0x7FFF; aufdecken(&r); }
+WORD RDEXPORT u_ScreenAcquire(HWND h)
+{
+    if (!idx(h) || !gpause) { SetLastError(gpause ? RD_ERR_HANDLE : RD_ERR_NOTSUP); return 0; }
+    if (vw && vw != h) { SetLastError(RD_ERR_BUSY); return 0; }
+    vw = h; vweg = 0; gpause(0);                  /* Zeiger aus, Textmodus; den eigenen Modus setzt das Programm */
+    return 1;
+}
+void RDEXPORT u_ScreenRelease(HWND h)
+{
+    if (!vw || (h && h != vw)) return;
+    vw = 0;
+    if (!vweg) { gpause(1); allesneu(); }
+    vweg = 0;
+}
+static void vollweg(void)                         /* Alt+Tab im Vollbild: Schreibtisch zeigen, Programm parken */
+{
+    vweg = 1; gpause(1);
+    u_ShowWindow(vw, SW_MIN); allesneu();
+    PostMessage(vw, M_SCREENLOST, 0, 0);
+}
 DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
 {
     WORD i, j, n; MSG FAR *m; RECT r; short x, y, b, t;
     (void)p1;
     if (art == 0) return (i = idx(h)) != 0 ? w_[i].task : 0;
     if (art == 3) {
+        if (vw && (i = idx(vw)) != 0 && w_[i].task == (BYTE)h) u_ScreenRelease(vw);   /* Programm endet im Vollbild */
         for (n = 0, i = 1; i <= MAXW; i++)             /* Hauptfenster aufdecken, Kinder (auch in fremden Fenstern) nur weg */
             if (w_[i].used && w_[i].task == (BYTE)h) { wrect(i, &r); weg(i, 0); if (!w_[i].parent) { aufdecken(&r); n = 1; } }
         for (j = 0; j < MAXCL; j++) if (kl[j].task == (BYTE)h && !kl[j].intern) kl[j].name[0] = 0;
@@ -1291,6 +1323,10 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
     if (art != 2) return 0;
     m = (MSG FAR *)p2;
     if (!w_[0].child) return 0xFFFF;              /* noch keine Fenster: Programm bekommt alles */
+    if (vw && !vweg && (i = idx(vw)) != 0) {      /* Vollbild: alle Eingaben an das Programm, ausser Alt+Tab / Alt+F6 */
+        if (msg == M_KEY && (m->p1 == 0x1A5 || m->p1 == 0x16D) && (HIWORD(m->p2) & KS_ALT)) { vollweg(); return 0; }
+        m->w = vw; return w_[i].task;
+    }
     if (msg == M_KEY || msg == M_KEYUP || msg == M_CHAR) {
         i = foc ? foc : act;
         if (!i) return 0;
@@ -1340,9 +1376,9 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
     m->w = hw(i);
     return w_[i].task;
 }
-void RDEXPORT u_init(void FAR *d, void FAR *k, void FAR *g)
+void RDEXPORT u_init(void FAR *d, void FAR *k, void FAR *g, void FAR *p)
 {
-    dcs = (DCX FAR *)d; gk = (GK FAR *)k; pfeil0 = gk->zb; gdc = (HDC (FAR __pascal *)(HWND))g;
+    dcs = (DCX FAR *)d; gk = (GK FAR *)k; pfeil0 = gk->zb; gdc = (HDC (FAR __pascal *)(HWND))g; gpause = (void (FAR __pascal *)(WORD))p;
     w_[0].used = 1; w_[0].vis = 1;
 }
 static void RDEXPORT u_ende(void)                 /* Systemklassen mit inst 0x8000|Modul: Modul freigeben (RDCTLX) */
@@ -1374,7 +1410,7 @@ static struct { WORD n; FARPROC f[72]; } ext = { 72, {
     0, U(ScrollSet), U(ScrollGet), 0, 0, 0, 0, 0,
     0, U(CaptureMouse), U(ReleaseMouse), U(CursorSet), U(CursorBusy), U(CursorPos), 0, 0,
     0, U(MenuLoad), U(MenuSet), U(MenuCheck), U(MenuEnable), U(MenuFree), U(MenuPopup), U(MenuText),
-    0, 0, 0, 0, 0, 0, 0, 0,
+    U(ScreenAcquire), U(ScreenRelease), 0, 0, 0, 0, 0, 0,
     0, U(KeyState), 0, U(hook), (FARPROC)u_init, U(SendMessage), U(DispatchMessage), U(MsgRegister),
 } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

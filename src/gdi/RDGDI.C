@@ -269,10 +269,12 @@ static void isect(RECT *a, const RECT *b)
 }
 /* Zeichenziel waehlen: Treiber/Bitmap, Clipliste berechnen. 0 = nichts zu zeichnen */
 static DCX *kd, *kc; static BYTE kdirty = 1;
+static BYTE pause_;                               /* RunDos/Vollbild: Schirm gehoert gerade nicht RD2, nichts zeichnen */
 static int sel(DCX *d)
 {
     static RECT dev, u, r; WORD i;
     cd = d;
+    if (d->typ == 0 && pause_) return 0;
     if (d->typ == 0 && d == kc && !kclip && drv) { dv = drv; goto farben; }   /* Clipliste unveraendert */
     nec = 0; kc = d; kclip = 0;
     if (d->typ == 0) {
@@ -644,7 +646,7 @@ static int b4blt(DCX *dd, short x, short y, short w, short h, DCX *sd, short sx,
             }
             unsel();
         }
-    } else if (!sd->typ && !x && !y) { cd = 0; gbusy = 1; zweg(); if (bh->bpp == BMP_ROH) ((GFXDRVR FAR *)drv)->rohget(sx, sy, w, h, z, bpr); else drv->get(sx, sy, w, h, z, bpr); unsel(); }   /* Schirm -> Bitmap */
+    } else if (!sd->typ && !x && !y && !pause_) { cd = 0; gbusy = 1; zweg(); if (bh->bpp == BMP_ROH) ((GFXDRVR FAR *)drv)->rohget(sx, sy, w, h, z, bpr); else drv->get(sx, sy, w, h, z, bpr); unsel(); }   /* Schirm -> Bitmap */
     MemUnlock(b->bmp);
     return 1;
 }
@@ -1201,7 +1203,6 @@ void RDEXPORT g_ReleaseDC(HWND w, HDC h) { (void)w; g_DCFree(h); }
 
 /* RunDos: 0 = Textmodus und Maus aus, 1 = Grafik und Maus wieder an (Bild zeichnen die Programme neu) */
 static WORD cgamod(void) { return (WORD)((0x10 | (ProfileGetInt("RD2.INI", "Farben", "CGA", 15) & 15)) << 8); }   /* CGA: Farbe an setmode */
-static BYTE pause_;
 void RDEXPORT g_Pause(WORD an)
 {
     if (!an && drv && !pause_) { mausaus(); drv->textmode(); pause_ = 1; }

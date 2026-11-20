@@ -13,6 +13,7 @@ rm -f obj/lib_*.obj $O/RD2.LIB
 for a in sdk/lib/F*.ASM; do b=$(basename $a .ASM); case $b in F12F|F130) continue;; esac; $W -fo=obj/lib_$b.obj $a; done   # F12F/F130 (JoyRead/JoyCalibrate): Joystick in C (JOY.C)
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_WAV.obj sdk/WAV.C   # Hilfen in C (laufen im Programm)
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_JOY.obj sdk/JOY.C   # Joystick (Gameport 201h, PIT)
+wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_VOLL.obj sdk/VOLL.C   # Vollbild: Modus, Palette (API 2.3)
 wlib -q -n -p=16 $O/RD2.LIB obj/lib_*.obj   # Seitengroesse 16 statt 512: Bibliothek ca. 4x kleiner (SDK-Diskette, 20.11.2026)
 $W -fo=obj/notsup.obj   src/kern/NOTSUP.ASM
 $W -fpi87 -fo=obj/kasm.obj src/kern/KASM.ASM
@@ -86,7 +87,7 @@ wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/RDTCP.MOD.obj src/net/R
 wlink option quiet format dos name $O/RDTCP.MOD file obj/rd2mod.obj,obj/RDTCP.MOD.obj,obj/pkt.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,stack=16,map=obj/RDTCP.MOD.map disable 1172 >/dev/null
 mv $O/RDTCP.MOD.exe $O/RDTCP.MOD 2>/dev/null || true
 python3 tools/rd2link.py $O/RDTCP.MOD "TCP/IP" --type M --flags 0 >/dev/null
-for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST JOYTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT SYSTEST; do app apps/test/$t.C $t.EXE "$t"; done
+for t in MODTEST FILETEST HAENGT STRESS GDITEST GFXWAHL TEXTTEST INPTEST RESTEST WINTEST JOYTEST MENUTEST ZEIGTEST DLGTEST DISKFRAG DOPPFMT SYSTEST VOLLTEST; do app apps/test/$t.C $t.EXE "$t"; done
 modul src/shell/SHELLX.C SHELLX.MOD "Shell-Zusatz" 0x0080 M "-ml -r -oa -ol"   # Info, Laufwerksinfo, Eigenschaften, Suchen (verwerfbar)
 APPSTACK=3584 app src/shell/SHELL.C SHELL.EXE "Shell"   # Stack 3,5 KB (31.10.: desk.sh misst bis 2,7 KB belegt, COM1 "SHELL: Stapel frei")
 app apps/hilfe/HILFE.C HILFE.EXE "Hilfe"   # F1: HelpShow -> RDKX -> RDPRN.MOD Nr. 6 -> HILFE.EXE

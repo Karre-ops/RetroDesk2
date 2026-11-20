@@ -179,7 +179,7 @@ int main(void)
     if (gdi) k_mausget = (WORD (__far __pascal *)(WORD __far *))k_modraw(gdi, 0x3C + 5);
     if (gdi) k_gdipause = (void (__far __pascal *)(WORD))k_modraw(gdi, 0x3C + 6);
     if (gdi && (user = k_sysmod("RDUSER.MOD", RDO_RegisterClass, 0x42, ux)) != 0) {   /* Oberflaeche: Fenster, Eingabe */
-        ((void (__far __pascal *)(void __far *, void __far *, void __far *))k_modraw(user, 0x45))(k_modraw(gdi, 0x3C + 7), k_modraw(gdi, 0x3C + 8), k_modraw(gdi, 0x3C + 1));
+        ((void (__far __pascal *)(void __far *, void __far *, void __far *, void __far *))k_modraw(user, 0x45))(k_modraw(gdi, 0x3C + 7), k_modraw(gdi, 0x3C + 8), k_modraw(gdi, 0x3C + 1), k_modraw(gdi, 0x3C + 6));
         k_wnd = (DWORD (__far __pascal *)(WORD, HWND, WORD, WORD, DWORD))k_modraw(user, 0x44);
         ctl = k_sysmod("RDCTL.MOD", RDO_DialogRun, 0x20, 0);      /* Steuerelemente, Dialoge (verwerfbar) */
     }

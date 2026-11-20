@@ -36,6 +36,13 @@ Auf Rechnern unter 386 kopiert die Installation keine 32-Bit-Teile (Karsten, 20.
 - Hinter dem Schreibtisch läuft das Vollbild-Programm angehalten weiter (keine Zeitscheiben, Klang stumm),
   damit Spiele nicht ohne Bild weiterlaufen.
 
+Stand 20.11.2026: umgesetzt. `ScreenAcquire`/`ScreenRelease` (0x0E0/0x0E1, RDUSER), `M_SCREENLOST`/`M_SCREENBACK`,
+in RD2.LIB `ScreenMode` (Text, CGA 4 Farben, EGA 0Dh, VGA 12h, 13h, Mode X 320x240, VESA 101h mit Fenster), `ScreenPalette`,
+`ScreenRestore`, `ScreenBank`. Alt+Tab bzw. Alt+F6 parkt das Programm unten, RD2 zeichnet den Schreibtisch; Klick oder
+Alt+Tab holt es zurueck. Waehrend des Vollbilds zeichnet RDGDI nichts auf den Schirm, alle Eingaben gehen an das Programm.
+Test `test/vollbild.sh` (alle sieben Modi ausser Text, Wechsel hin und zurueck). Noch offen: Zeitscheiben und Klang
+des geparkten Programms haelt RD2 nicht selbst an; das Programm wartet nach `M_SCREENLOST` in GetMessage (SDK.TXT).
+
 ## Schritt 3: 32-Bit-DOS-Programme (ab 386)
 - DOS/4GW, DJGPP usw. laufen über RunDos (RD2 lagert sich aus). Testen, freien DPMI-Host beilegen
   (HDPMI32 oder CWSDPMI), RDKEYB/RDMAUS prüfen. Teil des Testsatzes aus PLAN_DOS Schritt 4.

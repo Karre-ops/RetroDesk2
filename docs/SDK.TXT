@@ -250,6 +250,22 @@ Dateien mit nicht erfuellter Bedingung werden nicht kopiert (32-Bit-Teile
 kommen so nie auf Rechner unter 386). Das Programm traegt RDSETUP in
 PROGRAMM.LST ein.
 
+Vollbild (API 2.3)
+------------------
+  if (ScreenAcquire(fenster) && ScreenMode(SM_13H, &si)) { ... Bild nach si.seg ... }
+ScreenAcquire gibt dem Programm den ganzen Schirm: RD2 zeichnet nichts mehr,
+alle Tasten und Mausereignisse gehen an das Fenster. ScreenMode (RD2.LIB) setzt
+SM_TEXT, SM_CGA4, SM_EGA, SM_VGA16, SM_13H, SM_X (320x240) oder SM_VESA
+(640x480, 64-KB-Fenster mit ScreenBank) und liefert Groesse, Segment, Bytes je
+Zeile und Ebenen. ScreenPalette setzt VGA-Farben (0..63) und merkt sie.
+Alt+Tab oder Alt+F6: RD2 parkt das Fenster unten, zeigt den Schreibtisch und
+schickt M_SCREENLOST. Ab dann nicht mehr zeichnen, Klang anhalten und nur noch
+GetMessage aufrufen. Klick auf das geparkte Fenster oder Alt+Tab: M_SCREENBACK,
+dann ScreenRestore() (Modus und Palette wie zuletzt) und das Bild aus eigenen
+Daten neu zeichnen. RD2 haelt kein Abbild im Speicher. ScreenRelease(fenster)
+gibt den Schirm zurueck (auch DestroyWindow und das Programmende tun das).
+Beispiel: apps/test/VOLLTEST.C.
+
 Die vollstaendige Beschreibung (Programmformat, Module, Treiber, Speicher,
 Grenzen) steht in docs/SPEC.md im Quelltext von RetroDesk 2:
 https://github.com/Karre-ops/RetroDesk2
