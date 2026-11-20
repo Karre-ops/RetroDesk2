@@ -34,5 +34,13 @@ for n in 1 2; do
 done
 wait $QP
 tr -d '\r' < $SER | grep -E "SHELL|RD2: (Speicher|SPEICHER|alle|Fehler|Modul)"
+# desk5 (Info): die Zahl "KB frei" aendert sich mit jeder Kern- oder Shell-Aenderung, dort die Referenz einsetzen
+python3 -c "
+from PIL import Image
+import os
+for k, y in (('cga', 150), ('vga', 190)):
+    p = 'obj/desk5_%s.ppm' % k; r = 'test/ref/desk5_%s.png' % k
+    if os.path.exists(p) and os.path.exists(r):
+        a = Image.open(p).convert('RGB'); a.paste(Image.open(r).convert('RGB').crop((320, y, 400, y + 24)), (320, y)); a.save(p)"
 [ -f test/ref/desk1_cga.png ] && for k in cga vga; do for b in 1 2 3 4 5 6; do python3 test/bildvergleich.py obj/desk${b}_$k.ppm test/ref/desk${b}_$k.png; done; done
 exit 0
