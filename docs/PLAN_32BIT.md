@@ -40,8 +40,16 @@ Stand 20.11.2026: umgesetzt. `ScreenAcquire`/`ScreenRelease` (0x0E0/0x0E1, RDUSE
 in RD2.LIB `ScreenMode` (Text, CGA 4 Farben, EGA 0Dh, VGA 12h, 13h, Mode X 320x240, VESA 101h mit Fenster), `ScreenPalette`,
 `ScreenRestore`, `ScreenBank`. Alt+Tab bzw. Alt+F6 parkt das Programm unten, RD2 zeichnet den Schreibtisch; Klick oder
 Alt+Tab holt es zurueck. Waehrend des Vollbilds zeichnet RDGDI nichts auf den Schirm, alle Eingaben gehen an das Programm.
-Test `test/vollbild.sh` (alle sieben Modi ausser Text, Wechsel hin und zurueck). Noch offen: Zeitscheiben und Klang
-des geparkten Programms haelt RD2 nicht selbst an; das Programm wartet nach `M_SCREENLOST` in GetMessage (SDK.TXT).
+Test `test/vollbild.sh` (alle sieben Modi ausser Text, Wechsel hin und zurueck). Seit der Speicherrunde haelt RD2 das
+geparkte Programm selbst an (`TaskHalt`, API 0x031: keine Zeitscheiben, Klang still, bis es wieder vorn ist).
+
+## Speicherrunde (20.11.2026, zwischen Schritt 2 und 3)
+- SysInfo und BedarfCheck liegen jetzt in RDINFO.MOD (verwerfbar, Diskette 1): RDKX hat wieder 1,4 KB Luft.
+- `TaskHalt` im Kern (API 0x031) fuer das geparkte Vollbild.
+- Grundregel: neue Funktionen nicht mehr in RDKX, RDGDI, RDCTL, RDSND, SHELLX (fast ohne Luft), sondern in neue
+  verwerfbare Module; 32-Bit-Teile nur in RD32.MOD und auf einer eigenen 1,44-MB-Diskette "RD2 32" (nur ab 386 verlangt).
+- Treiber von Diskette 2 auf 3: zurueckgestellt. Im Diskettenbetrieb laedt RDGDI den Grafiktreiber vom Laufwerk mit
+  RD2, das muss vorher geprueft werden.
 
 ## Schritt 3: 32-Bit-DOS-Programme (ab 386)
 - DOS/4GW, DJGPP usw. laufen über RunDos (RD2 lagert sich aus). Testen, freien DPMI-Host beilegen

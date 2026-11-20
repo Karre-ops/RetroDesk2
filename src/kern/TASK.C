@@ -149,17 +149,18 @@ static void schedule(int wait)
 {
     WORD i, n; TASK *t;
     profile_flush();                              /* geaenderte INI einmal schreiben (FILE.C) */
+    if (k_cur && k_task[k_cur].halt == 2 && !k_task[k_cur].qn) k_task[k_cur].halt = 1;   /* M_SCREENLOST abgeholt: jetzt anhalten */
     if (wait && k_cur && k_task[k_cur].state == T_READY) k_task[k_cur].state = T_WAIT;
     for (;;) {
         for (i = 1, n = k_cur, t = &k_task[n]; i <= MAXTASK; i++) {   /* reihum ohne Division */
             if (++n == MAXTASK) { n = 1; t = &k_task[1]; i++; } else t++;
-            if (t->state == T_READY || (t->state == T_WAIT && has_work(t))) {
+            if (t->halt != 1 && (t->state == T_READY || (t->state == T_WAIT && has_work(t)))) {
                 t->state = T_READY;
                 switch_to(n);
                 return;
             }
         }
-        if (!wait) return;                        /* niemand sonst bereit: weiterlaufen */
+        if (!wait && k_task[k_cur].halt != 1) return;   /* niemand sonst bereit: weiterlaufen (angehalten: warten) */
         if (!alive()) { if (k_cur) switch_to(0); return; }   /* alle fertig: zurueck zum Kern */
         input_poll();
         if (k_focus && has_work(&k_task[k_focus])) continue;
@@ -196,13 +197,22 @@ void __cdecl task_tick(WORD cs)
     if (t->slice) return;
     for (i = 1; i < MAXTASK; i++) {
         n = (k_cur + i) % MAXTASK;
-        if (n && (k_task[n].state == T_READY || (k_task[n].state == T_WAIT && has_work(&k_task[n])))) {
+        if (n && k_task[n].halt != 1 && (k_task[n].state == T_READY || (k_task[n].state == T_WAIT && has_work(&k_task[n])))) {
             k_task[n].state = T_READY;
             switch_to(n);                         /* Interruptrahmen bleibt auf dem Stack */
             return;
         }
     }
     t->slice = SLICE;
+}
+
+/* TaskHalt (API 2.3): geparktes Vollbild-Programm bekommt keine Zeitscheiben mehr, Klang still (RDUSER bei Alt+Tab) */
+void RDK TaskHalt(HTASK h, BOOL an)
+{
+    BYTE a = (BYTE)(an ? 2 : 0);                  /* 2: erst anhalten, wenn die Warteschlange leer ist (M_SCREENLOST holt es noch ab) */
+    if (h < 1 || h >= MAXTASK || k_task[h].state == T_FREE || (k_task[h].halt != 0) == (a != 0)) return;
+    k_task[h].halt = a;
+    if (k_sndpause) k_sndpause(a ? 0 : 1);
 }
 
 /* ---- Laden und Start ----------------------------------------------------- */
@@ -294,7 +304,7 @@ WORD task_load(LPCSTR app, LPCSTR cmd, WORD show)
     }
     mem_chown(seg, n);                            /* Programmbild gehoert dem Task */
     t->base = seg; t->paras = paras; t->ecs = k_mz.cs; t->eip = k_mz.ip; t->show = show;
-    t->qh = t->qn = t->quit = 0; t->quitcode = 0; t->rsp = 0;
+    t->qh = t->qn = t->quit = 0; t->quitcode = 0; t->rsp = 0; t->halt = 0;
     for (i = 0; i < NTIMER; i++) t->tm[i].ms = 0;
     fcpy(t->name, k_rb.name, 16);
     x = TX(t); fcpy(x->cmd, cmd ? cmd : "", 80); fcpy(x->path, path, 80); x->blk = k_rb.nres ? tr.blk : 0;
@@ -454,5 +464,5 @@ void task_api(void)
     KAPI(TaskYield, TaskYield); KAPI(PostTask, PostTask); KAPI(PostQuit, PostQuit);
     KAPI(DispatchMessage, DispatchMessage); KAPI(TimerSet, TimerSet); KAPI(TimerKill, TimerKill);
     KAPI(TickCount, TickCount); KAPI(InputIdle, InputIdle); KAPI(TaskSelf, TaskSelf); KAPI(TaskExec, TaskExec); KAPI(TaskKill, TaskKill);
-    KAPI(TaskFirst, TaskFirst); KAPI(TaskNext, TaskNext);
+    KAPI(TaskFirst, TaskFirst); KAPI(TaskNext, TaskNext); KAPI(TaskHalt, TaskHalt);
 }

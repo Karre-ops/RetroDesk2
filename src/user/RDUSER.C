@@ -487,7 +487,7 @@ void RDEXPORT u_ShowWindow(HWND h, WORD art)
     if (!i) { bad(); return; }
     if (h == vw && vweg && art != SW_MIN && art != SW_HIDE) {   /* Vollbild-Programm wieder vorn: Schirm zurueck */
         vweg = 0; vw = 0; u_ShowWindow(h, art); vw = h;
-        u_SetActive(h); gpause(0); PostMessage(h, M_SCREENBACK, 0, 0);
+        TaskHalt(w_[i].task, FALSE); u_SetActive(h); gpause(0); PostMessage(h, M_SCREENBACK, 0, 0);
         return;
     }
     if (art == SW_HIDE) {
@@ -1291,6 +1291,7 @@ WORD RDEXPORT u_ScreenAcquire(HWND h)
 void RDEXPORT u_ScreenRelease(HWND h)
 {
     if (!vw || (h && h != vw)) return;
+    if (vweg) TaskHalt(w_[idx(vw)].task, FALSE);
     vw = 0;
     if (!vweg) { gpause(1); allesneu(); }
     vweg = 0;
@@ -1300,6 +1301,7 @@ static void vollweg(void)                         /* Alt+Tab im Vollbild: Schrei
     vweg = 1; gpause(1);
     u_ShowWindow(vw, SW_MIN); allesneu();
     PostMessage(vw, M_SCREENLOST, 0, 0);
+    TaskHalt(w_[idx(vw)].task, TRUE);             /* angehalten, bis es wieder vorn ist */
 }
 DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
 {

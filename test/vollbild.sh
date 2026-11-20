@@ -35,6 +35,7 @@ pruef "Vollbild 13h mit Farbverlauf (mindestens 40 Farben)" "voll \"$B1\""
 pruef "Alt+Tab: M_SCREENLOST, Schreibtisch 640x480" "echo \"\$L\" | grep -q 'VOLLTEST: SCREENLOST' && gross \"$B2\""
 pruef "Alt+Tab zurueck: M_SCREENBACK, neu gezeichnet" "echo \"\$L\" | grep -q 'VOLLTEST: SCREENBACK' && voll \"$B3\""
 pruef "Esc im Vollbild erreicht das Programm, danach Schreibtisch" "echo \"\$L\" | grep -q 'VOLLTEST: Ende' && gross \"$B4\""
+pruef "geparkt angehalten: zwischen SCREENLOST und SCREENBACK kein neues Bild" "[ \$(echo \"\$L\" | sed -n '/VOLLTEST: SCREENLOST/,/VOLLTEST: SCREENBACK/p' | grep -c 'VOLLTEST: gezeichnet') = 0 ]"
 pruef "Shell laeuft weiter" "! echo \"\$L\" | grep -qi 'RD2: Fehler\|Ausnahme'"
 # ---- weitere Modi ohne Shell: RD2.EXE VOLLTEST.EXE <Modus>, Bild pruefen, Esc ----
 for m in "X 640 480" "V 640 480" "E 640 400" "G 640 480" "C 640 400"; do set -- $m

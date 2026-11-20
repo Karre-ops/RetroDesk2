@@ -130,6 +130,7 @@ typedef struct {
     struct { WORD ip, cs, mod; } rs[12];
     char  name[16];
     WORD  xs;                                     /* Zusatzblock des Tasks: Befehlszeile, Pfad, RD2-Block */
+    BYTE  halt;                                   /* TaskHalt: 2 = anhalten, sobald die Warteschlange leer ist, 1 = angehalten */
 } TASK;
 typedef struct { char cmd[80], path[80]; DWORD blk; } TASKX;
 #define TX(t) ((TASKX __far *)MK_FP((t)->xs, 0))

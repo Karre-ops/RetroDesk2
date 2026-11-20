@@ -95,7 +95,8 @@ int main(void)
     static const WORD kx[] = { 2, RDO_TimeGet, 3, RDO_TimeSet, 4, RDO_LangGet, 5, RDO_ResLoad, 6, RDO_ResFree,
                                7, RDO_StrLoad, 8, RDO_StrGet, 9, RDO_DbgBreak,
                                10, RDO_BmpLoad, 11, RDO_BmpLoadFile, 12, RDO_IconDraw, 13, RDO_NetStart,
-                               14, RDO_PrnOpen, 15, RDO_PrnPage, 16, RDO_PrnClose, 17, RDO_PrnAbort, 18, RDO_HelpShow, 19, RDO_IconDrawFile, 20, RDO_SysInfo, 21, RDO_BedarfCheck, 0 };
+                               14, RDO_PrnOpen, 15, RDO_PrnPage, 16, RDO_PrnClose, 17, RDO_PrnAbort, 18, RDO_HelpShow, 19, RDO_IconDrawFile, 0 };
+    static const WORD ix[] = { 2, RDO_SysInfo, 3, RDO_BedarfCheck, 0 };   /* RDINFO.MOD (verwerfbar) */
     static const WORD ux[] = { 0x46, RDO_SendMessage, 0x47, RDO_DispatchMessage, 0x48, RDO_MsgRegister, 0 };
     static const WORD gdix[] = { 0x3C + 1, RDO_GetDC, 0x3C + 2, RDO_ReleaseDC, 0x3C + 3, RDO_GfxList, 0x3C + 4, RDO_GfxSelect, 0 };
     char *s; int argc = kargs();
@@ -174,6 +175,7 @@ int main(void)
     }
     vor = mem_free_bytes(0);                      /* schreibt den INI-Zwischenspeicher vorher */
     kxm = k_sysmod("RDKX.MOD", 0, 0, kx);                 /* Zeit, Sprache, Ressourcen, Texte (verwerfbar) */
+    k_sysmod("RDINFO.MOD", 0, 0, ix);                     /* SysInfo, BedarfCheck (verwerfbar, 20.11.2026) */
     gdi = k_sysmod("RDGDI.MOD", RDO_GetCaps, 0x3B, gdix);      /* fehlt es: Grafik liefert RD_ERR_NOTSUP */
     if (!gdi) k_hex("ohne RDGDI", k_lasterr, 3);
     if (gdi) k_mausget = (WORD (__far __pascal *)(WORD __far *))k_modraw(gdi, 0x3C + 5);

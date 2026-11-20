@@ -49,6 +49,7 @@ modul apps/test/TESTMOD.C TESTMOD.MOD "Testmodul" 0x0080
 modul apps/test/TESTMOD.C TESTMOD2.MOD "Testmodul2" 0x0080
 modul src/gdi/RDGDI.C RDGDI.MOD "RDGDI" 0 M -i=gdi
 modul src/kern/RDKX.C RDKX.MOD "Kern Zusatz" 0x0080 M
+modul src/kern/RDINFO.C RDINFO.MOD "SysInfo" 0x0080 M   # SysInfo, BedarfCheck (verwerfbar, 20.11.2026)
 modul src/kern/RDAUSL.C RDAUSL.MOD "Auslagern" 0 M "-r -oa -ol"
 modul src/user/RDUSER.C RDUSER.MOD "RDUSER" 0 M "-i=gdi -ml -r -oa -ol"
 modul src/gdi/RDGDIX.C RDGDIX.MOD "RDGDI Zusatz" 0x0080 M -i=gdi

@@ -43,6 +43,7 @@ RDF(0x00B, WORD,    RunDos,         (LPCSTR prog, LPCSTR cmd, WORD flags)) /* RD
 RDF(0x00C, WORD,    LastError,      (void))                       /* RD_ERR_* */
 RDF(0x00D, void,    SetLastError,   (WORD e))
 RDF(0x00E, void,    ExitRD,         (WORD flags))                 /* Shell: RetroDesk beenden */
+RDF(0x031, void,    TaskHalt,       (HTASK t, BOOL an))           /* Vollbild geparkt: keine Zeitscheiben, Klang still (API 2.3) */
 RDF(0x00F, DWORD,   InstRes,        (HINST i, LPSTR pfad, WORD len)) /* Datei und RD2-Block eines Programms (fuer Ressourcen), 0 = keine */
 
 /* ---- Kern: Nachrichten ------------------------------------------------ */
