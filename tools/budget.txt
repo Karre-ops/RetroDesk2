@@ -4,7 +4,7 @@
 # Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
 RD2.EXE          30720 44.4375  S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock); 26.10.: 44,25 KB fuer den Klang-Takt im INT 8 und RunDos-Pause (RDSND); 19.11.2026: Datei 30 KB (Platzplan K4, RDSYS weg von Diskette 1)
-RD2SETUP.EXE    34816    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier; +1 KB Sound Blaster 26.10.); +1 KB Mehrdisketten-Installation 27.10.; +1 KB Mausauswahl (12 Arten), Klang keine, Texte 29.10.; +1 KB I startet die grafische Installation (Installieren=1), T Text-Notweg 29.10.
+RD2SETUP.EXE    36864    0   S  Einrichtung und Installation (eigenes DOS-Programm, Erkennung nur hier; +1 KB Sound Blaster 26.10.); +1 KB Mehrdisketten-Installation 27.10.; +1 KB Mausauswahl (12 Arten), Klang keine, Texte 29.10.; +1 KB I startet die grafische Installation (Installieren=1), T Text-Notweg 29.10.; 19.11.2026: 36 KB fuer die 3D-Kartenerkennung per PCI (PLAN_32BIT)
 INSTALL.EXE     14336    0   S  Grafische Installation auf Festplatte (Variante B, 29.10.): Disketten 1-3 mit Fortschrittsbalken, CONFIG.SYS, RDSYS per RunDos; +1 KB Formatieren, Schlussmeldung nach RDSYS ohne XMS 31.10.
 RDSYS.EXE       24576    0   N  FreeDOS SYS 3.6 (GPL v2), unveraendert; RD2SETUP: Festplatte startfaehig (24.10.); 19.11.2026: auf Diskette 3 (Platzplan D1), INSTALL/RD2SETUP starten es aus dem Zielordner
 RDSWAP.BIN       2048    0   S  RunDos: Auslager-Rest (nicht im Kern); waehrend des Programms im UMB oder hinter dem PSP (10.11.: ohne leeren Datenbereich)
@@ -14,7 +14,7 @@ US.KBD            256    0   S  Belegung US (31.10.)
 PC10.KBD          256    0   S  Belegung Commodore PC10-III wie aufgedruckt (31.10.)
 RDMAUS.COM       5120    0   S  Maustreiber PS/2, seriell MS/Logitech/Mouse Systems (Assembler, resident ca. 3,4 KB mit Grafikzeiger und Funktion 10h), Bus/InPort/PS2/seriell, ersetzt CTMOUSE, INSTALL= in CONFIG.SYS (28.10.)
 RDGDI.MOD       17920 20.5   S  (30.10.: 20,5 KB fuer Symbole mit Maske im Treiber) (30.10.: 17 KB Datei fuer Hintergrund roh) (30.10.: 20 KB Speicher fuer den schnellen Weg der schmalen Schrift) (30.10.: 16,5 KB Datei fuer 8 weitere Grafikarten in der Kandidatenliste) Grafik: Geraetekontext, Clipping, Bitmaps, Text (20.10.: 14 -> 16 KB, Schriften + Grafikwahl); 21.10.: Ellipse/Polygon/Fuellen nach RDGDIX, Speicher 18 KB (Code 12,6 + Daten 5); 23.10.: 18,5 KB fuer schnelle Textausgabe (statt Auslagern, Text wird staendig gebraucht); 27.10.: 19,5 KB fuer 16 Farben (Farbindex, Muster zweifarbig, 4-Bit-Hintergrund)
-RDKX.MOD         7168 7   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.); 12.11.2026: eigenes Symbol
+RDKX.MOD         8192 8   S  Kern-Zusatz: Uhrzeit, Sprache, Ressourcen, Texte, Bilder/Symbole, Debugger (verwerfbar, bei Bedarf; 23.10.); 12.11.2026: eigenes Symbol; 19.11.2026: 8 KB fuer SysInfo (API 2.3, PLAN_32BIT Schritt 1)
 RDAUSL.MOD       3072    3.5 S  Auslagern bei Speichermangel nach XMS oder RD2.SWP (nur Festplatte), bleibt geladen, nur wenn es ein Ziel gibt (25.10.)
 RDGDIX.MOD       4608    4.5 S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygone, Fuellen (verwerfbar, bei Bedarf); 28.10.: 4,5 KB fuer Grafikwahl (Liste/Auswahl aus RDGDI)
 RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
@@ -62,6 +62,7 @@ PAPIERK.EXE      6144    8   P  Zubehoer Papierkorb (RD-Menue): X:\PAPIERK\PAPIE
 OPTIONEN.EXE    22528 16.5   P  (31.10.: 21 KB Datei, RDKEYB-Zeile wird auch ohne Aenderung gerichtet) (31.10.: 16 KB fuer Belegungsliste *.KBD) (30.10.: 15 KB Speicher fuer 16 Grafikarten) Optionen (30.10.: 20 KB fuer CGA-Farbe und Schreibtischfarbe, 16 Farbnamen DE/EN): Karteikarten Grafik, Klang, Maus, Tastatur, Schoner, System (29.10.: +12 KB fuer alle Einstellungen, 12 Kartendialoge DE/EN, Grafik sofort mit Rueckfrage "Behalten?" 15 s, Maus- und Schonerdialog hierher; beim Lauf 24 KB Puffer fuer CONFIG.SYS/AUTOEXEC.BAT, nur solange offen); 12.11.2026: eigenes Symbol
 HALLO.EXE        4096    0   T  SDK-Beispiel in C (Quelle auf Diskette 4, test/pascal.sh)
 LEER.EXE         2048    0   T  Testprogramm Phase 1 (faellt spaeter weg)
+SYSTEST.EXE      2048    0   T  Testprogramm SysInfo (API 2.3, 19.11.2026), test/sysinfo.sh
 UEBER.EXE        2048    0   T  G12-Test: LEER.EXE mit minalloc FFFFh (beim Bauen erzeugt)
 PING.EXE         2048    0   T  Testprogramme Phase 2 (fallen spaeter weg)
 PONG.EXE         2048    0   T

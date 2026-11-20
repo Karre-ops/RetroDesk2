@@ -222,6 +222,38 @@ static void netz_erkennen(void)                   /* Paketreiber: "PKT DRVR" 3 B
         if (*v && _fmemcmp(*v + 3, "PKT DRVR", 8) == 0) pkt_int = i;
     }
 }
+/* 3D-Karte (PLAN_32BIT Schritt 1, 19.11.2026): PCI-BIOS (INT 1Ah B1xxh), erst ab 386. 3dfx hat Vorrang (Glide zuerst). */
+static WORD d3_v, d3_d; static BYTE d3_typ;
+static const char *const d3wert[] = { "KEINE", "VOODOO1", "VOODOO2", "BANSHEE", "VOODOO3", "VOODOO4", "RAGE", "RAGE128", "ATI", "RIVA128", "TNT", "NVIDIA" };
+static const char *const d3anz[] = { "keine (Software)", "3dfx Voodoo 1", "3dfx Voodoo 2", "3dfx Banshee", "3dfx Voodoo 3", "3dfx Voodoo 4/5",
+                                     "ATI Rage", "ATI Rage 128", "ATI (neuer)", "nVidia Riva 128", "nVidia TNT", "nVidia (neuer)" };
+static WORD pciwort(WORD bd, WORD reg) { r.x.ax = 0xB109; r.x.bx = bd; r.x.di = reg; int86(0x1A, &r, &r); return r.x.cflag ? 0xFFFF : r.x.cx; }
+static void d3_erkennen(void)
+{
+    WORD b, nb, df, v, d, k, bd; BYTE t;
+    d3_typ = 0; d3_v = d3_d = 0;
+    if (cpu < 5) return;
+    r.x.ax = 0xB101; r.x.di = 0; int86(0x1A, &r, &r);
+    if (r.x.cflag || r.h.ah || r.x.dx != 0x4350) return;   /* EDX = "PCI " */
+    nb = r.h.cl;
+    for (b = 0; b <= nb && b < 8; b++) for (df = 0; df < 256; df++) {
+        bd = (b << 8) | df;
+        if ((v = pciwort(bd, 0)) == 0xFFFF) { if (!(df & 7)) df += 7; continue; }   /* kein Geraet: alle Funktionen auslassen */
+        k = pciwort(bd, 10) >> 8;                 /* Klasse 03 Anzeige, 04 Multimedia (Voodoo 1/2) */
+        if (k != 3 && k != 4) continue;
+        d = pciwort(bd, 2); t = 0;
+        if (v == 0x121A) t = d == 1 ? 1 : d == 2 ? 2 : d == 3 ? 3 : d == 5 ? 4 : d >= 9 ? 5 : 0;
+        else if (k != 3) continue;
+        else if (v == 0x1002) t = (d >= 0x4742 && d <= 0x475A) || (d >= 0x4C42 && d <= 0x4C54 && d != 0x4C45 && d != 0x4C46) || (d >= 0x5654 && d <= 0x5656) ? 6
+                              : (d >= 0x5041 && d <= 0x5058) || (d >= 0x5245 && d <= 0x524C) || (d >= 0x5345 && d <= 0x534E) || (d >= 0x5446 && d <= 0x5458)
+                                || d == 0x4C45 || d == 0x4C46 || (d >= 0x4D46 && d <= 0x4D4C) ? 7 : 8;
+        else if (v == 0x12D2 && (d == 0x18 || d == 0x19)) t = 9;
+        else if (v == 0x10DE) t = (d == 0x20 || (d >= 0x28 && d <= 0x2D) || d == 0xA0) ? 10 : 11;
+        if (t && (!d3_typ || (v == 0x121A && d3_v != 0x121A))) { d3_typ = t; d3_v = v; d3_d = d; }
+    }
+}
+static char d3text[40], d3pci[12], d3z[24];
+static void d3liste(void);
 static void speicher_erkennen(void)
 {
     WORD strat, link, seg;
@@ -267,10 +299,11 @@ static PUNKT p[] = {
     { "Sound Blaster", "SB",  { 0 }, { 0 }, 0, 0, 0 },
     { "XMS-Ablage", "XMS",    { "0", "64", "128", "256", "512" }, { "aus", "64 KB", "128 KB", "256 KB", "512 KB" }, 5, 0, 0 },
     { "Netz",       "Netz",   { "KEIN", "PAKET" }, { "keins", "Paketreiber" }, 2, 0, 0 },
+    { "3D-Karte",   "3D",     { 0 }, { 0 }, 0, 0, 0 },   /* nur ab 386 sichtbar (PLAN_32BIT) */
     { "Tastatur",   "Tastatur", { "DE", "US", "PC10" }, { "Deutsch (RDKEYB)", "US-Englisch (RDKEYB)", "XT/Commodore PC10 (RDKEYB)" }, 3, 0, 0 },   /* PC10: PC10.KBD, wie aufgedruckt (31.10.) */
 };
 #define NP (sizeof p / sizeof p[0])
-enum { P_GRAFIK, P_PROFIL, P_MAUS, P_KLANG, P_SB, P_XMS, P_NETZ, P_TAST };
+enum { P_GRAFIK, P_PROFIL, P_MAUS, P_KLANG, P_SB, P_XMS, P_NETZ, P_3D, P_TAST };
 static char ini[80], quelle[80];
 
 static void setze(PUNKT *q, const char *w) { BYTE i; for (i = 0; i < q->n; i++) if (!stricmp(q->wert[i], w)) { q->v = i; return; } }
@@ -283,6 +316,12 @@ static void grafikliste(void)                    /* nur was die Hardware kann (u
     if (hw_hgc) { g->wert[g->n] = "HGC";   g->anzeige[g->n++] = "Hercules 720x348"; }
     if (hw_cga) { g->wert[g->n] = "CGA";   g->anzeige[g->n++] = "CGA 640x200"; }
     if (!g->n)  { g->wert[g->n] = "CGA";   g->anzeige[g->n++] = "CGA 640x200 (nichts erkannt)"; }
+}
+static void d3liste(void)                         /* erkannte Karte zuerst, dann keine */
+{
+    PUNKT *q = &p[P_3D]; q->n = 0;
+    if (d3_typ) { sprintf(d3text, "%s (PCI %04X:%04X)", d3anz[d3_typ], d3_v, d3_d); q->wert[q->n] = d3wert[d3_typ]; q->anzeige[q->n++] = d3text; }
+    q->wert[q->n] = d3wert[0]; q->anzeige[q->n++] = d3anz[0];
 }
 static void sbliste(void)                         /* erkannter Wert zuerst, dann uebliche Einstellungen */
 {
@@ -304,6 +343,7 @@ static void vorschlag(int i)                     /* Wert aus der Erkennung */
     case P_XMS:    q->v = (BYTE)(xmskb >= 256 ? 3 : xmskb >= 128 ? 2 : xmskb >= 64 ? 1 : 0);
                    q->n = (BYTE)(xmskb >= 512 ? 5 : q->v + 1); break;   /* nur anbieten, was da ist */
     case P_NETZ:   q->v = (BYTE)(pkt_int != 0); break;
+    case P_3D:     d3liste(); q->v = 0; break;
     case P_TAST:   q->v = (BYTE)(XTKBD ? 2 : 0); break;   /* XT-Rechner (Modellbyte FF/FE/FB) ohne 101er-Tastatur: XT-Belegung (31.10.) */
     }
     q->erk = q->v;
@@ -315,6 +355,7 @@ static void erkennen(int i)                      /* -1 = alles */
     if (i < 0 || i == P_KLANG || i == P_SB) klang_erkennen();
     if (i < 0 || i == P_XMS) speicher_erkennen();
     if (i < 0 || i == P_NETZ) netz_erkennen();
+    if (i < 0 || i == P_3D) d3_erkennen();
     if (i < 0) { for (i = 0; i < (int)NP; i++) vorschlag(i); }
     else vorschlag(i);
 }
@@ -326,6 +367,11 @@ static void maus_auswahl(void)                    /* gewaehlte Maus gilt fuer Ma
 {
     const char *w = p[P_MAUS].wert[p[P_MAUS].v];
     if (stricmp(w, "DOS")) strcpy(mauswert, w);
+}
+static const char *d3zeile(void)                  /* PCI-Kennung nur, wenn die erkannte Karte gewaehlt ist */
+{
+    if (d3_typ && p[P_3D].v == 0) sprintf(d3pci, "%04X:%04X", d3_v, d3_d); else d3pci[0] = 0;
+    sprintf(d3z, "3DPCI=%s\r\n", d3pci); return d3z;
 }
 static int ini_schreiben(const char *datei)
 {
@@ -339,7 +385,8 @@ static int ini_schreiben(const char *datei)
     #define AUS(s) do { size_t l_ = strlen(s); if (o + l_ < sizeof neu) { memcpy(neu + o, s, l_); o += l_; } } while (0)
     #define REST() do { for (i = 0; i < NP; i++) if (!done[i]) { sprintf(zeile_, "%s=%s\r\n", p[i].key, p[i].wert[p[i].v]); AUS(zeile_); done[i] = 1; } \
                         if (!done[NP]) { sprintf(zeile_, "MausHW=%s\r\n", mauswert); AUS(zeile_); done[NP] = 1; } \
-                        if (!done[NP + 1] && inst_grafisch) { AUS("Installieren=1\r\n"); done[NP + 1] = 1; } } while (0)
+                        if (!done[NP + 1] && inst_grafisch) { AUS("Installieren=1\r\n"); done[NP + 1] = 1; } \
+                        if (!done[NP + 2]) { AUS(d3zeile()); done[NP + 2] = 1; } } while (0)
     for (z = buf; *z; z = e) {
         char k[24]; int kl = 0;
         for (e = z; *e && *e != '\n'; e++) ;
@@ -351,6 +398,7 @@ static int ini_schreiben(const char *datei)
             while (z + kl < e && z[kl] != '=' && kl < 23) { k[kl] = z[kl]; kl++; }
             k[kl] = 0;
             for (i = 0; i < NP; i++) if (!stricmp(k, p[i].key)) break;
+            if (!stricmp(k, "3DPCI")) { if (!done[NP + 2]) { AUS(d3zeile()); done[NP + 2] = 1; } continue; }
             if (!stricmp(k, "Installieren")) { if (inst_grafisch && !done[NP + 1]) { AUS("Installieren=1\r\n"); done[NP + 1] = 1; } continue; }
             if (i < NP || !stricmp(k, "MausHW")) {        /* eigene Zeile ersetzen */
                 if (i == NP) { sprintf(zeile_, "MausHW=%s\r\n", mauswert); done[NP] = 1; }
@@ -588,7 +636,7 @@ static void installieren(void)
 
 /* ---- Liste --------------------------------------------------------------------- */
 static int inst_da(void) { char q[80]; sprintf(q, "%sINSTALL.EXE", quelle); return gibts(q); }
-static int sichtbar(WORD i) { return i != P_SB || !stricmp(p[P_KLANG].wert[p[P_KLANG].v], "SB"); }
+static int sichtbar(WORD i) { return (i != P_SB || !stricmp(p[P_KLANG].wert[p[P_KLANG].v], "SB")) && (i != P_3D || cpu >= 5); }
 static void zeigen(int sel, int erst)
 {
     char z[100]; WORD i;

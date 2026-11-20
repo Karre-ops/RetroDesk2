@@ -206,8 +206,23 @@ Programme pruefen Neuerungen mit KernVersion() >= ..., bevor sie sie nutzen.
        WORD IconDrawFile(dc, x, y, datei, id), 0 = Datei hat kein Symbol id.
        SM_HALBE fuer SndSamplePlay: Meldung je fertiger Blockhaelfte
        (M_SOUNDDONE, p1 = 3, p2 = Haelfte), siehe Abschnitt 5.
+  2.3  SysInfo (0x02F): Rechner fuer Programme, siehe unten.
 Ein Programm, das mit einer neueren API gebaut ist, startet auf einem
 aelteren Kern nicht (RD_ERR_VERSION).
+
+SysInfo (API 2.3)
+-----------------
+  static RDSYSDATA d; d.groesse = sizeof d; SysInfo(&d);
+liefert cpu (CPU_*), fpu, dos, kb_konv, kb_frei (groesster freier Block fuer
+Programme), kb_ems und kb_xms (frei, 0 = keins), grafik (GFX_*), sound (SC_*
+laut RD2.INI Sound=), netz (1 = Paketreiber eingetragen), maus, festplatte
+(1 = RD2 laeuft von Festplatte) und die 3D-Karte: d3 (D3_*), d3_hersteller
+und d3_geraet (PCI-Kennung). Die 3D-Karte erkennt RD2SETUP einmal per PCI
+(ab 386) und schreibt 3D= und 3DPCI= nach RD2.INI [System]; erneut erkennen
+mit RD2SETUP. Erkannt werden 3dfx Voodoo 1 bis 5, ATI Rage, Rage 128 und
+neuer, nVidia Riva 128, TNT und neuer. groesse < 4 ergibt RD_ERR_HANDLE.
+Spaetere Fassungen haengen Felder nur hinten an; aeltere Programme mit
+kleinerem groesse bekommen nur ihren Teil.
 
 Die vollstaendige Beschreibung (Programmformat, Module, Treiber, Speicher,
 Grenzen) steht in docs/SPEC.md im Quelltext von RetroDesk 2:

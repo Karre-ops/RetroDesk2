@@ -18,7 +18,7 @@
 #define RD2_H
 
 #define RD2_API_MAJOR 2
-#define RD2_API_MINOR 2
+#define RD2_API_MINOR 3
 #define RD2_API_VERSION ((RD2_API_MAJOR << 8) | RD2_API_MINOR)
 
 #if defined(__386__) || defined(__FLAT__)
@@ -103,6 +103,38 @@ typedef struct {
     WORD  sprache;                                /* RD_LANG_* */
     char  home[66];                               /* RD2-Verzeichnis, z. B. "A:\\" */
 } SYSINFO;
+
+/* SysInfo (API 2.3): alles, was ein Programm ueber den Rechner wissen will. Vor dem Aufruf groesse
+   = sizeof(RDSYSDATA) setzen; spaetere Fassungen haengen Felder nur hinten an. */
+typedef struct {
+    WORD  groesse;                                /* vom Programm: sizeof(RDSYSDATA) */
+    WORD  cpu;                                    /* CPU_* wie KernInfo */
+    WORD  fpu;                                    /* 0 kein, 87 */
+    WORD  dos;                                    /* hi.lo */
+    WORD  kb_konv;                                /* konventioneller Speicher gesamt */
+    WORD  kb_frei;                                /* davon jetzt frei fuer Programme (groesster Block) */
+    WORD  kb_ems;                                 /* EMS frei, 0 = keins */
+    WORD  kb_xms;                                 /* XMS frei (bis 64 MB), 0 = keins */
+    WORD  grafik;                                 /* laufende Grafikart GFX_* */
+    WORD  sound;                                  /* SC_* laut RD2.INI */
+    WORD  netz;                                   /* 1 = Paketreiber eingetragen */
+    WORD  maus;                                   /* wie KernInfo */
+    WORD  festplatte;                             /* 1 = RD2 laeuft von Festplatte */
+    WORD  d3;                                     /* D3_* (RD2SETUP erkennt, RD2.INI [System] 3D=) */
+    WORD  d3_hersteller, d3_geraet;               /* PCI-Kennung der 3D-Karte, 0 = keine */
+} RDSYSDATA;
+#define D3_KEINE   0                              /* nur Software (RD3D) */
+#define D3_VOODOO1 1                              /* 3dfx Voodoo Graphics (Zusatzkarte, nur Vollbild) */
+#define D3_VOODOO2 2                              /* 3dfx Voodoo 2 (Zusatzkarte, nur Vollbild) */
+#define D3_BANSHEE 3                              /* 3dfx Voodoo Banshee */
+#define D3_VOODOO3 4                              /* 3dfx Voodoo 3 */
+#define D3_VOODOO4 5                              /* 3dfx Voodoo 4/5 (VSA-100) */
+#define D3_RAGE    6                              /* ATI Rage (Mach64-Familie) */
+#define D3_RAGE128 7                              /* ATI Rage 128 */
+#define D3_ATI     8                              /* neuere ATI (Radeon) */
+#define D3_RIVA128 9                              /* nVidia Riva 128 */
+#define D3_TNT     10                             /* nVidia Riva TNT/TNT2/Vanta */
+#define D3_NVIDIA  11                             /* neuere nVidia (GeForce) */
 
 typedef struct {
     HTASK t;

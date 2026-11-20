@@ -21,6 +21,11 @@ Stand 12.11.2026, Entscheidungen von Karsten:
 - RDSETUP mit `SETUP.INF`: Dateien, Zielordner, Menüeintrag, Symbol, Bedarf, Varianten
   (16/32 Bit, CGA/VGA, 3D an/aus), Deinstallationsliste. Eigenes Setup-Programm eines Pakets möglich.
 
+Stand 20.11.2026: `SysInfo` (API 2.3, 0x02F, in RDKX.MOD) und die 3D-Erkennung in RD2SETUP sind fertig
+(RD2.INI [System] `3D=`, `3DPCI=Hersteller:Geraet`, Test `test/sysinfo.sh` mit QEMU ati-vga). Der Speicher
+der Karte wird noch nicht ermittelt. Offen: Ressource `BEDARF` mit Pruefung in der Shell, RDSETUP mit `SETUP.INF`.
+Auf Rechnern unter 386 kopiert die Installation keine 32-Bit-Teile (Karsten, 20.11.2026).
+
 ## Schritt 2: Vollbild, unterbrechbar (alle CPUs)
 - API `ScreenAcquire(modus)` / `ScreenRelease`: eigener Modus (CGA, Mode 13h, Mode X, VESA mit LFB),
   Zeiger auf den Bildspeicher, Tasten roh, Klang/Timer/Netz weiter über RD2.

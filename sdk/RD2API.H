@@ -1,4 +1,4 @@
-/* RD2API.H - Liste aller RD2-Funktionen mit fester Nummer (API 2.2)
+/* RD2API.H - Liste aller RD2-Funktionen mit fester Nummer (API 2.3)
  * SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
  *
  * Diese Datei ist die einzige Quelle fuer Nummern und Signaturen.
@@ -83,6 +83,9 @@ RDF(0x02B, LPCSTR,  StrGet,         (HINST i, WORD id))           /* Zeiger gilt
 RDF(0x02C, void,    DbgPrint,       (LPCSTR text))                /* COM1 oder RD2DBG.TXT */
 RDF(0x02D, void,    DbgHex,         (LPCSTR text, DWORD wert))
 RDF(0x02E, void,    DbgBreak,       (void))                       /* INT 3 wenn Debugger da */
+
+/* ---- Kern: Rechner (API 2.3) --------------------------------------------- */
+RDF(0x02F, WORD,    SysInfo,        (RDSYSDATA FAR *sd))          /* 0 = ok; vorher sd->groesse setzen */
 
 /* ---- Speicher ------------------------------------------------------------ */
 RDF(0x037, HMEM,    MemAlloc,       (DWORD size, WORD flags))     /* MEM_* */

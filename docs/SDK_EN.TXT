@@ -217,8 +217,23 @@ Programs check KernVersion() >= ... before using new features.
        WORD IconDrawFile(dc, x, y, file, id), 0 = file has no icon id.
        SM_HALBE for SndSamplePlay: message for each finished half of the
        block (M_SOUNDDONE, p1 = 3, p2 = half), see section 5.
+  2.3  SysInfo (0x02F): machine information for programs, see below.
 A program built for a newer API does not start on an older kernel
 (RD_ERR_VERSION).
+
+SysInfo (API 2.3)
+-----------------
+  static RDSYSDATA d; d.groesse = sizeof d; SysInfo(&d);
+returns cpu (CPU_*), fpu, dos, kb_konv, kb_frei (largest free block for
+programs), kb_ems and kb_xms (free, 0 = none), grafik (GFX_*), sound (SC_*
+from RD2.INI Sound=), netz (1 = packet driver configured), maus, festplatte
+(1 = RD2 runs from hard disk) and the 3D card: d3 (D3_*), d3_hersteller and
+d3_geraet (PCI vendor/device). RD2SETUP detects the 3D card once via PCI
+(386 and up) and writes 3D= and 3DPCI= to RD2.INI [System]; run RD2SETUP
+again to redetect. Detected: 3dfx Voodoo 1 to 5, ATI Rage, Rage 128 and
+newer, nVidia Riva 128, TNT and newer. groesse < 4 gives RD_ERR_HANDLE.
+Later versions only append fields; older programs with a smaller groesse
+get only their part.
 
 The full description (program format, modules, drivers, memory, limits) is in
 docs/SPEC.md (German) in the RetroDesk 2 sources:
