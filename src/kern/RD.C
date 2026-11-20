@@ -161,6 +161,8 @@ int main(void)
         for (i = 0; i <= 0x20; i++) if ((q = v[i]) != 0 && q[3] == 'P' && q[4] == 'K' && q[5] == 'T' && q[8] == 'R') break;
         if (i > 0x20) mem_tsr(ProfileGetInt(k_ini, "Netz", "Platz", 0));
     }
+    kr.ax = 0x1687; rd_int(0x2F, &kr);            /* DPMI-Host da (RD2/32, PLAN_32BIT 4a): DOS-Speicher fuer seine Seitentabellen lassen */
+    if (!kr.ax) mem_tsr(ProfileGetInt(k_ini, "RD32", "DosPlatz", 1280));
     if (!k_maus) {                                /* Maustreiber da? Vektor 33h gesetzt und kein IRET */
         BYTE __far * __far *v = (BYTE __far * __far *)MK_FP(0, 0x33 * 4);
         if (*v && **v != 0xCF) { kr.ax = 0; kr.bx = 0; rd_int(0x33, &kr); if (kr.ax == 0xFFFF) k_maus = kr.bx == 0xFFFF ? 2 : kr.bx; }

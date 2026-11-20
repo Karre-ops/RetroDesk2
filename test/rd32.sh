@@ -1,0 +1,50 @@
+#!/bin/bash
+# RD2/32-Programme (PLAN_32BIT Schritt 4a), QEMU 486 mit VGA, CWSDPMI -p vor RD2:
+# 1. VOLL32 (32 Bit): DPMI-Anmeldung, Bild im XMS, 1 MB Feld fehlerfrei, Fenster, Vollbild 13h mit Farbverlauf direkt in A0000h,
+# 2. Alt+Tab: M_SCREENLOST (Rueckruf in den 32-Bit-Code), 3. Alt+Tab: M_SCREENBACK, neu gezeichnet, 4. Esc: Ende, Speicher zurueck.
+# 5. ohne DPMI-Host: Meldung statt Absturz.
+cd "$(dirname "$0")/.."
+IMG=obj/rd32.img; SER=obj/rd32_com1.txt; SOCK=/tmp/qmon_rd32.sock; F=0
+Q="python3 test/qemu/qmon.py"; export QMON=$SOCK
+pruef() { local t="$1"; if eval "$2"; then echo "ok     $t"; else echo "FEHLER $t"; F=1; fi; }
+waitn() { for i in $(seq ${3:-150}); do [ "$(tr -d '\r' < $SER | grep -c "$1")" -ge "${2:-1}" ] && return 0; sleep 0.4; done; echo "FEHLER: warte vergeblich auf '$1'"; return 1; }
+bild() { python3 -c "
+from PIL import Image
+a = Image.open('$1').convert('RGB'); print(a.size[0], a.size[1], len(a.getcolors(1 << 20)))"; }
+start() {   # $1 AUTOEXEC-Zeilen
+  printf "@echo off\r\n$1A:\\\\FDAPM.COM POWEROFF\r\n" > obj/ae_rd32.txt
+  FMT=1440 bash tools/mkdisk.sh $IMG obj/ae_rd32.txt >/dev/null 2>&1
+  mcopy -o -i $IMG out/VOLL32.EXE out/RD32.MOD out/CWSDPMI.EXE ::/RD2/; mcopy -o -i $IMG out/VOLL32.EXE ::/RD2/ZVOLL32.EXE
+  rm -f $SOCK $SER; touch $SER
+  timeout 150 qemu-system-i386 -cpu 486 -m 16 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
+    -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
+  QP=$!
+}
+rm -f obj/r32_*.ppm
+start 'A:\\RD2\\CWSDPMI.EXE -p\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SHELL.EXE\r\n'   # ueber die Shell (Alt+Tab braucht ein zweites Fenster)
+waitn "SHELL: bereit" 1 250 && sleep 3 && $Q "sendkey ret" >/dev/null 2>&1
+waitn 'SHELL: Ordner A:\\ ' && sleep 2 && $Q "sendkey ret" >/dev/null 2>&1
+waitn 'SHELL: Ordner A:\\RD2\\ ' && sleep 2 && $Q "sendkey z" sleep0.8 "sendkey ret" >/dev/null 2>&1
+waitn "VOLL32: gezeichnet" 1 250 && sleep 1.5 && $Q "screendump obj/r32_1.ppm" sleep0.5 "sendkey alt-tab" >/dev/null 2>&1
+waitn "VOLL32: SCREENLOST" 1 && sleep 3 && $Q "screendump obj/r32_2.ppm" sleep0.5 "sendkey alt-tab" >/dev/null 2>&1
+waitn "VOLL32: gezeichnet" 2 && sleep 1.5 && $Q "screendump obj/r32_3.ppm" sleep0.5 "sendkey esc" >/dev/null 2>&1
+waitn "RD32: Ende" 1 100; sleep 3; kill $QP 2>/dev/null; wait $QP 2>/dev/null
+L=$(tr -d '\r' < $SER)
+for n in 1 2 3; do [ -f obj/r32_$n.ppm ] && eval "B$n=\"$(bild obj/r32_$n.ppm)\""; done
+echo "       Bilder: 1: $B1 | 2: $B2 | 3: $B3 (Breite Hoehe Farben)"
+voll() { set -- $1; [ "$2" = 400 ] && [ "${3:-0}" -ge 40 ]; }
+pruef "DPMI-Anmeldung und 32-Bit-Bild im XMS" "echo \"\$L\" | grep -q 'RD32: DPMI angemeldet' && echo \"\$L\" | grep -q 'RD32: Bild bei 0x00[1-9A-F]'"
+pruef "32-Bit-Code laeuft, 1 MB Feld ohne Abweichung" "echo \"\$L\" | grep -q 'VOLL32: 1 MB Feld, Abweichungen 0x00000000'"
+pruef "Fenster und Vollbild 13h mit Farbverlauf (A0000h aus 32 Bit)" "echo \"\$L\" | grep -q 'VOLL32: Vollbild' && voll \"$B1\""
+pruef "Alt+Tab: M_SCREENLOST im 32-Bit-Code" "echo \"\$L\" | grep -q 'VOLL32: SCREENLOST'"
+pruef "Alt+Tab zurueck: M_SCREENBACK, neu gezeichnet" "echo \"\$L\" | grep -q 'VOLL32: SCREENBACK' && voll \"$B3\""
+pruef "Esc erreicht die 32-Bit-Fensterprozedur, Ende 0" "echo \"\$L\" | grep -q 'VOLL32: Esc' && echo \"\$L\" | grep -q 'RD32: Ende 0x00000000'"
+pruef "Shell laeuft weiter, Task sauber beendet" "echo \"\$L\" | grep -q 'RD2: Task beendet: 0x0' && ! echo \"\$L\" | grep -qi 'RD2: Fehler\\|Ausnahme'"
+L1="$L"
+start 'A:\\RD2\\RD2.EXE /VGA A:\\RD2\\VOLL32.EXE\r\n'
+waitn "RD32: kein DPMI-Host" 1 250; sleep 3; $Q "sendkey ret" >/dev/null 2>&1
+waitn "RD2: Speicher vollstaendig zurueck" 1 60; sleep 1; kill $QP 2>/dev/null; wait $QP 2>/dev/null
+L=$(tr -d '\r' < $SER)
+pruef "ohne DPMI-Host: Meldung, RD2 endet sauber" "echo \"\$L\" | grep -q 'RD32: kein DPMI-Host' && echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
+[ $F = 0 ] && echo "RD2/32: alles ok" || { echo "RD2/32: FEHLER"; echo "$L1" | tail -25; }
+exit $F

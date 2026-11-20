@@ -78,6 +78,21 @@ setzt die Hauptumgebung keinen PATH auf den RD2-Ordner. Die 1,44-MB-Diskette "RD
 - Fat-EXE: 16-Bit-Vorspann meldet auf 8088/286 sauber "braucht 386".
 - Ausbau in zwei Stufen: 4a Vollbild und Grundfunktionen, 4b volle Fenster-API. Beide sind eingeplant.
 
+Stand 20.11.2026: Stufe 4a umgesetzt. RD32.MOD (src/rd32, ab 386, BEDARF CPU 386) meldet RD2 beim ersten
+RD2/32-Programm als 32-Bit-DPMI-Client an (CWSDPMI -p muss vor RD2 geladen sein) und wechselt danach nur roh
+(DPMI 0306h) zwischen Realmodus und 32-Bit-Code, ohne Verschachtelung im Host. Je Programm ein Taskblock unter 1 MB
+(3,4 KB: Stapelzeiger beider Seiten, Aufrufwoerter, Rueckrufdaten, Austauschpuffer); Bild und Stapel im DPMI-Speicher
+(XMS), Code-/Datenselektor mit Bildbasis und 4 GB Grenze (lineare Adressen ueber rd32_lin). API-Aufrufe gehen ueber
+call far [api + nr*4] auf dem Stapel des 16-Bit-Vorspanns, Fensterprozeduren (vier Klassen je Programm) kommen ueber
+Thunks zurueck in den 32-Bit-Code. Weil der Kern nur bei Code im eigenen Programmbild umschaltet, laufen 32-Bit-Tasks
+kooperativ. Der Kern laesst bei vorhandenem DPMI-Host 20 KB DOS-Speicher fuer die Seitentabellen frei
+(RD2.INI [RD32] DosPlatz=, Paragraphen). SDK: sdk/RD2_32.H, RD32C0.ASM, RD32LIB.C, RD32STUB.C, tools/rd32link.py
+(Bild als Ressource 11 im 16-Bit-Vorspann), build.sh app32. Beispiel apps/test32/VOLL32.C, Test test/rd32.sh.
+Diskette 5 "RD2 32" (1,44 MB) mit RD32.MOD, VOLL32 und SDK32. Offen: CWSDPMI automatisch vor RD2 laden
+(INSTALL schreibt CONFIG.SYS), Diskette 5 in INSTALL/RD2SETUP, Linkwerkzeug fuer DOS (rd32link nur Python),
+Stufe 4b (alle Fenster-, Zeichen- und Dialogfunktionen, Puffer-Bitmap), LFB von VESA 2.0, mehrere 32-Bit-Tasks testen,
+Abmelden beim Host am RD2-Ende.
+
 ## Schritt 5: RD3D (ab 386, braucht 2 und 4)
 - Schlanke API: Dreiecke, Texturen, Z-Puffer, Doppelpuffer, Nebel, Alpha. Läuft im Vollbild und im Fenster.
 - Austauschbare 3D-Treiber, Auswahl über die Erkennung aus Schritt 1:

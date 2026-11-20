@@ -1,0 +1,2 @@
+; VOLL32: RD2/32-Programm, nur ab 386
+BEDARF CPU 386

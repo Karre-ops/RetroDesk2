@@ -1,6 +1,6 @@
 #!/bin/bash
 # mkset.sh - Verteil-Diskettensatz RD2 (360 KB, SPEC 12): out/set/RD2_1.IMG .. RD2_4.IMG
-# 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern 2046 8086/FAT16), 2 RD2 PROG, 3 RD2 NETZ, 4 RD2 EXTRA (SDK).
+# 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern 2046 8086/FAT16), 2 RD2 PROG, 3 RD2 NETZ, 4 RD2 EXTRA (SDK), 5 RD2 32 (1,44 MB, ab 386).
 # Zuordnung aus Spalte 4 von tools/budget.txt (S/P/N/D).
 set -e
 cd "$(dirname "$0")/.."
@@ -32,5 +32,9 @@ mcopy -i $O/RD2_4.IMG sdk/RD2.H sdk/RD2API.H sdk/RD2DRV.H sdk/RD2ORD.H sdk/RD2ST
 mcopy -i $O/RD2_4.IMG docs/SDK.TXT docs/SDK_EN.TXT ::/SDK/; mmd -i $O/RD2_4.IMG ::/SDK/BEISPIEL; mcopy -i $O/RD2_4.IMG apps/hallo/HALLO.C apps/hallo/HALLO.RC sdk/SWAPSAFE.C ::/SDK/BEISPIEL/
 mmd -i $O/RD2_4.IMG ::/SDK/PASCAL; mcopy -i $O/RD2_4.IMG out/RD2.PAS sdk/RD2PAS.ASM apps/pascal/PHALLO.PAS apps/pascal/PTEST.PAS docs/PASCAL.TXT ::/SDK/PASCAL/
 mcopy -i $O/RD2_4.IMG $T/COPYING $T/LIZENZ.TXT $T/QUELLEN.TXT ::/
-for i in 1 2 3 4; do echo "RD2_$i.IMG: $(mdir -i $O/RD2_$i.IMG -/ :: | tail -1)"; done
+# Diskette 5 (1,44 MB, ab 386): RD2/32 mit SDK (PLAN_32BIT Schritt 4)
+rm -f $O/RD2_5.IMG; mformat -C -f 1440 -v "RD2 32" -i $O/RD2_5.IMG ::; mmd -i $O/RD2_5.IMG ::/RD2; kopie RD2_5.IMG $(liste Z | grep -v '\.OBJ$')
+mmd -i $O/RD2_5.IMG ::/SDK32; mcopy -i $O/RD2_5.IMG sdk/RD2_32.H sdk/RD32C0.ASM sdk/RD32LIB.C sdk/RD32STUB.C out/RD32C0.OBJ out/RD32LIB.OBJ apps/test32/VOLL32.C apps/test32/VOLL32.RC ::/SDK32/
+mcopy -i $O/RD2_5.IMG $T/COPYING $T/QUELLEN.TXT ::/
+for i in 1 2 3 4 5; do echo "RD2_$i.IMG: $(mdir -i $O/RD2_$i.IMG -/ :: | tail -1)"; done
 python3 -c "import shutil; shutil.rmtree('$T', True)"

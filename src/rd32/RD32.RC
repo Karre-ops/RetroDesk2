@@ -1,0 +1,2 @@
+; RD32.MOD: nur ab 386 (INSTALL laesst es sonst weg)
+BEDARF CPU 386

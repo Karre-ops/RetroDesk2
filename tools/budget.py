@@ -38,13 +38,13 @@ for line in open(os.path.join(D, "budget.txt"), encoding="latin-1"):
     t = line.split("#")[0].split()
     if len(t) >= 4 and not t[0].startswith("@"): disk[t[0]] = t[3]
 def clu(n): return (n + 1023) // 1024 * 1024   # 360 KB: Cluster 1 KB
-for dk, name in (("S", "Systemdiskette"), ("P", "Programmdiskette"), ("N", "Netzdiskette"), ("D", "SDK-Diskette")):
+for dk, name in (("S", "Systemdiskette"), ("P", "Programmdiskette"), ("N", "Netzdiskette"), ("D", "SDK-Diskette"), ("Z", "Diskette RD2 32")):
     fs = [f for f, d in disk.items() if d == dk and os.path.exists(os.path.join(out, f))]
     if not fs: continue
     summe = sum(clu(os.path.getsize(os.path.join(out, f))) for f in fs) + (lim.get("@DOS", 0) if dk == "S" else 0)
-    mx = lim["@SYSTEM_DISK"] if dk == "S" else lim["@DISK"]
+    mx = lim["@SYSTEM_DISK"] if dk == "S" else (1457664 if dk == "Z" else lim["@DISK"])
     ok = summe <= mx; err += not ok
-    print(f"{'ok    ' if ok else 'FEHLER'} {name} (360 KB) {summe} / {mx} Bytes" + (" inkl. DOS 5" if dk == "S" else "") + f", {len(fs)} Dateien, frei {lim['@DISK'] - summe}")
+    print(f"{'ok    ' if ok else 'FEHLER'} {name} ({'1,44 MB' if dk == 'Z' else '360 KB'}) {summe} / {mx} Bytes" + (" inkl. DOS 5" if dk == "S" else "") + f", {len(fs)} Dateien, frei {mx - summe if dk == 'Z' else lim['@DISK'] - summe}")
 if img:                                           # Testdiskette: tatsaechlich belegt
     b = open(img, "rb").read(32)
     bps, spc, res, nf, rde, tot, _, spf = struct.unpack("<HBHBHHBH", b[11:24])

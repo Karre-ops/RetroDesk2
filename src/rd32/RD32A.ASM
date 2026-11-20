@@ -1,0 +1,421 @@
+; RD32A.ASM - RD32.MOD, Realmodus-Teil der 32-Bit-Bruecke (PLAN_32BIT Schritt 4a, ab 386)
+; SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
+; RD2 bleibt im Realmodus. Beim ersten RD2/32-Programm meldet sich RD2 als 32-Bit-DPMI-Client an (CWSDPMI o. a.)
+; und wechselt danach nur noch ueber die rohe Umschaltung (DPMI 0306h) zwischen den Modi, ohne Verschachtelung im Host.
+; Je 32-Bit-Task ein Taskblock (TB, eigenes Segment unter 1 MB): Stapelzeiger beider Seiten, Aufrufnummer, Woerter,
+; Ergebnis, Rueckruf-Daten, Austauschpuffer. Offsets wie in RD32.C / RD32LIB.C (TB_*).
+; API-Aufruf aus dem 32-Bit-Code: rm_api legt die Woerter auf den Stapel des Tasks und ruft call far [api + nr*4].
+; Rueckruf (Fensterprozedur, Start): rm_topm sichert den Realmodus-Stapel und springt zum 32-Bit-Code; rm_cbret kommt zurueck.
+.386
+DGROUP group _DATA
+_DATA segment word public use16 'DATA'
+public _g
+_g label byte
+g_entry   dd 0        ;  0 DPMI-Einsprung (2F/1687h)
+g_r2p     dd 0        ;  4 Realmodus -> PM (off, seg)
+g_p2r     dd 0        ;  8 PM -> Realmodus (off32)
+g_p2rsel  dw 0        ; 12            (Selektor)
+g_pcs     dw 0        ; 14 PM-Selektor fuer RD32A_TEXT
+g_pds     dw 0        ; 16 PM-Selektor fuer DGROUP
+g_flat    dw 0        ; 18 4-GB-Datenselektor, Basis 0
+g_rmss    dw 0        ; 20
+g_rmsp    dw 0        ; 22
+g_rmds    dw 0        ; 24 DGROUP
+g_rmcs    dw 0        ; 26 RD32A_TEXT
+g_svcnr   dw 0        ; 28
+g_err     dw 0        ; 30
+g_stsize  dw 0        ; 32 Zustandsspeicher (0305h)
+g_svcsp   dw 0        ; 34 Stapel fuer Dienste im PM
+g_a       dd 0        ; 36
+g_b       dd 0        ; 40
+g_c       dd 0        ; 44
+g_d       dd 0        ; 48
+g_api     dd 0        ; 52 API-Tabelle
+g_tab     dw 16 dup(0); 56 je Task: HTASK, TB-Segment
+g_stk     db 384 dup(0)
+public _g_stktop
+_g_stktop label byte
+_DATA ends
+
+TB_RMSP  equ 0
+TB_RMSS  equ 2
+TB_PMESP equ 4
+TB_NR    equ 8
+TB_NW    equ 10
+TB_RES   equ 12
+TB_API   equ 16
+TB_P2R   equ 20       ; off32 + sel
+TB_R2P   equ 28       ; off, seg
+TB_CS32  equ 32
+TB_DS32  equ 34
+TB_RMCS  equ 36
+TB_RMDS  equ 38
+TB_RMAPI equ 40
+TB_RMCB  equ 42
+TB_PMCB  equ 44
+TB_PMBACK equ 48
+TB_CBRES equ 52
+TB_CBSLOT equ 56
+TB_CBW   equ 58
+TB_CBMSG equ 60
+TB_CBP1  equ 62
+TB_CBP2  equ 64
+TB_PMSTART equ 76
+TB_ARGS  equ 128
+
+RD32A_TEXT segment word public use16 'CODE'
+assume cs:RD32A_TEXT, ds:DGROUP
+public dpmi_enter_, svc_call_, rm_start_, rm_api_, rm_cbret_, wp0_, wp1_, wp2_, wp3_
+
+; ---- Anmelden beim DPMI-Host: AX = Segment fuer die Host-Daten. Ergebnis in g_err (0 = ok) -------------------
+dpmi_enter_ proc far
+    pushad
+    push ds
+    push es
+    push fs
+    push gs
+    mov  bx, DGROUP
+    mov  ds, bx
+    mov  es, ax
+    mov  g_rmds, ds
+    mov  g_rmcs, cs
+    mov  g_rmss, ss
+    mov  g_rmsp, sp
+    mov  g_err, 1
+    mov  ax, 1                        ; 32-Bit-Client
+    call dword ptr g_entry
+    jnc  de_pm
+    jmp  de_back
+de_pm:
+    mov  g_pcs, cs
+    mov  g_pds, ds
+    mov  ax, 0306h                    ; rohe Umschaltung
+    int  31h
+    mov  word ptr g_r2p, cx
+    mov  word ptr g_r2p+2, bx
+    mov  g_p2r, edi
+    mov  g_p2rsel, si
+    mov  ax, 0305h
+    int  31h
+    mov  g_stsize, ax
+    mov  g_err, 2
+    xor  ax, ax                       ; flacher Datenselektor (Kopieren)
+    mov  cx, 1
+    int  31h
+    jc   de_rm
+    mov  g_flat, ax
+    mov  bx, ax
+    mov  dx, cs
+    and  dl, 3
+    shl  dl, 5
+    mov  cl, 92h
+    or   cl, dl
+    mov  ch, 0C0h
+    mov  ax, 0009h
+    int  31h
+    mov  bx, g_flat
+    xor  cx, cx
+    xor  dx, dx
+    mov  ax, 0007h
+    int  31h
+    mov  bx, g_flat
+    mov  cx, 0FFFFh
+    mov  dx, 0FFFFh
+    mov  ax, 0008h
+    int  31h
+    jc   de_rm
+    mov  g_err, 0
+de_rm:
+    mov  ax, g_rmds
+    mov  cx, ax
+    mov  dx, g_rmss
+    movzx ebx, g_rmsp
+    movzx esi, g_rmcs
+    mov  edi, offset de_back
+    jmp  fword ptr g_p2r
+de_back:
+    sti
+    pop  gs
+    pop  fs
+    pop  es
+    pop  ds
+    popad
+    retf
+dpmi_enter_ endp
+
+; ---- Dienst im PM (Speicher, Selektoren, Kopieren): AX = Nummer, Daten in g_a..g_d, Ergebnis g_err -----------
+svc_call_ proc far
+    pushad
+    push ds
+    push es
+    push fs
+    push gs
+    mov  bx, DGROUP
+    mov  ds, bx
+    mov  g_svcnr, ax
+    mov  g_rmss, ss
+    mov  g_rmsp, sp
+    mov  ax, g_pds
+    mov  cx, ax
+    mov  dx, ax
+    movzx ebx, g_svcsp
+    movzx esi, g_pcs
+    mov  edi, offset svc_pm
+    jmp  dword ptr g_r2p
+svc_pm:
+    sti
+    cld
+    mov  ax, g_svcnr
+    cmp  ax, 1
+    je   s_alloc
+    cmp  ax, 2
+    je   s_copy
+    cmp  ax, 3
+    je   s_free
+    cmp  ax, 4
+    je   s_zero
+    mov  ax, 0FFFFh
+    jmp  s_err
+s_alloc:                              ; g_a Groesse -> g_b linear, g_c Handle, g_d Selektoren (Code, Daten)
+    mov  bx, word ptr g_a+2
+    mov  cx, word ptr g_a
+    mov  ax, 0501h
+    int  31h
+    jc   s_err
+    mov  word ptr g_b, cx
+    mov  word ptr g_b+2, bx
+    mov  word ptr g_c, di
+    mov  word ptr g_c+2, si
+    xor  ax, ax
+    mov  cx, 2
+    int  31h
+    jc   s_err
+    mov  word ptr g_d, ax
+    mov  ax, 0003h
+    int  31h
+    add  ax, word ptr g_d
+    mov  word ptr g_d+2, ax
+    mov  bx, word ptr g_d
+    mov  al, 9Ah                      ; Code, lesbar
+    call s_desc
+    jc   s_err
+    mov  bx, word ptr g_d+2
+    mov  al, 92h                      ; Daten, schreibbar
+    call s_desc
+    jc   s_err
+    jmp  s_ok
+s_copy:                               ; g_a Quelle, g_b Ziel (linear), g_c Bytes
+    push es
+    push ds
+    mov  esi, g_a
+    mov  edi, g_b
+    mov  ecx, g_c
+    mov  ax, g_flat
+    mov  es, ax
+    mov  ds, ax
+    rep  movs byte ptr es:[edi], byte ptr ds:[esi]
+    pop  ds
+    pop  es
+    jmp  s_ok
+s_zero:                               ; g_b Ziel (linear), g_c Bytes: mit Nullen fuellen (BSS)
+    push es
+    mov  edi, g_b
+    mov  ecx, g_c
+    mov  ax, g_flat
+    mov  es, ax
+    xor  al, al
+    rep  stos byte ptr es:[edi]
+    pop  es
+    jmp  s_ok
+s_free:                               ; g_c Handle, g_d Selektoren
+    mov  di, word ptr g_c
+    mov  si, word ptr g_c+2
+    mov  ax, 0502h
+    int  31h
+    mov  bx, word ptr g_d
+    mov  ax, 0001h
+    int  31h
+    mov  bx, word ptr g_d+2
+    mov  ax, 0001h
+    int  31h
+s_ok:
+    xor  ax, ax
+    jmp  s_end
+s_err:
+    or   ax, 8000h
+s_end:
+    mov  g_err, ax
+    mov  ax, g_rmds
+    mov  cx, ax
+    mov  dx, g_rmss
+    movzx ebx, g_rmsp
+    movzx esi, g_rmcs
+    mov  edi, offset svc_back
+    jmp  fword ptr g_p2r
+svc_back:
+    sti
+    pop  gs
+    pop  fs
+    pop  es
+    pop  ds
+    popad
+    retf
+svc_call_ endp
+
+s_desc proc near                      ; BX = Selektor, AL = Zugriff ohne DPL; Basis g_b, Grenze 4 GB, 32 Bit
+    mov  dx, cs
+    and  dl, 3
+    shl  dl, 5
+    or   al, dl
+    mov  cl, al
+    mov  ch, 0C0h
+    push bx
+    mov  ax, 0009h
+    int  31h
+    pop  bx
+    jc   sd_x
+    push bx
+    mov  cx, word ptr g_b+2
+    mov  dx, word ptr g_b
+    mov  ax, 0007h
+    int  31h
+    pop  bx
+    jc   sd_x
+    mov  cx, 0FFFFh
+    mov  dx, 0FFFFh
+    mov  ax, 0008h
+    int  31h
+sd_x:
+    ret
+s_desc endp
+
+; ---- API-Aufruf aus dem 32-Bit-Code: DS = TB, SS:SP = Stapel des Tasks -------------------------------------
+rm_api_ proc far
+    sti
+    cld
+    push ds
+    mov  cx, ds:[TB_NW]
+    mov  si, TB_ARGS
+ra_l:
+    jcxz ra_go
+    lodsw
+    push ax
+    dec  cx
+    jmp  ra_l
+ra_go:
+    mov  si, ds:[TB_NR]
+    shl  si, 2
+    les  bx, ds:[TB_API]
+    call dword ptr es:[bx+si]         ; pascal: die Funktion nimmt die Woerter selbst vom Stapel
+    pop  ds
+    mov  ds:[TB_RES], ax
+    mov  ds:[TB_RES+2], dx
+    movzx eax, word ptr ds:[TB_DS32]  ; zurueck zum 32-Bit-Code (pm_back), Stapel TB_PMESP
+    mov  ecx, eax
+    mov  edx, eax
+    mov  ebx, ds:[TB_PMESP]
+    movzx esi, word ptr ds:[TB_CS32]
+    mov  edi, ds:[TB_PMBACK]
+    jmp  dword ptr ds:[TB_R2P]
+rm_api_ endp
+
+; ---- Rueckruf in den 32-Bit-Code: DS = TB, EDI = Einsprung im 32-Bit-Code -----------------------------------
+rm_topm proc near
+    pushad
+    push es
+    push fs
+    push gs
+    push ds
+    push word ptr ds:[TB_RMSP]
+    push word ptr ds:[TB_RMSS]
+    mov  ds:[TB_RMSP], sp
+    mov  ds:[TB_RMSS], ss
+    movzx eax, word ptr ds:[TB_DS32]
+    mov  ecx, eax
+    mov  edx, eax
+    mov  ebx, ds:[TB_PMESP]
+    movzx esi, word ptr ds:[TB_CS32]
+    jmp  dword ptr ds:[TB_R2P]
+rm_cbret_ label far                   ; vom 32-Bit-Code: DS = TB, SS:SP = TB_RMSS:TB_RMSP
+    sti
+    pop  word ptr ds:[TB_RMSS]
+    pop  word ptr ds:[TB_RMSP]
+    pop  ds
+    pop  gs
+    pop  fs
+    pop  es
+    popad
+    ret
+rm_topm endp
+
+; ---- Start: AX = TB-Segment; Rueckgabe (RdMain) in TB_CBRES -------------------------------------------------
+rm_start_ proc far
+    push ds
+    push edi
+    mov  ds, ax
+    mov  edi, ds:[TB_PMSTART]
+    call rm_topm
+    pop  edi
+    pop  ds
+    retf
+rm_start_ endp
+
+; ---- Fensterprozeduren fuer 32-Bit-Klassen (vier je Task): DWORD far pascal (HWND, WORD, WORD, DWORD) --------
+wp0_: mov ax, 0
+      jmp short wpall
+wp1_: mov ax, 1
+      jmp short wpall
+wp2_: mov ax, 2
+      jmp short wpall
+wp3_: mov ax, 3
+wpall proc far
+    push bp
+    mov  bp, sp
+    push ds
+    push es
+    push bx
+    push cx
+    push edi
+    push ax
+    mov  bx, DGROUP
+    mov  ds, bx
+    les  bx, g_api
+    call dword ptr es:[bx+2*4]        ; TaskSelf
+    mov  bx, offset g_tab
+    mov  cx, 8
+wa_s:
+    cmp  [bx], ax
+    je   wa_f
+    add  bx, 4
+    loop wa_s
+    pop  ax
+    xor  ax, ax
+    xor  dx, dx
+    jmp  wa_x
+wa_f:
+    mov  ds, [bx+2]
+    pop  ax
+    mov  ds:[TB_CBSLOT], ax
+    mov  ax, [bp+14]
+    mov  ds:[TB_CBW], ax
+    mov  ax, [bp+12]
+    mov  ds:[TB_CBMSG], ax
+    mov  ax, [bp+10]
+    mov  ds:[TB_CBP1], ax
+    mov  eax, [bp+6]
+    mov  ds:[TB_CBP2], eax
+    mov  edi, ds:[TB_PMCB]
+    call rm_topm
+    mov  ax, ds:[TB_CBRES]
+    mov  dx, ds:[TB_CBRES+2]
+wa_x:
+    pop  edi
+    pop  cx
+    pop  bx
+    pop  es
+    pop  ds
+    pop  bp
+    retf 10
+wpall endp
+RD32A_TEXT ends
+end

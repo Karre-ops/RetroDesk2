@@ -1,6 +1,6 @@
 # RD2 Groessengrenzen (Phase 0). Der Build prueft ab Phase 1 jede Zeile.
 # Spalten: Datei  max_Bytes_auf_Diskette  max_KB_im_Speicher  Diskette  Beschreibung
-# Diskette (360 KB seit 24.10.2026): S = Systemdiskette (bootfaehig), P = Programme, N = Netz, D = SDK, T = nur Tests, L = spaeter (nicht im Satz)
+# Diskette (360 KB seit 24.10.2026): S = Systemdiskette (bootfaehig), P = Programme, N = Netz, D = SDK, Z = RD2 32 (1,44 MB, ab 386, 20.11.2026), T = nur Tests, L = spaeter (nicht im Satz)
 # Speicher = MZ-Bild + Mindestzuteilung nach dem Laden (0 = nicht pruefen, z. B. Testprogramme)
 @RESIDENT_SCHNELL  122880   # Profil Schnell: Kern + RDGDI + RDUSER + RDSND + Lautsprecher + groesster 1-Bit-Treiber
 RD2.EXE          30720 44.4375  S  Kern: Speicher, Tasks, Nachrichten, Dateien, Profile, Module (20.10.: 16 -> 24 KB, 21.10.: 26 KB fuer XMS); Speicher 40 -> 44 KB (21.10., API-Tabelle 4 KB, Tasks 4 KB); 23.10.: Datei 28 KB (Nachrichten, ExitRD, InstRes; Befehlszeile aus der Tasktabelle in Taskblock); 26.10.: 44,25 KB fuer den Klang-Takt im INT 8 und RunDos-Pause (RDSND); 19.11.2026: Datei 30 KB (Platzplan K4, RDSYS weg von Diskette 1)
@@ -123,3 +123,7 @@ DISKFRAG.EXE     4096    0   T  Test: Diskettenabfrage im Grafikbetrieb (Audit K
 DOPPFMT.EXE      4096    0   T  Test: RDFORMAT doppelt starten (Audit M4)
 
 SWAPTEST.EXE     4096    0   T  SDK-Beispiel: kontrollierter Speicherfehler, Statistik, Inhaltspruefung; V zeigt Last im Taskmanager
+RD32.MOD         4096    5   Z  RD2/32-Programme (PLAN_32BIT 4a, ab 386): DPMI-Anmeldung, 32-Bit-Bild laden, Bruecke API/Rueckrufe (20.11.2026)
+VOLL32.EXE       8192    0   Z  Beispiel RD2/32: Fenster, 1 MB Feld, Vollbild 13h (test/rd32.sh)
+RD32C0.OBJ       2048    0   Z  SDK RD2/32: Startcode (Kopf, Umschaltung)
+RD32LIB.OBJ      8192    0   Z  SDK RD2/32: Bibliothek (API ueber die Bruecke, Vollbild 13h)
