@@ -78,6 +78,7 @@ static BOOL kopieren(const char *von, const char *nach, DWORD gr)
     (void)gr;
     return ok;
 }
+static BYTE alt;                                  /* Rechner unter 386: fremde 32-Bit-Teile (CWSDPMI) auch weglassen */
 static void diskette(void)                        /* alle RD2-Dateien aus quelle nach ziel, Balken dnr */
 {
     FINDDATA fd; WORD i, pass;
@@ -88,7 +89,7 @@ static void diskette(void)                        /* alle RD2-Dateien aus quelle
             if (FileFindFirst(pfad, 0, &fd)) continue;
             do {
                 cpy(pfad, quelle); cat(pfad, fd.name);
-                if (i < 3 && (BedarfCheck(pfad) & BD_CPU)) {   /* EXE/MOD/DRV fuer neuere CPU (32-Bit-Teile unter 386) nicht mitkopieren */
+                if (i < 3 && ((BedarfCheck(pfad) & BD_CPU) || (alt && fd.name[0] == 'C' && fd.name[1] == 'W' && fd.name[2] == 'S'))) {   /* EXE/MOD/DRV fuer neuere CPU (32-Bit-Teile unter 386) nicht mitkopieren */
                     if (pass) { DbgPrint("INSTALL: weggelassen"); DbgPrint(fd.name); }
                     continue;
                 }
@@ -380,7 +381,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
     SYSINFO si; WORD i;
     (void)show; hi = inst; test = (BYTE)(cmd && cmd[0] == 'T'); cmd_f = (BYTE)(test && cmd[1] == 'F');   /* Test "TF": mit Formatieren */
-    KernInfo(&si);
+    KernInfo(&si); alt = (BYTE)(si.cpu < CPU_386);
     for (i = 0; si.home[i] && i < 66; i++) quelle[i] = si.home[i];
     quelle[i] = 0; if (i && quelle[i - 1] != '\\') cat(quelle, "\\");
     for (puf = PUF; puf >= 8192 && !(hpu = MemAlloc(puf, 0)); puf >>= 1) ;

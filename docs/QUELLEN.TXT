@@ -13,6 +13,8 @@ License (Text: COPYING, Uebersicht: LIZENZ.TXT). Dazu gehoeren:
   RDSYS.EXE     FreeDOS SYS (aus github.com/FDOS/kernel, Ordner sys)
   RDFORMAT.EXE  FreeDOS FORMAT 0.92a (github.com/FDOS/format), geaendert
   RDFDISK.EXE   Free FDISK (github.com/FDOS/fdisk), geaendert
+  CWSDPMI.EXE   CWSDPMI r7 (C. W. Sandmann), DPMI-Host fuer DJGPP-Programme ab 386,
+                unveraendert, GPL; Quelle: csdpmi7s.zip, delorie.com/pub/djgpp/current/v2misc
 
 Angebot nach Abschnitt 3 b der GPL v2:
 Fuer mindestens drei Jahre ab der Weitergabe dieser Disketten liefert

@@ -580,6 +580,7 @@ static int zu_neu(const char *p)
 {
     struct { char k[4]; unsigned long off; } t; struct { unsigned typ, nr, sp, fl; unsigned long off, len; } d;
     unsigned h[19], i;   /* RD2-Block: "RD2!", api, flags, stack, kb, name[16], ver, nexp, nres (h[16]), oexp, ores (h[18]) */ unsigned char b[3]; int f, r = 0;
+    if (cpu < 5 && strstr(p, "CWSDPMI")) return 1;    /* DPMI-Host fuer DJGPP-Programme (PLAN_32BIT Schritt 3) erst ab 386 */
     if ((f = open(p, O_RDONLY | O_BINARY)) < 0) return 0;
     if (lseek(f, -16L, SEEK_END) >= 0 && read(f, &t, 8) == 8 && !memcmp(t.k, "RD2!", 4) &&
         lseek(f, (long)t.off, SEEK_SET) >= 0 && read(f, h, 38) == 38 && lseek(f, (long)(t.off + h[18]), SEEK_SET) >= 0)

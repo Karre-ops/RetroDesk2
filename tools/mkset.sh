@@ -26,7 +26,7 @@ mcopy -i $O/RD2_1.IMG $T/CONFIG.SYS $T/COPYING $T/LIZENZ.TXT $T/QUELLEN.TXT ::/
 mmd -i $O/RD2_1.IMG ::/RD2; kopie RD2_1.IMG $(liste S)
 # Disketten 2 bis 4
 neu RD2_2.IMG "RD2 PROG"; mmd -i $O/RD2_2.IMG ::/RD2; kopie RD2_2.IMG $(liste P); mcopy -i $O/RD2_2.IMG $T/COPYING $T/QUELLEN.TXT ::/
-neu RD2_3.IMG "RD2 NETZ"; mmd -i $O/RD2_3.IMG ::/RD2; kopie RD2_3.IMG $(liste N)
+neu RD2_3.IMG "RD2 NETZ"; mmd -i $O/RD2_3.IMG ::/RD2; kopie RD2_3.IMG $(liste N); mcopy -i $O/RD2_3.IMG $T/COPYING $T/QUELLEN.TXT ::/
 neu RD2_4.IMG "RD2 EXTRA"; mmd -i $O/RD2_4.IMG ::/SDK
 mcopy -i $O/RD2_4.IMG sdk/RD2.H sdk/RD2API.H sdk/RD2DRV.H sdk/RD2ORD.H sdk/RD2START.ASM sdk/RD2MOD.ASM out/RD2.LIB out/RDRC.EXE ::/SDK/
 mcopy -i $O/RD2_4.IMG docs/SDK.TXT docs/SDK_EN.TXT ::/SDK/; mmd -i $O/RD2_4.IMG ::/SDK/BEISPIEL; mcopy -i $O/RD2_4.IMG apps/hallo/HALLO.C apps/hallo/HALLO.RC sdk/SWAPSAFE.C ::/SDK/BEISPIEL/

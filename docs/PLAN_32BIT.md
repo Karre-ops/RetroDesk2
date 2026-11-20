@@ -55,6 +55,16 @@ geparkte Programm selbst an (`TaskHalt`, API 0x031: keine Zeitscheiben, Klang st
 - DOS/4GW, DJGPP usw. laufen über RunDos (RD2 lagert sich aus). Testen, freien DPMI-Host beilegen
   (HDPMI32 oder CWSDPMI), RDKEYB/RDMAUS prüfen. Teil des Testsatzes aus PLAN_DOS Schritt 4.
 
+Stand 20.11.2026: umgesetzt. 32-Bit-DOS-Programme laufen ueber RunDos, RD2 lagert sich aus und kommt zurueck.
+Test `test/dos32.sh`: D32TEST (apps/test32, wcl386) mit DOS/4GW, DOS32A, PMODE/W und CauseWay (2 MB ueber 1 MB,
+Textschirm, Maus, Tastatur, Rueckgabe 42) und ein DJGPP-Programm (DTOU.EXE aus djdev205) mit CWSDPMI, je in DOSBox
+(386, 16 MB, XMS) mit RD2-Daten und Grafik danach unveraendert. Dazu QEMU mit echtem BIOS: RDKEYB DE (y ergibt z)
+und RDMAUS (PS/2, Bewegung) funktionieren aus allen vier Extendern.
+Beigelegt: CWSDPMI.EXE r7 (GPL, unveraendert, Quelle in QUELLEN.TXT) auf Diskette 3; INSTALL und RD2SETUP kopieren es
+nur ab 386. DOS/4GW, DOS32A usw. bringen die Programme selbst mit. HDPMI32 entfaellt (CWSDPMI reicht).
+Offen: DJGPP-Programme finden CWSDPMI im eigenen Ordner oder ueber PATH; ohne PATH-Zeile in der AUTOEXEC.BAT
+setzt die Hauptumgebung keinen PATH auf den RD2-Ordner. Die 1,44-MB-Diskette "RD2 32" kommt mit Schritt 4 (RD32.MOD).
+
 ## Schritt 4: RD2/32-Programme (ab 386), Fenster und Vollbild
 - Neuer Programmtyp RD2/32 (Kennung im RD2-Block), gebaut mit Open Watcom `wcc386`, flaches Modell.
 - RD32.MOD (nur ab 386): DPMI-Host einbinden, 32-Bit-Speicher aus XMS, die 640 KB bleiben frei.
