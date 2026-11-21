@@ -1,42 +1,15 @@
 /* RD32LIB.C - Bibliothek fuer RD2/32-Programme (32 Bit), PLAN_32BIT Stufe 4b.
  * API-Aufrufe: Woerter in den Taskblock, rd32_call (RD32C0) wechselt in den Realmodus, RD32.MOD ruft den Kern.
  * Die Aufrufstuecke aller einfachen Funktionen erzeugt tools/mk32api.py (RD32API.C); hier stehen Kern der Bruecke,
- * Funktionen mit Rueckrufen oder Zeigern in Strukturen, DPMI-Speicher, Puffer-Bitmap und Vollbild. */
+ * Funktionen mit Rueckrufen oder Zeigern in Strukturen, Puffer-Bitmap. Gilt fuer Programme und 32-Bit-Module (RD32M0);
+ * nur im Programm (RD32PRG.C): DPMI-Speicher, Einsprung, Rueckruf-Verteiler, Vollbild, Module laden. */
 /* SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING */
 #include "RD2_32.H"
 #include "RD32INT.H"
 
-extern DWORD rd32_tlin, rd32_base;
-#pragma aux rd32_tlin "_*";
-#pragma aux rd32_base "_*";
-void rd32_call(void);
-typedef struct { DWORD eax, ebx, ecx, edx, esi, edi, cf; } R32;
-void rd32_int31(R32 *r);
-#define TB ((BYTE *)(rd32_tlin - rd32_base))
-#define TW(o) (*(volatile WORD *)(TB + (o)))
-#define TD(o) (*(volatile DWORD *)(TB + (o)))
-#define TB_NR 8
-#define TB_NW 10
-#define TB_RES 12
-#define TB_CBSLOT 56
-#define TB_CBW 58
-#define TB_CBMSG 60
-#define TB_CBP1 62
-#define TB_CBP2 64
-#define TB_THUNK 80
-#define TB_THUNK2 104
-#define TB_INST 96
-#define TB_SHOW 98
-#define TB_ARGS 128
-#define TB_CMD 192
-#define TB_XBUF 320
-#define XBUF 3072
-#define TB_KLASSE (TB_XBUF + XBUF - 64)           /* 4 Klassennamen zu 16 Zeichen, bleiben liegen */
-#define XFREI (XBUF - 64)
 
-WORD rd32_xp;                                     /* belegt im Austauschpuffer (Stapel, Rueckrufe arbeiten darueber) */
-static void *procs[8];                            /* 0-3 Fensterklassen, 4-7 Dialoge */
-static WORD a[24], na;
+
+static WORD a[24], na;                            /* rd32_xp und die Rueckruf-Prozeduren liegen im Taskblock (RD32INT.H): Module teilen sie */
 
 static void kopie(void *z, const void *q, DWORD n) { BYTE *d = z; const BYTE *s = q; while (n--) *d++ = *s++; }
 WORD rd32_slen(const char *s) { WORD n = 0; while (s[n]) n++; return n; }
@@ -80,49 +53,11 @@ void rd32_unpin(PIN *b, WORD nb)
     }
 }
 
-/* ---- DPMI-Speicher -------------------------------------------------------------------------------------- */
-static struct { DWORD lin, h; } blk[16];
-void *rd32_alloc(DWORD n)
-{
-    R32 r; WORD i;
-    for (i = 0; i < 16 && blk[i].lin; i++) ;
-    if (i == 16 || !n) return 0;
-    r.eax = 0x0501; r.ebx = n >> 16; r.ecx = n & 0xFFFF; rd32_int31(&r);
-    if (r.cf) return 0;
-    blk[i].lin = ((r.ebx & 0xFFFF) << 16) | (r.ecx & 0xFFFF); blk[i].h = ((r.esi & 0xFFFF) << 16) | (r.edi & 0xFFFF);
-    return rd32_lin(blk[i].lin);
-}
-void rd32_free(void *p)
-{
-    R32 r; WORD i; DWORD l = (DWORD)p + rd32_base;
-    for (i = 0; i < 16; i++) if (blk[i].lin && blk[i].lin == l) {
-        r.eax = 0x0502; r.esi = blk[i].h >> 16; r.edi = blk[i].h & 0xFFFF; rd32_int31(&r); blk[i].lin = 0;
-    }
-}
-
-/* ---- Einsprung und Rueckrufe -------------------------------------------------------------------------------- */
-unsigned long rd32_jb[6]; int rd32_ecode; void (*rd32_beiende)(void);   /* exit (RD32C): zurueck hierher */
-int setjmp(unsigned long *b);
-int rd32_main(void)
-{
-    WORD i; int r;
-    if (!setjmp(rd32_jb)) r = RdMain(TW(TB_INST), (LPCSTR)(TB + TB_CMD), TW(TB_SHOW)); else r = rd32_ecode;
-    if (rd32_beiende) rd32_beiende();             /* atexit, Dateien schliessen, stdout leeren */
-    for (i = 0; i < 16; i++) if (blk[i].lin) rd32_free(rd32_lin(blk[i].lin));
-    return r;
-}
-DWORD rd32_cb(void)
-{
-    WORD s = TW(TB_CBSLOT);
-    if (s > 7 || !procs[s]) return 0;
-    if (s >= 4) return (WORD)((DLGPROC)procs[s])(TW(TB_CBW), TW(TB_CBMSG), TW(TB_CBP1), TD(TB_CBP2));
-    return ((WNDPROC)procs[s])(TW(TB_CBW), TW(TB_CBMSG), TW(TB_CBP1), TD(TB_CBP2));
-}
 static int platz(void *p, WORD von)               /* Rueckruf-Platz fuer p (gleiche Prozedur: gleicher Platz) */
 {
     WORD i;
-    for (i = von; i < von + 4; i++) if (procs[i] == p) return i;
-    for (i = von; i < von + 4; i++) if (!procs[i]) { procs[i] = p; return i; }
+    for (i = von; i < von + 4; i++) if (PROCS[i] == p) return i;
+    for (i = von; i < von + 4; i++) if (!PROCS[i]) { PROCS[i] = p; return i; }
     return -1;
 }
 static DWORD thunk(int i) { return TD(i < 4 ? TB_THUNK + 4 * i : TB_THUNK2 + 4 * (i - 4)); }
@@ -217,57 +152,3 @@ void BufShow(RDBUF *b, HDC dc, short x, short y)
 }
 void BufFree(RDBUF *b) { if (b->bmp) BmpFree(b->bmp); if (b->pix) rd32_free(b->pix); b->bmp = 0; b->pix = 0; }
 
-/* ---- Vollbild im Programm: 13h, Text, VESA 2.0 linear; INT 10h ueber den DPMI-Host, DAC ueber Ports ---------- */
-typedef struct { DWORD edi, esi, ebp, res, ebx, edx, ecx, eax; WORD fl, es, ds, fs, gs, ip, cs, sp, ss; } RMR;
-static WORD akt = 0xFFFF; static BYTE pal[768]; static WORD paln; static BYTE *lfb; static WORD lfbz;
-static void outb(WORD p, BYTE v);
-#pragma aux outb = "out dx, al" parm [dx] [al];
-static int rmint(BYTE nr, RMR *m)
-{
-    R32 r; m->fl = 0; m->sp = m->ss = 0; m->fs = m->gs = 0;
-    r.eax = 0x0300; r.ebx = nr; r.ecx = 0; r.edi = (DWORD)m; rd32_int31(&r);
-    return !r.cf;
-}
-static int vesa(void)                             /* Modus 101h mit linearem Bildspeicher, einmal abbilden */
-{
-    RMR m; R32 r; BYTE *mi = TB + TB_XBUF + rd32_xp; DWORD phys, gr;
-    if (!lfb) {
-        { BYTE *z = (BYTE *)&m; WORD i; for (i = 0; i < sizeof m; i++) z[i] = 0; }
-        m.eax = 0x4F01; m.ecx = 0x101; m.es = (WORD)(rd32_tlin >> 4); m.edi = TB_XBUF + rd32_xp;
-        if (!rmint(0x10, &m) || (WORD)m.eax != 0x004F || !(mi[0] & 0x80)) return 0;
-        phys = *(DWORD *)(mi + 0x28); lfbz = *(WORD *)(mi + 0x10); gr = ((DWORD)lfbz * 480 + 4095) & ~4095UL;
-        r.eax = 0x0800; r.ebx = phys >> 16; r.ecx = phys & 0xFFFF; r.esi = gr >> 16; r.edi = gr & 0xFFFF; rd32_int31(&r);
-        if (r.cf) return 0;
-        lfb = rd32_lin(((r.ebx & 0xFFFF) << 16) | (r.ecx & 0xFFFF));
-    }
-    { BYTE *z = (BYTE *)&m; WORD i; for (i = 0; i < sizeof m; i++) z[i] = 0; }
-    m.eax = 0x4F02; m.ebx = 0x4101;
-    return rmint(0x10, &m) && (WORD)m.eax == 0x004F;
-}
-WORD RDAPI ScreenMode(WORD modus, SCREENINFO FAR *si)
-{
-    RMR m; WORD i;
-    if (modus == SM_LFB) { if (!vesa()) return 0; }
-    else if (modus == SM_13H || modus == SM_TEXT) {
-        BYTE *z = (BYTE *)&m; for (i = 0; i < sizeof m; i++) z[i] = 0;
-        m.eax = modus == SM_13H ? 0x13 : 0x03; rmint(0x10, &m);
-    } else return 0;
-    akt = modus;
-    if (si) {
-        si->modus = modus; si->w = modus == SM_TEXT ? 80 : modus == SM_13H ? 320 : 640; si->h = modus == SM_TEXT ? 25 : modus == SM_13H ? 200 : 480;
-        si->bpp = modus == SM_TEXT ? 4 : 8; si->zeilenbytes = modus == SM_TEXT ? 160 : modus == SM_13H ? 320 : lfbz;
-        si->seg = modus == SM_TEXT ? 0xB800 : modus == SM_13H ? 0xA000 : 0; si->ebenen = 1;
-    }
-    return 1;
-}
-BYTE *ScreenPtr(void) { return akt == SM_LFB ? lfb : akt == SM_13H ? rd32_lin(0xA0000) : akt == SM_TEXT ? rd32_lin(0xB8000) : 0; }
-void RDAPI ScreenPalette(WORD erste, WORD n, const BYTE FAR *rgb)
-{
-    WORD i;
-    if (erste > 255) return;
-    if (erste + n > 256) n = 256 - erste;
-    outb(0x3C8, (BYTE)erste);
-    for (i = 0; i < n * 3; i++) { outb(0x3C9, rgb[i]); pal[erste * 3 + i] = rgb[i]; }
-    if (erste + n > paln) paln = erste + n;
-}
-void RDAPI ScreenRestore(void) { if (akt != 0xFFFF) { ScreenMode(akt, 0); if (paln) ScreenPalette(0, paln, pal); } }

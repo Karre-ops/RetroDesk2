@@ -276,12 +276,28 @@ Name). Braucht einen DPMI-Host: INSTALL traegt CWSDPMI -p in CONFIG.SYS ein.
 
   wcc386 -bt=dos -mf -zl -zm -s -os FEN32.C
   wlink format raw bin name FEN32.B32 option offset=0,start=rd32_kopf,
-        eliminate,nodefaultlibs file RD32C0,FEN32,RD32LIB,RD32API
+        eliminate,nodefaultlibs file RD32C0,FEN32,RD32LIB,RD32PRG,RD32API
   wlink format dos name FEN32.EXE file RD2START,RD32STUB library RD2
   RDRC FEN32.RC FEN32.EXE "Fen32" /32:FEN32.B32
 
 3D (RD3D.H, Software): beim Linken des Bildes "library RD3D,clib3r" anhaengen
 (clib3r aus Open Watcom lib386\dos, nur fuer 64-Bit-Rechenhilfen). Beispiel WUERFEL.C.
+
+C-Laufzeit (RD32C.LIB, Header in \SDK32\RD32C): stdio, stdlib (malloc), string,
+ctype, setjmp, time, printf/sscanf mit Gleitkomma. Uebersetzen mit -fpc
+-i=RD32C (vor den Watcom-Headern), linken mit "library RD32C,math3r,clib3r".
+Gleitkomma laeuft mit 387 in Hardware, sonst in Software. printf schreibt ins
+RD2-Protokoll, Dateien gehen ueber die RD2-API. Beispiel TESTC32.C.
+
+32-Bit-Module (.M32): Code, der zur Laufzeit nachgeladen wird (etwa Treiber).
+Ein Modul laeuft im Adressraum des Programms, Exporte nach Namen:
+  m = rd32_modload("TESTM32.M32");      ohne Pfad: Verzeichnis des Programms
+  f = rd32_modproc(m, "Addiere");       Adresse oder 0
+  rd32_modfree(m);                      sonst am Programmende
+Das Modul liefert int RdMod32Init(void) (0 = ok) und wird mit RD32M0 zuerst,
+ohne RD32PRG gelinkt; tools/rd32mod.py (Python) linkt es zweimal und schreibt
+Exporte und Verschiebungen dazu. Jedes Laden hat eigene Daten. Beispiele
+TESTM32.C (Modul) und TESTMOD.C (Programm).
 
 RD32C0 muss zuerst stehen. Die .RC sollte BEDARF CPU 386 enthalten (die
 Shell meldet dann auf 8088/286 "braucht 386"). Beispiele: FEN32.C (Fenster,

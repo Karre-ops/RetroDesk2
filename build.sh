@@ -142,13 +142,15 @@ wlink option quiet format dos name $O/RD32.MOD file obj/rd2mod.obj,obj/RD32.MOD.
 python3 tools/rdrc.py src/rd32/RD32.RC obj/RD32.res >/dev/null && python3 tools/rd2link.py $O/RD32.MOD "RD2/32" --type M --flags 0 --res obj/RD32.res >/dev/null
 wasm -q -3 -fo=$O/RD32C0.OBJ sdk/RD32C0.ASM
 wcc386 -bt=dos -mf -zl -zm -s -os -zq -w4 -3r -i=sdk -fo=$O/RD32LIB.OBJ sdk/RD32LIB.C   # -zm + eliminate: nur Benutztes ins Bild
+wcc386 -bt=dos -mf -zl -zm -s -os -zq -w4 -3r -i=sdk -fo=$O/RD32PRG.OBJ sdk/RD32PRG.C   # nur Programme: DPMI-Speicher, Einsprung, Vollbild, Module laden
+wasm -q -3 -fo=$O/RD32M0.OBJ sdk/RD32M0.ASM   # Startcode fuer 32-Bit-Module (.M32)
 python3 tools/mk32api.py sdk/RD2API.H obj/RD32API.C >/dev/null && wcc386 -bt=dos -mf -zl -zm -s -os -zq -w4 -3r -i=sdk -fo=$O/RD32API.OBJ obj/RD32API.C   # Stufe 4b: alle einfachen API-Funktionen
 wcc386 -bt=dos -mf -zl -zm -s -otexan -zq -w4 -3r -i=sdk -fo=$O/RD3D.OBJ sdk/RD3D.C && rm -f $O/RD3D.LIB && wlib -q -n $O/RD3D.LIB +$O/RD3D.OBJ   # RD3D (Schritt 5a): Software-3D, auf Tempo uebersetzt; als .LIB nur in Programmen, die es benutzen
 wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=$O/RD32STUB.OBJ sdk/RD32STUB.C
 wcc386 -bt=dos -mf -zl -zm -s -os -fpc -zq -w4 -3r -i=sdk -fo=$O/RD32C.OBJ sdk/RD32C.C && rm -f $O/RD32C.LIB && wlib -q -n $O/RD32C.LIB +$O/RD32C.OBJ   # C-Laufzeit fuer RD2/32 (string, stdlib, stdio, printf, time)
 app32() {   # $1 Quelle  $2 EXE  $3 Anzeigename: 32-Bit-Bild (raw) + 16-Bit-Vorspann + .RC (BEDARF CPU 386); C-Laufzeit: sdk/rd32c vor Watcoms Headern, Gleitkomma -fpc
   local b=obj/$2; wcc386 -bt=dos -mf -zl -s -os -fpc -zq -w4 -3r -i=sdk/rd32c -i=sdk -fo=$b.o32 $1
-  wlink option quiet format raw bin name $b.b32 option offset=0 file $O/RD32C0.OBJ,$b.o32,$O/RD32LIB.OBJ,$O/RD32API.OBJ library $O/RD3D.LIB,$O/RD32C.LIB,$WATCOM/lib386/math3r.lib,$WATCOM/lib386/dos/clib3r.lib option nodefaultlibs,eliminate,start=rd32_kopf,map=$b.b32map 2>&1 | grep -v "W1014\|W1023" || true
+  wlink option quiet format raw bin name $b.b32 option offset=0 file $O/RD32C0.OBJ,$b.o32,$O/RD32LIB.OBJ,$O/RD32PRG.OBJ,$O/RD32API.OBJ library $O/RD3D.LIB,$O/RD32C.LIB,$WATCOM/lib386/math3r.lib,$WATCOM/lib386/dos/clib3r.lib option nodefaultlibs,eliminate,start=rd32_kopf,map=$b.b32map 2>&1 | grep -v "W1014\|W1023" || true
   wlink option quiet format dos name $O/$2 file obj/rd2start.obj,$O/RD32STUB.OBJ library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs >/dev/null
   python3 tools/rdrc.py "${1%.C}.RC" $b.res >/dev/null || exit 1
   python3 tools/rd32link.py $b.b32 $O/$2 "$3" --res $b.res >/dev/null
@@ -158,6 +160,13 @@ app32 apps/test32/FEN32.C FEN32.EXE "Fen32"
 app32 apps/test32/WUERFEL.C WUERFEL.EXE "Wuerfel"
 app32 apps/test32/SCHUTZ32.C SCHUTZ32.EXE "Schutz32"
 app32 apps/test32/TESTC32.C TESTC32.EXE "TestC32"
+mod32() {   # $1 Quelle  $2 .M32  $3 Exporte (Komma): 32-Bit-Modul, RD32M0 zuerst, ohne RD32PRG (das stellt das ladende Programm)
+  local b=obj/$2; wcc386 -bt=dos -mf -zl -s -os -fpc -zq -w4 -3r -i=sdk/rd32c -i=sdk -fo=$b.o32 $1
+  python3 tools/rd32mod.py $O/$2 "$3" $O/RD32M0.OBJ,$b.o32,$O/RD32LIB.OBJ,$O/RD32API.OBJ $O/RD3D.LIB,$O/RD32C.LIB,$WATCOM/lib386/math3r.lib,$WATCOM/lib386/dos/clib3r.lib >/dev/null || exit 1
+  mv -f $O/$2.map $b.map
+}
+mod32 apps/test32/TESTM32.C TESTM32.M32 Addiere,Zaehler,Text,Ticks,Speicher,Fenster
+app32 apps/test32/TESTMOD.C TESTMOD.EXE "TestMod"
 app apps/test/AUSLTEST.C AUSLTEST.EXE "AUSLTEST"
 app apps/test/SWAPTEST.C SWAPTEST.EXE "Speicher-Test"
 app apps/test/PRNTEST.C PRNTEST.EXE "PRNTEST"

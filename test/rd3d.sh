@@ -15,13 +15,13 @@ lauf() {   # $1 Name  $2 Befehlszeile  $3 Grafik (leer = /VGA)  $4 Mindestfarben
   FMT=1440 bash tools/mkdisk.sh $IMG obj/ae_rd3d.txt >/dev/null 2>&1
   mcopy -o -i $IMG out/WUERFEL.EXE out/RD32.MOD out/CWSDPMI.EXE ::/RD2/
   [ -n "$3" ] && { printf '[System]\r\nGrafik=%s\r\n' $3 > obj/RD2.INI; mcopy -o -i $IMG out/$3.DRV obj/RD2.INI ::/RD2/; }
-  rm -f $SOCK $SER obj/r3d_$1.ppm; touch $SER
+  rm -f $SOCK $SER obj/r3d_$1*.ppm; touch $SER
   timeout 200 qemu-system-i386 -cpu 486 -m 16 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
     -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &
   QP=$!
-  waitn "WUERFEL: gezeichnet" 1 400 && sleep 1 && $Q "screendump obj/r3d_$1.ppm" sleep0.5 "sendkey esc" >/dev/null 2>&1
+  waitn "WUERFEL: gezeichnet" 1 400 && sleep 1 && $Q "screendump obj/r3d_$1.ppm" sleep0.7 "screendump obj/r3d_${1}b.ppm" sleep0.7 "screendump obj/r3d_${1}c.ppm" sleep0.5 "sendkey esc" >/dev/null 2>&1
   waitn "RD2: Speicher vollstaendig zurueck" 1 100; sleep 1; kill $QP 2>/dev/null; wait $QP 2>/dev/null
-  L=$(tr -d '\r' < $SER); B=$([ -f obj/r3d_$1.ppm ] && bild obj/r3d_$1.ppm)
+  L=$(tr -d '\r' < $SER); B=$(for x in obj/r3d_$1.ppm obj/r3d_${1}b.ppm obj/r3d_${1}c.ppm; do [ -f $x ] && bild $x; done | sort -k3 -n | tail -1)   # drei Zeitpunkte, das farbigste zaehlt (der Wuerfel dreht sich)
   echo "       $1: Bild $B, $(echo "$L" | grep -a '20 Bilder in ms' | sed 's/.*ms //')ms fuer 20 Bilder"
   pruef "$1: Treiber Software, Selbsttest Z-Puffer, Alpha, Nebel" "echo \"\$L\" | grep -q 'WUERFEL: Treiber Software' && echo \"\$L\" | grep -q 'WUERFEL: Z-Test ok' && echo \"\$L\" | grep -q 'WUERFEL: Alpha-Raster ok' && echo \"\$L\" | grep -q 'WUERFEL: Nebel ok'"
   pruef "$1: Wuerfel ${5}x$6 mit mindestens $4 Farben ($B)" "set -- $B; [ \"\$1\" = $5 ] && [ \"\$2\" = $6 ] && [ \"\${3:-0}\" -ge $4 ]"

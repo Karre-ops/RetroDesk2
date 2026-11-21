@@ -14,7 +14,7 @@ a = Image.open('$1').convert('RGB'); print(a.size[0], a.size[1], len(a.getcolors
 start() {   # $1 AUTOEXEC-Zeilen
   printf "@echo off\r\n$1A:\\\\FDAPM.COM POWEROFF\r\n" > obj/ae_rd32.txt
   FMT=1440 bash tools/mkdisk.sh $IMG obj/ae_rd32.txt >/dev/null 2>&1
-  mcopy -o -i $IMG out/VOLL32.EXE out/FEN32.EXE out/SCHUTZ32.EXE out/TESTC32.EXE out/RD32.MOD out/CWSDPMI.EXE ::/RD2/; mcopy -o -i $IMG out/VOLL32.EXE ::/RD2/ZVOLL32.EXE
+  mcopy -o -i $IMG out/VOLL32.EXE out/FEN32.EXE out/SCHUTZ32.EXE out/TESTC32.EXE out/TESTMOD.EXE out/TESTM32.M32 out/RD32.MOD out/CWSDPMI.EXE ::/RD2/; mcopy -o -i $IMG out/VOLL32.EXE ::/RD2/ZVOLL32.EXE
   [ -n "$GRAFIK" ] && { printf '[System]\r\nGrafik=%s\r\n' $GRAFIK > obj/RD2.INI; mcopy -o -i $IMG out/$GRAFIK.DRV obj/RD2.INI ::/RD2/; }
   rm -f $SOCK $SER; touch $SER
   timeout 150 qemu-system-i386 -cpu 486 -m 16 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
@@ -67,6 +67,13 @@ for z in "SCHUTZ32: S gestartet" "SCHUTZ32: 8 Takte waehrend S rechnet" "SCHUTZ3
   pruef "$z" "echo \"\$L\" | grep -q '$z'"; done
 pruef "kein Absturz wurde uebersehen" "! echo \"\$L\" | grep -q 'FEHLER (kein Absturz)'"
 pruef "Speicher nach Endlosschleife und zwei Abstuerzen vollstaendig zurueck" "echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
+# ---- 32-Bit-Module (TESTMOD laedt TESTM32.M32) ----
+start "A:\\\\RD2\\\\CWSDPMI.EXE -p\\r\\nA:\\\\RD2\\\\RD2.EXE /VGA A:\\\\RD2\\\\TESTMOD.EXE\\r\\n"
+waitn "RD2: Speicher vollstaendig zurueck" 1 300; sleep 1; kill $QP 2>/dev/null; wait $QP 2>/dev/null
+L=$(tr -d '\r' < $SER)
+echo "$L" | grep -a "TESTMOD FEHLER\|TESTMOD: LastError" | head -5 | sed 's/^/       /'
+pruef "Module: laden, Exporte, Laufzeit, API, Fenster im Modul, zwei Ladungen" "echo \"\$L\" | grep -q 'TESTMOD: [0-9]* Pruefungen, Fehler 0' && ! echo \"\$L\" | grep -q 'TESTMOD FEHLER'"
+pruef "Module: Ende jeder Ladung (auch am Programmende), Speicher zurueck" "[ \$(echo \"\$L\" | grep -c 'TESTM32: Ende') = 3 ] && echo \"\$L\" | grep -q 'RD32: Ende 0x00000000' && echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
 # ---- C-Laufzeit (TESTC32): mit 387 und mit Gleitkomma in Software ----
 for fp in "" S; do
   start "A:\\\\RD2\\\\CWSDPMI.EXE -p\\r\\nA:\\\\RD2\\\\RD2.EXE /VGA A:\\\\RD2\\\\TESTC32.EXE $fp\\r\\n"

@@ -18,6 +18,15 @@ BOOL  BufCreate(RDBUF *b, WORD w, WORD h);        /* pix aus rd32_alloc, w*h Byt
 void  BufShow(RDBUF *b, HDC dc, short x, short y);
 void  BufFree(RDBUF *b);
 
+/* 32-Bit-Module (.M32, tools/rd32mod.py mit RD32M0.OBJ vorn): laufen im Adressraum des Programms, Exporte nach Namen.
+   Ohne Pfad sucht rd32_modload im Verzeichnis des Programms. Jedes Laden ist eine eigene Kopie mit eigenen Daten.
+   Das Modul liefert int RdMod32Init(void) (0 = ok); rd32_modfree ruft sein atexit und schliesst seine Dateien.
+   Am Programmende werden noch geladene Module freigegeben. exit() im Modul beendet das Programm (Rueckgabe 0). */
+void *rd32_modload(const char *datei);            /* 0 = Fehler, LastError */
+void *rd32_modproc(void *mod, const char *name);  /* Adresse des Exports, 0 = fehlt */
+void  rd32_modfree(void *mod);
+int   RdMod32Init(void);
+
 /* Vollbild: ScreenMode wie RD2.LIB (SM_TEXT, SM_13H) und SM_LFB; ScreenPtr = Bildspeicher als Zeiger */
 #define SM_LFB 7                                  /* 640x480 256 Farben, VESA 2.0 linearer Bildspeicher (nur 32 Bit) */
 BYTE *ScreenPtr(void);

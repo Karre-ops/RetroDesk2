@@ -161,6 +161,18 @@ Entscheidung Karsten 21.11.2026: Glide (Stufe 5b) wartet auf den Treiber-Stack.
 - Pruefprogramm apps/test32/TESTC32.C (35 Pruefungen, mit 387 und mit S fuer Software), test/rd32.sh.
 - Fehlt noch: getchar/Konsole, Gebietsschema, wide chars, scanf auf Dateien, long long in printf.
 
+## 32-Bit-Module (Stand 21.11.2026)
+- Format .M32 (tools/rd32mod.py): Bild ab Offset 0 mit Kopf aus RD32M0 ("R32M"), dahinter Exporte (Offset, Name) und
+  Verschiebungen. Das Werkzeug linkt zweimal (Offset 0 und 1 MB); DWORDs mit genau 1 MB Unterschied sind Verschiebungen.
+- rd32_modload (RD32PRG.C) laedt in rd32_alloc-Speicher des Programms, verschiebt um die Ladeadresse und fuellt die Tabelle
+  im Kopf: Bruecke (rd32_call), rd32_alloc/free, ScreenMode/Ptr/Palette/Restore, int31, dazu Taskblock, Bildbasis,
+  jmp_buf und 387-Merker. Damit teilen sich Programm und Module Speicherliste und Vollbild-Zustand.
+- Austauschpuffer-Zeiger (rd32_xp, TB +126) und Rueckruf-Prozeduren (TB_XBUF + 2976) liegen im Taskblock, damit Fenster-
+  und Dialogprozeduren im Modul ueber den Verteiler des Programms laufen. RD32LIB ist geteilt: RD32LIB (Programm und Modul),
+  RD32PRG (nur Programm). Zeitscheiben und Absturzschutz gelten auch im Modulcode (CS des Programms, oberhalb RD32C0).
+- Pruefung TESTMOD/TESTM32 (12 Pruefungen) in test/rd32.sh.
+- Offen: Module unter DOS bauen (RDRC), Module, die Module laden, gemeinsamer Code mehrerer Programme.
+
 ## Reihenfolge und Aufwand
 1. Bedarf, SysInfo, RDSETUP (klein bis mittel)
 2. Vollbild unterbrechbar (mittel)
