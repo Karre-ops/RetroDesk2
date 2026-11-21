@@ -24,6 +24,7 @@
 #define TB_LIN 72
 #define TB_PMSTART 76
 #define TB_THUNK 80
+#define TB_THUNK2 104
 #define TB_INST 96
 #define TB_SHOW 98
 #define TB_HTASK 100
@@ -41,6 +42,7 @@ extern void __far svc_call(WORD nr);
 extern void __far rm_start(WORD tb);
 extern void __far rm_api(void); extern void __far rm_cbret(void);
 extern void __far wp0(void); extern void __far wp1(void); extern void __far wp2(void); extern void __far wp3(void);
+extern void __far wp4(void); extern void __far wp5(void); extern void __far wp6(void); extern void __far wp7(void);
 #pragma aux dpmi_enter "*_" parm [ax];
 #pragma aux svc_call "*_" parm [ax];
 #pragma aux rm_start "*_" parm [ax];
@@ -127,6 +129,7 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
     W(TB_CS32) = (WORD)sels; W(TB_DS32) = (WORD)(sels >> 16);
     D(TB_PMCB) = h.cb; D(TB_PMSTART) = h.start; D(TB_PMESP) = gesamt - 16; D(TB_BASE) = lin; D(TB_LIN) = (DWORD)tseg << 4;
     D(TB_THUNK) = fp(wp0); D(TB_THUNK + 4) = fp(wp1); D(TB_THUNK + 8) = fp(wp2); D(TB_THUNK + 12) = fp(wp3);
+    D(TB_THUNK2) = fp(wp4); D(TB_THUNK2 + 4) = fp(wp5); D(TB_THUNK2 + 8) = fp(wp6); D(TB_THUNK2 + 12) = fp(wp7);
     W(TB_INST) = inst; W(TB_SHOW) = show; W(TB_HTASK) = TaskSelf();
     for (n = 0; cmd && cmd[n] && n < 127; n++) tb[TB_CMD + n] = cmd[n];
     for (k = 0; k < 8 && g.tab[2 * k]; k++) ;

@@ -6,8 +6,9 @@
 .386p
 .model flat
 .code
-public _rd32_tlin, _rd32_base, rd32_call_
+public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_kopf
 extrn rd32_main_:near, rd32_cb_:near
+rd32_kopf:
 hdr     db 'R32!'
         dd offset pm_start            ; +4
         dd offset pm_cb               ; +8
@@ -58,6 +59,39 @@ rd32_call_:                           ; API-Aufruf: Nummer und Woerter stehen sc
         push dword ptr [ebp+4]
         mov  [ebp+4], esp
         torm 40                       ; rm_api
+rd32_int31_:                          ; DPMI-Aufruf: EAX = Zeiger auf { eax, ebx, ecx, edx, esi, edi, cf }
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        push ebp
+        mov  ebp, eax
+        mov  eax, [ebp]
+        mov  ebx, [ebp+4]
+        mov  ecx, [ebp+8]
+        mov  edx, [ebp+12]
+        mov  esi, [ebp+16]
+        mov  edi, [ebp+20]
+        push ebp
+        int  31h
+        pop  ebp
+        mov  [ebp], eax
+        mov  [ebp+4], ebx
+        mov  [ebp+8], ecx
+        mov  [ebp+12], edx
+        mov  [ebp+16], esi
+        mov  [ebp+20], edi
+        sbb  eax, eax
+        mov  [ebp+24], eax
+        pop  ebp
+        pop  edi
+        pop  esi
+        pop  edx
+        pop  ecx
+        pop  ebx
+        ret
+
 pm_back:                              ; vom Realmodus: DS = ES = SS = Datenselektor, ESP = TB_PMESP
         sti
         cld

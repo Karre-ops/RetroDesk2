@@ -126,4 +126,6 @@ SWAPTEST.EXE     4096    0   T  SDK-Beispiel: kontrollierter Speicherfehler, Sta
 RD32.MOD         4096    5   Z  RD2/32-Programme (PLAN_32BIT 4a, ab 386): DPMI-Anmeldung, 32-Bit-Bild laden, Bruecke API/Rueckrufe (20.11.2026)
 VOLL32.EXE       8192    0   Z  Beispiel RD2/32: Fenster, 1 MB Feld, Vollbild 13h (test/rd32.sh)
 RD32C0.OBJ       2048    0   Z  SDK RD2/32: Startcode (Kopf, Umschaltung)
-RD32LIB.OBJ      8192    0   Z  SDK RD2/32: Bibliothek (API ueber die Bruecke, Vollbild 13h)
+RD32LIB.OBJ     12288    0   Z  SDK RD2/32: Bibliothek (Bruecke, Rueckrufe, DPMI-Speicher, Puffer-Bitmap, Vollbild 13h/LFB)
+RD32API.OBJ     40960    0   Z  SDK RD2/32: alle einfachen API-Funktionen (tools/mk32api.py, Stufe 4b)
+FEN32.EXE       16384    0   Z  Beispiel RD2/32 Stufe 4b: Fenster, Zeichnen, Puffer-Bitmap, Dialog, Datei, zwei Tasks (test/rd32.sh)

@@ -1,0 +1,6 @@
+; FEN32: RD2/32-Fensterprogramm (Stufe 4b), nur ab 386
+BEDARF CPU 386
+DIALOG 20 "RD2/32 Dialog" 0 0 180 60
+  EDIT     ""            10   8   8 164 12
+  BUTTON   "OK"           1  58  32  64 14 STANDARD
+ENDE

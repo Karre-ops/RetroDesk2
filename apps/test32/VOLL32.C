@@ -1,17 +1,17 @@
 /* VOLL32.C - erstes RD2/32-Programm (PLAN_32BIT Schritt 4a): wie VOLLTEST, aber 32 Bit.
  * 1 MB Feld im Bild (ueber 64 KB, flach), Fenster, Vollbild 13h mit Farbverlauf direkt in A0000h,
- * Alt+Tab (M_SCREENLOST/M_SCREENBACK), Esc beendet. */
+ * Alt+Tab (M_SCREENLOST/M_SCREENBACK), Esc beendet. Befehlszeile: A = gleich wieder beenden, L = VESA 2.0 linear 640x480. */
 /* SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING */
 #include "RD2_32.H"
 
-static SCREENINFO si; static WORD bilder; static DWORD feld[262144];   /* 1 MB */
+static SCREENINFO si; static WORD bilder, modus = SM_13H; static DWORD feld[262144];   /* 1 MB */
 static void zeichnen(void)
 {
-    WORD x, y;
-    for (y = 0; y < 200; y++) for (x = 0; x < 320; x++) si.bild[y * 320 + x] = (BYTE)y;
+    WORD x, y; BYTE *v = ScreenPtr();
+    for (y = 0; y < si.h; y++) for (x = 0; x < si.w; x++) v[(DWORD)y * si.zeilenbytes + x] = (BYTE)(y * 200 / si.h);
     bilder++; DbgHex("VOLL32: gezeichnet", bilder);
 }
-static DWORD proc(HWND w, WORD msg, WORD p1, DWORD p2)
+static DWORD RDCALLBACK proc(HWND w, WORD msg, WORD p1, DWORD p2)
 {
     switch (msg) {
     case M_SCREENLOST: DbgPrint("VOLL32: SCREENLOST"); return 0;
@@ -22,7 +22,7 @@ static DWORD proc(HWND w, WORD msg, WORD p1, DWORD p2)
     }
     return DefWindowProc(w, msg, p1, p2);
 }
-short RdMain(HINST inst, const char *cmd, WORD show)
+short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
     WNDCLASS wc; MSG m; HWND w; static BYTE pal[768]; DWORD i, bad = 0;
     (void)show;
@@ -34,7 +34,8 @@ short RdMain(HINST inst, const char *cmd, WORD show)
     if (!RegisterClass(&wc)) { DbgHex("VOLL32: RegisterClass Fehler", LastError()); return 1; }
     w = CreateWindow("Voll32", "RD2/32 Vollbild", WS_TITLE | WS_BORDER | WS_VISIBLE, 0, 0, 200, 60, 0, 0, inst);
     if (!w || !ScreenAcquire(w)) { DbgHex("VOLL32: ScreenAcquire Fehler", LastError()); return 2; }
-    if (!ScreenMode(SM_13H, &si)) { ScreenRelease(w); return 3; }
+    if (cmd[0] == 'L' || cmd[1] == 'L') modus = SM_LFB;
+    if (!ScreenMode(modus, &si)) { ScreenRelease(w); return 3; }
     for (i = 0; i < 256; i++) { pal[i * 3] = (BYTE)(i >> 2); pal[i * 3 + 1] = (BYTE)(63 - (i >> 2)); pal[i * 3 + 2] = 0; }   /* gruen nach rot */
     ScreenPalette(0, 256, pal);
     DbgPrint("VOLL32: Vollbild");

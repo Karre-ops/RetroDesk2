@@ -65,7 +65,7 @@ TB_ARGS  equ 128
 
 RD32A_TEXT segment word public use16 'CODE'
 assume cs:RD32A_TEXT, ds:DGROUP
-public dpmi_enter_, svc_call_, rm_start_, rm_api_, rm_cbret_, wp0_, wp1_, wp2_, wp3_
+public dpmi_enter_, svc_call_, rm_start_, rm_api_, rm_cbret_, wp0_, wp1_, wp2_, wp3_, wp4_, wp5_, wp6_, wp7_
 
 ; ---- Anmelden beim DPMI-Host: AX = Segment fuer die Host-Daten. Ergebnis in g_err (0 = ok) -------------------
 dpmi_enter_ proc far
@@ -360,7 +360,7 @@ rm_start_ proc far
     retf
 rm_start_ endp
 
-; ---- Fensterprozeduren fuer 32-Bit-Klassen (vier je Task): DWORD far pascal (HWND, WORD, WORD, DWORD) --------
+; ---- Fenster- und Dialogprozeduren fuer 32-Bit-Code (je vier je Task): DWORD far pascal (HWND, WORD, WORD, DWORD) --
 wp0_: mov ax, 0
       jmp short wpall
 wp1_: mov ax, 1
@@ -368,6 +368,14 @@ wp1_: mov ax, 1
 wp2_: mov ax, 2
       jmp short wpall
 wp3_: mov ax, 3
+      jmp short wpall
+wp4_: mov ax, 4                       ; 4..7: Dialogprozeduren (DialogRun, Stufe 4b)
+      jmp short wpall
+wp5_: mov ax, 5
+      jmp short wpall
+wp6_: mov ax, 6
+      jmp short wpall
+wp7_: mov ax, 7
 wpall proc far
     push bp
     mov  bp, sp

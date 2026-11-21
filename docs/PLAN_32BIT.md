@@ -91,9 +91,18 @@ kooperativ. Der Kern laesst bei vorhandenem DPMI-Host 20 KB DOS-Speicher fuer di
 Diskette 5 "RD2 32" (1,44 MB) mit RD32.MOD, VOLL32 und SDK32. Installation (20.11.2026): INSTALL und RD2SETUP
 fragen ab 386 nach Diskette 5 (auslassbar), RD2_HDD.ZIP enthaelt sie mit; ab 386 schreiben beide
 INSTALL=...\CWSDPMI.EXE -p -s- in CONFIG.SYS. Damit findet auch DJGPP (Schritt 3) den Host ohne PATH-Zeile.
-Offen: Linkwerkzeug fuer DOS (rd32link nur Python),
-Stufe 4b (alle Fenster-, Zeichen- und Dialogfunktionen, Puffer-Bitmap), LFB von VESA 2.0, mehrere 32-Bit-Tasks testen,
-Abmelden beim Host am RD2-Ende.
+Stand 21.11.2026: Stufe 4b umgesetzt. RD2.H gilt auch fuer 32 Bit (RD2_32.H ergaenzt nur das 32-Bit-Eigene).
+tools/mk32api.py erzeugt aus RD2API.H die Aufrufstuecke fuer 207 Funktionen (RD32API.OBJ): Texte und Strukturen
+kommen in den Austauschpuffer, grosse Puffer (FileRead/FileWrite bis 64 KB) in einen kurzen festen Block, Daten unter
+1 MB (MemLock) gehen direkt; Zeiger-Rueckgaben (StrGet, MemLock) werden 32-Bit-Zeiger. Von Hand (RD32LIB.C):
+RegisterClass, DialogRun/DialogIndirect (vier Dialogprozeduren je Task, Thunks wp4..wp7), FileDialog, PrnOpen,
+MemFixedFree, ModProc (RD_ERR_NOTSUP). Neu nur in 32 Bit: rd32_alloc/rd32_free (DPMI-Speicher, am Ende frei),
+Puffer-Bitmap BufCreate/BufShow/BufFree (8-Bit-Pixel, Geraeteformat 1/4/8 Bit, Streifen bis 64 KB), ScreenPtr,
+SM_LFB (VESA 2.0 linear 640x480, 256 Farben, DPMI 0800h). Mit -zm und eliminate kommt nur Benutztes ins Bild
+(FEN32 9 KB). Beispiel apps/test32/FEN32.C: Zeichnen, Puffer-Bitmap, Zeitgeber, Dialog mit 32-Bit-Dialogprozedur,
+100 KB Datei, Profil, zweiter 32-Bit-Task zugleich; test/rd32.sh prueft alles (VESA-Farbe, LFB).
+Hinweis: Fensterklassen gehoeren einem Task, eine zweite Instanz braucht einen eigenen Klassennamen.
+Offen: Linkwerkzeug fuer DOS (rd32link nur Python), Abmelden beim Host am RD2-Ende.
 
 ## Schritt 5: RD3D (ab 386, braucht 2 und 4)
 - Schlanke API: Dreiecke, Texturen, Z-Puffer, Doppelpuffer, Nebel, Alpha. Läuft im Vollbild und im Fenster.
