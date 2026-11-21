@@ -150,6 +150,17 @@ Entscheidung Karsten 21.11.2026: Glide (Stufe 5b) wartet auf den Treiber-Stack.
 - Beispiel apps/test32/SCHUTZ32.C (Endlosschleife ohne API, Division durch 0, Seitenfehler), test/rd32.sh.
 - Stufe 3 (DOS-Programme parallel per V86): eigener Plan docs/PLAN_V86.md, nach dem Treiber-Stack.
 
+## C-Laufzeit RD32C.LIB (Stand 21.11.2026)
+- Header in sdk/rd32c (SDK32\RD32C): stdio, stdlib, string, ctype, setjmp, time; math.h, stdarg.h usw. von Open Watcom.
+  Uebersetzen mit -fpc -i=sdk/rd32c -i=sdk, linken mit RD32C.LIB, math3r.lib, clib3r.lib (nur Gleitkomma- und Mathe-Module,
+  ohne Watcoms Start und stdio: RD32C0 stellt __8087/__real87/__chipbug, RD32C ersetzt matherr und __get_std_stream).
+- Gleitkomma: RD32.MOD setzt TB_FPU (Kopf +124) aus KernInfo, RD32C0 macht dann fninit und rechnet in Hardware, sonst Software.
+- malloc: Bereiche aus rd32_alloc (64 KB, wachsend bis 1 MB, max. 12), Bloecke mit geradem Kopf, Freies beim Suchen zusammenlegen.
+- stdio: Dateien ueber die RD2-API, Puffer 512 Bytes, Textmodus ohne b (CR weg, LF -> CR LF), stdout/stderr zeilenweise ins
+  RD2-Protokoll, stdin leer. exit/atexit ueber setjmp in rd32_main; am Ende werden Dateien geschlossen und stdout geleert.
+- Pruefprogramm apps/test32/TESTC32.C (35 Pruefungen, mit 387 und mit S fuer Software), test/rd32.sh.
+- Fehlt noch: getchar/Konsole, Gebietsschema, wide chars, scanf auf Dateien, long long in printf.
+
 ## Reihenfolge und Aufwand
 1. Bedarf, SysInfo, RDSETUP (klein bis mittel)
 2. Vollbild unterbrechbar (mittel)

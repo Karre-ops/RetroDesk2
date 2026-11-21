@@ -101,9 +101,13 @@ void rd32_free(void *p)
 }
 
 /* ---- Einsprung und Rueckrufe -------------------------------------------------------------------------------- */
+unsigned long rd32_jb[6]; int rd32_ecode; void (*rd32_beiende)(void);   /* exit (RD32C): zurueck hierher */
+int setjmp(unsigned long *b);
 int rd32_main(void)
 {
-    WORD i; int r = RdMain(TW(TB_INST), (LPCSTR)(TB + TB_CMD), TW(TB_SHOW));
+    WORD i; int r;
+    if (!setjmp(rd32_jb)) r = RdMain(TW(TB_INST), (LPCSTR)(TB + TB_CMD), TW(TB_SHOW)); else r = rd32_ecode;
+    if (rd32_beiende) rd32_beiende();             /* atexit, Dateien schliessen, stdout leeren */
     for (i = 0; i < 16; i++) if (blk[i].lin) rd32_free(rd32_lin(blk[i].lin));
     return r;
 }

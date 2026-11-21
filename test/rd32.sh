@@ -14,7 +14,7 @@ a = Image.open('$1').convert('RGB'); print(a.size[0], a.size[1], len(a.getcolors
 start() {   # $1 AUTOEXEC-Zeilen
   printf "@echo off\r\n$1A:\\\\FDAPM.COM POWEROFF\r\n" > obj/ae_rd32.txt
   FMT=1440 bash tools/mkdisk.sh $IMG obj/ae_rd32.txt >/dev/null 2>&1
-  mcopy -o -i $IMG out/VOLL32.EXE out/FEN32.EXE out/SCHUTZ32.EXE out/RD32.MOD out/CWSDPMI.EXE ::/RD2/; mcopy -o -i $IMG out/VOLL32.EXE ::/RD2/ZVOLL32.EXE
+  mcopy -o -i $IMG out/VOLL32.EXE out/FEN32.EXE out/SCHUTZ32.EXE out/TESTC32.EXE out/RD32.MOD out/CWSDPMI.EXE ::/RD2/; mcopy -o -i $IMG out/VOLL32.EXE ::/RD2/ZVOLL32.EXE
   [ -n "$GRAFIK" ] && { printf '[System]\r\nGrafik=%s\r\n' $GRAFIK > obj/RD2.INI; mcopy -o -i $IMG out/$GRAFIK.DRV obj/RD2.INI ::/RD2/; }
   rm -f $SOCK $SER; touch $SER
   timeout 150 qemu-system-i386 -cpu 486 -m 16 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
@@ -67,6 +67,15 @@ for z in "SCHUTZ32: S gestartet" "SCHUTZ32: 8 Takte waehrend S rechnet" "SCHUTZ3
   pruef "$z" "echo \"\$L\" | grep -q '$z'"; done
 pruef "kein Absturz wurde uebersehen" "! echo \"\$L\" | grep -q 'FEHLER (kein Absturz)'"
 pruef "Speicher nach Endlosschleife und zwei Abstuerzen vollstaendig zurueck" "echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
+# ---- C-Laufzeit (TESTC32): mit 387 und mit Gleitkomma in Software ----
+for fp in "" S; do
+  start "A:\\\\RD2\\\\CWSDPMI.EXE -p\\r\\nA:\\\\RD2\\\\RD2.EXE /VGA A:\\\\RD2\\\\TESTC32.EXE $fp\\r\\n"
+  waitn "RD2: Speicher vollstaendig zurueck" 1 300; sleep 1; kill $QP 2>/dev/null; wait $QP 2>/dev/null
+  L=$(tr -d '\r' < $SER); art=$([ -n "$fp" ] && echo "Software" || echo "387")
+  echo "$L" | grep -a "TESTC32 FEHLER" | head -5 | sed 's/^/       /'
+  pruef "C-Laufzeit ($art): alle Pruefungen ohne Fehler" "echo \"\$L\" | grep -q 'TESTC32: Start, Gleitkomma $art' && echo \"\$L\" | grep -q 'TESTC32: [0-9]* Pruefungen, Fehler 0' && ! echo \"\$L\" | grep -q 'TESTC32 FEHLER'"
+  pruef "C-Laufzeit ($art): exit(7), stdout am Ende geleert, Speicher zurueck" "echo \"\$L\" | grep -q 'RD32: Ende 0x00000007' && echo \"\$L\" | grep -q 'TESTC32: Teil 1 ohne Zeilenende' && echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
+done
 # ---- zweimal hintereinander: RD2 meldet sich am Ende beim DPMI-Host ab, der zweite Lauf meldet sich neu an ----
 start 'A:\\RD2\\CWSDPMI.EXE -p\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\VOLL32.EXE A\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\VOLL32.EXE A\r\n'
 waitn "RD2: Speicher vollstaendig zurueck" 2 300; sleep 2; kill $QP 2>/dev/null; wait $QP 2>/dev/null

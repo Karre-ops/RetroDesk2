@@ -6,7 +6,7 @@
 .386p
 .model flat
 .code
-public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_kopf
+public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_kopf, setjmp_, longjmp_, __8087, __real87, __chipbug, ___chipbug
 extrn rd32_main_:near, rd32_cb_:near
 rd32_kopf:
 hdr     db 'R32!'
@@ -41,6 +41,12 @@ pm_start:                             ; erster Einsprung, ESP = Stapelspitze
         mov  es, ax
         tbz
         mov  dword ptr [ebp+48], offset pm_back
+        cmp  byte ptr [ebp+124], 0    ; 387 vorhanden (RD32.MOD): Gleitkomma der Laufzeit in Hardware
+        je   ps_nofpu
+        fninit
+        mov  __8087, 3
+        mov  __real87, 3
+ps_nofpu:
         call rd32_main_
         jmp  short pm_ret
 pm_cb:                                ; Rueckruf (Fensterprozedur), ESP = TB_PMESP
@@ -101,6 +107,30 @@ pm_back:                              ; vom Realmodus: DS = ES = SS = Datenselek
         popad
         ret
 
+setjmp_:                              ; EAX = jmp_buf: EBX, ESI, EDI, EBP, ESP, EIP
+        mov  [eax], ebx
+        mov  [eax+4], esi
+        mov  [eax+8], edi
+        mov  [eax+12], ebp
+        lea  ecx, [esp+4]
+        mov  [eax+16], ecx
+        mov  ecx, [esp]
+        mov  [eax+20], ecx
+        xor  eax, eax
+        ret
+longjmp_:                             ; EAX = jmp_buf, EDX = Wert (0 -> 1)
+        mov  ebx, [eax]
+        mov  esi, [eax+4]
+        mov  edi, [eax+8]
+        mov  ebp, [eax+12]
+        mov  esp, [eax+16]
+        mov  ecx, [eax+20]
+        mov  eax, edx
+        test eax, eax
+        jnz  lj_1
+        inc  eax
+lj_1:
+        jmp  ecx
 pm_preempt:                           ; vom Zeitgeber eingeschoben: TaskYield, dann weiter an der alten Stelle (TB_PREEIP)
         push eax                      ; Platz fuer die Rueckkehradresse
         pushad
@@ -122,6 +152,11 @@ pm_preempt:                           ; vom Zeitgeber eingeschoben: TaskYield, d
 rd32_brende:
 
 _DATA   segment dword public use32 'DATA'   ; Reihenfolge wie wcc386, dazu RD32ENDE als letztes BSS-Segment
+__8087    db 0                        ; fuer Open Watcoms Gleitkomma (clib3r): 0 = Software, 3 = 387
+__real87  db 0
+          dw 0
+__chipbug  dd 0
+___chipbug dd 0
 _DATA   ends
 CONST   segment dword public use32 'DATA'
 CONST   ends

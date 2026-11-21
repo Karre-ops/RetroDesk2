@@ -175,6 +175,7 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
     D(TB_THUNK) = fp(wp0); D(TB_THUNK + 4) = fp(wp1); D(TB_THUNK + 8) = fp(wp2); D(TB_THUNK + 12) = fp(wp3);
     D(TB_THUNK2) = fp(wp4); D(TB_THUNK2 + 4) = fp(wp5); D(TB_THUNK2 + 8) = fp(wp6); D(TB_THUNK2 + 12) = fp(wp7);
     W(TB_INST) = inst; W(TB_SHOW) = show; W(TB_HTASK) = TaskSelf();
+    { SYSINFO si; KernInfo(&si); tb[124] = (BYTE)(si.fpu != 0); }   /* TB_FPU: Laufzeit rechnet Gleitkomma in Hardware (ab 386 ist jede FPU ein 387) */
     for (n = 0; cmd && cmd[n] && n < 127; n++) tb[TB_CMD + n] = cmd[n];
     for (k = 0; k < 8 && g.tab[2 * k]; k++) ;
     if (k == 8) goto weg;
