@@ -130,3 +130,5 @@ RD32LIB.OBJ     12288    0   Z  SDK RD2/32: Bibliothek (Bruecke, Rueckrufe, DPMI
 RD32API.OBJ     40960    0   Z  SDK RD2/32: alle einfachen API-Funktionen (tools/mk32api.py, Stufe 4b)
 FEN32.EXE       16384    0   Z  Beispiel RD2/32 Stufe 4b: Fenster, Zeichnen, Puffer-Bitmap, Dialog, Datei, zwei Tasks (test/rd32.sh)
 RD32STUB.OBJ     2048    0   Z  SDK RD2/32: 16-Bit-Vorspann (laedt RD32.MOD), unter DOS: RDRC ... /32:BILD.B32
+RD3D.LIB        16384    0   Z  SDK RD2/32: RD3D Software-3D (PLAN_32BIT Schritt 5a): Dreiecke, Z-Puffer, Textur, Gouraud, Nebel, Alpha, Vollbild/Fenster
+WUERFEL.EXE     20480    0   Z  Beispiel RD3D: drehender Wuerfel, Selbsttest Z/Alpha/Nebel (test/rd3d.sh)

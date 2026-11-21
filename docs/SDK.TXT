@@ -280,6 +280,9 @@ Name). Braucht einen DPMI-Host: INSTALL traegt CWSDPMI -p in CONFIG.SYS ein.
   wlink format dos name FEN32.EXE file RD2START,RD32STUB library RD2
   RDRC FEN32.RC FEN32.EXE "Fen32" /32:FEN32.B32
 
+3D (RD3D.H, Software): beim Linken des Bildes "library RD3D,clib3r" anhaengen
+(clib3r aus Open Watcom lib386\dos, nur fuer 64-Bit-Rechenhilfen). Beispiel WUERFEL.C.
+
 RD32C0 muss zuerst stehen. Die .RC sollte BEDARF CPU 386 enthalten (die
 Shell meldet dann auf 8088/286 "braucht 386"). Beispiele: FEN32.C (Fenster,
 Dialog, Puffer-Bitmap, Datei, zwei Tasks) und VOLL32.C (Vollbild 13h/LFB).

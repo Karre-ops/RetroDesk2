@@ -129,6 +129,14 @@ Bloecke des Hosts deshalb dem System (Eigentuemer 8). Ab dem zweiten Lauf bleibt
   seine Texturen neu.
 - Testen: QEMU kann keine 3D-Karten. 86Box (Voodoo 1/2/3, teils ATI/nVidia, prüfen) und echte Hardware.
 
+Stand 21.11.2026: Stufe 5a umgesetzt (Software). sdk/RD3D.H/RD3D.C (RD3D.LIB, nur in Programmen, die es benutzen):
+Dreiecke mit Z-Puffer (16 Bit), affiner Textur (2^n), Gouraud, Nebel nach Tiefe, Alpha als 50-%-Raster, Doppelpuffer,
+ganzzahlig 16.16 (kein 387 noetig, 64-Bit-Zwischenwerte ueber clib3r). Farben: 16 Rampen zu 16 Helligkeiten, Helligkeit 0
+= Nebelfarbe. Ziele: Vollbild 13h, VESA linear 640x480, Fenster (Puffer-Bitmap, Abbildung auf die feste Systempalette
+VESA/VGA16/mono). Treiber austauschbar (R3DDRV), jetzt nur "Software". Hilfen: Drehung, Verschiebung, Projektion.
+Beispiel apps/test32/WUERFEL.C mit Selbsttest (Z, Alpha, Nebel), test/rd3d.sh (4 Darstellungen).
+Entscheidung Karsten 21.11.2026: Glide (Stufe 5b) wartet auf den Treiber-Stack.
+
 ## Reihenfolge und Aufwand
 1. Bedarf, SysInfo, RDSETUP (klein bis mittel)
 2. Vollbild unterbrechbar (mittel)
