@@ -18,7 +18,8 @@ waitscr "Erster Start" 90 && echo "ok     Diskette 1 startet, Einrichtung ersche
 sleep 1; Q "sendkey t"; sleep 2; Q "sendkey ret"   # T: Text-Installation (Notweg); grafisch: test/install.sh
 waitscr "Diskette 2 (RD2 PROG) einlegen" 120 && { echo "ok     fragt nach Diskette 2"; Q "change floppy0 obj/satz2.img"; sleep 2; Q "sendkey ret"; } || { echo "FEHLER keine Frage nach Diskette 2"; F=1; }
 waitscr "Diskette 3 (RD2 NETZ) einlegen" 180 && { echo "ok     fragt nach Diskette 3"; Q "change floppy0 obj/satz3.img"; sleep 2; Q "sendkey ret"; } || { echo "FEHLER keine Frage nach Diskette 3"; F=1; }
-waitscr "Diskette 3 (RD2 NETZ): [0-9]* Dateien" 120 || { echo "FEHLER Diskette 3 nicht kopiert"; F=1; }
+waitscr "Diskette 3 (RD2 NETZ): [0-9]* Dateien\|Diskette 5 (RD2 32) einlegen" 120 || { echo "FEHLER Diskette 3 nicht kopiert"; F=1; }
+waitscr "Diskette 5 (RD2 32) einlegen" 30 && { echo "ok     fragt ab 386 nach Diskette 5 (1,44 MB, hier ausgelassen)"; Q "sendkey esc"; } || { echo "FEHLER keine Frage nach Diskette 5"; F=1; }
 waitscr "startfaehig machen" 60 && Q "sendkey j"   # seit 19.11.2026 nach Diskette 3 (RDSYS liegt dort)
 waitscr "Festplatte ist startfaehig\|FEHLER: Festplatte" 90
 T > obj/schirm_satz.txt; grep "Dateien kopiert\|startfaehig" obj/schirm_satz.txt | sed 's/^ */       /'
@@ -29,6 +30,7 @@ for f in KERNEL.SYS CONFIG.SYS RD2/RD2.EXE RD2/SHELL.EXE RD2/RDMAUS.COM RD2/RD2.
 done
 [ $F = 0 ] && echo "ok     Dateien aller drei Disketten auf C:"
 mtype -i $P ::/CONFIG.SYS | grep -q "SHELL=C:\\\\RD2\\\\RD2.EXE" && echo "ok     CONFIG.SYS: RD2 ist die Shell" || { echo "FEHLER CONFIG.SYS"; F=1; }
+mtype -i $P ::/CONFIG.SYS | grep -q "INSTALL=C:\\\\RD2\\\\CWSDPMI.EXE -p -s-" && echo "ok     CONFIG.SYS: CWSDPMI resident (ab 386)" || { echo "FEHLER CONFIG.SYS ohne CWSDPMI"; F=1; }
 # Start von C: ohne Diskette
 rm -f $S
 timeout 120 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$HD,format=raw,if=ide,index=0 -boot c \

@@ -27,6 +27,7 @@ TEXTE
   24 "RetroDesk 2 ist installiert. Diskette herausnehmen (falls eingelegt). Jetzt neu starten? RD2 startet dann von der Festplatte."
   25 "ACHTUNG: Festplatte C: formatieren? ALLE Daten auf C: gehen verloren (auch DOS, Programme und Treiber). Danach wird RD2 mit dem FreeDOS-Kern installiert."
   26 "C: wurde nicht formatiert. Die Installation ist abgebrochen."
+  27 "Bitte Diskette 5 (RD2 32) einlegen: 32-Bit-Programme, ab 386."
 ENDE
 DIALOG 10 "RetroDesk 2 installieren" 0 0 260 144
   STATIC   "&Ziel auf der Festplatte:" -1 8 6 200 10
@@ -67,6 +68,7 @@ TEXTE
   24 "RetroDesk 2 is installed. Remove the disk (if any). Restart now? RD2 then starts from the hard disk."
   25 "WARNING: Format hard disk C:? ALL data on C: is lost (including DOS, programs and drivers). RD2 is then installed with the FreeDOS kernel."
   26 "C: was not formatted. The installation is cancelled."
+  27 "Please insert disk 5 (RD2 32): 32-bit programs, 386 and up."
 ENDE
 DIALOG 10 "Install RetroDesk 2" 0 0 260 144
   STATIC   "&Target on the hard disk:" -1 8 6 200 10

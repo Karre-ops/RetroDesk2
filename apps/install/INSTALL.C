@@ -241,6 +241,8 @@ static short config(void)                         /* 1 eingetragen (alt gesicher
         else if (!strnicmp(mw, "INPORT", 6)) cpy(w, " /I1");
         if ((w[0] || !alt) && gibts(pf)) { cpy(z, "INSTALL="); cat(z, pf); cat(z, w); cat(z, "\r\n"); NEU(z); }
     }
+    cpy(pf, ziel); cat(pf, "CWSDPMI.EXE");         /* ab 386: DPMI-Host resident (RD2/32, DJGPP ohne PATH), ohne Auslagerdatei */
+    if (!alt && gibts(pf)) { cpy(z, "INSTALL="); cat(z, pf); cat(z, " -p -s-\r\n"); NEU(z); }
     return FileSaveSafe(cs, (char FAR *)neu, o) ? 0 : (alt ? 1 : 3);   /* erst CONFIG.$$$, dann umbenennen: volle Platte laesst die alte stehen */
 }
 
@@ -301,13 +303,13 @@ static void install2(void)
         if (FileAttr(pfad, 0, 0) != 0xFFFF) { DbgPrint("INSTALL: SDK"); text("SDK"); cat(pfad, "\\"); cpy(z2, ziel); cat(z2, "SDK\\"); baum(pfad, z2); }
     }
     else {
-        static const char *const mk[] = { "RDFDISK.EXE", "RDNET.EXE" };
-        for (n = 0; n < 2; n++) {
+        static const char *const mk[] = { "RDFDISK.EXE", "RDNET.EXE", "RD32.MOD" };   /* Diskette 5 (RD2 32, 1,44 MB) nur ab 386 */
+        for (n = 0; n < 3 - alt; n++) {
             dnr = n + 1; balken();
             cpy(pfad, quelle); cat(pfad, mk[n]);
             if (gibts(pfad)) continue;            /* lag schon auf Diskette 1 (grosse Diskette) */
             CursorBusy(FALSE);
-            if (einlegen(mk[n], 4 + n)) { CursorBusy(TRUE); diskette(); } else CursorBusy(TRUE);
+            if (einlegen(mk[n], n < 2 ? 4 + n : 27)) { CursorBusy(TRUE); diskette(); } else CursorBusy(TRUE);
         }
         CursorBusy(FALSE);
         einlegen("RD2.EXE", 6);                    /* RD2 laeuft von Diskette 1: zurueck, bevor es weitergeht */

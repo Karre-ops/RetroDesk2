@@ -40,6 +40,8 @@ for d in 2 3; do
     [ $d = 2 ] && { sleep 4; Q "screendump obj/inst_balken.ppm"; png obj/inst_balken; }
   else echo "FEHLER keine Meldung fuer Diskette $d"; F=1; fi
 done
+if waitser "Diskette 5 (RD2" 1 120; then echo "ok     Meldung: Diskette 5 (ab 386) einlegen, ausgelassen"; Q "sendkey esc"; sleep 2; Q "sendkey ret"
+else echo "FEHLER keine Meldung fuer Diskette 5 auf dem 486"; F=1; fi
 if waitser "Diskette 1 (RD2SYSTEM)" 1 120; then echo "ok     Meldung: Diskette 1 wieder einlegen"; Q "change floppy0 obj/inst1.img"; sleep 2; Q "sendkey ret"
 else echo "FEHLER keine Meldung fuer Diskette 1"; F=1; fi
 if [ $FALL = 2 ]; then

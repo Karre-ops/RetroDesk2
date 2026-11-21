@@ -88,8 +88,10 @@ Thunks zurueck in den 32-Bit-Code. Weil der Kern nur bei Code im eigenen Program
 kooperativ. Der Kern laesst bei vorhandenem DPMI-Host 20 KB DOS-Speicher fuer die Seitentabellen frei
 (RD2.INI [RD32] DosPlatz=, Paragraphen). SDK: sdk/RD2_32.H, RD32C0.ASM, RD32LIB.C, RD32STUB.C, tools/rd32link.py
 (Bild als Ressource 11 im 16-Bit-Vorspann), build.sh app32. Beispiel apps/test32/VOLL32.C, Test test/rd32.sh.
-Diskette 5 "RD2 32" (1,44 MB) mit RD32.MOD, VOLL32 und SDK32. Offen: CWSDPMI automatisch vor RD2 laden
-(INSTALL schreibt CONFIG.SYS), Diskette 5 in INSTALL/RD2SETUP, Linkwerkzeug fuer DOS (rd32link nur Python),
+Diskette 5 "RD2 32" (1,44 MB) mit RD32.MOD, VOLL32 und SDK32. Installation (20.11.2026): INSTALL und RD2SETUP
+fragen ab 386 nach Diskette 5 (auslassbar), RD2_HDD.ZIP enthaelt sie mit; ab 386 schreiben beide
+INSTALL=...\CWSDPMI.EXE -p -s- in CONFIG.SYS. Damit findet auch DJGPP (Schritt 3) den Host ohne PATH-Zeile.
+Offen: Linkwerkzeug fuer DOS (rd32link nur Python),
 Stufe 4b (alle Fenster-, Zeichen- und Dialogfunktionen, Puffer-Bitmap), LFB von VESA 2.0, mehrere 32-Bit-Tasks testen,
 Abmelden beim Host am RD2-Ende.
 

@@ -541,6 +541,8 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
         if ((w[0] || !alt) && gibts(pf) && stricmp(p[P_MAUS].wert[i], "KEINE") && stricmp(p[P_MAUS].wert[i], "DOS"))
             { sprintf(z, "INSTALL=%s%s\r\n", pf, w); NEU(z); }
     }
+    sprintf(pf, "%sCWSDPMI.EXE", ziel);           /* ab 386: DPMI-Host resident (RD2/32, DJGPP ohne PATH); kommt erst danach mit Diskette 3 */
+    if (cpu >= 5) { sprintf(z, "INSTALL=%s -p -s-\r\n", pf); NEU(z); }
     if ((f = fopen(cs, "wb")) == NULL) return 0;
     m = fwrite(neu, 1, o, f);
     return fclose(f) == 0 && m == o ? (alt ? 1 : 3) : 0;
@@ -603,12 +605,12 @@ static void alle(const char *ziel, int y, int *k, int *fehl)       /* alle RD2-D
         } while (!_dos_findnext(&ft));
     }
 }
-static void weitere(const char *ziel, int y)      /* SPEC 12: Disketten 2 (Programme) und 3 (Netz) */
+static void weitere(const char *ziel, int y)      /* SPEC 12: Disketten 2 (Programme), 3 (Netz), ab 386 auch 5 (RD2 32) */
 {
-    static const char *nm[] = { "2 (RD2 PROG)", "3 (RD2 NETZ)" }, *mk[] = { "RDFDISK.EXE", "RDNET.EXE" };
+    static const char *nm[] = { "2 (RD2 PROG)", "3 (RD2 NETZ)", "5 (RD2 32)" }, *mk[] = { "RDFDISK.EXE", "RDNET.EXE", "RD32.MOD" };   /* 5 nur ab 386 */
     char p[80], z[80]; int d, k, fehl; WORD t;
     if ((quelle[0] & 0xDF) > 'B') return;         /* Quelle Festplatte: alles lag schon im Ordner */
-    for (d = 0; d < 2; d++) {
+    for (d = 0; d < (cpu >= 5 ? 3 : 2); d++) {
         sprintf(p, "%s%s", quelle, mk[d]);
         if (gibts(p)) continue;                   /* lag schon mit Diskette 1 vor (grosse Diskette) */
         while (!gibts(p)) {
