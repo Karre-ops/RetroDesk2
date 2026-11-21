@@ -38,6 +38,7 @@ typedef struct { DWORD entry, r2p, p2r; WORD p2rsel, pcs, pds, flat, rmss, rmsp,
 extern GLOB g; extern BYTE g_stktop;
 extern DWORD _rd2api;
 extern void __far dpmi_enter(WORD seg);
+extern void __far dpmi_leave(void);
 extern void __far svc_call(WORD nr);
 extern void __far rm_start(WORD tb);
 extern void __far rm_api(void); extern void __far rm_cbret(void);
@@ -50,6 +51,35 @@ extern void __far wp4(void); extern void __far wp5(void); extern void __far wp6(
 typedef struct { WORD typ, nr, lang, flags; DWORD off, len; } RESDIR;
 static BYTE bereit;                               /* 0 = noch nicht versucht, 1 = angemeldet, 2 = kein Host */
 
+/* Der Host legt beim ersten Client Seitentabellen im DOS-Speicher an. DOS ordnet sie dem laufenden Programm (RD2) zu und
+ * gaebe sie beim Ende von RD2 frei, obwohl der Host (CWSDPMI -p) sie behaelt: neue Bloecke gehoeren deshalb dem System. */
+static WORD alt[24], nalt;
+static void mcbs(WORD nachher)
+{
+    WORD m = 0, psp = 0, i, n = 0;
+    _asm {
+        push es
+        mov  ah, 52h
+        int  21h
+        mov  ax, es:[bx-2]
+        mov  m, ax
+        mov  ah, 62h
+        int  21h
+        mov  psp, bx
+        pop  es
+    }
+    for (; n < 400; n++) {
+        BYTE FAR *k = (BYTE FAR *)MK_FP(m, 0); WORD own = *(WORD FAR *)(k + 1);
+        if (k[0] != 'M' && k[0] != 'Z') break;
+        if (own == psp) {
+            if (!nachher) { if (nalt < 24) alt[nalt++] = m; }
+            else { for (i = 0; i < nalt && alt[i] != m; i++) ;
+                   if (i == nalt) { *(WORD FAR *)(k + 1) = 8; DbgHex("RD32: DOS-Block des Hosts", m); } }
+        }
+        if (k[0] == 'Z') break;
+        m += *(WORD FAR *)(k + 3) + 1;
+    }
+}
 static WORD dpmi(void)
 {
     WORD paras = 0, eo = 0, es_ = 0, ok = 0, seg; BYTE fl = 0; HMEM h; BYTE FAR *p;
@@ -78,10 +108,13 @@ static WORD dpmi(void)
         seg = FP_SEG(p) + ((FP_OFF(p) + 15) >> 4);
     }
     g.api = _rd2api; g.svcsp = (WORD)&g_stktop;
+    mcbs(0);
     dpmi_enter(seg);
+    mcbs(1);
     if (g.err) { DbgHex("RD32: DPMI-Anmeldung Fehler", g.err); return 0; }
     DbgHex("RD32: DPMI angemeldet, Zustand", g.stsize);
     bereit = 1;
+    ModLoad("RD32.MOD");                          /* bleibt geladen, bis RD2 endet (dann Export 1: abmelden) */
     return 1;
 }
 #define W(o) (*(WORD FAR *)(tb + (o)))
@@ -104,7 +137,7 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
     if (!len || FileSeek(f, (long)off, 0) < 0 || FileRead(f, &h, sizeof h) != sizeof h || h.sig[0] != 'R' || h.sig[3] != '!') {
         DbgPrint("RD32: kein 32-Bit-Bild"); FileClose(f); return -1;
     }
-    if (len > h.isize) len = h.isize;
+    if (h.msize < len) h.msize = len;
     gesamt = (h.msize + h.ssize + 4095) & ~4095UL;
     if (!(htb = MemAlloc(TBSIZE + 16, MEM_FIXED | MEM_ZEROINIT)) || !(tb = (BYTE FAR *)MemLock(htb))) { FileClose(f); return -1; }
     tseg = FP_SEG(tb) + ((FP_OFF(tb) + 15) >> 4); tb = (BYTE FAR *)MK_FP(tseg, 0);
@@ -145,6 +178,9 @@ weg:
     MemFree(htb);
     return r;
 }
-static void RDEXPORT ende(void) { }
+static void RDEXPORT ende(void)                   /* Ende von RD2 (k_modrest): beim DPMI-Host abmelden */
+{
+    if (bereit == 1) { dpmi_leave(); bereit = 0; DbgPrint("RD32: beim DPMI-Host abgemeldet"); }
+}
 static struct { WORD n; FARPROC f[2]; } ext = { 2, { (FARPROC)ende, (FARPROC)run32 } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

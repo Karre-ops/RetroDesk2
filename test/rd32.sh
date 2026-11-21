@@ -57,6 +57,11 @@ for z in "FEN32 1: Datei 100 KB, Abweichungen 0x00000000" "FEN32 1: Profil ok" "
 pruef "zwei 32-Bit-Tasks laufen verschraenkt (Takte beider vor dem ersten Ende)" "[ \$(echo \"\$L\" | grep -n 'FEN32 2: Takt 0x00000003' | cut -d: -f1) -lt \$(echo \"\$L\" | grep -n 'FEN32 1: Ende' | cut -d: -f1) ]"
 pruef "Bild: Fenster mit Puffer-Bitmap (mindestens 12 Farben)" "set -- $B5; [ \"\${3:-0}\" -ge 12 ]"
 pruef "Speicher nach zwei 32-Bit-Tasks vollstaendig zurueck" "echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
+# ---- zweimal hintereinander: RD2 meldet sich am Ende beim DPMI-Host ab, der zweite Lauf meldet sich neu an ----
+start 'A:\\RD2\\CWSDPMI.EXE -p\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\VOLL32.EXE A\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\VOLL32.EXE A\r\n'
+waitn "RD2: Speicher vollstaendig zurueck" 2 300; sleep 2; kill $QP 2>/dev/null; wait $QP 2>/dev/null
+L=$(tr -d '\r' < $SER)
+pruef "zweimal RD2 mit 32-Bit-Programm: je angemeldet, abgemeldet, Speicher zurueck" "[ \$(echo \"\$L\" | grep -c 'RD32: DPMI angemeldet') = 2 ] && [ \$(echo \"\$L\" | grep -c 'RD32: beim DPMI-Host abgemeldet') = 2 ] && [ \$(echo \"\$L\" | grep -c 'VOLL32: Ende') = 2 ] && [ \$(echo \"\$L\" | grep -c 'RD2: Speicher vollstaendig zurueck') = 2 ]"
 # ---- VESA 2.0 linear (SM_LFB) aus 32 Bit ----
 start 'A:\\RD2\\CWSDPMI.EXE -p\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\VOLL32.EXE L\r\n'
 waitn "VOLL32: gezeichnet" 1 250 && sleep 1.5 && $Q "screendump obj/r32_6.ppm" sleep0.5 "sendkey esc" >/dev/null 2>&1

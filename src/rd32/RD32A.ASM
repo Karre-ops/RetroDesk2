@@ -32,6 +32,10 @@ g_c       dd 0        ; 44
 g_d       dd 0        ; 48
 g_api     dd 0        ; 52 API-Tabelle
 g_tab     dw 16 dup(0); 56 je Task: HTASK, TB-Segment
+g_old21   dd 0        ; 88 INT 21h waehrend des Abmeldens
+g_psp     dw 0        ; PSP von RD2
+g_pspsv   db 14 dup(0); PSP 0Ah..17h (Ende-, Abbruch-, Fehleradresse, Eltern-PSP)
+g_ivtsv   dd 3 dup(0) ; INT 22h..24h
 g_stk     db 384 dup(0)
 public _g_stktop
 _g_stktop label byte
@@ -65,7 +69,7 @@ TB_ARGS  equ 128
 
 RD32A_TEXT segment word public use16 'CODE'
 assume cs:RD32A_TEXT, ds:DGROUP
-public dpmi_enter_, svc_call_, rm_start_, rm_api_, rm_cbret_, wp0_, wp1_, wp2_, wp3_, wp4_, wp5_, wp6_, wp7_
+public dpmi_enter_, dpmi_leave_, svc_call_, rm_start_, rm_api_, rm_cbret_, wp0_, wp1_, wp2_, wp3_, wp4_, wp5_, wp6_, wp7_
 
 ; ---- Anmelden beim DPMI-Host: AX = Segment fuer die Host-Daten. Ergebnis in g_err (0 = ok) -------------------
 dpmi_enter_ proc far
@@ -142,6 +146,96 @@ de_back:
     popad
     retf
 dpmi_enter_ endp
+
+; ---- Abmelden beim DPMI-Host am Ende von RD2: im PM INT 21h/4Ch, der Host raeumt den Client ab und reicht 4Ch an
+; DOS weiter; dort faengt ein kurz gesetzter INT-21h-Vektor den Aufruf ab und kehrt hierher zurueck (RD2 endet normal).
+dpmi_leave_ proc far
+    pushad
+    push ds
+    push es
+    push fs
+    push gs
+    mov  bx, DGROUP
+    mov  ds, bx
+    mov  ah, 62h                      ; PSP von RD2 und was der Host beim Beenden dort umbiegt sichern
+    int  21h
+    mov  g_psp, bx
+    mov  es, bx
+    mov  si, 0Ah
+    mov  di, offset g_pspsv
+dl_s1:
+    mov  al, es:[si]
+    mov  [di], al
+    inc  si
+    inc  di
+    cmp  si, 18h
+    jb   dl_s1
+    xor  ax, ax
+    mov  es, ax
+    mov  eax, es:[22h*4]
+    mov  g_ivtsv, eax
+    mov  eax, es:[23h*4]
+    mov  g_ivtsv+4, eax
+    mov  eax, es:[24h*4]
+    mov  g_ivtsv+8, eax
+    mov  eax, es:[21h*4]
+    mov  g_old21, eax
+    cli
+    mov  word ptr es:[21h*4], offset dl_rm
+    mov  word ptr es:[21h*4+2], cs
+    sti
+    mov  g_rmss, ss
+    mov  g_rmsp, sp
+    mov  ax, g_pds
+    mov  cx, ax
+    mov  dx, ax
+    movzx ebx, g_svcsp
+    movzx esi, g_pcs
+    mov  edi, offset dl_pm
+    jmp  dword ptr g_r2p
+dl_pm:
+    mov  ax, 4C00h
+    int  21h
+dl_halt:
+    jmp  dl_halt
+dl_rm:                                ; Realmodus, vom Host (oder DOS-Kette): Vektor zurueck, Stapel wie vorher
+    cli
+    mov  ax, DGROUP
+    mov  ds, ax
+    xor  ax, ax
+    mov  es, ax
+    mov  eax, g_old21
+    mov  es:[21h*4], eax
+    mov  eax, g_ivtsv
+    mov  es:[22h*4], eax
+    mov  eax, g_ivtsv+4
+    mov  es:[23h*4], eax
+    mov  eax, g_ivtsv+8
+    mov  es:[24h*4], eax
+    mov  es, g_psp
+    mov  si, offset g_pspsv
+    mov  di, 0Ah
+dl_s2:
+    mov  al, [si]
+    mov  es:[di], al
+    inc  si
+    inc  di
+    cmp  di, 18h
+    jb   dl_s2
+    mov  bx, g_psp                    ; aktueller PSP wieder RD2 (der Host kann ihn umgestellt haben)
+    mov  ah, 50h
+    int  21h
+    mov  ss, g_rmss
+    mov  sp, g_rmsp
+    sti
+    cld
+    pop  gs
+    pop  fs
+    pop  es
+    pop  ds
+    popad
+    retf
+dpmi_leave_ endp
 
 ; ---- Dienst im PM (Speicher, Selektoren, Kopieren): AX = Nummer, Daten in g_a..g_d, Ergebnis g_err -----------
 svc_call_ proc far

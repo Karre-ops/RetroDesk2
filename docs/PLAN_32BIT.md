@@ -102,7 +102,16 @@ SM_LFB (VESA 2.0 linear 640x480, 256 Farben, DPMI 0800h). Mit -zm und eliminate 
 (FEN32 9 KB). Beispiel apps/test32/FEN32.C: Zeichnen, Puffer-Bitmap, Zeitgeber, Dialog mit 32-Bit-Dialogprozedur,
 100 KB Datei, Profil, zweiter 32-Bit-Task zugleich; test/rd32.sh prueft alles (VESA-Farbe, LFB).
 Hinweis: Fensterklassen gehoeren einem Task, eine zweite Instanz braucht einen eigenen Klassennamen.
-Offen: Linkwerkzeug fuer DOS (rd32link nur Python), Abmelden beim Host am RD2-Ende.
+Stand 21.11.2026 (Abschluss Schritt 4): Linken unter DOS mit RDRC ... /32:BILD.B32 (byte-gleich mit
+tools/rd32link.py, test/rdrc.sh). Den Speicher bis Ende BSS traegt jetzt der Linker in den Kopf ein (Segment
+RD32ENDE hinter _BSS in RD32C0), die Map-Datei wird nicht mehr gebraucht; RD32STUB.OBJ liegt im SDK32.
+Abmelden: RD32.MOD bleibt nach der Anmeldung geladen; am Ende von RD2 (Export 1) ruft es im PM INT 21h/4Ch,
+der Host raeumt den Client ab, ein kurz gesetzter INT-21h-Vektor faengt das 4Ch ab, RD2 endet normal. Zweimal RD2
+hintereinander mit 32-Bit-Programm geprueft (test/rd32.sh). Beim Abmelden sichert RD32 PSP-Adressen und INT 22h-24h
+und stellt sie wieder her. CWSDPMI -p behaelt beim ersten Client einen DOS-Block (Seitentabellen, ca. 4,5 KB) dauerhaft;
+DOS ordnet ihn RD2 zu und gab ihn am Ende von RD2 frei (zweiter Lauf: MCB-Kette zerstoert). RD32 gibt neu angelegte
+Bloecke des Hosts deshalb dem System (Eigentuemer 8). Ab dem zweiten Lauf bleibt der freie Speicher gleich (rund
+23 KB weniger als im ersten Lauf, weil der Dauerblock in der Reserve liegt). RD32.MOD 4,5 KB (Grenze 5 KB, Diskette 5).
 
 ## Schritt 5: RD3D (ab 386, braucht 2 und 4)
 - Schlanke API: Dreiecke, Texturen, Z-Puffer, Doppelpuffer, Nebel, Alpha. Läuft im Vollbild und im Fenster.

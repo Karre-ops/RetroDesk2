@@ -1,6 +1,6 @@
 ; RD32C0.ASM - Startcode fuer RD2/32-Programme (32 Bit, flach), PLAN_32BIT Schritt 4a
 ; SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
-; Muss als erste Datei gelinkt werden (wlink format raw bin, offset=0): der Kopf liegt am Bildanfang.
+; Muss als erste Datei gelinkt werden (wlink format raw bin, offset=0, start=rd32_kopf): der Kopf liegt am Bildanfang.
 ; RD32.MOD laedt das Bild in DPMI-Speicher, CS/DS/SS haben die Bildbasis, Grenze 4 GB (lineare Adressen: rd32_lin).
 ; Umschaltung roh (DPMI 0306h), Taskblock (TB) unter 1 MB: Offsets wie RD32A.ASM.
 .386p
@@ -12,8 +12,8 @@ rd32_kopf:
 hdr     db 'R32!'
         dd offset pm_start            ; +4
         dd offset pm_cb               ; +8
-        dd 0                          ; +12 Bildgroesse (rd32link.py)
-        dd 0                          ; +16 Speicher mit BSS (rd32link.py)
+        dd 0                          ; +12 frei (frueher Bildgroesse)
+        dd offset rd32_ende           ; +16 Speicher bis Ende BSS (STACK-Segment liegt zuletzt, traegt der Linker ein)
         dd 16384                      ; +20 Stapel
 _rd32_tlin dd 0                       ; +24 Taskblock linear (RD32.MOD)
 _rd32_base dd 0                       ; +28 Bildbasis linear
@@ -99,4 +99,18 @@ pm_back:                              ; vom Realmodus: DS = ES = SS = Datenselek
         pop  dword ptr [ebp+4]
         popad
         ret
+
+_DATA   segment dword public use32 'DATA'   ; Reihenfolge wie wcc386, dazu RD32ENDE als letztes BSS-Segment
+_DATA   ends
+CONST   segment dword public use32 'DATA'
+CONST   ends
+CONST2  segment dword public use32 'DATA'
+CONST2  ends
+_BSS    segment dword public use32 'BSS'
+_BSS    ends
+RD32ENDE segment dword public use32 'BSS'    ; leer: markiert das Ende des Speichers (Kopf +16)
+public rd32_ende
+rd32_ende label byte
+RD32ENDE ends
+DGROUP  group _DATA, CONST, CONST2, _BSS, RD32ENDE
 end

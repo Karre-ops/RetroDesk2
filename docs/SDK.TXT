@@ -266,6 +266,24 @@ Daten neu zeichnen. RD2 haelt kein Abbild im Speicher. ScreenRelease(fenster)
 gibt den Schirm zurueck (auch DestroyWindow und das Programmende tun das).
 Beispiel: apps/test/VOLLTEST.C.
 
+RD2/32-Programme (ab 386, Diskette 5 "RD2 32", Ordner \SDK32)
+---------------------------------------------------------------
+32 Bit, flaches Modell, Open Watcom wcc386. Die ganze API aus RD2.H gilt
+(Zeiger sind 32-Bit-Zeiger), dazu RD2_32.H: rd32_alloc/rd32_free (Speicher
+ueber 1 MB), Puffer-Bitmap BufCreate/BufShow, ScreenPtr und SM_LFB (VESA 2.0
+linear). Fensterklassen gehoeren einem Programm (zweite Instanz: eigener
+Name). Braucht einen DPMI-Host: INSTALL traegt CWSDPMI -p in CONFIG.SYS ein.
+
+  wcc386 -bt=dos -mf -zl -zm -s -os FEN32.C
+  wlink format raw bin name FEN32.B32 option offset=0,start=rd32_kopf,
+        eliminate,nodefaultlibs file RD32C0,FEN32,RD32LIB,RD32API
+  wlink format dos name FEN32.EXE file RD2START,RD32STUB library RD2
+  RDRC FEN32.RC FEN32.EXE "Fen32" /32:FEN32.B32
+
+RD32C0 muss zuerst stehen. Die .RC sollte BEDARF CPU 386 enthalten (die
+Shell meldet dann auf 8088/286 "braucht 386"). Beispiele: FEN32.C (Fenster,
+Dialog, Puffer-Bitmap, Datei, zwei Tasks) und VOLL32.C (Vollbild 13h/LFB).
+
 Die vollstaendige Beschreibung (Programmformat, Module, Treiber, Speicher,
 Grenzen) steht in docs/SPEC.md im Quelltext von RetroDesk 2:
 https://github.com/Karre-ops/RetroDesk2

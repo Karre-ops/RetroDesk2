@@ -1,7 +1,7 @@
 #!/bin/bash
 # RDRC.EXE (DOS-Fassung des Ressourcen-Compilers) gegen tools/rdrc.py + tools/rd2link.py: jede .RC im Baum wird
 # mit beiden uebersetzt und an eine Kopie von LEER.EXE gehaengt, die EXE muessen byte-gleich sein. RDRC laeuft in
-# DOSBox. Dazu: zweimal linken (Anhang ersetzt), "-" ohne Ressourcen, Fehlermeldung mit Zeilennummer. Ca. 20 s.
+# DOSBox. Dazu: zweimal linken (Anhang ersetzt), "-" ohne Ressourcen, /32 (RD2/32), Fehlermeldung mit Zeilennummer. Ca. 20 s.
 cd "$(dirname "$0")/.."
 F=0; W=obj/rdrct
 python3 -c "import shutil; shutil.rmtree('$W', True)"; mkdir -p $W
@@ -29,6 +29,9 @@ for q in obj/pas/tp/PTEST.EXE obj/pas/fp/PHALLO.exe; do [ -f $q ] || continue
   python3 tools/rd2link.py $W/X/PP$NPAS.EXE "Pascal $NPAS" --pas obj/RD2PAS.BIN >/dev/null
   printf 'C:\\RDRC.EXE - PAS%d.EXE "Pascal %d" /PAS > P%d.TXT\r\nC:\\RDRC.EXE - PAS%d.EXE "Pascal %d" /PAS >> P%d.TXT\r\n' $NPAS $NPAS $NPAS $NPAS $NPAS $NPAS >> $W/T.BAT
 done
+# /32: RD2/32-Programm (FEN32: Vorspann + .RC + 32-Bit-Bild) wie build.sh app32 / rd32link.py
+cp out/FEN32.EXE $W/X/F32.EXE; cp obj/FEN32.EXE.b32 $W/X/FEN32.B32; cp apps/test32/FEN32.RC $W/X/
+printf 'C:\\RDRC.EXE FEN32.RC F32.EXE "Fen32" /32:FEN32.B32 > F.TXT\r\n' >> $W/T.BAT
 printf 'cd \\\r\necho ENDE > ENDE.TXT\r\nexit\r\n' >> $W/T.BAT
 for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in dosbox*) kill ${p#/proc/} 2>/dev/null;; esac; done
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy timeout 100 dosbox -noconsole -c "mount c $W" -c "c:" -c "T.BAT" -exit >/dev/null 2>&1
@@ -45,6 +48,7 @@ if [ $NPAS = 0 ]; then echo "--     /PAS nicht geprueft (erst test/pascal.sh lau
 else ok2=0; for k in $(seq $NPAS); do cmp -s $W/X/PAS$k.EXE $W/X/PP$k.EXE && ok2=$((ok2+1)); done
   [ $ok2 = $NPAS ] && echo "ok     /PAS: $NPAS Pascal-EXE (TP, FPC) byte-gleich mit rd2link.py --pas, zweiter Lauf aendert nichts" || { echo "FEHLER /PAS ($ok2 von $NPAS)"; F=1; }
 fi
+cmp -s $W/X/F32.EXE out/FEN32.EXE && echo "ok     /32: RD2/32-Programm byte-gleich mit rd32link.py" || { echo "FEHLER /32: $(tr -d '\r' < $W/X/F.TXT 2>/dev/null | head -2)"; F=1; }
 B2=$(tr -d '\r' < $W/X/B.TXT 2>/dev/null | tr '\n' ' ')
 if echo "$B2" | grep -q "BOES.RC(3): unbekannt: BLAU.*FEHLERCODE"; then echo "ok     Fehler mit Zeile: $B2"; else echo "FEHLER Fehlermeldung: $B2"; F=1; fi
 [ $F = 0 ] && echo "RDRC: alles ok" || echo "RDRC: FEHLER"

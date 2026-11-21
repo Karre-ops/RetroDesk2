@@ -342,6 +342,18 @@ static void datei(W typ, W nr, W sp, const char *rcpfad)
     fertig(typ, nr, sp);
 }
 
+static void bild32(const char *p)                 /* RD2/32: 32-Bit-Bild (wlink format raw bin) als Ressource 11 Nr. 1 */
+{
+    FILE *f = fopen(p, "rb"); unsigned n; D l = 0;
+    if (!f) fehler("Datei fehlt: %s", p);
+    if (fread(puf, 1, 4, f) != 4 || memcmp(puf, "R32!", 4)) { fclose(f); fehler("%s: kein RD2/32-Bild (R32!)", p); }
+    fwrite(puf, 1, 4, tmp); l = 4;
+    while ((n = fread(puf, 1, PUF, f)) != 0) { if (fwrite(puf, 1, n, tmp) != n) fehler("Schreibfehler RDRC.$$$", 0); l += n; }
+    fclose(f);
+    if (nres >= MAXRES) fehler("zu viele Ressourcen", 0);
+    verz[nres].typ = 11; verz[nres].nr = 1; verz[nres].sp = 0; verz[nres].lang = l; nres++;
+    tmplang += l;
+}
 static void uebersetze(const char *pfad)
 {
     W sp = 0;
@@ -438,17 +450,18 @@ static D opt(const char *s)
 static void hilfe(void)
 {
     printf("RDRC - Ressourcen-Compiler fuer RetroDesk 2\n\n"
-           "RDRC QUELLE.RC PROG.EXE \"Name\" [/T:P|M|D] [/S:Stapel] [/K:KB] [/V:Version] [/A:API] [/F:Flags] [/PAS]\n"
+           "RDRC QUELLE.RC PROG.EXE \"Name\" [/T:P|M|D] [/S:Stapel] [/K:KB] [/V:Version] [/A:API] [/F:Flags] [/PAS] [/32:BILD.B32]\n"
            "RDRC - PROG.EXE \"Name\" ...   (ohne Ressourcen)\n\n"
            "Uebersetzt QUELLE.RC und haengt RD2-Block und Ressourcen an PROG.EXE an.\n"
            "Vorgaben: /T:P /S:4096 /K:0 /V:0x0100 /A:0x0200 /F:0. Name hoechstens 15 Zeichen.\n"
-           "/PAS: Pascal-Programm (Turbo Pascal, Free Pascal mit Unit RD2): Vorspann davor.\n");
+           "/PAS: Pascal-Programm (Turbo Pascal, Free Pascal mit Unit RD2): Vorspann davor.\n"
+           "/32: RD2/32-Programm: 32-Bit-Bild an den 16-Bit-Vorspann (RD32STUB) haengen.\n");
     exit(1);
 }
 
 int main(int argc, char **argv)
 {
-    char typ = 'P'; int pas = 0; D api = 0x200, flags = 0, stack = 4096, kb = 0, ver = 0x100;
+    char typ = 'P'; int pas = 0; const char *b32 = 0; D api = 0x200, flags = 0, stack = 4096, kb = 0, ver = 0x100;
     unsigned char kopf[28], blk[48], ab[16], kp[4096];
     char *name = 0; int i, fd; long dl, img, ende;
     W summe = 0; D pos, off;
@@ -458,6 +471,7 @@ int main(int argc, char **argv)
     for (i = 4; i < argc; i++) {
         char *a = argv[i];
         if ((a[0] == '/' || a[0] == '-') && !stricmp(a + 1, "PAS")) { pas = 1; continue; }
+        if ((a[0] == '/' || a[0] == '-') && a[1] == '3' && a[2] == '2' && a[3] == ':' && a[4]) { b32 = a + 4; continue; }
         if ((a[0] != '/' && a[0] != '-') || !a[1] || a[2] != ':') hilfe();
         switch (toupper(a[1])) {
         case 'T': typ = (char)toupper(a[3]); if (!strchr("PMD", typ) || !typ || a[4]) hilfe(); break;
@@ -472,6 +486,7 @@ int main(int argc, char **argv)
     tmp = fopen("RDRC.$$$", "w+b");
     if (!tmp) { printf("RDRC: RDRC.$$$ laesst sich nicht anlegen\n"); return 1; }
     if (strcmp(argv[1], "-")) uebersetze(argv[1]);
+    if (b32) bild32(b32);
 
     fd = open(argv[2], O_RDWR | O_BINARY);
     if (fd < 0) fehler("%s nicht gefunden", argv[2]);

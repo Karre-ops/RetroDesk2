@@ -143,13 +143,13 @@ python3 tools/rdrc.py src/rd32/RD32.RC obj/RD32.res >/dev/null && python3 tools/
 wasm -q -3 -fo=$O/RD32C0.OBJ sdk/RD32C0.ASM
 wcc386 -bt=dos -mf -zl -zm -s -os -zq -w4 -3r -i=sdk -fo=$O/RD32LIB.OBJ sdk/RD32LIB.C   # -zm + eliminate: nur Benutztes ins Bild
 python3 tools/mk32api.py sdk/RD2API.H obj/RD32API.C >/dev/null && wcc386 -bt=dos -mf -zl -zm -s -os -zq -w4 -3r -i=sdk -fo=$O/RD32API.OBJ obj/RD32API.C   # Stufe 4b: alle einfachen API-Funktionen
-wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/RD32STUB.obj sdk/RD32STUB.C
+wcc -0 -mm -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=$O/RD32STUB.OBJ sdk/RD32STUB.C
 app32() {   # $1 Quelle  $2 EXE  $3 Anzeigename: 32-Bit-Bild (raw) + 16-Bit-Vorspann + .RC (BEDARF CPU 386)
   local b=obj/$2; wcc386 -bt=dos -mf -zl -s -os -zq -w4 -3r -i=sdk -fo=$b.o32 $1
   wlink option quiet format raw bin name $b.b32 option offset=0 file $O/RD32C0.OBJ,$b.o32,$O/RD32LIB.OBJ,$O/RD32API.OBJ option nodefaultlibs,eliminate,start=rd32_kopf,map=$b.b32map 2>&1 | grep -v "W1014\|W1023" || true
-  wlink option quiet format dos name $O/$2 file obj/rd2start.obj,obj/RD32STUB.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs >/dev/null
+  wlink option quiet format dos name $O/$2 file obj/rd2start.obj,$O/RD32STUB.OBJ library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs >/dev/null
   python3 tools/rdrc.py "${1%.C}.RC" $b.res >/dev/null || exit 1
-  python3 tools/rd32link.py $b.b32 $b.b32map $O/$2 "$3" --res $b.res >/dev/null
+  python3 tools/rd32link.py $b.b32 $O/$2 "$3" --res $b.res >/dev/null
 }
 app32 apps/test32/VOLL32.C VOLL32.EXE "Voll32"
 app32 apps/test32/FEN32.C FEN32.EXE "Fen32"
