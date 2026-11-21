@@ -6,7 +6,7 @@
 .386p
 .model flat
 .code
-public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_alloc_, rd32_free_, SCREENMODE, ScreenPtr_, SCREENPALETTE, SCREENRESTORE
+public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_alloc_, rd32_free_, SCREENMODE, ScreenPtr_, SCREENPALETTE, SCREENRESTORE, ScreenModeVesa_, ScreenVesaList_
 public rd32_mkopf, setjmp_, longjmp_, __8087, __real87, __chipbug, ___chipbug, _rd32_jb, _rd32_ecode, _rd32_beiende
 extrn RdMod32Init_:near
 rd32_mkopf:
@@ -28,6 +28,8 @@ f_int31 dd 0                          ; +56 rd32_int31         /
         dd offset _rd32_beiende       ; +60 Ende des Moduls (atexit, Dateien der Laufzeit), ruft rd32_modfree
         dd offset _rd32_jb            ; +64 Kopie aus dem Programm: exit im Modul beendet das Programm
         dd offset __8087              ; +68 Gleitkomma wie im Programm
+f_svesa dd 0                          ; +72 ScreenModeVesa (Lader)
+f_slist dd 0                          ; +76 ScreenVesaList (Lader)
 
 minit:  jmp  RdMod32Init_
 rd32_call_:    jmp dword ptr f_call
@@ -38,6 +40,8 @@ ScreenPtr_:    jmp dword ptr f_sptr
 SCREENPALETTE: jmp dword ptr f_spal
 SCREENRESTORE: jmp dword ptr f_srest
 rd32_int31_:   jmp dword ptr f_int31
+ScreenModeVesa_: jmp dword ptr f_svesa
+ScreenVesaList_: jmp dword ptr f_slist
 
 setjmp_:                              ; wie RD32C0: EAX = jmp_buf
         mov  [eax], ebx

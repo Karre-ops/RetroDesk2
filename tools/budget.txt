@@ -139,3 +139,4 @@ RD32C.LIB       40960    0   Z  SDK RD2/32: C-Laufzeit (string, stdlib, stdio, p
 TESTC32.EXE     40960    0   Z  Pruefprogramm C-Laufzeit RD2/32 (test/rd32.sh)
 TESTM32.M32     20480    0   Z  Beispielmodul RD2/32 (test/rd32.sh)
 TESTMOD.EXE     20480    0   Z  Pruefprogramm 32-Bit-Module (test/rd32.sh)
+VESA32.EXE      20480    0   Z  Pruefprogramm VESA-Modi RD2/32 (test/rd32.sh)

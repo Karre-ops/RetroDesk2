@@ -173,6 +173,15 @@ Entscheidung Karsten 21.11.2026: Glide (Stufe 5b) wartet auf den Treiber-Stack.
 - Pruefung TESTMOD/TESTM32 (12 Pruefungen) in test/rd32.sh.
 - Offen: Module unter DOS bauen (RDRC), Module, die Module laden, gemeinsamer Code mehrerer Programme.
 
+## VESA-Modi (Stand 21.11.2026)
+- ScreenModeVesa(w, h, bpp, si) sucht in der VBE-2.0-Modusliste (4F00/4F01) einen linearen Modus mit passender Groesse und
+  Farbtiefe (8, 15, 16, 24, 32; 15 auch als 16 Bit mit 5 Bit Gruen) und setzt ihn mit 4F02 | 4000h. ScreenVesaList
+  liefert alle linearen Modi. SM_LFB in ScreenMode ist jetzt 640x480x8 ueber denselben Weg.
+- Bildspeicher: DPMI 0800h, mindestens 3 MB auf einmal (DPMI 0.9 kann Abbildungen nicht freigeben), neu nur bei anderer
+  Adresse oder groesserem Bedarf. VBE 3: Zeilenbytes linear (+32h). ScreenRestore setzt denselben Modus, Palette nur bei 8 Bit.
+- Module erreichen beides ueber den Kopf (+72, +76). Pruefung VESA32 in test/rd32.sh (QEMU: 64 lineare Modi).
+- Offen: RD3D nur 8 Bit (13h, 640x480); RD3D in 800x600/1024x768 und in 16/32 Bit, Bankumschaltung ohne LFB (VBE 1.2).
+
 ## Reihenfolge und Aufwand
 1. Bedarf, SysInfo, RDSETUP (klein bis mittel)
 2. Vollbild unterbrechbar (mittel)

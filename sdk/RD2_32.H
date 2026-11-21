@@ -30,4 +30,9 @@ int   RdMod32Init(void);
 /* Vollbild: ScreenMode wie RD2.LIB (SM_TEXT, SM_13H) und SM_LFB; ScreenPtr = Bildspeicher als Zeiger */
 #define SM_LFB 7                                  /* 640x480 256 Farben, VESA 2.0 linearer Bildspeicher (nur 32 Bit) */
 BYTE *ScreenPtr(void);
+/* VESA linear in jeder Groesse und Farbtiefe der Karte (VBE 2.0): bpp 8 (Palette), 15/16 (RGB 555/565), 24, 32
+   (je ein Byte Blau, Gruen, Rot). si->zeilenbytes beachten. ScreenRestore setzt denselben Modus wieder. */
+typedef struct { WORD nr, w, h, bpp; } VESAMODE;
+WORD  ScreenModeVesa(WORD w, WORD h, WORD bpp, SCREENINFO *si);   /* 1 = ok, sonst LastError RD_ERR_NOTSUP */
+WORD  ScreenVesaList(VESAMODE *l, WORD max);      /* lineare Modi der Karte, Anzahl */
 #endif

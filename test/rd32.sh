@@ -14,7 +14,7 @@ a = Image.open('$1').convert('RGB'); print(a.size[0], a.size[1], len(a.getcolors
 start() {   # $1 AUTOEXEC-Zeilen
   printf "@echo off\r\n$1A:\\\\FDAPM.COM POWEROFF\r\n" > obj/ae_rd32.txt
   FMT=1440 bash tools/mkdisk.sh $IMG obj/ae_rd32.txt >/dev/null 2>&1
-  mcopy -o -i $IMG out/VOLL32.EXE out/FEN32.EXE out/SCHUTZ32.EXE out/TESTC32.EXE out/TESTMOD.EXE out/TESTM32.M32 out/RD32.MOD out/CWSDPMI.EXE ::/RD2/; mcopy -o -i $IMG out/VOLL32.EXE ::/RD2/ZVOLL32.EXE
+  mcopy -o -i $IMG out/VOLL32.EXE out/FEN32.EXE out/SCHUTZ32.EXE out/TESTC32.EXE out/TESTMOD.EXE out/TESTM32.M32 out/VESA32.EXE out/RD32.MOD out/CWSDPMI.EXE ::/RD2/; mcopy -o -i $IMG out/VOLL32.EXE ::/RD2/ZVOLL32.EXE
   [ -n "$GRAFIK" ] && { printf '[System]\r\nGrafik=%s\r\n' $GRAFIK > obj/RD2.INI; mcopy -o -i $IMG out/$GRAFIK.DRV obj/RD2.INI ::/RD2/; }
   rm -f $SOCK $SER; touch $SER
   timeout 150 qemu-system-i386 -cpu 486 -m 16 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
@@ -74,6 +74,22 @@ L=$(tr -d '\r' < $SER)
 echo "$L" | grep -a "TESTMOD FEHLER\|TESTMOD: LastError" | head -5 | sed 's/^/       /'
 pruef "Module: laden, Exporte, Laufzeit, API, Fenster im Modul, zwei Ladungen" "echo \"\$L\" | grep -q 'TESTMOD: [0-9]* Pruefungen, Fehler 0' && ! echo \"\$L\" | grep -q 'TESTMOD FEHLER'"
 pruef "Module: Ende jeder Ladung (auch am Programmende), Speicher zurueck" "[ \$(echo \"\$L\" | grep -c 'TESTM32: Ende') = 3 ] && echo \"\$L\" | grep -q 'RD32: Ende 0x00000000' && echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
+# ---- VESA-Modi (VESA32: 800x600 und 1024x768 256 Farben, 640x480 64K, 800x600 16,7 Mio., je Enter weiter) ----
+start "A:\\\\RD2\\\\CWSDPMI.EXE -p\\r\\nA:\\\\RD2\\\\RD2.EXE /VGA A:\\\\RD2\\\\VESA32.EXE\\r\\n"
+rm -f obj/r32_v*.ppm
+for k in 800x600x8 1024x768x8 640x480x16 800x600x32; do
+  waitn "VESA32: $k gezeichnet\|VESA32: $k fehlt" 1 250 && sleep 1.5 && $Q "screendump obj/r32_v$k.ppm" sleep0.5 "sendkey ret" >/dev/null 2>&1
+done
+waitn "RD2: Speicher vollstaendig zurueck" 1 150; sleep 1; kill $QP 2>/dev/null; wait $QP 2>/dev/null
+L=$(tr -d '\r' < $SER)
+echo "       $(echo "$L" | grep -a 'lineare Modi' | sed 's/VESA32: //')"
+for k in 800x600x8 1024x768x8 640x480x16 800x600x32; do
+  B=$([ -f obj/r32_v$k.ppm ] && bild obj/r32_v$k.ppm); w=${k%%x*}; r=${k#*x}; h=${r%%x*}; t=${r#*x}
+  m=$([ $t = 8 ] && echo 150 || echo 5000)   # 8 Bit: Palette 3-3-2, je nach Groesse fallen Muster zusammen
+  echo "       $k: Bild $B"
+  pruef "VESA $k linear: gesetzt, Bild ${w}x$h mit mindestens $m Farben" "echo \"\$L\" | grep -q 'VESA32: $k gezeichnet' && set -- \$B && [ \"\$1\" = $w ] && [ \"\$2\" = $h ] && [ \"\${3:-0}\" -ge $m ]"
+done
+pruef "VESA: alle Modi gezeigt, Ende, Speicher zurueck" "echo \"\$L\" | grep -q 'VESA32: alle Modi gezeigt' && echo \"\$L\" | grep -q 'RD32: Ende 0x00000000' && echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
 # ---- C-Laufzeit (TESTC32): mit 387 und mit Gleitkomma in Software ----
 for fp in "" S; do
   start "A:\\\\RD2\\\\CWSDPMI.EXE -p\\r\\nA:\\\\RD2\\\\RD2.EXE /VGA A:\\\\RD2\\\\TESTC32.EXE $fp\\r\\n"

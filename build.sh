@@ -156,6 +156,7 @@ app32() {   # $1 Quelle  $2 EXE  $3 Anzeigename: 32-Bit-Bild (raw) + 16-Bit-Vors
   python3 tools/rd32link.py $b.b32 $O/$2 "$3" --res $b.res >/dev/null
 }
 app32 apps/test32/VOLL32.C VOLL32.EXE "Voll32"
+app32 apps/test32/VESA32.C VESA32.EXE "Vesa32"
 app32 apps/test32/FEN32.C FEN32.EXE "Fen32"
 app32 apps/test32/WUERFEL.C WUERFEL.EXE "Wuerfel"
 app32 apps/test32/SCHUTZ32.C SCHUTZ32.EXE "Schutz32"
