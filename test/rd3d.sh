@@ -29,7 +29,7 @@ lauf() {   # $1 Name  $2 Befehlszeile  $3 Grafik (leer = /VGA)  $4 Mindestfarben
 }
 lauf voll13 "" "" 12 640 400
 lauf lfb "L" "" 12 640 480
-lauf fenster_vesa "F" VESA 12 640 480
+lauf fenster_vesa "F" VESA 8 640 480   # Farbzahl haengt vom Drehwinkel beim Foto ab (9 bis 13)
 lauf fenster_vga16 "F" VGA16 5 640 480
 [ $F = 0 ] && echo "RD3D: alles ok" || { echo "RD3D: FEHLER"; echo "$L" | grep -a "WUERFEL\|RD32\|Fehler" | tail -15; }
 exit $F

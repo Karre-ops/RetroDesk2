@@ -39,6 +39,16 @@ extern GLOB g; extern BYTE g_stktop;
 extern DWORD _rd2api;
 extern void __far dpmi_enter(WORD seg);
 extern void __far dpmi_leave(void);
+extern WORD g_preon, g_cs32[8], g_extb, g_exnr; extern DWORD g_tblin[8], g_pmin[8], g_pstub[8], g_exeip;
+#pragma aux g_preon "_*"; 
+#pragma aux g_cs32 "_*"; 
+#pragma aux g_extb "_*"; 
+#pragma aux g_exnr "_*"; 
+#pragma aux g_tblin "_*"; 
+#pragma aux g_pmin "_*"; 
+#pragma aux g_pstub "_*"; 
+#pragma aux g_exeip "_*";
+static struct { DWORD hdl, sels; HMEM htb; } tk[8];
 extern void __far svc_call(WORD nr);
 extern void __far rm_start(WORD tb);
 extern void __far rm_api(void); extern void __far rm_cbret(void);
@@ -114,6 +124,7 @@ static WORD dpmi(void)
     if (g.err) { DbgHex("RD32: DPMI-Anmeldung Fehler", g.err); return 0; }
     DbgHex("RD32: DPMI angemeldet, Zustand", g.stsize);
     bereit = 1;
+    { SYSINFO si; KernInfo(&si); g_preon = (si.modus & RD_MODE_KOOP) ? 0 : 1; }   /* RD2 /KOOP: auch 32 Bit kooperativ */
     ModLoad("RD32.MOD");                          /* bleibt geladen, bis RD2 endet (dann Export 1: abmelden) */
     return 1;
 }
@@ -125,7 +136,7 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
 {
     static char pfad[80];
     static struct { char sig[4]; WORD api, flags, stack, kb; char name[16]; WORD ver, nexp, nres, oexp, ores; } rb;
-    static struct { char sig[4]; DWORD start, cb, isize, msize, ssize, tlin, base; } h;
+    static struct { char sig[4]; DWORD start, cb, isize, msize, ssize, tlin, base, pre, brende; } h;
     static RESDIR d;
     DWORD blk, off = 0, len = 0, gesamt, lin, hdl, sels, pos; WORD k, n, tseg; short f, r = -1; HMEM htb; BYTE FAR *tb;
     if (!dpmi()) { MsgBox(0, "Kein DPMI-Host (32 Bit) gefunden.\nCWSDPMI -p vor RD2 laden.", "RD2/32", MB_OK | MB_ERROR); return -1; }
@@ -168,8 +179,11 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
     for (k = 0; k < 8 && g.tab[2 * k]; k++) ;
     if (k == 8) goto weg;
     g.tab[2 * k] = W(TB_HTASK); g.tab[2 * k + 1] = tseg;
+    tk[k].hdl = hdl; tk[k].sels = sels; tk[k].htb = htb;
+    g_tblin[k] = (DWORD)tseg << 4; g_pmin[k] = h.brende; g_pstub[k] = h.pre; g_cs32[k] = (WORD)sels;
     DbgPrint("RD32: Start");
     rm_start(tseg);
+    g_cs32[k] = 0;
     r = (short)D(TB_CBRES);
     DbgHex("RD32: Ende", (WORD)r);
     g.tab[2 * k] = 0;
@@ -177,6 +191,17 @@ weg:
     g.c = hdl; g.d = sels; svc_call(3);
     MemFree(htb);
     return r;
+}
+/* Ausnahme im 32-Bit-Code (RD32A ex_kill/rm_kill): Realmodus auf dem Stapel des Tasks. Speicher frei, Meldung, Task beenden. */
+void __far rd32_ausnahme(void)
+{
+    static const BYTE nr[5] = { 0, 6, 12, 13, 14 }; WORD k;
+    DbgHex("RD32: Ausnahme", nr[g_exnr < 5 ? g_exnr : 0]); DbgHex("RD32: bei", g_exeip);
+    for (k = 0; k < 8 && !(g.tab[2 * k] && g.tab[2 * k + 1] == g_extb); k++) ;
+    if (k < 8) { g_cs32[k] = 0; g.tab[2 * k] = 0; g.c = tk[k].hdl; g.d = tk[k].sels; svc_call(3); MemFree(tk[k].htb); }
+    MsgBox(0, "Das 32-Bit-Programm hat einen Fehler verursacht\nund wurde beendet.", "RD2/32", MB_OK | MB_ERROR);
+    DbgPrint("RD32: Programm nach Ausnahme beendet");
+    TaskKill(TaskSelf(), 0xDEAD);
 }
 static void RDEXPORT ende(void)                   /* Ende von RD2 (k_modrest): beim DPMI-Host abmelden */
 {

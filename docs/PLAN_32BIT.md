@@ -137,6 +137,19 @@ VESA/VGA16/mono). Treiber austauschbar (R3DDRV), jetzt nur "Software". Hilfen: D
 Beispiel apps/test32/WUERFEL.C mit Selbsttest (Z, Alpha, Nebel), test/rd3d.sh (4 Darstellungen).
 Entscheidung Karsten 21.11.2026: Glide (Stufe 5b) wartet auf den Treiber-Stack.
 
+## Zeitscheiben und Absturzschutz (Stand 21.11.2026)
+- Zeitscheiben: RD32 setzt beim Anmelden einen eigenen PM-Zeitgeber (DPMI 0205h, INT 8). Steht ein 32-Bit-Task in seinem
+  eigenen Code (hinter RD32C0, Kopf +36), biegt er alle 4 Takte (ca. 55 ms) die Rueckkehr auf pm_preempt im Bild um
+  (Kopf +32): der Task ruft dort TaskYield und macht danach an der alten Stelle weiter (TB_PREEIP, laufender Aufruf
+  gesichert). CWSDPMI legt vor den Rahmen des unterbrochenen Codes einen eigenen; RD32 erkennt beide Lagen.
+  RD2 /KOOP: SYSINFO.modus traegt RD_MODE_KOOP, dann auch 32 Bit nur kooperativ.
+- Absturzschutz: Ausnahmen 0, 6, 0Ch, 0Dh, 0Eh (DPMI 0203h). Im Code eines 32-Bit-Tasks: Rahmen auf ex_kill umbiegen,
+  im Realmodus auf dem Stapel des Tasks DPMI-Speicher und Taskblock frei, Meldung, TaskKill. Sonst an den alten Handler.
+  Kein voller Speicherschutz: wegen des flachen Modells mit Umlauf kann ein Programm fremden Speicher beschreiben.
+- Vor dem Abmelden gibt RD32 Zeitgeber und Ausnahmen an den Host zurueck (sonst scheitert der naechste RD2-Lauf).
+- Beispiel apps/test32/SCHUTZ32.C (Endlosschleife ohne API, Division durch 0, Seitenfehler), test/rd32.sh.
+- Stufe 3 (DOS-Programme parallel per V86): eigener Plan docs/PLAN_V86.md, nach dem Treiber-Stack.
+
 ## Reihenfolge und Aufwand
 1. Bedarf, SysInfo, RDSETUP (klein bis mittel)
 2. Vollbild unterbrechbar (mittel)

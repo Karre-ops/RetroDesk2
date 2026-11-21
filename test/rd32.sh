@@ -14,7 +14,7 @@ a = Image.open('$1').convert('RGB'); print(a.size[0], a.size[1], len(a.getcolors
 start() {   # $1 AUTOEXEC-Zeilen
   printf "@echo off\r\n$1A:\\\\FDAPM.COM POWEROFF\r\n" > obj/ae_rd32.txt
   FMT=1440 bash tools/mkdisk.sh $IMG obj/ae_rd32.txt >/dev/null 2>&1
-  mcopy -o -i $IMG out/VOLL32.EXE out/FEN32.EXE out/RD32.MOD out/CWSDPMI.EXE ::/RD2/; mcopy -o -i $IMG out/VOLL32.EXE ::/RD2/ZVOLL32.EXE
+  mcopy -o -i $IMG out/VOLL32.EXE out/FEN32.EXE out/SCHUTZ32.EXE out/RD32.MOD out/CWSDPMI.EXE ::/RD2/; mcopy -o -i $IMG out/VOLL32.EXE ::/RD2/ZVOLL32.EXE
   [ -n "$GRAFIK" ] && { printf '[System]\r\nGrafik=%s\r\n' $GRAFIK > obj/RD2.INI; mcopy -o -i $IMG out/$GRAFIK.DRV obj/RD2.INI ::/RD2/; }
   rm -f $SOCK $SER; touch $SER
   timeout 150 qemu-system-i386 -cpu 486 -m 16 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
@@ -57,6 +57,16 @@ for z in "FEN32 1: Datei 100 KB, Abweichungen 0x00000000" "FEN32 1: Profil ok" "
 pruef "zwei 32-Bit-Tasks laufen verschraenkt (Takte beider vor dem ersten Ende)" "[ \$(echo \"\$L\" | grep -n 'FEN32 2: Takt 0x00000003' | cut -d: -f1) -lt \$(echo \"\$L\" | grep -n 'FEN32 1: Ende' | cut -d: -f1) ]"
 pruef "Bild: Fenster mit Puffer-Bitmap (mindestens 12 Farben)" "set -- $B5; [ \"\${3:-0}\" -ge 12 ]"
 pruef "Speicher nach zwei 32-Bit-Tasks vollstaendig zurueck" "echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
+# ---- Zeitscheiben und Absturzschutz (SCHUTZ32): Endlosschleife, Division durch 0, Seitenfehler ----
+start 'A:\\RD2\\CWSDPMI.EXE -p\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SCHUTZ32.EXE\r\n'
+waitn "SCHUTZ32: nach P noch am Leben" 1 300; sleep 3; $Q "sendkey ret" >/dev/null 2>&1; sleep 1; $Q "sendkey ret" >/dev/null 2>&1
+waitn "SCHUTZ32: Ende" 1 60; waitn "RD2: Speicher vollstaendig zurueck" 1 60; sleep 1; kill $QP 2>/dev/null; wait $QP 2>/dev/null
+L=$(tr -d '\r' < $SER)
+for z in "SCHUTZ32: S gestartet" "SCHUTZ32: 8 Takte waehrend S rechnet" "SCHUTZ32: D teilt durch 0" "RD32: Ausnahme 0x00000000" \
+         "SCHUTZ32: nach D noch am Leben" "SCHUTZ32: P schreibt ins Leere" "RD32: Ausnahme 0x0000000E" "SCHUTZ32: nach P noch am Leben" "SCHUTZ32: Ende"; do
+  pruef "$z" "echo \"\$L\" | grep -q '$z'"; done
+pruef "kein Absturz wurde uebersehen" "! echo \"\$L\" | grep -q 'FEHLER (kein Absturz)'"
+pruef "Speicher nach Endlosschleife und zwei Abstuerzen vollstaendig zurueck" "echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"
 # ---- zweimal hintereinander: RD2 meldet sich am Ende beim DPMI-Host ab, der zweite Lauf meldet sich neu an ----
 start 'A:\\RD2\\CWSDPMI.EXE -p\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\VOLL32.EXE A\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\VOLL32.EXE A\r\n'
 waitn "RD2: Speicher vollstaendig zurueck" 2 300; sleep 2; kill $QP 2>/dev/null; wait $QP 2>/dev/null

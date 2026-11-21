@@ -17,7 +17,8 @@ hdr     db 'R32!'
         dd 16384                      ; +20 Stapel
 _rd32_tlin dd 0                       ; +24 Taskblock linear (RD32.MOD)
 _rd32_base dd 0                       ; +28 Bildbasis linear
-        dd 0, 0
+        dd offset pm_preempt          ; +32 Zeitscheibe: TaskYield-Einschub (RD32 biegt die Rueckkehr hierher)
+        dd offset rd32_brende         ; +36 bis hier nie unterbrechen (Bruecke)
 
 tbz macro                             ; EBP = Taskblock (Bild-relativ, ueber 4 GB umlaufend)
         mov  ebp, _rd32_tlin
@@ -99,6 +100,26 @@ pm_back:                              ; vom Realmodus: DS = ES = SS = Datenselek
         pop  dword ptr [ebp+4]
         popad
         ret
+
+pm_preempt:                           ; vom Zeitgeber eingeschoben: TaskYield, dann weiter an der alten Stelle (TB_PREEIP)
+        push eax                      ; Platz fuer die Rueckkehradresse
+        pushad
+        pushfd
+        cld
+        tbz
+        mov  eax, [ebp+120]
+        mov  [esp+36], eax
+        push dword ptr [ebp+8]        ; laufenden Aufruf (Nummer, Woerter, Ergebnis) sichern
+        push dword ptr [ebp+12]
+        mov  dword ptr [ebp+8], 3     ; TaskYield, keine Woerter
+        call rd32_call_
+        tbz
+        pop  dword ptr [ebp+12]
+        pop  dword ptr [ebp+8]
+        popfd
+        popad
+        ret
+rd32_brende:
 
 _DATA   segment dword public use32 'DATA'   ; Reihenfolge wie wcc386, dazu RD32ENDE als letztes BSS-Segment
 _DATA   ends

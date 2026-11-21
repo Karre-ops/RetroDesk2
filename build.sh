@@ -155,6 +155,7 @@ app32() {   # $1 Quelle  $2 EXE  $3 Anzeigename: 32-Bit-Bild (raw) + 16-Bit-Vors
 app32 apps/test32/VOLL32.C VOLL32.EXE "Voll32"
 app32 apps/test32/FEN32.C FEN32.EXE "Fen32"
 app32 apps/test32/WUERFEL.C WUERFEL.EXE "Wuerfel"
+app32 apps/test32/SCHUTZ32.C SCHUTZ32.EXE "Schutz32"
 app apps/test/AUSLTEST.C AUSLTEST.EXE "AUSLTEST"
 app apps/test/SWAPTEST.C SWAPTEST.EXE "Speicher-Test"
 app apps/test/PRNTEST.C PRNTEST.EXE "PRNTEST"

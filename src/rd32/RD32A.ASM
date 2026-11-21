@@ -36,6 +36,20 @@ g_old21   dd 0        ; 88 INT 21h waehrend des Abmeldens
 g_psp     dw 0        ; PSP von RD2
 g_pspsv   db 14 dup(0); PSP 0Ah..17h (Ende-, Abbruch-, Fehleradresse, Eltern-PSP)
 g_ivtsv   dd 3 dup(0) ; INT 22h..24h
+g_p32seg  dw 0        ; Segment RD32P_TEXT (32-Bit-Code: Zeitgeber, Ausnahmen)
+g_p32cs   dw 0        ; Selektor dafuer
+g_tick    dd 0        ; Zeitgeber-Takte im PM
+public _g_preon, _g_cs32, _g_tblin, _g_pmin, _g_pstub, _g_extb, _g_exnr, _g_exeip
+_g_preon  dw 0        ; 1 = 32-Bit-Tasks praeemptiv umschalten (nicht bei RD2 /KOOP)
+_g_cs32   dw 8 dup(0) ; je Task (Index wie g_tab): Code-Selektor, 0 = frei
+_g_tblin  dd 8 dup(0) ;   Taskblock linear
+_g_pmin   dd 8 dup(0) ;   erste Adresse nach RD32C0 (davor nie unterbrechen)
+_g_pstub  dd 8 dup(0) ;   pm_preempt im Bild
+_g_extb   dw 0        ; Ausnahme: Taskblock-Segment, Nummer (Index), Adresse
+_g_exnr   dw 0
+_g_exeip  dd 0
+g_jo      dd 0        ; Sprungziel beim Weiterreichen
+g_js      dw 0
 g_stk     db 384 dup(0)
 public _g_stktop
 _g_stktop label byte
@@ -69,7 +83,7 @@ TB_ARGS  equ 128
 
 RD32A_TEXT segment word public use16 'CODE'
 assume cs:RD32A_TEXT, ds:DGROUP
-public dpmi_enter_, dpmi_leave_, svc_call_, rm_start_, rm_api_, rm_cbret_, wp0_, wp1_, wp2_, wp3_, wp4_, wp5_, wp6_, wp7_
+public dpmi_enter_, dpmi_leave_, svc_call_, rm_kill_, rm_start_, rm_api_, rm_cbret_, wp0_, wp1_, wp2_, wp3_, wp4_, wp5_, wp6_, wp7_
 
 ; ---- Anmelden beim DPMI-Host: AX = Segment fuer die Host-Daten. Ergebnis in g_err (0 = ok) -------------------
 dpmi_enter_ proc far
@@ -85,6 +99,10 @@ dpmi_enter_ proc far
     mov  g_rmcs, cs
     mov  g_rmss, ss
     mov  g_rmsp, sp
+    push ax
+    mov  ax, RD32P_TEXT
+    mov  g_p32seg, ax
+    pop  ax
     mov  g_err, 1
     mov  ax, 1                        ; 32-Bit-Client
     call dword ptr g_entry
@@ -128,6 +146,79 @@ de_pm:
     mov  ax, 0008h
     int  31h
     jc   de_rm
+    mov  g_err, 3                     ; 32-Bit-Codeselektor fuer RD32P_TEXT, Alias zum Beschreiben
+    xor  ax, ax
+    mov  cx, 1
+    int  31h
+    jc   de_rm
+    mov  g_p32cs, ax
+    mov  bx, ax
+    mov  dx, cs
+    and  dl, 3
+    shl  dl, 5
+    mov  cl, 9Ah
+    or   cl, dl
+    mov  ch, 40h
+    mov  ax, 0009h
+    int  31h
+    jc   de_rm
+    movzx eax, g_p32seg
+    shl  eax, 4
+    mov  dx, ax
+    shr  eax, 16
+    mov  cx, ax
+    mov  bx, g_p32cs
+    mov  ax, 0007h
+    int  31h
+    mov  bx, g_p32cs
+    xor  cx, cx
+    mov  dx, 0FFFFh
+    mov  ax, 0008h
+    int  31h
+    mov  bx, g_p32cs
+    mov  ax, 000Ah
+    int  31h
+    jc   de_rm
+    push es
+    mov  es, ax
+    mov  bx, ax                       ; Alias merken (bleibt)
+    mov  ax, g_pds
+    mov  word ptr es:p_pds, ax
+    mov  ax, 0204h                    ; alter PM-Zeitgeber
+    mov  bl, 8
+    int  31h
+    mov  dword ptr es:p_old8, edx
+    mov  word ptr es:p_old8+4, cx
+    xor  si, si
+de_ex1:
+    mov  bl, byte ptr cs:exnum[si]
+    mov  ax, 0202h
+    int  31h
+    mov  di, si
+    imul di, 6
+    mov  dword ptr es:p_oldex[di], edx
+    mov  word ptr es:p_oldex[di+4], cx
+    inc  si
+    cmp  si, 5
+    jb   de_ex1
+    pop  es
+    mov  ax, 0205h                    ; eigener PM-Zeitgeber (Zeitscheiben fuer 32-Bit-Tasks)
+    mov  bl, 8
+    mov  cx, g_p32cs
+    mov  edx, offset i8pm
+    int  31h
+    xor  si, si
+de_ex2:
+    mov  bl, byte ptr cs:exnum[si]
+    mov  cx, g_p32cs
+    mov  di, si
+    shl  di, 2
+    mov  edx, dword ptr cs:exofs[di]
+    mov  ax, 0203h
+    int  31h
+    inc  si
+    cmp  si, 5
+    jb   de_ex2
     mov  g_err, 0
 de_rm:
     mov  ax, g_rmds
@@ -193,7 +284,25 @@ dl_s1:
     movzx esi, g_pcs
     mov  edi, offset dl_pm
     jmp  dword ptr g_r2p
-dl_pm:
+dl_pm:                                ; erst Zeitgeber und Ausnahmen wieder an den Host (sonst zeigen sie beim naechsten Client ins Leere)
+    mov  es, g_p32cs                  ; lesbarer Code-Selektor fuer RD32P_TEXT
+    mov  edx, dword ptr es:p_old8
+    mov  cx, word ptr es:p_old8+4
+    mov  bl, 8
+    mov  ax, 0205h
+    int  31h
+    xor  si, si
+dl_ex:
+    mov  di, si
+    imul di, 6
+    mov  edx, dword ptr es:p_oldex[di]
+    mov  cx, word ptr es:p_oldex[di+4]
+    mov  bl, byte ptr cs:exnum[si]
+    mov  ax, 0203h
+    int  31h
+    inc  si
+    cmp  si, 5
+    jb   dl_ex
     mov  ax, 4C00h
     int  21h
 dl_halt:
@@ -519,5 +628,145 @@ wa_x:
     pop  bp
     retf 10
 wpall endp
+exnum db 0, 6, 0Ch, 0Dh, 0Eh           ; Ausnahmen: Teilen, Befehl, Stapel, Schutz, Seite
+exofs dd offset ex0, offset ex1, offset ex2, offset ex3, offset ex4
+
+extrn rd32_ausnahme_:far
+rm_kill_:                             ; Realmodus nach einer Ausnahme im 32-Bit-Code: DS = DGROUP, Stapel des Tasks
+    sti
+    cld
+    call rd32_ausnahme_               ; beendet den Task, kehrt nicht zurueck
+rk_halt:
+    jmp  rk_halt
 RD32A_TEXT ends
+
+; ---- 32-Bit-Code im PM (eigener Selektor, Basis = Segment): Zeitgeber und Ausnahmen -----------------------------
+RD32P_TEXT segment para public use32 'CODE'
+assume cs:RD32P_TEXT, ds:DGROUP
+p_pds   dw 0
+p_old8  dd 0
+        dw 0
+p_oldex db 30 dup(0)
+
+; IRQ 0 im PM: laeuft gerade ein 32-Bit-Task in seinem eigenen Code (hinter RD32C0), alle 4 Takte (ca. 55 ms) die
+; Rueckkehradresse auf pm_preempt im Bild umbiegen: der Task ruft dort TaskYield und macht danach weiter.
+i8pm:
+    push ds
+    push eax
+    push ebx
+    push ecx
+    push edx
+    push edi
+    mov  ds, cs:p_pds
+    inc  g_tick
+    cmp  _g_preon, 0
+    je   i8_w
+    test byte ptr g_tick, 3
+    jnz  i8_w
+    mov  edi, 24                      ; Rahmen des unterbrochenen Codes (EIP, CS, EFLAGS) hinter 6 Registern; CWSDPMI legt
+i8_r:                                 ; davor einen eigenen Rahmen (EIP, CS, EFLAGS) zu seinem Rueckweg: dann 12 weiter
+    mov  ax, [esp+edi+4]
+    xor  ebx, ebx
+i8_s:
+    cmp  ax, _g_cs32[ebx*2]
+    je   i8_f
+    inc  ebx
+    cmp  ebx, 8
+    jb   i8_s
+    add  edi, 12
+    cmp  edi, 36
+    jbe  i8_r
+    jmp  i8_w
+i8_f:
+    mov  edx, [esp+edi]
+    cmp  edx, _g_pmin[ebx*4]
+    jb   i8_w
+    mov  ecx, _g_pstub[ebx*4]
+    jecxz i8_w
+    push es
+    mov  ax, g_flat
+    mov  es, ax
+    mov  eax, _g_tblin[ebx*4]
+    mov  es:[eax+120], edx            ; TB_PREEIP
+    pop  es
+    mov  [esp+edi], ecx
+i8_w:
+    pop  edi
+    pop  edx
+    pop  ecx
+    pop  ebx
+    pop  eax
+    pop  ds
+    jmp  fword ptr cs:p_old8
+
+; Ausnahme (DPMI 0203h, 32-Bit-Rahmen): im Code eines 32-Bit-Tasks -> Task beenden (ex_kill), sonst weiterreichen
+ex0: push 0
+     jmp  short exall
+ex1: push 1
+     jmp  short exall
+ex2: push 2
+     jmp  short exall
+ex3: push 3
+     jmp  short exall
+ex4: push 4
+exall:                                ; [esp] Index, +4 Rueckkehr zum Host (EIP, CS), +12 Fehler, +16 EIP, CS, EFLAGS, ESP, SS
+    push ds
+    push eax
+    push ebx
+    mov  ds, cs:p_pds
+    mov  ax, [esp+32]
+    xor  ebx, ebx
+ex_s:
+    cmp  ax, _g_cs32[ebx*2]
+    je   ex_f
+    inc  ebx
+    cmp  ebx, 8
+    jb   ex_s
+    mov  eax, [esp+12]                ; nicht von uns: an den alten Handler (DS bleibt DGROUP)
+    imul eax, 6
+    mov  ebx, dword ptr cs:p_oldex[eax]
+    mov  g_jo, ebx
+    mov  bx, word ptr cs:p_oldex[eax+4]
+    mov  g_js, bx
+    pop  ebx
+    pop  eax
+    add  esp, 8
+    jmp  fword ptr g_jo
+ex_f:
+    mov  eax, [esp+12]
+    mov  _g_exnr, ax
+    mov  eax, [esp+28]
+    mov  _g_exeip, eax
+    mov  ax, word ptr g_tab[ebx*4+2]
+    mov  _g_extb, ax
+    mov  dword ptr [esp+28], offset ex_kill
+    movzx eax, g_p32cs
+    mov  [esp+32], eax
+    and  dword ptr [esp+36], NOT 100h
+    movzx eax, g_svcsp
+    mov  [esp+40], eax
+    movzx eax, g_pds
+    mov  [esp+44], eax
+    pop  ebx
+    pop  eax
+    pop  ds
+    add  esp, 4
+    retf
+ex_kill:                              ; PM, Stapel der Dienste: in den Realmodus auf den Stapel des Tasks, rm_kill
+    mov  ds, cs:p_pds
+    push es
+    mov  ax, g_flat
+    mov  es, ax
+    movzx ebx, _g_extb
+    shl  ebx, 4
+    movzx edx, word ptr es:[ebx+2]    ; TB_RMSS
+    movzx ecx, word ptr es:[ebx+0]    ; TB_RMSP
+    pop  es
+    mov  ebx, ecx
+    mov  ax, g_rmds
+    mov  cx, ax
+    movzx esi, g_rmcs
+    mov  edi, offset rm_kill_
+    jmp  fword ptr g_p2r
+RD32P_TEXT ends
 end

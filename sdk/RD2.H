@@ -222,6 +222,7 @@ typedef struct {
 #define RD_NOBG         0xFFFFFFFEUL              /* WNDCLASS.hinter: Fenster fuellt selbst, RDUSER loescht nicht */
 
 #define RD_MODE_R       1                         /* Real Mode, 8088+ */
+#define RD_MODE_KOOP    0x0100                    /* Bit in SYSINFO.modus: RD2 /KOOP, keine Zeitscheiben (auch nicht fuer 32 Bit) */
 #define RD_MODE_P       2                         /* Protected Mode, 386+ */
 #define CPU_8088 0
 #define CPU_8086 1

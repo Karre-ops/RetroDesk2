@@ -57,7 +57,7 @@ WORD RDK KernInfo(SYSINFO FAR *si)
     WORD i;
     BYTE FAR *p = (BYTE FAR *)si;
     for (i = 0; i < sizeof(SYSINFO); i++) p[i] = 0;
-    si->api = RD2_API_VERSION; si->modus = RD_MODE_R; si->cpu = k_cpu;
+    si->api = RD2_API_VERSION; si->modus = rd_preempt ? RD_MODE_R : RD_MODE_R | RD_MODE_KOOP; si->cpu = k_cpu;
     si->fpu = k_fpu ? 87 : 0;
     kr.ax = 0x3000; rd_int(0x21, &kr); si->dos = (WORD)((kr.ax & 0xFF) << 8) | (kr.ax >> 8);
     rd_int(0x12, &kr); si->kb_konv = kr.ax;
