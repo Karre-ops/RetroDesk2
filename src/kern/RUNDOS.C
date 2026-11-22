@@ -62,17 +62,23 @@ WORD k_stub(WORD mode)                            /* Block ganz oben, RDSWAP.BIN
 /* Ende als Shell (29.10.2026, Karsten): statt "RetroDesk ist beendet" COMMAND.COM starten, EXIT holt RD2 zurueck.
  * Sucht (ohne COMSPEC: unter SHELL=RD2.EXE unzuverlaessig) Startlaufwerk \ und \DOS, das RD2-Verzeichnis. 0xD5 = im Rest eingetragen, 0 = keins gefunden. */
 static int gibt(const char *p) { d21(0x4300, 0, 0, (WORD)p); return !CARRY; }
+static char cpf[80];                              /* static: DS, nicht Stapel */
+static int cmdsuche(void)                         /* COMMAND.COM: Startlaufwerk \\, \\DOS, RD2-Ordner -> cpf */
+{
+    WORD i, k, lw;
+    cpf[0] = 0;
+    d21(0x3305, 0, 0, 0); lw = (BYTE)kr.dx; if (lw < 1 || lw > 26) lw = 3;
+    for (k = 1; k < 4 && !(cpf[0] && gibt(cpf)); k++) {
+        if (k == 3) { cpy((char __far *)cpf, k_home, 66); for (i = 0; cpf[i]; i++) ; if (i && cpf[i - 1] != '\\') cpf[i++] = '\\'; cpy((char __far *)cpf + i, "COMMAND.COM", 14); continue; }
+        cpf[0] = (char)('@' + lw); cpy((char __far *)cpf + 1, k == 2 ? ":\\DOS\\COMMAND.COM" : ":\\COMMAND.COM", 20);
+    }
+    return cpf[0] && gibt(cpf);
+}
 WORD k_dosshell(void)
 {
-    static char p[80]; STUB __far *s; WORD i, k, lw;   /* static: DS, nicht Stapel */
+    char *p = cpf; STUB __far *s; WORD i, k;
     if (!k_wseg || (s = (STUB __far *)MK_FP(k_wseg, 0))->mode != 2) return 0;
-    p[0] = 0;
-    d21(0x3305, 0, 0, 0); lw = (BYTE)kr.dx; if (lw < 1 || lw > 26) lw = 3;
-    for (k = 1; k < 4 && !(p[0] && gibt(p)); k++) {
-        if (k == 3) { cpy((char __far *)p, k_home, 66); for (i = 0; p[i]; i++) ; if (i && p[i - 1] != '\\') p[i++] = '\\'; cpy((char __far *)p + i, "COMMAND.COM", 14); continue; }
-        p[0] = (char)('@' + lw); cpy((char __far *)p + 1, k == 2 ? ":\\DOS\\COMMAND.COM" : ":\\COMMAND.COM", 20);
-    }
-    if (!p[0] || !gibt(p)) { d21(0x0900, 0, 0, (WORD)"\r\nRD2: COMMAND.COM fehlt (gesucht in \\, \\DOS und im RD2-Ordner).$"); return 0; }   /* 31.10.: Grund zeigen */
+    if (!cmdsuche()) { d21(0x0900, 0, 0, (WORD)"\r\nRD2: COMMAND.COM fehlt (gesucht in \\, \\DOS und im RD2-Ordner).$"); return 0; }   /* 31.10.: Grund zeigen */
     cpy(s->path, p, 80);
     for (i = k = 0; p[i]; i++) if (p[i] == '\\') k = i + 1;
     p[k] = 0; cpy(s->tail + 2, p, 124);          /* COMMAND X:\DIR\ setzt COMSPEC */
@@ -80,14 +86,24 @@ WORD k_dosshell(void)
     d21(0x0900, 0, 0, (WORD)"RetroDesk 2 ist beendet. EXIT startet RetroDesk 2 wieder.\r\n$");
     return 0xD5;
 }
+static void tpleer(void) { *(WORD __far *)MK_FP(0x40, 0x1A) = *(WORD __far *)MK_FP(0x40, 0x1C); }   /* Tastaturpuffer leer */
 WORD RDK RunDos(LPCSTR prog, LPCSTR cmd, WORD flags)
 {
-    STUB __far *s; WORD seg, n, top, r = 0, neu = 0, a[2], psp;
+    STUB __far *s; WORD seg, n, top, r = 0, neu = 0, a[2], psp, i, nj; BYTE __far *jft; static BYTE jsich[20]; static char bt[128];
     profile_flush();
+    for (n = 0; prog[n]; n++) ;                   /* .BAT (und alles fuer COMMAND): ueber COMMAND.COM /C (PLAN_DOS 2) */
+    if (n > 4 && prog[n - 4] == '.' && (prog[n - 3] | 0x20) == 'b' && (prog[n - 2] | 0x20) == 'a' && (prog[n - 1] | 0x20) == 't') {
+        if (!cmdsuche()) { r = RD_ERR_NOTFOUND; goto fehl; }
+        cpy((char __far *)bt, "/C ", 4); cpy((char __far *)bt + 3, prog, 80);
+        for (n = 0; bt[n]; n++) ;
+        if (cmd && *cmd) { bt[n++] = ' '; cpy((char __far *)bt + n, cmd, 124 - n); }
+        prog = cpf; cmd = bt;
+    }
+    if (flags & RD_DOS_VOLL) flags &= ~RD_DOS_KEEP;   /* Startart B: RD2 endet ganz, das Programm laeuft allein, danach startet RD2 neu */
     psp = d21(0x6200, 0, 0, 0), psp = kr.bx;
     top = mem_arena((WORD __far *)a);
     n = (WORD)(((DWORD)(top - psp - 16) + 63) / 64);          /* KB zum Auslagern */
-    if ((flags & RD_DOS_NEU) || (!(k_xmsent && rd_xms(0x0800, 0, 0) > n)   /* + 1 KB fuer die Vektorkopie */ && (k_home[0] | 0x20) < 'c')) {
+    if ((flags & (RD_DOS_NEU | RD_DOS_VOLL)) || (!(k_xmsent && rd_xms(0x0800, 0, 0) > n)   /* + 1 KB fuer die Vektorkopie */ && (k_home[0] | 0x20) < 'c')) {
         if ((flags & (RD_DOS_KEEP | RD_DOS_NEU)) == RD_DOS_KEEP) { r = RD_ERR_NOTSUP; goto fehl; }  /* zurueck geht nur mit XMS oder Festplatte */
         neu = 1;
         if (k_wseg) { seg = k_wseg; goto rein; }    /* laeuft unter einem Rest: dort eintragen, enden */
@@ -104,14 +120,21 @@ rein:
     if (neu) { k_rseg = seg; return neustart(); }
     k_pausen(0);                                  /* Klang still, Netz gibt den Paketreiber frei */
     if (k_gdipause) k_gdipause(0);
+    jft = *(BYTE __far * __far *)MK_FP(psp, 0x34); nj = *(WORD __far *)MK_FP(psp, 0x32);   /* offene RD2-Dateien nicht vererben (FILES=) */
+    if (nj > 25) nj = 25;
+    for (i = 5; i < nj; i++) { jsich[i - 5] = jft[i]; jft[i] = 0xFF; }
+    tpleer();
     rd_timer_off();
     rd_swaprun(seg);
     rd_timer_on(16384);
+    for (i = 5; i < nj; i++) jft[i] = jsich[i - 5];
+    tpleer();
     if (k_gdipause) k_gdipause(1);
     if (k_wnd) k_wnd(5, 0, 0, 0, 0);                /* RDUSER: Schreibtisch und Fenster neu zeichnen */
     k_pausen(1);
     r = s->err == 1 ? RD_ERR_NOMEM : s->err == 0x102 || s->err == 0x103 ? RD_ERR_NOTFOUND : s->err ? RD_ERR_NOTSUP : 0;
     n = s->exitc & 0xFF;
+    k_lasterr = !r && (s->exitc >> 8) == 3 ? RD_ERR_RESIDENT : 0;   /* wollte resident bleiben (der Rest hat es entfernt): Startart B empfehlen */
     kr.ax = 0x4900; kr.es = seg; rd_int(0x21, &kr);
 fehl:
     if (r) { k_lasterr = r; return 0xFFFF; }

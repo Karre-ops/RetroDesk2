@@ -171,6 +171,7 @@ TEXTE
   47 "eine Klangkarte"
   48 "ein Netz (Paketreiber)"
   49 "3D (3D-Karte oder 386)"
+  50 "%s wollte resident bleiben.\nRD2 hat es danach wieder entfernt.\n\nKÅnftig allein starten (RD2 beendet sich\nund startet danach neu)?"
 ENDE
 SPRACHE EN
 MENU 1
@@ -345,6 +346,7 @@ TEXTE
   47 "a sound card"
   48 "a network (packet driver)"
   49 "3D (3D card or 386)"
+  50 "%s wanted to stay resident.\nRD2 removed it afterwards.\n\nRun it alone from now on (RD2 exits\nand restarts afterwards)?"
 ENDE
 SPRACHE ALLE
 SYMBOL 1 "FLOPPY.ICO"

@@ -25,6 +25,7 @@ python3 -c "import sys; d=open('$O/RDSWAP.BIN','rb').read(); assert not any(d[:4
 (cd obj && wasm -q -0 -fo=rdmaus.obj ../src/drv/RDMAUS.ASM && wlink option quiet format dos com name ../$O/RDMAUS.COM file rdmaus.obj)   # Maus: Bus, InPort, PS/2, seriell
 nasm -f bin -o obj/ZTEST.COM test/dos/ZTEST.ASM   # Testprogramm fuer test/rdmaus.sh
 nasm -f bin -o obj/OBEN.COM test/dos/OBEN.ASM     # Testprogramm fuer test/rundos.sh: beschreibt den Speicher bis A000h
+nasm -f bin -o obj/DOSCHK.COM test/dos/DOSCHK.ASM   # Testprogramm fuer test/dosstart.sh: Dateiplaetze, Tastaturpuffer, freies XMS
 # Kern: Small, SS != DS (API-Aufrufe kommen mit dem Stack des Programms)
 for c in RD MEM TASK FILE MOD RUNDOS; do wcc -0 -ms -zu -os -ol -s -zq -w4 -bt=dos -i=sdk -fo=obj/k_$c.obj src/kern/$c.C; done
 wlink option quiet system dos name $O/RD2.EXE file obj/k_RD.obj,obj/k_MEM.obj,obj/k_TASK.obj,obj/k_FILE.obj,obj/k_MOD.obj,obj/k_RUNDOS.obj,obj/kasm.obj,obj/swap.obj,obj/notsup.obj option map=obj/rd.map >/dev/null
@@ -135,6 +136,7 @@ app test/bench/BENCH2.C BENCH2.EXE "Bench2"
 APPFLAGS=-fpi87 app apps/test/WURM.C WURM.EXE "Wurm"
 for t in PING PONG RECHNE MEMTEST; do app apps/test/$t.C $t.EXE "$t"; done
 app apps/test/DOSTEST.C DOSTEST.EXE "DOSTEST"
+app apps/test/DOSART.C DOSART.EXE "DOSART"
 # RD2/32 (PLAN_32BIT Schritt 4a, ab 386): RD32.MOD (Bruecke, Realmodus-Teil in Assembler) und 32-Bit-Programme
 wasm -q -3 -fo=obj/rd32a.obj src/rd32/RD32A.ASM
 wcc -3 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/RD32.MOD.obj src/rd32/RD32.C

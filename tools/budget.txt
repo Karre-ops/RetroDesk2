@@ -106,6 +106,7 @@ RDRC.EXE        26624    0   D  SDK: Ressourcen-Compiler und Linker (DOS-Fassung
 @DISK          362496        Nutzflaeche einer 360-KB-Diskette (354 Cluster zu 1 KB); Grenze fuer P, N, D
 @RAM_RD2               180   Oberflaeche ohne Programme, mit DOS und Maustreiber (Ziel: >= 450 KB frei)
 DOSTEST.EXE      4096    0   T  Test: RunDos (auslagern, DOS-Programm, zurueck)
+DOSART.EXE       4096    0   T  Test: DOS-Startarten (BAT, Dateiplaetze, Tastatur, Voll, TSR; test/dosstart.sh)
 PRNTEST.EXE      4096    0   T  Test: Drucken (Testseite, Kopien, zwei Seiten, Abbruch)
 AUSLTEST.EXE     4096    0   T  Test: Auslagern bei Speichermangel (XMS, RD2.SWP, Diskette)
 TSRTEST.EXE      4096    0   T  Test: bleibt resident (Audit M10, RunDos entfernt es)

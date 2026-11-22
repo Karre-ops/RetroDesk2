@@ -244,7 +244,7 @@ static WORD bedarf(LPCSTR p)                      /* BEDARF der Programmdatei (A
 }
 static void starten(LPCSTR p)
 {
-    BYTE dos;
+    BYTE dos, art = 0;
     dbg("Start"); DbgPrint(p);
     {   char n[80], c[84]; WORD l = slen(p);   /* RDSETUP.LST im Paketordner: Paket entfernen (PLAN_32BIT) */
         if (l >= 11 && gleichi(p + l - 11, "RDSETUP.LST") && werkzeug(n, "RDSETUP.EXE")) { scpy(c, "/D ", sizeof c); scat(c, p, sizeof c); if (TaskExec(n, c, SW_SHOW)) return; } }
@@ -265,7 +265,16 @@ static void starten(LPCSTR p)
         ziel[k == 2 && ziel[1] == ':' ? 3 : k] = 0;   /* C:\SPIEL\X.EXE -> C:\SPIEL, C:\X.EXE -> C:\ */
         if (k) DirChange(ziel);
     }
-    if (!dos || (RunDos(p, "", RD_DOS_KEEP) == 0xFFFF &&   /* 0xFFFF = Fehler; zurueck nur mit */
+    if (dos) {                                     /* Startart (PLAN_DOS 3): RD2.INI [Startart] Pfad=Voll/Schnell, bekannte TSR immer allein */
+        static const char tsr[] = "WIN.COM\0KEYB.COM\0KEYB.EXE\0MSCDEX.EXE\0DOSKEY.COM\0SMARTDRV.EXE\0SHARE.EXE\0";
+        char n[80], w[8]; WORD i, k = 0;
+        art = 0; w[0] = 0;
+        if (werkzeug(n, "RD2.INI")) ProfileGetStr(n, "Startart", p, "", w, sizeof w);
+        if ((w[0] | 0x20) == 'v') art = 2; else if ((w[0] | 0x20) == 's') art = 1;
+        for (i = 0; p[i]; i++) if (p[i] == '\\' || p[i] == ':') k = i + 1;
+        for (i = 0; !w[0] && i < sizeof tsr - 1; i += slen(tsr + i) + 1) if (gleichi(p + k, tsr + i)) art = 2;
+    }
+    if (!dos || (RunDos(p, "", art == 2 ? RD_DOS_VOLL : RD_DOS_KEEP) == 0xFFFF &&   /* 0xFFFF = Fehler; zurueck nur mit */
         (LastError() != RD_ERR_NOTSUP || RunDos(p, "", 0) == 0xFFFF))) {   /* XMS/Platte, sonst Neustart */
         char t[8];                                /* Speichermangel mit freiem Speicher melden (Checkliste 1) */
         WORD f = LastError();
@@ -274,6 +283,11 @@ static void starten(LPCSTR p)
         dbgh("Startfehler", f);
         if (f == RD_ERR_NOMEM) dbg("zu wenig Speicher");
         MsgBox(0, buf, "RD", MB_OK | MB_ERROR);
+    } else if (dos && !art && LastError() == RD_ERR_RESIDENT) {   /* wollte resident bleiben: kuenftig Startart Voll? */
+        char n[80];
+        fmt(buf, StrGet(inst, 50), p, "");
+        dbg("resident");
+        if (MsgBox(0, buf, "RD", MB_YESNO | MB_ASK) == ID_YES && werkzeug(n, "RD2.INI")) ProfileSetStr(n, "Startart", p, "Voll");
     }
     if (dos && altdir[0]) DirChange(altdir);         /* RD2 wieder im alten Ordner */
 }

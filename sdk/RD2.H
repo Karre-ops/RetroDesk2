@@ -281,6 +281,7 @@ typedef struct {
 #define RD_ERR_TIMEOUT  12
 #define RD_ERR_ABORT    13                        /* Benutzer hat abgebrochen */
 #define RD_ERR_BUSY     14
+#define RD_ERR_RESIDENT 15                        /* RunDos: Programm wollte resident bleiben (Rueckgabe gilt, RD2 hat es entfernt) */
 
 /* Speicher */
 #define MEM_FIXED       0x0000
@@ -333,6 +334,7 @@ typedef struct {
 #define RD_DOS_PAUSE  0x0002                      /* "Taste druecken" nach Programmende */
 #define RD_DOS_GFX    0x0004                      /* Programm stellt Grafik selbst ein */
 #define RD_DOS_NEU    0x0008                      /* prog "": alle Programme enden, RD2 startet mit derselben Befehlszeile neu */
+#define RD_DOS_VOLL   0x0010                      /* Startart B: RD2 endet ganz, Programm allein (XMS frei, TSR erlaubt), danach Neustart */
 
 /* Nachrichten */
 #define M_NULL        0x0000
