@@ -37,7 +37,7 @@ Installation von der Festplatte (Universalpaket) auf einen Rechner mit DOS 5
 Zurueck zum alten Stand: CONFIG.RDA wieder in CONFIG.SYS umbenennen (von einer
 DOS-Bootdiskette aus).
 
-Neu in 2.3 (21.11.2026)
+Neu in 2.3 (22.11.2026)
 ------------------------------------------------------------------------------
 - RD2/32: Programme mit 32 Bit ab dem 386 (flaches Modell, Speicher ueber 1 MB),
   mit der ganzen RD2-API, Fenstern und Dialogen. Diskette 5 "RD2 32" (1,44 MB)
