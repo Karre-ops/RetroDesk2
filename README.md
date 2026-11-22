@@ -14,7 +14,8 @@ Fertige Disketten stehen unter [Releases](../../releases) und im Ordner [`releas
 | `RD2_2.IMG` | Programme und Treiber |
 | `RD2_3.IMG` | Netz, FreeCOM |
 | `RD2_4.IMG` | SDK |
-| `RD2_HDD.ZIP` | alle vier Disketten als ein Ordner für die Installation von der Festplatte |
+| `RD2_5.IMG` | RD2/32 und SDK32, nur ab 386 (1,44 MB) |
+| `RD2_HDD.ZIP` | alle fünf Disketten als ein Ordner für die Installation von der Festplatte |
 
 Von Diskette: mit `RD2_1.IMG` starten, Installation im Menü. Von der Festplatte: `RD2_HDD.ZIP` z. B. nach
 `C:\RD2NEU` entpacken und `C:\RD2NEU\RD2INST` aufrufen. Mehr in `release/2.0/LIESMICH.TXT`.

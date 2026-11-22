@@ -1,4 +1,4 @@
-# RetroDesk 2: Spezifikation (Phase 0, fortgeschrieben bis API 2.0 / RD2 2.1, Stand 01.11.2026)
+# RetroDesk 2: Spezifikation (Phase 0, fortgeschrieben bis API 2.3 / RD2 2.3, Stand 21.11.2026)
 
 Stand: 19.10.2026, **freigegeben** am 19.10.2026. Grundlage: [ENTWURF_RD2.md](archiv/ENTWURF_RD2.md), [PLAN_RD2.md](archiv/PLAN_RD2.md)
 
@@ -329,6 +329,18 @@ Für DOS-Programme kommen dazu: `Parameter=`, `Ordner=`, `Grafik=1` (Programm sc
 - Strukturen ohne Zeiger (`MSG`, `RECT`, `POINT`, `RDTIME`, `FINDDATA`, `DRIVEINFO`, `INSTR`, `NETINFO`) sind in beiden Modi gleich groß. Das prüft `test/hdrtest.c`.
 - Strukturen mit Zeigern (`WNDCLASS`, `FILEDLG`, `PRNJOB`) werden beim Übergang 16 -> 32 Bit vom Kern umgesetzt.
 - `int` kommt in der API nicht vor, nur `short`, `WORD`, `long` und `DWORD`.
+
+### 11.1 RD2/32-Programme (RD2 2.3, ab 386)
+
+- **Laufzeitumgebung:** `RD32.MOD` (Modul, nur ab 386 installiert) meldet RD2 beim DPMI-Host an (CWSDPMI `-p`, von INSTALL in die CONFIG.SYS eingetragen) und beim Ende wieder ab. Ohne Host meldet die Shell das, statt abzustürzen.
+- **Programmdatei:** 16-Bit-Vorspann (`RD32STUB`) mit `.RC` und angehängtem 32-Bit-Bild (flach, ab Offset 0, Kopf aus `RD32C0`). Gebaut mit `tools/rd32link.py` oder unter DOS mit `RDRC ... /32:BILD.B32`. Die `.RC` sollte `BEDARF CPU 386` enthalten.
+- **API:** die ganze RD2-API aus `RD2.H` mit 32-Bit-Zeigern, dazu `RD2_32.H`: `rd32_alloc`/`rd32_free` (DPMI-Speicher über 1 MB), Puffer-Bitmap `BufCreate`/`BufShow`, `ScreenPtr`, `SM_LFB`, `ScreenModeVesa(w, h, bpp)` (VESA 2.0 linear, 8/15/16/24/32 Bit) und `ScreenVesaList`. Fenster-, Dialog- und Zeitgeber-Rückrufe laufen im 32-Bit-Code. Fensterklassen gehören einem Programm.
+- **Multitasking:** Zeitscheiben etwa alle 55 ms (`RD2 /KOOP` bzw. `RD_MODE_KOOP` bleibt kooperativ). CPU-Fehler (Division durch 0, ungültiger Befehl, Stapel-, Schutz-, Seitenfehler) beenden nur das 32-Bit-Programm, RD2 räumt Fenster und Speicher auf.
+- **C-Laufzeit `RD32C.LIB`:** string, ctype, stdlib mit malloc, stdio über die RD2-Dateien, printf/sscanf mit Gleitkomma, time, setjmp, exit/atexit. Gleitkomma mit 387 oder in Software. Fehlt: Eingabe über stdin, `long long` in printf, scanf auf Dateien.
+- **32-Bit-Module `.M32`:** `rd32_modload`/`rd32_modproc`/`rd32_modfree`, laufen im Adressraum des ladenden Programms, Exporte nach Namen, eigene Daten je Ladung, Einsprung `RdMod32Init`. Gebaut mit `tools/rd32mod.py` und `RD32M0` vorn.
+- **3D:** `RD3D.LIB` (Software): Dreiecke mit Z-Puffer, Textur, Gouraud, Nebel und Alpha, im Vollbild (13h, 640x480 linear) und im Fenster. Glide folgt mit dem Treiber-Stack.
+- **32-Bit-DOS-Programme** (DOS/4GW, CWSDPMI, DJGPP) laufen wie andere DOS-Programme über `RunDos`.
+- Einzelheiten und offene Punkte: `docs/PLAN_32BIT.md`, Plan für DOS-Fenster per V86: `docs/PLAN_V86.md`.
 
 ## 12. Größengrenzen
 

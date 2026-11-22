@@ -1,14 +1,15 @@
-RetroDesk 2.2 - Release-Dateien
+RetroDesk 2.3 - Release-Dateien
 ================================
 
 RD2_1.IMG  Diskette 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern, RD2, Setup)  360 KB
 RD2_2.IMG  Diskette 2 RD2 PROG (Programme, FDISK, FORMAT, Treiber)       360 KB
 RD2_3.IMG  Diskette 3 RD2 NETZ (Netzwerk, FTP, IRC, FreeCOM)              360 KB
 RD2_4.IMG  Diskette 4 RD2 EXTRA (SDK fuer C und Pascal)                  360 KB
-RD2_HDD.ZIP  Universalpaket: Inhalt ALLER Disketten 1 bis 4 in einem Ordner RD2
-             (8.3-Namen, SDK als Unterordner RD2\SDK) mit RD2INST.BAT. Fuer jeden Weg
+RD2_5.IMG  Diskette 5 RD2 32 (nur ab 386: RD2/32, CWSDPMI, SDK32)     1,44 MB
+RD2_HDD.ZIP  Universalpaket: Inhalt ALLER Disketten 1 bis 5 in einem Ordner RD2
+             (8.3-Namen, SDK als Unterordner RD2\SDK und RD2\SDK32) mit RD2INST.BAT. Fuer jeden Weg
              auf die Festplatte: FTP (z. B. RetroDesk 1), Netzlaufwerk, ZIP-Diskette,
-             Festplatte aus einem anderen PC, Kopie von den vier Disketten.
+             Festplatte aus einem anderen PC, Kopie von den fuenf Disketten.
 SHA256.TXT   Pruefsummen
 
 Installation von der Festplatte (Universalpaket) auf einen Rechner mit DOS 5
@@ -17,7 +18,8 @@ Installation von der Festplatte (Universalpaket) auf einen Rechner mit DOS 5
    Retro-PC bringen, z. B. per FTP mit RetroDesk 1 (Netzwerk > FTP), und dort als
    C:\RD2NEU ablegen. Nicht C:\RD2 nehmen: das ist das Ziel der Installation.
    Von den Disketten geht es auch: alles aus A:\RD2 von Diskette 1 bis 3 nach
-   C:\RD2NEU, dazu den Ordner SDK von Diskette 4 nach C:\RD2NEU\SDK.
+   C:\RD2NEU, dazu den Ordner SDK von Diskette 4 nach C:\RD2NEU\SDK. Ab dem 386
+   ausserdem A:\RD2 von Diskette 5 nach C:\RD2NEU und SDK32 nach C:\RD2NEU\SDK32.
 2. RetroDesk 1 beenden und am DOS-Prompt starten:
      C:\RD2NEU\RD2INST
    (anderer Ordner: C:\ORDNER\RD2INST C:\ORDNER). Ohne Batchdatei geht es auch mit
@@ -34,6 +36,39 @@ Installation von der Festplatte (Universalpaket) auf einen Rechner mit DOS 5
 
 Zurueck zum alten Stand: CONFIG.RDA wieder in CONFIG.SYS umbenennen (von einer
 DOS-Bootdiskette aus).
+
+Neu in 2.3 (21.11.2026)
+------------------------------------------------------------------------------
+- RD2/32: Programme mit 32 Bit ab dem 386 (flaches Modell, Speicher ueber 1 MB),
+  mit der ganzen RD2-API, Fenstern und Dialogen. Diskette 5 "RD2 32" (1,44 MB)
+  bringt RD32.MOD und den DPMI-Host CWSDPMI. INSTALL und RD2SETUP fragen ab dem
+  386 danach (auslassbar) und tragen CWSDPMI in die CONFIG.SYS ein. Auf 8088
+  und 286 wird nichts davon installiert.
+- 32-Bit-Programme bekommen Zeitscheiben (etwa alle 55 ms) und laufen damit
+  wirklich nebeneinander. Stuerzt eines ab (Division durch 0, Zugriff ins
+  Leere), endet nur dieses Programm; RD2 raeumt Fenster und Speicher auf.
+  RD2 /KOOP schaltet zurueck auf kooperativ. Das Multitasking auf 8088 und 286
+  bleibt wie bisher.
+- Vollbild fuer Programme und Spiele (ScreenAcquire): Text, CGA, EGA, VGA,
+  13h, Mode X, VESA, in 32 Bit auch VESA linear in jeder Groesse und
+  Farbtiefe der Karte (256 Farben bis 16,7 Mio.). Alt+Tab wechselt zum
+  Schreibtisch und zurueck, das Programm wird solange angehalten.
+- DOS-Programme mit DOS-Extender (DOS/4GW, CWSDPMI, DJGPP) starten aus dem
+  Schreibtisch wie andere DOS-Programme.
+- SDK: Ordner SDK32 auf Diskette 5 mit C-Laufzeit (printf, malloc,
+  Gleitkomma, Dateien), Software-3D RD3D (Z-Puffer, Textur, Nebel, Alpha),
+  nachladbaren 32-Bit-Modulen und Beispielen (FEN32, VOLL32, WUERFEL, VESA32).
+  RDRC linkt 32-Bit-Programme auch unter DOS (/32).
+- RDSETUP (Diskette 3): Zusatzpakete mit SETUP.INF installieren und wieder
+  entfernen, Dateien nur bei passender Hardware (386, 8087, Farbe, Klang, 3D).
+  Programme koennen in der EXE angeben, was sie brauchen (BEDARF); die Shell
+  meldet dann z. B. "braucht 386" statt eines Absturzes.
+- Kern-API 2.3: SysInfo (CPU, 8087, DOS, Speicher, Grafik, Klang, Netz,
+  3D-Karte). RD2SETUP erkennt ab dem 386 3D-Karten (3dfx Voodoo, ATI Rage,
+  nVidia Riva/TNT) und schreibt sie in RD2.INI.
+- Mehr Platz: Kern RD2.EXE kleiner, RDSYS.EXE liegt auf Diskette 3, Diskette 1
+  hat 20 KB mehr frei.
+- Kernmeldungen im Protokoll beginnen mit RD2: (bisher RD:).
 
 Neu in 2.2 (12.11.2026)
 ------------------------------------------------------------------------------

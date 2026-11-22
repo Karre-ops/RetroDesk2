@@ -59,7 +59,7 @@ pruef "2 FAT16 sauber (fsck)" "fsck.fat -n obj/kette_part.img >/dev/null 2>&1"
 printf '@echo off\r\nA:\\RD2\\RD2SETUP.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' | tr -d '\r' > obj/ae_k3.txt
 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') RDSYS.EXE" SETUP=1 bash tools/mkdisk.sh obj/kette_a3.img obj/ae_k3.txt >/dev/null 2>&1   # RDSYS (Diskette 3) mit drauf
 S=obj/kette3_com1.txt; starten obj/kette_a3.img $S
-waitscr "Einrichtung" 120 && { Q "sendkey t" sleep2 "sendkey ret"; for i in 1 2; do waitscr "einlegen: Enter" 90 || break; Q "sendkey esc"; sleep 1.5; done; waitscr "startfaehig machen" 60 && Q "sendkey j"; waitscr "Festplatte ist startfaehig\|FEHLER: Festplatte" 60; sleep 1; python3 test/qemu/qmon.py text > obj/schirm_kette3.txt 2>/dev/null; Q "screendump obj/kette3.ppm" sleep0.3 "sendkey esc" sleep2 "sendkey n"; }
+waitscr "Einrichtung" 120 && { Q "sendkey t" sleep2 "sendkey ret"; for i in 1 2 3; do waitscr "einlegen: Enter" 90 || break; Q "sendkey esc"; sleep 1.5; done; waitscr "startfaehig machen" 60 && Q "sendkey j"; waitscr "Festplatte ist startfaehig\|FEHLER: Festplatte" 60; sleep 1; python3 test/qemu/qmon.py text > obj/schirm_kette3.txt 2>/dev/null; Q "screendump obj/kette3.ppm" sleep0.3 "sendkey esc" sleep2 "sendkey n"; }
 wait $QP
 C="-i $H@@$OFS"
 mdir $C -b ::/RD2 > obj/kette_dir.txt 2>&1

@@ -34,6 +34,7 @@ schritt "RDFORMAT: fertig" "C: formatiert" 1 120 && { sleep 2; Q "sendkey ret"; 
 schritt "Diskette 1 (RD2SYSTEM)" "Diskette 1 zurueck" && { Q "change floppy0 obj/ifmt1.img"; sleep 2; Q "sendkey ret"; }
 schritt "INSTALL: formatiert" "Installer sieht leere Platte"
 for d in 2 3; do schritt "Diskette $d (RD2" "Diskette $d" $([ $d = 2 ] && echo 2 || echo 1) && { Q "change floppy0 obj/ifmt$d.img"; sleep 2; Q "sendkey ret"; }; done
+schritt "Diskette 5 (RD2" "Diskette 5 (ab 386) ausgelassen" && { Q "sendkey esc"; sleep 2; Q "sendkey ret"; }   # QEMU-Vorgabe-CPU ist ein 386+
 schritt "Diskette 1 (RD2SYSTEM)" "Diskette 1 wieder" 2 && { Q "change floppy0 obj/ifmt1.img"; sleep 2; Q "sendkey ret"; }
 waitser "startf" 1 60 && { sleep 1; Q "sendkey ret"; }
 waitser "Diskette 1 drin lassen" 1 60 && { sleep 1; Q "sendkey ret"; }
