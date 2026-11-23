@@ -10,7 +10,7 @@ static const char k_ini[] = "RD2.INI", k_ms[] = "Maus";   /* einmal fuer alle RD
 static WORD k_maus;                               /* Maustasten, 0 = keine Maus */
 WORD  k_gfx;
 BYTE  k_fpu, k_cpu;
-static char cmdline[80];
+static char cmdline[80]; static BYTE inst;         /* inst: RD2SETUP "I" ohne RD2.INI (schreibgeschuetzt) */
 char *k_hpath(const char __far *n)                /* RD2-Verzeichnis + Name, in cmdline (Befehlszeile entsteht erst direkt vor task_load) */
 {
     char *d = cmdline; const char *h = k_home;
@@ -135,6 +135,7 @@ int main(void)
         pb.cmd = tail;
         kr.ax = 0x4B00; kr.dx = (WORD)cmdline; kr.bx = (WORD)&pb; kr.ds = kr.es = FP_SEG((void __far *)&kr); rd_int(0x21, &kr);
         if (CARRY) k_out("ohne RD2SETUP", 3);
+        else { kr.ax = 0x4D00; rd_int(0x21, &kr); if ((BYTE)kr.ax == 3) inst = 1; }   /* 3: "I" auf schreibgeschuetztem Medium (CD) */
     }
     if (dlog) { kr.ax = 0x4800; kr.bx = DBUF / 16; rd_int(0x21, &kr); if (!(kr.flags & 1)) dbuf = (char __far *)MK_FP(kr.ax, 0); }
     k_fpu = (BYTE)rd_fpudet();
@@ -204,6 +205,7 @@ int main(void)
         if (i + 1 < argc && h < 78) cmdline[h++] = ' ';
     }
     cmdline[h] = 0;
+    if (inst && h < 76) { if (h) cmdline[h++] = ' '; cmdline[h++] = '/'; cmdline[h++] = 'I'; cmdline[h] = 0; }   /* Shell: Installation ohne RD2.INI */
     h = task_load(argv[a], cmdline, SW_SHOW);
     if (!h) { rd_timer_off(); k_hex("Fehler beim Laden", k_lasterr, 3); mem_done(); return 2; }
     task_run_all();

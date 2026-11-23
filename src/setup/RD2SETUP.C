@@ -657,7 +657,7 @@ static int sichtbar(WORD i) { return (i != P_SB || !stricmp(p[P_KLANG].wert[p[P_
 static void zeigen(int sel, int erst)
 {
     char z[100]; WORD i;
-    attr = 0x70; zeile(0, " RetroDesk 2.1 - Einrichtung"); attr = 0x07;
+    attr = 0x70; zeile(0, " RetroDesk 2 - Einrichtung"); attr = 0x07;
     zeile(1, erst ? " Erster Start: I installiert mit diesen Werten, S speichert hier."
                  : " Werte pruefen. I installiert mit diesen Werten, S speichert hier.");
     sprintf(z, " Rechner: %s, %s, DOS %d.%02d, %u KB, XMS %u KB, hoher Speicher %u KB",
@@ -712,7 +712,9 @@ int main(int argc, char **argv)
         else if (((k & 0xFF) == 'i' || (k & 0xFF) == 'I') && inst_da()) {   /* grafisch in RD2 (auch aus einem Festplattenordner, z. B. per FTP geladen) */
             inst_grafisch = 1;
             if (ini_schreiben(ini) == 1) { inst_grafisch = 0; cls(); printf("RD2SETUP: Die Installation startet gleich in RetroDesk.\n"); return 0; }
-            inst_grafisch = 0; zeile(18, " FEHLER beim Speichern (schreibgeschuetzt?). T: im Textmodus installieren.");
+            inst_grafisch = 0;                    /* schreibgeschuetzt (CD, 2,88-MB-Abzug): Rueckgabe 3, der Kern startet die Shell mit /I */
+            cls(); printf("RD2SETUP: Startmedium schreibgeschuetzt, die Installation startet gleich in RetroDesk.\n"
+                          "RD2SETUP: Die Hardware wird beim ersten Start von der Festplatte eingerichtet.\n"); return 3;
         }
         else if ((k & 0xFF) == 'i' || (k & 0xFF) == 'I') { for (i = 18; i < 25; i++) zeile(i, ""); installieren(); }
         else if (k == T_ESC) {

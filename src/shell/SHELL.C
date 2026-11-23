@@ -1090,11 +1090,12 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
     return DefWindowProc(w, msg, p1, p2);
 }
 
+static BYTE instneu;
 short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
 {
     WNDCLASS wc; MSG m; HDC d; DRIVEINFO di; WORD k;
-    (void)cmd; (void)show;
-    inst = i;
+    (void)show;
+    inst = i; if (cmd[0] == '/' && (cmd[1] | 0x20) == 'i') instneu = 1;   /* /I: Kern, RD2SETUP "I" von CD (keine RD2.INI) */
     { SYSINFO si; KernInfo(&si); scpy(heim, si.home, sizeof heim); k = slen(heim); if (k && heim[k - 1] == '\\') heim[--k] = 0; if (k <= 2) heim[0] = 0; }
     d = GetDC(0); W = GetCaps(d, CAPS_W); H = GetCaps(d, CAPS_H); th = GetCaps(d, CAPS_TEXTH); if (W <= 320) ZB = 60;
     if (GetCaps(d, CAPS_FARBEN) > 2) {             /* Schreibtischfarbe: RD2.INI [Farben] Schreibtisch= 0..15 (Optionen), sonst tuerkis */
@@ -1121,7 +1122,8 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     { SYSINFO si; char p[80], u[80]; int n; KernInfo(&si);   /* Menuepunkt nur von Diskette; RD2SETUP "I" startet die Installation auch aus einem Festplattenordner */
       MenuEnable(msys, CM_ZUB + 12, (si.home[0] | 0x20) < 'c' && werkzeug(u, "INSTALL.EXE"));
       MenuEnable(msys, CM_ZUB + 13, werkzeug(u, "RDEDIT.EXE"));     /* Editor liegt auf der Programmdiskette */
-      if (werkzeug(p, "RD2.INI") && (n = ProfileGetInt(p, "System", "Installieren", 0)) >= 1 && n <= 2 && werkzeug(u, "INSTALL.EXE"))
+      if (instneu && werkzeug(u, "INSTALL.EXE")) TaskExec(u, "", SW_SHOW);
+      else if (werkzeug(p, "RD2.INI") && (n = ProfileGetInt(p, "System", "Installieren", 0)) >= 1 && n <= 2 && werkzeug(u, "INSTALL.EXE"))
           { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, n == 2 ? "F" : "", SW_SHOW); }   /* 2: nach RDSYS ohne XMS nur Schlussmeldung (31.10.) */
       if (werkzeug(p, "RD2.INI") && ProfileGetStr(p, "System", "GrafikAlt", "", u, 4) && werkzeug(u, "OPTIONEN.EXE")) TaskExec(u, "B", SW_SHOW); }   /* neue Grafik: "Behalten?" */
     if (klang0) SndSystem("START");

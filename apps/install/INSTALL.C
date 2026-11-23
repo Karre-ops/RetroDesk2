@@ -118,6 +118,17 @@ static void baum(char *q, char *z)
     } while (!FileFindNext(&fd));
     q[lq] = 0;
 }
+static void sdk(void)                             /* SDK und (ab 386) SDK32 mitnehmen: Festplattenordner quelle\SDK, Diskette X:\SDK */
+{
+    static const char *const n[2] = { "SDK", "SDK32" }; WORD i;
+    for (i = 0; i < 2 - alt; i++) {
+        if ((quelle[0] & 0xDF) > 'B') cpy(pfad, quelle); else { pfad[0] = quelle[0]; pfad[1] = ':'; pfad[2] = '\\'; pfad[3] = 0; }
+        cat(pfad, n[i]);
+        if (FileAttr(pfad, 0, 0) == 0xFFFF) continue;
+        DbgPrint("INSTALL: SDK"); DbgPrint(n[i]); text(n[i]);
+        cat(pfad, "\\"); cpy(z2, ziel); cat(z2, n[i]); cat(z2, "\\"); baum(pfad, z2);
+    }
+}
 static BOOL einlegen(const char *marke, WORD txt) /* Diskette mit der Datei marke in quelle; FALSE = auslassen */
 {
     cpy(pfad, quelle); cat(pfad, marke);
@@ -151,6 +162,7 @@ static void ini(void)
 {
     char a[80], b[80];
     cpy(a, quelle); cat(a, "RD2.INI"); cpy(b, ziel); cat(b, "RD2.INI");
+    if (!gibts(a)) { DbgPrint("INSTALL: ohne RD2.INI (Einrichtung beim ersten Start)"); return; }   /* CD: RD2SETUP laeuft dann von C: */
     if (!kopieren(a, b, 0)) nfehl++;
     ProfileSetStr(b, "System", "Installieren", "0");
 }
@@ -298,18 +310,17 @@ static void install2(void)
     CursorBusy(TRUE);
     ndat = nfehl = 0; dnr = 0;
     diskette();                                   /* Diskette 1 (oder alles, wenn die Quelle eine Festplatte ist) */
-    if ((quelle[0] & 0xDF) > 'B') {               /* Festplattenordner: SDK (Diskette 4) mit, falls vorhanden */
-        cpy(pfad, quelle); cat(pfad, "SDK");
-        if (FileAttr(pfad, 0, 0) != 0xFFFF) { DbgPrint("INSTALL: SDK"); text("SDK"); cat(pfad, "\\"); cpy(z2, ziel); cat(z2, "SDK\\"); baum(pfad, z2); }
-    }
-    else {
+    sdk();                                        /* Festplattenordner, 2,88-MB-Abzug (CD): SDK und SDK32 liegen schon da */
+    if ((quelle[0] & 0xDF) <= 'B') {
         static const char *const mk[] = { "RDFDISK.EXE", "RDNET.EXE", "RD32.MOD" };   /* Diskette 5 (RD2 32, 1,44 MB) nur ab 386 */
+        BOOL gross;                               /* 1,44-MB-Satz (ab 386): RD32.MOD schon auf Diskette 1, Netz und SDK auf Diskette 2 */
+        cpy(pfad, quelle); cat(pfad, mk[2]); gross = gibts(pfad);
         for (n = 0; n < 3 - alt; n++) {
             dnr = n + 1; balken();
             cpy(pfad, quelle); cat(pfad, mk[n]);
-            if (gibts(pfad)) continue;            /* lag schon auf Diskette 1 (grosse Diskette) */
+            if (gibts(pfad) || (n == 2 && gross)) continue;   /* lag schon auf Diskette 1 (grosse Diskette) */
             CursorBusy(FALSE);
-            if (einlegen(mk[n], n < 2 ? 4 + n : 27)) { CursorBusy(TRUE); diskette(); } else CursorBusy(TRUE);
+            if (einlegen(mk[n], gross ? 28 : n < 2 ? 4 + n : 27)) { CursorBusy(TRUE); diskette(); sdk(); } else CursorBusy(TRUE);
         }
         CursorBusy(FALSE);
         einlegen("RD2.EXE", 6);                    /* RD2 laeuft von Diskette 1: zurueck, bevor es weitergeht */

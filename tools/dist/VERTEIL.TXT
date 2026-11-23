@@ -1,0 +1,47 @@
+RetroDesk 2 - Verteilformen
+===========================
+
+Jeder Ordner ist fuer sich vollstaendig. Man braucht nur den, der zum Rechner passt.
+
+1_XT_360KB     Fuer PC XT, 8088/V20, 286 (16 Bit), 360-KB-Laufwerk
+  RD2_1.IMG    Diskette 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern, RD2, Setup)
+  RD2_2.IMG    Diskette 2 RD2 PROG (Programme, FDISK, FORMAT, Treiber)
+  RD2_3.IMG    Diskette 3 RD2 NETZ (Netzwerk, FTP, IRC, FreeCOM)
+  RD2_4.IMG    Diskette 4 RD2 EXTRA (SDK fuer C und Pascal)
+  Von Diskette 1 starten, im Setup "I" waehlen, die Installation fragt nach
+  den Disketten 2 und 3.
+
+2_386_144MB    Fuer 386, 486, Pentium (16 und 32 Bit), 1,44-MB-Laufwerk
+  RD2_386A.IMG Diskette 1 RD2SYSTEM (bootfaehig): System, Programme, Treiber,
+               RD2/32 und CWSDPMI
+  RD2_386B.IMG Diskette 2 RD2 386 2: Netzwerk, SDK und SDK32
+  Von Diskette 1 starten, im Setup "I" waehlen, die Installation fragt nach
+  Diskette 2. Laeuft auch auf 8088 und 286; dann werden die 32-Bit-Teile
+  nicht installiert.
+
+3_FESTPLATTE   Fuer jeden Rechner mit DOS 5 oder neuer
+  RD2_HDD.ZIP  Ordner RD2 mit allem (auch SDK und SDK32) und RD2INST.BAT.
+  Am PC entpacken, den Ordner RD2 auf den Ziel-PC bringen (FTP, Netzlaufwerk,
+  CF-Karte, ZIP-Diskette) und dort z. B. als C:\RD2NEU ablegen. Dann am
+  DOS-Prompt C:\RD2NEU\RD2INST. Nicht C:\RD2 nehmen, das ist das Ziel.
+  Auf Rechnern unter dem 386 werden die 32-Bit-Teile nicht installiert.
+
+4_CD_USB       Zum Starten von CD oder USB-Stick (BIOS muss das koennen)
+  RD2_CD.ISO   CD-Abbild. Das BIOS startet davon wie von einer Diskette (A:),
+               darauf ist alles. Braucht keinen CD-Treiber. Installation mit "I"
+               im Setup. Mit CD-Treiber liegt auf der CD ausserdem der Ordner RD2
+               wie im ZIP (Installation mit RD2INST von der CD).
+               Brennen als Abbild (ISO), nicht als Datei. CD-Start koennen die
+               meisten BIOS ab etwa 1997.
+  RD2_USB.IMG  Abbild fuer einen USB-Stick (64 MB, FAT16, bootfaehig). RD2 laeuft
+               direkt vom Stick als Laufwerk C:. Mit einem Abbild-Programm
+               (z. B. Rufus, Win32 Disk Imager, dd) auf den Stick schreiben; alles
+               auf dem Stick geht dabei verloren. USB-Start koennen BIOS ab etwa
+               2002. Hinweis: Vom Stick gestartet ist die eingebaute Platte D:;
+               fuer eine Installation auf die eingebaute Platte besser CD oder ZIP.
+
+SHA256.TXT     Pruefsummen
+
+Abbilder (.IMG) auf Disketten schreiben: unter DOS mit RAWRITE oder
+DISKCOPY-Werkzeugen, unter Windows mit WinImage oder RawWrite for Windows,
+unter Linux mit dd. Lizenz: GPL v2 oder neuer (COPYING), FreeDOS-Kern GPL.
