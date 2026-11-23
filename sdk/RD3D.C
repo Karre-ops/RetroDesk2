@@ -96,7 +96,7 @@ static void sw_clear(R3D *r, BYTE farbe)
     for (i = 0; i < n / 2; i++) z[i] = 0xFFFFFFFFUL;
 }
 typedef struct { __int64 a0; FIX dx, dy; } EBENE;  /* a(x, y) = a0 + dx * x + dy * y (x, y in 16.16) */
-static int ebene(EBENE *e, FIX a0, FIX a1, FIX a2, const R3DVERT *p0, const R3DVERT *p1, const R3DVERT *p2, FIX d)
+static int ebene(EBENE *e, FIX a0, FIX a1, FIX a2, const R3DVERT *p0, const R3DVERT *p1, const R3DVERT *p2, __int64 d)
 {
     __int64 n1 = (__int64)(a1 - a0) * (p2->y - p0->y) - (__int64)(a2 - a0) * (p1->y - p0->y);
     __int64 n2 = (__int64)(a2 - a0) * (p1->x - p0->x) - (__int64)(a1 - a0) * (p2->x - p0->x);
@@ -107,13 +107,13 @@ static int ebene(EBENE *e, FIX a0, FIX a1, FIX a2, const R3DVERT *p0, const R3DV
 static FIX wert(const EBENE *e, FIX x, FIX y) { return (FIX)((e->a0 + (__int64)e->dx * x + (__int64)e->dy * y) >> 16); }
 static void sw_tri(R3D *r, const R3DVERT *a, const R3DVERT *b, const R3DVERT *c)
 {
-    const R3DVERT *p[3], *t; FIX d, y, ye, xl, xr, x0, x1, yc; long yi; EBENE ez, eu = { 0, 0, 0 }, ev = { 0, 0, 0 }, es = { 0, 0, 0 }; WORD fl = r->zustand;
+    const R3DVERT *p[3], *t; FIX y, ye, xl, xr, x0, x1, yc; long yi; __int64 d;   /* d 64 Bit: grosse Dreiecke (ab 1024x768) liefen ueber (23.11.2026) */ EBENE ez, eu = { 0, 0, 0 }, ev = { 0, 0, 0 }, es = { 0, 0, 0 }; WORD fl = r->zustand;
     __int64 dd = (__int64)(b->x - a->x) * (c->y - a->y) - (__int64)(c->x - a->x) * (b->y - a->y);
     p[0] = a; p[1] = b; p[2] = c;
     if (p[1]->y < p[0]->y) { t = p[0]; p[0] = p[1]; p[1] = t; }
     if (p[2]->y < p[1]->y) { t = p[1]; p[1] = p[2]; p[2] = t; }
     if (p[1]->y < p[0]->y) { t = p[0]; p[0] = p[1]; p[1] = t; }
-    d = (FIX)(dd >> 16);
+    d = dd >> 16;
     if (d == 0 || p[2]->y - p[0]->y < 0x100) return;
     ebene(&ez, a->z, b->z, c->z, a, b, c, d);
     if (fl & R3S_TEXTUR) { ebene(&eu, a->u, b->u, c->u, a, b, c, d); ebene(&ev, a->v, b->v, c->v, a, b, c, d); }
@@ -158,6 +158,14 @@ static void sw_flip(R3D *r)
         HDC dc; DWORD i, n = (DWORD)r->w * r->h;
         for (i = 0; i < n; i++) r->buf.pix[i] = r->map[r->bild[i]];
         if ((dc = GetDC(r->fenster)) != 0) { BufShow(&r->buf, dc, r->fx, r->fy); ReleaseDC(r->fenster, dc); }
+    } else if (r->schirm && r->bpp > 8) {          /* Echtfarben: je Bildpunkt ueber die Tabelle */
+        const DWORD *t = r->tc;
+        for (y = 0; y < r->h; y++) {
+            const BYTE *q = r->bild + (DWORD)y * r->w; BYTE *z = r->schirm + (DWORD)y * r->zeile;
+            if (r->bpp == 32) for (x = 0; x < r->w; x++) ((DWORD *)z)[x] = t[q[x]];
+            else if (r->bpp == 24) for (x = 0; x < r->w; x++, z += 3) { DWORD c = t[q[x]]; z[0] = (BYTE)c; z[1] = (BYTE)(c >> 8); z[2] = (BYTE)(c >> 16); }
+            else for (x = 0; x < r->w; x++) ((WORD *)z)[x] = (WORD)t[q[x]];
+        }
     } else if (r->schirm) {
         for (y = 0; y < r->h; y++) {
             DWORD *q = (DWORD *)(r->bild + (DWORD)y * r->w), *z = (DWORD *)(r->schirm + (DWORD)y * r->zeile);
@@ -170,15 +178,15 @@ static const R3DDRV sw = { "Software", sw_open, sw_close, sw_clear, sw_tri, sw_f
 /* ---- API ------------------------------------------------------------------------------------------------- */
 static const BYTE std16[16][3] = { {0,0,0},{0,0,170},{0,170,0},{0,170,170},{170,0,0},{170,0,170},{170,85,0},{170,170,170},
     {85,85,85},{85,85,255},{85,255,85},{85,255,255},{255,85,85},{255,85,255},{255,255,85},{255,255,255} };
-R3D *R3dOpen(WORD art, HWND fenster, WORD w, WORD h)
+static R3D *oeffne(WORD art, HWND fenster, WORD w, WORD h, WORD bpp)
 {
-    R3D *r = rd32_alloc(sizeof(R3D)); SCREENINFO si; BYTE *z; WORD i;
+    R3D *r = rd32_alloc(sizeof(R3D)); SCREENINFO si; BYTE *z; DWORD i;
     if (!r) return 0;
     for (z = (BYTE *)r, i = 0; i < sizeof(R3D); i++) z[i] = 0;
-    r->art = art; r->fenster = fenster; r->drv = &sw;   /* RD2.INI [System] 3D= (Voodoo, ATI, nVidia): Treiber folgen */
-    if (art == R3D_VOLL13 || art == R3D_VOLLLFB) {
-        if (!ScreenMode(art == R3D_VOLL13 ? SM_13H : SM_LFB, &si)) { rd32_free(r); return 0; }
-        r->w = si.w; r->h = si.h; r->zeile = si.zeilenbytes; r->schirm = ScreenPtr();
+    r->art = art; r->fenster = fenster; r->drv = &sw; r->bpp = 8;   /* RD2.INI [System] 3D= (Voodoo, ATI, nVidia): Treiber folgen */
+    if (art == R3D_VOLL13 || art == R3D_VOLLLFB || art == R3D_VESA) {
+        if (art == R3D_VESA ? !ScreenModeVesa(w, h, bpp, &si) : !ScreenMode(art == R3D_VOLL13 ? SM_13H : SM_LFB, &si)) { rd32_free(r); return 0; }
+        r->w = (WORD)(si.w & ~3); r->h = si.h; r->zeile = si.zeilenbytes; r->schirm = ScreenPtr(); r->bpp = si.bpp;
     } else {
         r->w = (WORD)((w + 3) & ~3); r->h = h;
         if (!BufCreate(&r->buf, r->w, r->h)) { rd32_free(r); return 0; }
@@ -191,6 +199,8 @@ R3D *R3dOpen(WORD art, HWND fenster, WORD w, WORD h)
     R3dPalette(r);
     return r;
 }
+R3D *R3dOpen(WORD art, HWND fenster, WORD w, WORD h) { return art == R3D_VESA ? 0 : oeffne(art, fenster, w, h, 8); }
+R3D *R3dOpenVesa(HWND fenster, WORD w, WORD h, WORD bpp) { return oeffne(R3D_VESA, fenster, w, h, bpp); }
 void R3dClose(R3D *r)
 {
     if (!r) return;
@@ -209,6 +219,13 @@ void R3dPalette(R3D *r)
     for (i = 0; i < 256; i++) {                   /* Nebel: Faktor 15 vor "nah", 0 hinter "fern" */
         f = ((long)i << 8);
         r->nebel[i] = (BYTE)(f <= r->nah ? 15 : f >= r->fern ? 0 : 15 - (15L * (f - r->nah) / (r->fern - r->nah)));
+    }
+    if (r->art != R3D_FENSTER && r->bpp > 8) {      /* Echtfarben: Tabelle Farbnummer -> Bildpunkt (6 Bit je Farbe -> 8 Bit) */
+        for (i = 0; i < 256; i++) {
+            DWORD R = r->pal[i * 3] * 255UL / 63, G = r->pal[i * 3 + 1] * 255UL / 63, B = r->pal[i * 3 + 2] * 255UL / 63;
+            r->tc[i] = r->bpp == 15 ? (R >> 3) << 10 | (G >> 3) << 5 | B >> 3 : r->bpp == 16 ? (R >> 3) << 11 | (G >> 2) << 5 | B >> 3 : R << 16 | G << 8 | B;
+        }
+        return;
     }
     if (r->art != R3D_FENSTER) { ScreenPalette(0, 256, r->pal); return; }
     for (i = 0; i < 256; i++) {                   /* Fenster: feste Systempalette (VESA 6x6x6 + 16, VGA16, mono) */

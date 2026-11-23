@@ -1,5 +1,6 @@
 #!/bin/bash
-# RD3D (PLAN_32BIT Schritt 5a), QEMU 486 mit CWSDPMI -p: WUERFEL im Vollbild 13h, VESA linear 640x480 und im Fenster
+# RD3D (PLAN_32BIT Schritt 5a), QEMU 486 mit CWSDPMI -p: WUERFEL im Vollbild 13h, VESA linear 640x480, VESA 800x600x16,
+# 640x480x32 und 1024x768x8 (23.11.2026) und im Fenster
 # (VESA- und VGA16-Schreibtisch). Je Lauf: Selbsttest (Z-Puffer, Alpha-Raster, Nebel), Bild pruefen, Esc, Speicher.
 cd "$(dirname "$0")/.."
 IMG=obj/rd3d.img; SER=obj/rd3d_com1.txt; SOCK=/tmp/qmon_rd3d.sock; F=0
@@ -29,6 +30,9 @@ lauf() {   # $1 Name  $2 Befehlszeile  $3 Grafik (leer = /VGA)  $4 Mindestfarben
 }
 lauf voll13 "" "" 12 640 400
 lauf lfb "L" "" 12 640 480
+lauf vesa16 "H" "" 12 800 600
+lauf vesa32 "T" "" 12 640 480
+lauf vesa1024 "X" "" 12 1024 768
 lauf fenster_vesa "F" VESA 8 640 480   # Farbzahl haengt vom Drehwinkel beim Foto ab (9 bis 13)
 lauf fenster_vga16 "F" VGA16 5 640 480
 [ $F = 0 ] && echo "RD3D: alles ok" || { echo "RD3D: FEHLER"; echo "$L" | grep -a "WUERFEL\|RD32\|Fehler" | tail -15; }

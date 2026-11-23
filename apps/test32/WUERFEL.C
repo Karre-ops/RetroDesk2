@@ -1,5 +1,6 @@
 /* WUERFEL.C - RD3D (PLAN_32BIT Schritt 5a): Selbsttest (Z-Puffer, Alpha, Nebel) und drehender Wuerfel mit Textur,
  * Gouraud-Licht, Nebel und einer halb durchsichtigen Seite. Befehlszeile: L = VESA linear 640x480, F = im Fenster,
+ * H = VESA 800x600 64K Farben, T = VESA 640x480 16,7 Mio. Farben (32 Bit), X = VESA 1024x768 256 Farben,
  * sonst Vollbild 13h; A dazu = nach 40 Bildern beenden. Esc beendet, Alt+Tab parkt (Vollbild). */
 /* SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING */
 #include "RD3D.H"
@@ -74,17 +75,20 @@ static DWORD RDCALLBACK proc(HWND w, WORD msg, WORD p1, DWORD p2)
 }
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
-    WNDCLASS wc; MSG m; HWND w; WORD art = R3D_VOLL13, x, y, a = 0; DWORD t0 = 0; BYTE auto_ = 0; const char *c;
+    WNDCLASS wc; MSG m; HWND w; WORD art = R3D_VOLL13, x, y, a = 0, vw = 0, vh = 0, vb = 0; DWORD t0 = 0; BYTE auto_ = 0; const char *c;
     (void)show;
-    for (c = cmd; *c; c++) { if (*c == 'L') art = R3D_VOLLLFB; if (*c == 'F') art = R3D_FENSTER; if (*c == 'A') auto_ = 1; }
+    for (c = cmd; *c; c++) { if (*c == 'L') art = R3D_VOLLLFB; if (*c == 'F') art = R3D_FENSTER; if (*c == 'A') auto_ = 1;
+        if (*c == 'H') art = R3D_VESA, vw = 800, vh = 600, vb = 16;
+        if (*c == 'T') art = R3D_VESA, vw = 640, vh = 480, vb = 32;
+        if (*c == 'X') art = R3D_VESA, vw = 1024, vh = 768, vb = 8; }
     voll = (BYTE)(art != R3D_FENSTER);
     wc.name = "Wuerfel"; wc.proc = proc; wc.stil = 0; wc.daten = 0; wc.inst = inst; wc.symbol = 0; wc.hinter = RGB(0, 0, 0);
     if (!RegisterClass(&wc)) return 1;
     w = CreateWindow("Wuerfel", "RD3D Wuerfel", WS_TITLE | WS_BORDER | WS_VISIBLE, 40, 40, voll ? 200 : 268, voll ? 60 : 228, 0, 0, inst);
     if (!w || (voll && !ScreenAcquire(w))) { DbgHex("WUERFEL: Fenster/Vollbild Fehler", LastError()); return 2; }
-    if (!(r = R3dOpen(art, w, 256, 192))) { DbgPrint("WUERFEL: R3dOpen Fehler"); if (voll) ScreenRelease(w); DestroyWindow(w); return 3; }
+    if (!(r = art == R3D_VESA ? R3dOpenVesa(w, vw, vh, vb) : R3dOpen(art, w, 256, 192))) { DbgPrint("WUERFEL: R3dOpen Fehler"); if (voll) ScreenRelease(w); DestroyWindow(w); return 3; }
     { char z[48] = "WUERFEL: Treiber "; WORD i = 17; const char *q = R3dTreiber(r); while (*q && i < 46) z[i++] = *q++; z[i] = 0; DbgPrint(z); }
-    DbgHex("WUERFEL: Breite", r->w);
+    DbgHex("WUERFEL: Breite", r->w); DbgHex("WUERFEL: Farbtiefe", r->bpp);
     for (y = 0; y < 64; y++) for (x = 0; x < 64; x++)   /* Schachbrett: Rampe 12 (rot) und 14 (gelb), Rand dunkler */
         tex[y * 64 + x] = (BYTE)(((x >> 3) ^ (y >> 3)) & 1 ? 0xC0 | (x == 0 || y == 0 ? 8 : 15) : 0xE0 | (x == 0 || y == 0 ? 8 : 13));
     R3dRampe(r, 8, 40, 40, 90); R3dRampe(r, 12, 255, 60, 40); R3dRampe(r, 14, 255, 230, 60);

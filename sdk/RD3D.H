@@ -1,9 +1,11 @@
 /* RD3D.H - 3D fuer RD2/32-Programme (PLAN_32BIT Schritt 5, ab 386), Stufe 5a: Software-Treiber.
  * SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING
  * Schlanke API: Dreiecke mit Z-Puffer, Textur, Gouraud-Schattierung, Nebel und Alpha (50 % Raster), Doppelpuffer.
- * Laeuft im Vollbild (SM_13H, SM_LFB) und im Fenster (Puffer-Bitmap). Ganzzahlig (16.16), braucht keinen 387.
+ * Laeuft im Vollbild (SM_13H, SM_LFB, VESA linear in jeder Groesse und Farbtiefe 8/15/16/24/32) und im Fenster
+ * (Puffer-Bitmap). Ganzzahlig (16.16), braucht keinen 387.
  * Farben: 256 Eintraege = 16 Rampen (R3dRampe) zu je 16 Helligkeiten. Helligkeit 0 ist die Nebelfarbe, 15 die volle
- * Farbe. Texel = Rampe * 16 + Helligkeit. Im Fenster wird auf die feste Systempalette abgebildet.
+ * Farbe. Texel = Rampe * 16 + Helligkeit. Im Fenster wird auf die feste Systempalette abgebildet, in 15/16/24/32 Bit
+ * beim Zeigen ueber eine Tabelle in Echtfarben umgesetzt (die 256 Farben ohne Palette, 23.11.2026).
  * Treiber austauschbar (R3DDRV): Software jetzt; Glide (3dfx) und eigene Treiber folgen (PLAN_32BIT). */
 #ifndef RD3D_H
 #define RD3D_H
@@ -21,6 +23,7 @@ typedef struct { FIX m[3][4]; } R3DMAT;            /* Drehung 3x3 und Verschiebu
 #define R3D_VOLL13  1                             /* Vollbild 320x200 (13h) */
 #define R3D_VOLLLFB 2                             /* Vollbild 640x480, VESA 2.0 linear */
 #define R3D_FENSTER 3                             /* in ein Fenster (BufShow) */
+#define R3D_VESA    4                             /* Vollbild VESA linear, Groesse und Farbtiefe frei (R3dOpenVesa) */
 
 #define R3S_ZTEST   0x0001                        /* Z-Puffer pruefen */
 #define R3S_ZWRITE  0x0002                        /* Z-Puffer schreiben */
@@ -46,9 +49,11 @@ struct R3D {
     BYTE pal[768], rampe[16][3], nf[3];           /* Palette (0..63), Rampen, Nebelfarbe (RGB) */
     BYTE map[256]; RDBUF buf; WORD dbpp;          /* Fenster: Abbildung auf die Systempalette */
     const R3DDRV *drv; DWORD bilder;
+    WORD bpp; DWORD tc[256];                       /* Vollbild: Farbtiefe; ab 15 Bit Farbnummer -> Bildpunkt */
 };
 
 R3D  *R3dOpen(WORD art, HWND fenster, WORD w, WORD h);   /* Vollbild: vorher ScreenAcquire; w,h nur fuer Fenster */
+R3D  *R3dOpenVesa(HWND fenster, WORD w, WORD h, WORD bpp);   /* VESA linear w x h x bpp (8, 15, 16, 24, 32), vorher ScreenAcquire */
 void  R3dClose(R3D *r);
 const char *R3dTreiber(R3D *r);
 void  R3dRampe(R3D *r, WORD k, BYTE rot, BYTE gruen, BYTE blau);   /* 0..255 je Farbe */
