@@ -300,6 +300,12 @@ Das Modul liefert int RdMod32Init(void) (0 = ok) und wird mit RD32M0 zuerst,
 ohne RD32PRG gelinkt; tools/rd32mod.py (Python) linkt es zweimal und schreibt
 Exporte und Verschiebungen dazu. Jedes Laden hat eigene Daten. Beispiele
 TESTM32.C (Modul) und TESTMOD.C (Programm).
+Unter DOS (Open Watcom): MKM32 NAME, mit NAME.LNK (wlink-Zeilen "file
+RD32M0.OBJ,NAME.OBJ,RD32LIB.OBJ,RD32API.OBJ" und "library RD32C.LIB,...") und
+NAME.EXP (je Zeile ein Export). MKM32.BAT linkt zweimal, RD32MOD.EXE schreibt
+Exporte und Verschiebungen dazu, byte-gleich mit rd32mod.py. Beispiel:
+  wcc386 -bt=dos -mf -zl -s -os -fpc -3r -i=. TESTM32.C
+  MKM32 TESTM32          (TESTM32.LNK und TESTM32.EXP liegen in SDK32)
 
 RD32C0 muss zuerst stehen. Die .RC sollte BEDARF CPU 386 enthalten (die
 Shell meldet dann auf 8088/286 "braucht 386"). Beispiele: FEN32.C (Fenster,

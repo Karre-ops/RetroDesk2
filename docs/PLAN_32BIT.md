@@ -171,7 +171,8 @@ Entscheidung Karsten 21.11.2026: Glide (Stufe 5b) wartet auf den Treiber-Stack.
   und Dialogprozeduren im Modul ueber den Verteiler des Programms laufen. RD32LIB ist geteilt: RD32LIB (Programm und Modul),
   RD32PRG (nur Programm). Zeitscheiben und Absturzschutz gelten auch im Modulcode (CS des Programms, oberhalb RD32C0).
 - Pruefung TESTMOD/TESTM32 (12 Pruefungen) in test/rd32.sh.
-- Offen: Module unter DOS bauen (RDRC), Module, die Module laden, gemeinsamer Code mehrerer Programme.
+- Module unter DOS bauen (23.11.2026): `sdk/MKM32.BAT` linkt mit dem DOS-wlink zweimal (Optionen ueber eine Steuerdatei, die DOS-Zeile hat nur 127 Zeichen; `format` vor `offset`), `RD32MOD.EXE` (tools/RD32MOD.C, 16 Bit) schreibt Exporte und Verschiebungen. Ergebnis byte-gleich mit rd32mod.py, Pruefung `test/rd32mod.sh` in DOSBox. Auf Diskette 5 im Ordner SDK32, mit TESTM32.LNK und TESTM32.EXP.
+- Offen: Module, die Module laden, gemeinsamer Code mehrerer Programme.
 
 ## VESA-Modi (Stand 21.11.2026)
 - ScreenModeVesa(w, h, bpp, si) sucht in der VBE-2.0-Modusliste (4F00/4F01) einen linearen Modus mit passender Groesse und
