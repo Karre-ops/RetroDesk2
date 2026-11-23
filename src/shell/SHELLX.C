@@ -70,7 +70,7 @@ WORD RDEXPORT ShxLwInfo(HINST inst, LPSTR a0, LPSTR b0, WORD w)
 }
 
 /* 3: Eigenschaften (a: voller Pfad). 0xFFFF: nichts aendern; 0xF000 | Fehler; sonst alt << 8 | neu */
-static char ez[3][48]; static WORD eat;
+static char ez[3][48]; static WORD eat, eart;      /* eart: Startart 0 automatisch, 1 schnell, 2 allein (nur DOS-Programme, Dialog 22) */
 static BOOL FAR __pascal __loadds eproc(HWND d, WORD msg, WORD p1, DWORD p2)
 {
     WORD i;
@@ -78,16 +78,18 @@ static BOOL FAR __pascal __loadds eproc(HWND d, WORD msg, WORD p1, DWORD p2)
     if (msg == M_INITDIALOG) {
         for (i = 0; i < 3; i++) DlgSetText(d, (WORD)(41 + i), ez[i]);
         for (i = 0; i < 4; i++) DlgCheck(d, (WORD)(31 + i), (eat & (i == 3 ? FA_ARCH : 1 << i)) != 0);
+        if (DlgItem(d, 51)) DlgCheck(d, (WORD)(51 + eart), TRUE);
     }
-    if (msg == M_COMMAND && p1 == ID_OK)
+    if (msg == M_COMMAND && p1 == ID_OK) {
         for (eat &= FA_DIR, i = 0; i < 4; i++) if (DlgChecked(d, (WORD)(31 + i))) eat |= i == 3 ? FA_ARCH : 1 << i;
+        for (i = 0; i < 3; i++) if (DlgItem(d, (WORD)(51 + i)) && DlgChecked(d, (WORD)(51 + i))) eart = i;
+    }
     return FALSE;
 }
 static void z2(char *p, WORD v) { p[0] = (char)('0' + v / 10 % 10); p[1] = (char)('0' + v % 10); }
 WORD RDEXPORT ShxEigen(HINST inst, LPSTR qv, LPSTR b0, WORD w)
 {
     FINDDATA fd; char *p; WORD at;
-    (void)b0; (void)w;
     if (FileFindFirst(qv, FA_RDONLY | FA_HIDDEN | FA_SYSTEM | FA_DIR | FA_ARCH, &fd)) return 0xF000 | (LastError() & 0xFFF);
     scpy(ez[0], StrGet(inst, 32), sizeof ez[0]); scat(ez[0], qv, sizeof ez[0]);
     scpy(ez[1], StrGet(inst, 33), sizeof ez[1]);
@@ -97,8 +99,13 @@ WORD RDEXPORT ShxEigen(HINST inst, LPSTR qv, LPSTR b0, WORD w)
     z2(p, fd.datum & 31); p[2] = '.'; z2(p + 3, (fd.datum >> 5) & 15); p[5] = '.'; p = zahl(p + 6, 1980 + (fd.datum >> 9));
     *p++ = ' '; z2(p, fd.zeit >> 11); p[2] = ':'; z2(p + 3, (fd.zeit >> 5) & 63); p[5] = 0;
     eat = at = fd.attr;
+    {   char t[8]; t[0] = 0;                      /* w = 1: DOS-Programm, b0 = RD2.INI: Startart (PLAN_DOS 3) */
+        if (w && b0) ProfileGetStr(b0, "Startart", qv, "", t, sizeof t);
+        eart = (t[0] | 0x20) == 'v' ? 2 : (t[0] | 0x20) == 's' ? 1 : 0; w = eart; }
     dbg("Eigenschaften"); DbgPrint(ez[1]); DbgPrint(ez[2]);
-    if (DialogRun(inst, 20, GetActive(), eproc, 0) != ID_OK || eat == at) return 0xFFFF;
+    if (DialogRun(inst, b0 ? 22 : 20, GetActive(), eproc, 0) != ID_OK) return 0xFFFF;
+    if (b0 && eart != w) { ProfileSetStr(b0, "Startart", qv, eart == 2 ? "Voll" : eart == 1 ? "Schnell" : ""); dbg(eart == 2 ? "Startart Voll" : eart ? "Startart Schnell" : "Startart Auto"); }
+    if (eat == at) return 0xFFFF;
     return (WORD)((at & 0xFF) << 8 | (eat & 0xFF));
 }
 

@@ -269,7 +269,7 @@ static void starten(LPCSTR p)
         static const char tsr[] = "WIN.COM\0KEYB.COM\0KEYB.EXE\0MSCDEX.EXE\0DOSKEY.COM\0SMARTDRV.EXE\0SHARE.EXE\0";
         char n[80], w[8]; WORD i, k = 0;
         art = 0; w[0] = 0;
-        if (werkzeug(n, "RD2.INI")) ProfileGetStr(n, "Startart", p, "", w, sizeof w);
+        werkzeug(n, "RD2.INI"); ProfileGetStr(n, "Startart", p, "", w, sizeof w);
         if ((w[0] | 0x20) == 'v') art = 2; else if ((w[0] | 0x20) == 's') art = 1;
         for (i = 0; p[i]; i++) if (p[i] == '\\' || p[i] == ':') k = i + 1;
         for (i = 0; !w[0] && i < sizeof tsr - 1; i += slen(tsr + i) + 1) if (gleichi(p + k, tsr + i)) art = 2;
@@ -284,10 +284,11 @@ static void starten(LPCSTR p)
         if (f == RD_ERR_NOMEM) dbg("zu wenig Speicher");
         MsgBox(0, buf, "RD", MB_OK | MB_ERROR);
     } else if (dos && !art && LastError() == RD_ERR_RESIDENT) {   /* wollte resident bleiben: kuenftig Startart Voll? */
-        char n[80];
+        char n[80]; static char sp[80];
+        scpy(sp, p, sizeof sp); p = sp;           /* p kann buf sein (Aufrufer), fmt ueberschreibt buf */
         fmt(buf, StrGet(inst, 50), p, "");
         dbg("resident");
-        if (MsgBox(0, buf, "RD", MB_YESNO | MB_ASK) == ID_YES && werkzeug(n, "RD2.INI")) ProfileSetStr(n, "Startart", p, "Voll");
+        if (MsgBox(0, buf, "RD", MB_YESNO | MB_ASK) == ID_YES) { werkzeug(n, "RD2.INI"); ProfileSetStr(n, "Startart", p, "Voll"); }
     }
     if (dos && altdir[0]) DirChange(altdir);         /* RD2 wieder im alten Ordner */
 }
@@ -550,6 +551,7 @@ static WORD shx(WORD nr, LPSTR a, LPSTR b, WORD w)
     if (m) ModFree(m);
     return r;
 }
+static BYTE rd2prg(LPCSTR p);
 static void eigenschaften(ORDNER *o)
 {
     EINTRAG FAR *e; WORD r;
@@ -557,7 +559,9 @@ static void eigenschaften(ORDNER *o)
     scpy(buf, e[o->sel].name, 13); MemUnlock(o->h);
     if (buf[0] == '.') return;
     scpy(qv, o->pfad, sizeof qv); scat(qv, buf, sizeof qv);
-    if ((r = shx(3, qv, 0, 0)) == 0xFFFF) return;
+    {   static char n[80]; BYTE dosp = endung(qv, "COM") || endung(qv, "BAT") || (endung(qv, "EXE") && !rd2prg(qv));
+        werkzeug(n, "RD2.INI");                   /* Pfad auch ohne vorhandene RD2.INI (ProfileSetStr legt sie an) */
+        if ((r = shx(3, qv, dosp ? (LPSTR)n : (LPSTR)0, dosp)) == 0xFFFF) return; }   /* DOS-Programm: Dialog mit Startart (PLAN_DOS 3); far 0, nicht DS:0 */   /* DOS-Programm: Dialog mit Startart (PLAN_DOS 3) */
     if ((r & 0xF000) == 0xF000) { fehler(buf, r & 0xFFF); return; }
     if ((r & (FA_SYSTEM << 8)) && !sicher(qv, r >> 8, 19)) return;
     if (FileAttr(qv, (WORD)(r & 0xFF & ~FA_DIR), 1) == 0xFFFF) {   /* liefert sonst die Attribute */ MsgBox(GetActive(), StrGet(inst, 35), "RD", MB_OK | MB_WARN); dbg("Attribut Fehler"); return; }

@@ -1,6 +1,6 @@
 ---
 title: Plan DOS-Kompatibilität
-summary: Wie RetroDesk 2 DOS-Programme so startet, dass sie wie unter reinem DOS laufen (Stand 22.11.2026, Schritte 1 bis 4 umgesetzt, Eigenschaften-Dialog offen)
+summary: Wie RetroDesk 2 DOS-Programme so startet, dass sie wie unter reinem DOS laufen (Stand 23.11.2026, Schritte 1 bis 4 umgesetzt)
 ---
 # Plan: DOS-Programme 100 % kompatibel starten
 
@@ -9,7 +9,8 @@ Stand 10.11.2026. Analyse von `src/kern/RUNDOS.C` und `src/kern/RDSWAP.ASM`.
 **Umgesetzt (09.11.2026):** Hauptumgebung. Hat RD selbst kein COMSPEC (SHELL=RD2.EXE), baut der Rest vor jedem DOS-Programm eine Umgebung aus den SET- und PATH-Zeilen der AUTOEXEC.BAT (Startlaufwerk) und setzt COMSPEC auf COMMAND.COM im RD2-Ordner; sonst erbt das Programm die Umgebung von RD. Platz: 512 Bytes im Rest (RunDos-Rest 152 statt 120 Paragraphen). Test: `obj/dbxenv` in DOSBox, `test/rundos.sh` 32 ok.
 **Umgesetzt (10.11.2026):** Rest nach unten. Nach dem Auslagern zieht der Rest in einen UMB (DOS=UMB) oder, ohne UMB, in den ersten freien Block gleich hinter dem PSP von RD; das Programm lädt darüber und darf den Speicher bis A000h beschreiben. Danach zieht der Rest (außer im UMB) wieder nach oben, damit Kern und Arena an ihre alte Adresse können. Bei Neustart und Shell (ohne XMS und Festplatte) bleibt er unten. Dabei behoben: Seit dem 09.11. lagen Stapel und Hauptumgebung im Code des Rests (Code 2046 Bytes, Stapel und ENVO bei 1920); jetzt Daten, Code (höchstens 2240), Stapel bis 2368, Umgebung 384 Bytes, zusammen 172 Paragraphen. RDSWAP.BIN enthält den leeren Datenbereich nicht mehr (1801 statt 2046 Bytes). Neuer Test: `test/dos/OBEN.COM` beschreibt den Speicher bis A000h, in `test/rundos.sh` mit XMS, Auslagerdatei und UMB (alter Stand: RD2 kommt nicht zurück, neuer Stand: ok).
 **Umgesetzt (22.11.2026):** Schritte 2 bis 4. Vor dem Programm Tastaturpuffer leer (auch danach), offene RD2-Dateien werden nicht vererbt (PSP-Dateitabelle 5..24 auf FFh, danach zurück; DOSCHK H: 15 freie Plätze bei 6 offenen RD2-Dateien). Textmodus, Maus zurücksetzen (INT 33h 0), Klang still und Netz frei gab es schon (RDGDI-Pause, `k_pausen`). `.BAT` über `COMMAND.COM /C`. Startart B als `RD_DOS_VOLL` über den Neustart-Weg (XMS ganz frei: 2880 statt 2500 KB in DOSBox mit 4 MB). Startart A meldet residente Programme mit `RD_ERR_RESIDENT`; die Shell fragt dann und merkt die Wahl in `RD2.INI [Startart]`, bekannte TSR (WIN.COM, KEYB, MSCDEX, DOSKEY, SMARTDRV, SHARE) starten immer allein. Testsatz `test/dosstart.sh` (BAT, Dateiplätze, Tastatur, Schnell/Voll, TSR) neben `test/rundos.sh` (Rückkehr, Speicher bis A000h, TSR entfernt, Umgebung).
-**Offen:** Startart im Eigenschaften-Dialog wählbar (SHELLX ist fast voll), Spieletests auf echter Hardware (SimCity, Prince of Persia, Monkey Island), Vergleich des freien Speichers mit reinem DOS in QEMU.
+**Umgesetzt (23.11.2026):** Startart im Eigenschaften-Fenster (Alt+Eingabe) für .COM, .BAT und DOS-.EXE: Automatisch, Schnell, Allein, gespeichert in `RD2.INI [Startart]` (Datei wird bei Bedarf angelegt). Tests `test/resident.sh` (Rückfrage, zweiter Start allein, Zurücksetzen) und `test/eigensch.sh`.
+**Offen:** Spieletests auf echter Hardware (SimCity, Prince of Persia, Monkey Island), Vergleich des freien Speichers mit reinem DOS in QEMU.
 
 ## Heute
 

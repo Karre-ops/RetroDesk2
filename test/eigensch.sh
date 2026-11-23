@@ -5,9 +5,10 @@ cd "$(dirname "$0")/.."
 IMG=obj/eig.img; SER=obj/eig_com1.txt; S=/tmp/qmon_eig.sock; export QMON=$S; F=0
 printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_eig.txt
 bash tools/mkdisk.sh $IMG obj/ae_eig.txt >/dev/null 2>&1
+printf '[System]\r\n' > obj/eig_rd2.ini; mcopy -o -i $IMG obj/eig_rd2.ini ::/RD2/RD2.INI   # wie nach dem Setup: Startart landet in RD2.INI
 G=$(mdir -i $IMG ::/AUTOEXEC.BAT | awk '/AUTOEXEC/{print $3}')
 rm -f $SER $S
-timeout 150 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
+timeout 240 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$S,server,nowait >/dev/null 2>&1 &
 QP=$!
 Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
@@ -21,11 +22,15 @@ tr -d '\r' < $SER | grep -q " $G Bytes" && echo "ok     Groesse $G Bytes wie auf
 tr -d '\r' < $SER | grep -qE "[0-9]{2}\.[0-9]{2}\.20[0-9]{2} [0-9]{2}:[0-9]{2}" && echo "ok     Datum und Uhrzeit" || { echo "FEHLER Datum"; F=1; }
 sleep 2; Q "screendump obj/eig1.ppm"; Q "sendkey alt-s"; sleep 0.5; Q "sendkey ret"
 ok "SHELL: Attribute 0x00000021" "Schreibgeschuetzt + Archiv gesetzt"
+sleep 1; Q "sendkey kp_6"; sleep 0.5; Q "sendkey alt-ret"; ok "SHELL: Eigenschaften" "AUTOEXEC.BAT ist ein DOS-Programm: Dialog mit Startart" 2   # nach dem Neuzeichnen steht die Auswahl wieder auf RD2
+sleep 2; Q "sendkey alt-l"; sleep 0.5; Q "sendkey ret"
+ok "SHELL: Startart Voll" "Startart Allein gewaehlt"
 sleep 1; Q "sendkey kp_4"; sleep 0.5; Q "sendkey alt-ret"
-ok "SHELL: Eigenschaften" "Eigenschaften des Ordners RD2" 2
+ok "SHELL: Eigenschaften" "Eigenschaften des Ordners RD2" 3
 tr -d '\r' < $SER | grep -q "Ordner$" && echo "ok     Ordner ohne Bytes" || { echo "FEHLER Ordneranzeige"; F=1; }
 Q "sendkey esc"; sleep 1; Q "sendkey alt-f4"; sleep 1; Q "sendkey alt-f4"; sleep 1; Q "sendkey j"
 wait $QP 2>/dev/null
+mtype -i $IMG ::/RD2/RD2.INI | tr -d '\r' | grep -qi '^A:\\AUTOEXEC.BAT=Voll' && echo "ok     RD2.INI [Startart] A:\\AUTOEXEC.BAT=Voll" || { echo "FEHLER RD2.INI ohne Startart"; F=1; }
 mattrib -i $IMG ::/AUTOEXEC.BAT | grep -q "^ *A *R\|R" && echo "ok     AUTOEXEC.BAT ist auf der Diskette schreibgeschuetzt" || { echo "FEHLER Attribut auf Diskette"; mattrib -i $IMG ::/AUTOEXEC.BAT; F=1; }
 [ -f obj/eig1.ppm ] && python3 -c "from PIL import Image; Image.open('obj/eig1.ppm').save('obj/eig1.png')"
 [ $F = 0 ] && echo "Eigenschaften: alles ok"; exit $F
