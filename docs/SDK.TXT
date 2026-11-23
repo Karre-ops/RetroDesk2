@@ -273,7 +273,12 @@ RD2/32-Programme (ab 386, Diskette 5 "RD2 32", Ordner \SDK32)
 ueber 1 MB), Puffer-Bitmap BufCreate/BufShow, ScreenPtr und SM_LFB (VESA 2.0
 linear). Weitere VESA-Modi: ScreenModeVesa(800, 600, 16, &si) waehlt einen
 linearen Modus nach Groesse und Farbtiefe (8, 15, 16, 24, 32), ScreenVesaList
-listet, was die Karte kann; Beispiel VESA32.C. Fensterklassen gehoeren einem Programm (zweite Instanz: eigener
+listet, was die Karte kann; Beispiel VESA32.C. Hat die Karte keinen linearen
+Bildspeicher (VBE 1.2), nimmt ScreenModeVesa einen Modus mit Baenken: ScreenPtr
+ist dann ein Schattenpuffer (zeilenbytes je Zeile), ScreenUpdate() bringt ihn
+ueber 64-KB-Baenke auf den Schirm. Mit LFB tut ScreenUpdate nichts, also nach
+jedem Bild aufrufen. bpp | VESA_BANK erzwingt Baenke (Test). RD3D tut das selbst.
+Fensterklassen gehoeren einem Programm (zweite Instanz: eigener
 Name). Braucht einen DPMI-Host: INSTALL traegt CWSDPMI -p in CONFIG.SYS ein.
 
   wcc386 -bt=dos -mf -zl -zm -s -os FEN32.C

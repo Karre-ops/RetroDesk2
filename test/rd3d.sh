@@ -33,6 +33,8 @@ lauf lfb "L" "" 12 640 480
 lauf vesa16 "H" "" 12 800 600
 lauf vesa32 "T" "" 12 640 480
 lauf vesa1024 "X" "" 12 1024 768
+lauf bank16 "HB" "" 12 800 600   # Bankumschaltung (VBE 1.2 ohne LFB), Schattenpuffer + ScreenUpdate
+lauf bank8 "XB" "" 12 1024 768
 lauf fenster_vesa "F" VESA 8 640 480   # Farbzahl haengt vom Drehwinkel beim Foto ab (9 bis 13)
 lauf fenster_vga16 "F" VGA16 5 640 480
 [ $F = 0 ] && echo "RD3D: alles ok" || { echo "RD3D: FEHLER"; echo "$L" | grep -a "WUERFEL\|RD32\|Fehler" | tail -15; }

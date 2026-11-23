@@ -64,13 +64,14 @@ static int rmint(BYTE nr, RMR *m)
 }
 static WORD vw = 640, vh = 480, vb = 8;          /* zuletzt gesetzter VESA-Modus (ScreenRestore) */
 static DWORD lfbphys, lfbgr;
+static BYTE bank, *schat; static DWORD schgr; static WORD wseg, wgran, wgr;   /* Bankumschaltung: Schattenpuffer, Fenster A */
 static void null(void *p, WORD n) { BYTE *z = p; while (n--) *z++ = 0; }
 static WORD modliste(WORD *l, WORD max)            /* VBE 4F00: Modusnummern (die Liste kann im Puffer selbst liegen) */
 {
     RMR m; BYTE *vi = TB + TB_XBUF + rd32_xp; WORD *q, n = 0;
     null(&m, sizeof m); vi[0] = 'V'; vi[1] = 'B'; vi[2] = 'E'; vi[3] = '2';
     m.eax = 0x4F00; m.es = (WORD)(rd32_tlin >> 4); m.edi = TB_XBUF + rd32_xp;
-    if (!rmint(0x10, &m) || (WORD)m.eax != 0x004F || vi[0] != 'V' || vi[1] != 'E' || vi[5] < 2) return 0;   /* ab VBE 2.0 */
+    if (!rmint(0x10, &m) || (WORD)m.eax != 0x004F || vi[0] != 'V' || vi[1] != 'E' || vi[5] < 1) return 0;   /* ab VBE 1.x (Baenke), linear ab 2.0 */
     q = rd32_lin(((DWORD)*(WORD *)(vi + 16) << 4) + *(WORD *)(vi + 14));
     while (n < max && *q != 0xFFFF) l[n++] = *q++;
     return n;
@@ -81,14 +82,15 @@ static BYTE *modinfo(WORD nr)                    /* VBE 4F01 in den Austauschpuf
     null(&m, sizeof m); m.eax = 0x4F01; m.ecx = nr; m.es = (WORD)(rd32_tlin >> 4); m.edi = TB_XBUF + rd32_xp;
     return rmint(0x10, &m) && (WORD)m.eax == 0x004F ? mi : 0;
 }
-static WORD tiefe(BYTE *mi)                       /* 8, 15, 16, 24, 32; 0 = kein linearer Grafikmodus */
+static WORD tiefe2(BYTE *mi, BYTE lin)           /* 8, 15, 16, 24, 32; 0 = passt nicht. lin: linear, sonst Fenster A beschreibbar */
 {
-    if ((mi[0] & 0x99) != 0x99) return 0;         /* unterstuetzt, Farbe, Grafik, linear */
+    if (lin ? (mi[0] & 0x99) != 0x99 : (mi[0] & 0x1B) != 0x1B || (mi[2] & 5) != 5 || !*(WORD *)(mi + 4) || *(WORD *)(mi + 6) < 64 || !*(WORD *)(mi + 8)) return 0;   /* unterstuetzt, Zusatzangaben, Farbe, Grafik */
     if (mi[0x19] == 8 && mi[0x1B] == 4) return 8;
     if (mi[0x1B] != 6) return 0;
     if (mi[0x19] == 16 && mi[0x21] == 5) return 15;
     return mi[0x19] == 15 || mi[0x19] == 16 || mi[0x19] == 24 || mi[0x19] == 32 ? mi[0x19] : 0;
 }
+static WORD tiefe(BYTE *mi) { return tiefe2(mi, 1); }
 WORD ScreenVesaList(VESAMODE *l, WORD max)
 {
     WORD nr[128], n = modliste(nr, 128), i, k = 0, b; BYTE *mi;
@@ -96,12 +98,29 @@ WORD ScreenVesaList(VESAMODE *l, WORD max)
         if ((mi = modinfo(nr[i])) != 0 && (b = tiefe(mi)) != 0) { l[k].nr = nr[i]; l[k].w = *(WORD *)(mi + 0x12); l[k].h = *(WORD *)(mi + 0x14); l[k].bpp = b; k++; }
     return k;
 }
-static int vesa(WORD w, WORD h, WORD bpp)         /* linearer VESA-Modus nach Groesse und Farbtiefe */
+static int vesa(WORD w, WORD h, WORD bpp)         /* VESA-Modus nach Groesse und Farbtiefe: linear, sonst mit Baenken */
 {
-    RMR m; R32 r; WORD nr[128], n = modliste(nr, 128), i; BYTE *mi = 0; DWORD phys, gr;
-    for (i = 0; i < n; i++)
+    RMR m; R32 r; WORD nr[128], n = modliste(nr, 128), i = n; BYTE *mi = 0; DWORD phys, gr; BYTE zw = (BYTE)(bpp >> 15);
+    bpp &= 0xFF;
+    if (!zw) for (i = 0; i < n; i++)
         if ((mi = modinfo(nr[i])) != 0 && *(WORD *)(mi + 0x12) == w && *(WORD *)(mi + 0x14) == h && tiefe(mi) == bpp) break;
-    if (i == n) { SetLastError(RD_ERR_NOTSUP); return 0; }
+    if (i == n) {                                 /* kein linearer Modus (VBE 1.2): Fenster A, Schattenpuffer, ScreenUpdate */
+        for (i = 0; i < n; i++)
+            if ((mi = modinfo(nr[i])) != 0 && *(WORD *)(mi + 0x12) == w && *(WORD *)(mi + 0x14) == h && tiefe2(mi, 0) == bpp) break;
+        if (i == n) { SetLastError(RD_ERR_NOTSUP); return 0; }
+        lfbz = *(WORD *)(mi + 0x10); wgran = *(WORD *)(mi + 4); wgr = *(WORD *)(mi + 6); wseg = *(WORD *)(mi + 8);
+        if (wgr > 64) wgr = 64;
+        gr = (DWORD)lfbz * h;
+        if (!schat || gr > schgr) {               /* neu: leer; sonst bleibt der Inhalt (ScreenRestore) */
+            DWORD *z; if (schat) rd32_free(schat);
+            if (!(schat = rd32_alloc(gr))) { schgr = 0; SetLastError(RD_ERR_NOMEM); return 0; }
+            schgr = gr; for (z = (DWORD *)schat, gr /= 4; gr; gr--) *z++ = 0;
+        }
+        null(&m, sizeof m); m.eax = 0x4F02; m.ebx = nr[i];
+        if (!rmint(0x10, &m) || (WORD)m.eax != 0x004F) { SetLastError(RD_ERR_NOTSUP); return 0; }
+        vw = w; vh = h; vb = bpp; bank = 1;
+        return 1;
+    }
     phys = *(DWORD *)(mi + 0x28); lfbz = *(WORD *)(mi + 0x10);
     if (*(WORD *)mi & 0x0400 && *(WORD *)(mi + 0x32)) lfbz = *(WORD *)(mi + 0x32);   /* VBE 3: Zeilenbytes linear */
     gr = ((DWORD)lfbz * h + 4095) & ~4095UL;
@@ -113,14 +132,27 @@ static int vesa(WORD w, WORD h, WORD bpp)         /* linearer VESA-Modus nach Gr
     }
     null(&m, sizeof m); m.eax = 0x4F02; m.ebx = 0x4000 | nr[i];
     if (!rmint(0x10, &m) || (WORD)m.eax != 0x004F) { SetLastError(RD_ERR_NOTSUP); return 0; }
-    vw = w; vh = h; vb = bpp;
+    vw = w; vh = h; vb = bpp; bank = 0;
     return 1;
+}
+void ScreenUpdate(void)                           /* Schattenpuffer ueber Fenster A (64 KB) auf den Schirm */
+{
+    RMR m; DWORD n, off, k, i, *q, *z; WORD b = 0xFFFF, nb;
+    if (akt != SM_LFB || !bank || !schat) return;
+    n = (DWORD)lfbz * vh; z = rd32_lin((DWORD)wseg << 4);
+    for (off = 0; off < n; off += (DWORD)wgr << 10) {
+        nb = (WORD)(off / ((DWORD)wgran << 10));
+        if (nb != b) { null(&m, sizeof m); m.eax = 0x4F05; m.ebx = 0; m.edx = nb; rmint(0x10, &m); b = nb; }
+        k = n - off < ((DWORD)wgr << 10) ? n - off : (DWORD)wgr << 10;
+        q = (DWORD *)(schat + off);
+        for (i = 0; i < k / 4; i++) z[i] = q[i];
+    }
 }
 WORD ScreenModeVesa(WORD w, WORD h, WORD bpp, SCREENINFO *si)
 {
     if (!vesa(w, h, bpp)) return 0;
     akt = SM_LFB;
-    if (si) { si->modus = SM_LFB; si->w = w; si->h = h; si->bpp = bpp; si->zeilenbytes = lfbz; si->seg = 0; si->ebenen = 1; }
+    if (si) { si->modus = SM_LFB; si->w = w; si->h = h; si->bpp = bpp & 0xFF; si->zeilenbytes = lfbz; si->seg = 0; si->ebenen = 1; }
     return 1;
 }
 WORD RDAPI ScreenMode(WORD modus, SCREENINFO FAR *si)
@@ -139,7 +171,7 @@ WORD RDAPI ScreenMode(WORD modus, SCREENINFO FAR *si)
     }
     return 1;
 }
-BYTE *ScreenPtr(void) { return akt == SM_LFB ? lfb : akt == SM_13H ? rd32_lin(0xA0000) : akt == SM_TEXT ? rd32_lin(0xB8000) : 0; }
+BYTE *ScreenPtr(void) { return akt == SM_LFB ? (bank ? schat : lfb) : akt == SM_13H ? rd32_lin(0xA0000) : akt == SM_TEXT ? rd32_lin(0xB8000) : 0; }
 void RDAPI ScreenPalette(WORD erste, WORD n, const BYTE FAR *rgb)
 {
     WORD i;
@@ -151,13 +183,13 @@ void RDAPI ScreenPalette(WORD erste, WORD n, const BYTE FAR *rgb)
 }
 void RDAPI ScreenRestore(void)
 {
-    if (akt == SM_LFB) { if (!ScreenModeVesa(vw, vh, vb, 0)) return; }
+    if (akt == SM_LFB) { if (!ScreenModeVesa(vw, vh, (WORD)(vb | (bank ? VESA_BANK : 0)), 0)) return; ScreenUpdate(); }   /* Baenke: Schatten bleibt, neu zeigen */
     else if (akt != 0xFFFF) ScreenMode(akt, 0);
     if (paln && (akt != SM_LFB || vb == 8)) ScreenPalette(0, paln, pal);
 }
 
 /* ---- 32-Bit-Module (.M32): Bild ab Offset 0, dahinter Exporte und Verschiebungen; Kopf siehe RD32M0.ASM ---------- */
-typedef struct { char sig[4]; DWORD init, isize, msize, ver, tlin, base, f_call, f_alloc, f_free, f_smode, f_sptr, f_spal, f_srest, f_int31, p_ende, p_jb, p_8087, f_svesa, f_slist; } M32KOPF;
+typedef struct { char sig[4]; DWORD init, isize, msize, ver, tlin, base, f_call, f_alloc, f_free, f_smode, f_sptr, f_spal, f_srest, f_int31, p_ende, p_jb, p_8087, f_svesa, f_slist, f_supd; } M32KOPF;
 extern char _8087, _real87;
 static DWORD lies(short f, BYTE *z, DWORD n)
 {
@@ -178,7 +210,7 @@ void *rd32_modload(const char *datei)
     if (nmod == 8 || (f = FileOpen(n, FO_READ)) < 0) { SetLastError(RD_ERR_NOTFOUND); return 0; }
     gr = FileSeek(f, 0, FS_END); FileSeek(f, 0, FS_SET);
     if (gr < (long)sizeof k || lies(f, (BYTE *)&k, sizeof k) != sizeof k || k.sig[0] != 'R' || k.sig[1] != '3' || k.sig[2] != '2' || k.sig[3] != 'M'
-        || k.ver != 1 || k.isize > (DWORD)gr || k.msize < k.isize) { FileClose(f); SetLastError(RD_ERR_FORMAT); return 0; }
+        || (k.ver != 1 && k.ver != 2) || k.isize > (DWORD)gr || k.msize < k.isize) { FileClose(f); SetLastError(RD_ERR_FORMAT); return 0; }
     tab = (DWORD)gr - k.isize;
     if (!(b = rd32_alloc(k.msize + tab + 4))) { FileClose(f); SetLastError(RD_ERR_NOMEM); return 0; }
     FileSeek(f, 0, FS_SET);
@@ -194,6 +226,7 @@ void *rd32_modload(const char *datei)
     m->tlin = rd32_tlin; m->base = rd32_base; m->f_call = (DWORD)rd32_call; m->f_alloc = (DWORD)rd32_alloc; m->f_free = (DWORD)rd32_free;
     m->f_smode = (DWORD)ScreenMode; m->f_sptr = (DWORD)ScreenPtr; m->f_spal = (DWORD)ScreenPalette; m->f_srest = (DWORD)ScreenRestore; m->f_int31 = (DWORD)rd32_int31;
     m->f_svesa = (DWORD)ScreenModeVesa; m->f_slist = (DWORD)ScreenVesaList;
+    if (k.ver >= 2) m->f_supd = (DWORD)ScreenUpdate;
     for (j = 0; j < 24; j++) ((BYTE *)m->p_jb)[j] = ((BYTE *)rd32_jb)[j];   /* exit im Modul beendet das Programm */
     ((char *)m->p_8087)[0] = _8087; ((char *)m->p_8087)[1] = _real87;
     if (((int (*)(void))m->init)() != 0) { rd32_free(b); SetLastError(RD_ERR_NOTSUP); return 0; }

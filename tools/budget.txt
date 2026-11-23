@@ -129,7 +129,7 @@ RD32.MOD         7168    7   Z  RD2/32-Programme (PLAN_32BIT 4a, ab 386; 21.11.:
 VOLL32.EXE       8192    0   Z  Beispiel RD2/32: Fenster, 1 MB Feld, Vollbild 13h (test/rd32.sh)
 RD32C0.OBJ       2048    0   Z  SDK RD2/32: Startcode (Kopf, Umschaltung)
 RD32LIB.OBJ     12288    0   Z  SDK RD2/32: Bibliothek (Bruecke, Rueckrufe, Puffer-Bitmap), Programm und Modul
-RD32PRG.OBJ      8192    0   Z  SDK RD2/32: nur Programm (DPMI-Speicher, Einsprung, Vollbild 13h/LFB, Module laden)
+RD32PRG.OBJ      9216    0   Z  SDK RD2/32: nur Programm (DPMI-Speicher, Einsprung, Vollbild 13h/LFB, Module laden)
 RD32M0.OBJ       2048    0   Z  SDK RD2/32: Startcode fuer 32-Bit-Module (.M32)
 RD32API.OBJ     40960    0   Z  SDK RD2/32: alle einfachen API-Funktionen (tools/mk32api.py, Stufe 4b)
 FEN32.EXE       16384    0   Z  Beispiel RD2/32 Stufe 4b: Fenster, Zeichnen, Puffer-Bitmap, Dialog, Datei, zwei Tasks (test/rd32.sh)

@@ -35,4 +35,8 @@ BYTE *ScreenPtr(void);
 typedef struct { WORD nr, w, h, bpp; } VESAMODE;
 WORD  ScreenModeVesa(WORD w, WORD h, WORD bpp, SCREENINFO *si);   /* 1 = ok, sonst LastError RD_ERR_NOTSUP */
 WORD  ScreenVesaList(VESAMODE *l, WORD max);      /* lineare Modi der Karte, Anzahl */
+#define VESA_BANK 0x8000                          /* bpp | VESA_BANK: Bankumschaltung erzwingen (Test, Karten mit LFB-Fehlern) */
+void  ScreenUpdate(void);                          /* Karten ohne linearen Bildspeicher (VBE 1.2): ScreenPtr ist ein Schattenpuffer
+                                                      mit zeilenbytes je Zeile, ScreenUpdate bringt ihn ueber 64-KB-Baenke auf den
+                                                      Schirm. Mit LFB tut es nichts; nach dem Zeichnen also immer aufrufen. */
 #endif

@@ -1,6 +1,7 @@
 /* WUERFEL.C - RD3D (PLAN_32BIT Schritt 5a): Selbsttest (Z-Puffer, Alpha, Nebel) und drehender Wuerfel mit Textur,
  * Gouraud-Licht, Nebel und einer halb durchsichtigen Seite. Befehlszeile: L = VESA linear 640x480, F = im Fenster,
  * H = VESA 800x600 64K Farben, T = VESA 640x480 16,7 Mio. Farben (32 Bit), X = VESA 1024x768 256 Farben,
+ * B dazu = Bankumschaltung erzwingen (wie Karten ohne linearen Bildspeicher),
  * sonst Vollbild 13h; A dazu = nach 40 Bildern beenden. Esc beendet, Alt+Tab parkt (Vollbild). */
 /* SPDX-License-Identifier: GPL-2.0-or-later  (c) 2026 Karsten, siehe COPYING */
 #include "RD3D.H"
@@ -81,6 +82,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         if (*c == 'H') art = R3D_VESA, vw = 800, vh = 600, vb = 16;
         if (*c == 'T') art = R3D_VESA, vw = 640, vh = 480, vb = 32;
         if (*c == 'X') art = R3D_VESA, vw = 1024, vh = 768, vb = 8; }
+    for (c = cmd; *c; c++) if (*c == 'B') vb |= VESA_BANK;
     voll = (BYTE)(art != R3D_FENSTER);
     wc.name = "Wuerfel"; wc.proc = proc; wc.stil = 0; wc.daten = 0; wc.inst = inst; wc.symbol = 0; wc.hinter = RGB(0, 0, 0);
     if (!RegisterClass(&wc)) return 1;

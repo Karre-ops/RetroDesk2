@@ -182,7 +182,8 @@ Entscheidung Karsten 21.11.2026: Glide (Stufe 5b) wartet auf den Treiber-Stack.
   Adresse oder groesserem Bedarf. VBE 3: Zeilenbytes linear (+32h). ScreenRestore setzt denselben Modus, Palette nur bei 8 Bit.
 - Module erreichen beides ueber den Kopf (+72, +76). Pruefung VESA32 in test/rd32.sh (QEMU: 64 lineare Modi).
 - RD3D in VESA (23.11.2026): `R3dOpenVesa(fenster, w, h, bpp)` (Art `R3D_VESA`) in jeder linearen Groesse und Farbtiefe 8/15/16/24/32. Gerechnet wird weiter mit 256 Farbnummern (16 Rampen x 16 Stufen); ab 15 Bit setzt `R3dFlip` sie ueber eine Tabelle in Echtfarben um, ohne Palette. Dabei behoben: die Flaeche eines Dreiecks lief bei grossen Dreiecken (ab etwa 1024x768) in 32 Bit ueber, jetzt 64 Bit. Pruefung `test/rd3d.sh`: WUERFEL auch in 800x600x16, 640x480x32 und 1024x768x8 (21 ok).
-- Offen: Bankumschaltung ohne LFB (VBE 1.2); RD3D mit mehr als 256 Farbstufen (echte Farbmischung) erst bei Bedarf.
+- Bankumschaltung ohne LFB (23.11.2026): Findet ScreenModeVesa keinen linearen Modus (VBE 1.2 oder `bpp | VESA_BANK`), setzt es den Modus ohne 4000h, `ScreenPtr` liefert einen Schattenpuffer (DPMI-Speicher, zeilenbytes je Zeile) und `ScreenUpdate()` kopiert ihn ueber Fenster A (4F05, Granularitaet aus 4F01) auf den Schirm; mit LFB tut es nichts. ScreenRestore zeigt den Schatten neu. Module erreichen ScreenUpdate ueber den Kopf (+80, Fassung 2; Fassung-1-Module laden weiter). RD3D ruft es in R3dFlip. Modusliste ab VBE 1.x. Pruefung `test/rd3d.sh` mit WUERFEL HB (800x600x16) und XB (1024x768x8).
+- Offen: RD3D mit mehr als 256 Farbstufen (echte Farbmischung) erst bei Bedarf; Glide nach dem Treiber-Stack.
 
 ## Reihenfolge und Aufwand
 1. Bedarf, SysInfo, RDSETUP (klein bis mittel)

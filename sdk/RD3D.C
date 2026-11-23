@@ -172,6 +172,7 @@ static void sw_flip(R3D *r)
             for (x = 0; x < r->w / 4; x++) z[x] = q[x];
         }
     }
+    if (r->art == R3D_VESA || r->art == R3D_VOLLLFB) ScreenUpdate();   /* ohne LFB: Schatten ueber Baenke zeigen */
 }
 static const R3DDRV sw = { "Software", sw_open, sw_close, sw_clear, sw_tri, sw_flip };
 
