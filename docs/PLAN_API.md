@@ -6,6 +6,13 @@ bringen keine eigenen Treiber mehr mit. 3D (Glide, ATI, nVidia) kommt spaeter (P
 Grundsaetze wie bisher: neue Funktionen in neue, verwerfbare Module; 8088-Multitasking unveraendert; Treiber
 universell, Sonderfaelle nur ueber Erkennung/RD2.INI; 32-Bit-Teile unter dem 386 nicht installieren.
 
+## Gesamtziel (Karsten, 24.11.2026)
+Vollstaendiges, DOS-kompatibles Betriebssystem, einfach zu bedienen, mit GUI. Treiber fuer Sound, Grafik, Tastatur,
+Maus, Drucker und Netzwerk. Laeuft ab 8088 mit 512 KB bis Pentium MMX mit 64 MB und schneller. Grafik HGC, CGA,
+EGA, VGA, SVGA und besser. Programme laufen nativ in RD2. Multitasking auf 8088 und ab 386. Sparsam mit RAM,
+besonders bei 640 KB. Offen zu klaeren: Netzkarten-Paketreiber (bisher bringt sie der Nutzer mit), Druckertreiber
+ueber EPSON9 hinaus, Mindestausbau 512 KB pruefen.
+
 ## Bestand (24.11.2026, aus RD2.H/RD2API.H)
 | Bereich | vorhanden | Luecke |
 |---|---|---|
