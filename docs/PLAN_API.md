@@ -61,6 +61,25 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
    nach dem Moduswechsel; im Vollbild bleibt die Maus an (gpause 2: Zeiger aus statt Treiber zuruecksetzen), Nachrichten
    kommen mit Vollbild-Koordinaten. KeyState(KS_SCAN + Scancode) fuer alle Tasten zugleich: Bit-Tabelle k_tasten im
    INT 9 des Kerns (rd_api[RDO_TASTEN]). Test test/vollmaus.sh. RDGDI 20.986/20.992 Byte RAM, RDUSER 27.638/27.648.
+3a. Audit (erledigt 24.11.2026, main 6e281c1): Bericht docs/AUDIT_2026-11-24.md, Tests der betroffenen Teile gruen.
+3b. Speicherschutz RD2/32 (Entscheidung Karsten 24.11.2026: Mittelweg). Heute: CS/DS/SS mit Basis = Bild und Grenze
+   4 GB, rd32_lin(lin) = lin - Basis erreicht jeden Speicher (Bildspeicher, BIOS, DOS, andere Programme).
+   Neu, Vorgabe fuer native Programme:
+   - DS/SS-Grenze = Ende des hoechsten eigenen Blocks (Bild + rd32_alloc), wird bei jedem rd32_alloc nachgezogen
+     (DPMI 0008h). Alles unter dem Bild (DOS, BIOS, A0000h, 16-Bit-Programme) liegt damit ausserhalb: Zugriff
+     ergibt eine Ausnahme, die nur das Programm beendet. CS-Grenze = Codeende.
+   - Bloecke unter der Bildbasis gehen nicht (naher Zeiger waere negativ): rd32_alloc gibt sie zurueck und fordert
+     neu an; geht es nicht, Fehler statt Schutzluecke. Speicher anderer Programme oberhalb bleibt erreichbar
+     (Schutz gegen Versehen, nicht gegen Absicht).
+   - Fenster als eigene Selektoren (DPMI 0000h/0007h/0008h): Bildspeicher A0000h-BFFFFh, BIOS (0-4FFh und
+     F0000h-FFFFFh), LFB (Grenze = abgebildete Groesse). ScreenPtr/BiosPtr liefern dann Far-Zeiger
+     (BYTE __far *, Open Watcom 48 Bit); ScreenCopy(quelle, x, y, w, h) als schnelles Kopieren ins Bild.
+     RD3D und Schattenpuffer (Bankumschaltung) kopieren ueber ES, die Rechenschleifen bleiben nah.
+   - Flag RD32F_VOLL im Programmkopf: alte Grenze 4 GB, rd32_lin wie bisher (Treiber, Diagnose).
+     Ohne Flag liefert rd32_lin 0 und setzt den Fehler.
+   - Ausnahme 0Dh/0Ch ausserhalb der Grenze: Meldung "Speicherschutz" mit Adresse, nur dieses Programm endet.
+   Umbau: RD32A (Selektoren, Grenze nachziehen), RD32PRG/RD32LIB (Zeiger, rd32_alloc), RD3D, VOLL32/TAKT32 und
+   Testprogramme; neuer Test test/schutz32.sh (Zugriff unter das Bild, nach A0000h ohne Zeiger, mit ScreenPtr, mit Flag).
 4. Sound Blaster vollstaendig: SB 1.x/2.0/Pro/16/AWE und Kompatible; Mischer in RD2 (mehrere Samples zugleich,
    Lautstaerke je Kanal), 16 Bit/Stereo ab SB16, FM ueber OPL2/OPL3 mit Musik und Effekten gleichzeitig.
 5. MPU-401 (MIDI) als Treiber; Tandy/Game Blaster/Gravis nativ spaeter (wie in Punkt 5 festgelegt).
