@@ -65,6 +65,11 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     p = malloc(2000000UL); if (p) { p[0] = 1; p[1999999UL] = 2; } ist(x && p && p[1999999UL] == 2, "malloc/realloc/free, 2 MB");
     for (i = 1; i < 300; i += 2) free(m[i]);
     free(p); p = calloc(100, 4); ist(p && !p[399], "calloc"); free(p);
+    ist(!malloc(0xFFFFFFF0UL) && !calloc(0x10000UL, 0x10001UL) && !calloc(0x40000000UL, 4), "malloc/calloc Ueberlauf: 0");   /* Audit 24.11. */
+    { short h[2] = { 0, 0x1234 }; long v = 0; char t[400];
+      ist(sscanf("-5 77", "%hd %ld", &h[0], &v) == 2 && h[0] == -5 && h[1] == 0x1234 && v == 77, "sscanf %hd schreibt 2 Bytes");
+      ist(snprintf(t, sizeof t, "%.1000d", 7) == 300 && t[0] == '0' && strlen(t) < sizeof t, "printf %.1000d ohne Ueberlauf");
+      ist(!strcmp(ultoa(255UL, t, 99), "255"), "ultoa falsche Basis"); ist(strtod("1e999999999", 0) > 1e300, "strtod grosser Exponent"); }
     DbgPrint("TESTC32: Dateien");
     /* Dateien */
     f = fopen("TESTC32.TXT", "w"); ist(f != 0, "fopen w");

@@ -91,22 +91,27 @@ static void *suche(DWORD w)                      /* w = Woerter (DWORD) mit Kopf
 }
 void *malloc(size_t n)
 {
-    DWORD w = ((n + 3) / 4 + 2) & ~1UL, g; void *r;
+    DWORD w, g; void *r;
+    if (n > 0x3FFFFFF0UL) return 0;               /* sonst Ueberlauf: zu kleiner Block (Audit 24.11.) */
+    w = ((n + 3) / 4 + 2) & ~1UL;
     if ((r = suche(w)) != 0) return r;
     if (nber == BEREICHE) return 0;
-    g = naechst; while (g < (w + 2) * 4) g *= 2;
+    g = naechst; while (g < (w + 2) * 4 && g < 0x40000000UL) g *= 2;
+    if (g < (w + 2) * 4) g = (w + 2) * 4;
     if (!(ber[nber].a = rd32_alloc(g))) { g = (w + 2) * 4; if (!(ber[nber].a = rd32_alloc(g))) return 0; }
     ber[nber].n = g / 4; ber[nber].a[0] = g / 4 - 2; ber[nber].a[g / 4 - 2] = 0; nber++;
     if (naechst < 1048576UL) naechst *= 2;
     return suche(w);
 }
 void free(void *p) { if (p) ((DWORD *)p)[-1] &= ~1UL; }
-void *calloc(size_t n, size_t g) { void *p = malloc(n * g); if (p) memset(p, 0, n * g); return p; }
+void *calloc(size_t n, size_t g) { void *p; if (g && n > 0x3FFFFFF0UL / g) return 0; p = malloc(n * g); if (p) memset(p, 0, n * g); return p; }
 void *realloc(void *p, size_t n)
 {
-    DWORD *k, w = ((n + 3) / 4 + 2) & ~1UL, alt; void *q;
+    DWORD *k, w, alt; void *q;
     if (!p) return malloc(n);
     if (!n) { free(p); return 0; }
+    if (n > 0x3FFFFFF0UL) return 0;
+    w = ((n + 3) / 4 + 2) & ~1UL;
     k = (DWORD *)p - 1; alt = *k & ~1UL;
     while (k[alt] && !(k[alt] & 1)) { alt += k[alt]; *k = alt | 1; }   /* freie Nachbarn dazunehmen */
     if (alt >= w) { if (alt - w >= 4) { k[w] = alt - w; *k = w | 1; } return p; }
@@ -143,6 +148,7 @@ double strtod(const char *s, char **e)
         if (*t == '-' || *t == '+') en2 = *t++ == '-';
         if (isdigit(*t)) { en = en2; for (s = t; isdigit(*s); s++) ex = ex * 10 + (*s - '0'); }
     }
+    if (ex > 400) ex = 400;                       /* 1e999999999: sonst Milliarden Durchlaeufe */
     while (ex--) v = en ? v / 10 : v * 10;
     if (e) *e = (char *)(n ? s : a);
     return neg ? -v : v;
@@ -183,6 +189,7 @@ char *getenv(const char *name) { (void)name; return 0; }
 char *ultoa(unsigned long v, char *s, int b)
 {
     char t[34]; int n = 0; char *d = s;
+    if (b < 2 || b > 36) b = 10;                  /* sonst Teilen durch 0 / Lesen hinter der Ziffernliste */
     do { t[n++] = "0123456789abcdefghijklmnopqrstuvwxyz"[v % b]; v /= b; } while (v);
     while (n) *d++ = t[--n];
     *d = 0; return s;
@@ -269,6 +276,7 @@ static int formatiere(AUS *o, const char *f, va_list a)
             else v = va_arg(a, unsigned long);
             ultoa(v, t, b); if (c == 'X') strupr(t);
             n = (int)strlen(t);
+            if (prec > 300) prec = 300;           /* t[352]: Ueberlauf bei %.1000d (Audit 24.11.) */
             if (prec >= 0) { fuell = ' '; if (prec == 0 && !v) n = 0; while (n < prec) { memmove(t + 1, t, (size_t)n + 1); t[0] = '0'; n++; } }
             if (neg) strcpy(vor, "-"); else if (plus && (c == 'd' || c == 'i')) strcpy(vor, "+"); else if (leer && (c == 'd' || c == 'i')) strcpy(vor, " ");
             if (alt && v && (c == 'x' || c == 'X')) strcpy(vor, c == 'x' ? "0x" : "0X");
@@ -301,14 +309,14 @@ int printf(const char *f, ...) { va_list a; int r; va_start(a, f); r = vfprintf(
 
 int sscanf(const char *s, const char *f, ...)
 {
-    va_list a; int n = 0, lang, breite; char *e; const char *anf = s;
+    va_list a; int n = 0, lang, kurz, breite; char *e; const char *anf = s;
     va_start(a, f);
     for (; *f; f++) {
         if (isspace(*f)) { while (isspace(*s)) s++; continue; }
         if (*f != '%') { if (*s != *f) break; s++; continue; }
-        f++; breite = 0; lang = 0;
+        f++; breite = 0; lang = 0; kurz = 0;
         while (isdigit(*f)) breite = breite * 10 + *f++ - '0';
-        while (*f == 'l' || *f == 'h') { if (*f == 'l') lang = 1; f++; }
+        while (*f == 'l' || *f == 'h') { if (*f == 'l') lang = 1; else kurz = 1; f++; }
         if (*f == '%') { if (*s != '%') break; s++; continue; }
         if (*f == 'n') { *va_arg(a, int *) = (int)(s - anf); continue; }
         if (*f != 'c') while (isspace(*s)) s++;
@@ -316,7 +324,7 @@ int sscanf(const char *s, const char *f, ...)
         if (*f == 'd' || *f == 'i' || *f == 'u' || *f == 'x' || *f == 'o') {
             long v = strtol(s, &e, *f == 'x' ? 16 : *f == 'o' ? 8 : *f == 'i' ? 0 : 10);
             if (e == s) break;
-            s = e; *va_arg(a, long *) = v; n++;
+            s = e; if (kurz) *va_arg(a, short *) = (short)v; else *va_arg(a, long *) = v; n++;   /* %hd: nur 2 Bytes */
         } else if (*f == 'f' || *f == 'e' || *f == 'g') {
             double v = strtod(s, &e); if (e == s) break;
             s = e; if (lang) *va_arg(a, double *) = v; else *va_arg(a, float *) = (float)v; n++;
@@ -380,7 +388,7 @@ int fclose(FILE *f)
 {
     int r;
     if (!f || !f->offen || f->h < 0) return EOF;
-    r = leeren(f); FileClose(f->h); f->offen = 0;
+    r = leeren(f); if (FileClose(f->h)) r = EOF; f->offen = 0;   /* Schreibfehler beim Schliessen melden */
     return r;
 }
 static void alle_zu(void) { int i; while (nae) ae[--nae](); for (i = 1; i < FOPEN_MAX + 3; i++) if (dat[i].offen) { if (i < 3) leeren(&dat[i]); else fclose(&dat[i]); } }
@@ -389,7 +397,8 @@ static int roh_lies(FILE *f)
     if (f->pos >= f->n) {
         if (f->h < 0 || f->eof) { f->eof = 1; return EOF; }
         f->fpos += f->n; f->pos = 0;
-        f->n = FileRead(f->h, f->puf, sizeof f->puf);
+        SetLastError(0); f->n = FileRead(f->h, f->puf, sizeof f->puf);
+        if (LastError()) { f->n = 0; f->fehler = 1; return EOF; }   /* Lesefehler ist nicht Dateiende (ferror) */
         if (!f->n || f->n == 0xFFFF) { f->n = 0; f->eof = 1; return EOF; }
     }
     return f->puf[f->pos++];
@@ -427,6 +436,7 @@ int putchar(int c) { return fputc(c, stdout); }
 char *fgets(char *s, int n, FILE *f)
 {
     int i = 0, c = 0;
+    if (n <= 0 || !f) return 0;
     while (i < n - 1 && (c = fgetc(f)) != EOF) { s[i++] = (char)c; if (c == '\n') break; }
     s[i] = 0;
     return i ? s : 0;
@@ -444,10 +454,12 @@ size_t fread(void *p, size_t g, size_t n, FILE *f)
         while (r < alle && !f->eof) {
             if (alle - r >= sizeof f->puf) {
                 f->fpos += f->n; f->n = f->pos = 0;
-                w = FileRead(f->h, d + r, (WORD)(alle - r > 32768U ? 32768U : alle - r));
+                SetLastError(0); w = FileRead(f->h, d + r, (WORD)(alle - r > 32768U ? 32768U : alle - r));
+                if (LastError()) { f->fehler = 1; break; }
                 if (!w || w == 0xFFFF) { f->eof = 1; break; }
                 f->fpos += w; r += w;
             } else if ((c = roh_lies(f)) == EOF) break; else d[r++] = (BYTE)c;
+            if (f->fehler) break;
         }
         return r / g;
     }
