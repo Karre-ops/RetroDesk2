@@ -163,6 +163,7 @@ app32 apps/test32/FEN32.C FEN32.EXE "Fen32"
 app32 apps/test32/WUERFEL.C WUERFEL.EXE "Wuerfel"
 app32 apps/test32/SCHUTZ32.C SCHUTZ32.EXE "Schutz32"
 app32 apps/test32/TESTC32.C TESTC32.EXE "TestC32"
+app32 apps/test32/TAKT32.C TAKT32.EXE "Takt32"
 mod32() {   # $1 Quelle  $2 .M32  $3 Exporte (Komma): 32-Bit-Modul, RD32M0 zuerst, ohne RD32PRG (das stellt das ladende Programm)
   local b=obj/$2; wcc386 -bt=dos -mf -zl -s -os -fpc -zq -w4 -3r -i=sdk/rd32c -i=sdk -fo=$b.o32 $1
   python3 tools/rd32mod.py $O/$2 "$3" $O/RD32M0.OBJ,$b.o32,$O/RD32LIB.OBJ,$O/RD32API.OBJ $O/RD3D.LIB,$O/RD32C.LIB,$WATCOM/lib386/math3r.lib,$WATCOM/lib386/dos/clib3r.lib >/dev/null || exit 1

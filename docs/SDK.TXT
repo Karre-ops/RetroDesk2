@@ -203,9 +203,11 @@ melden sich mit einem Teiler an, statt einen eigenen Takt zu setzen:
   TaktCount()                Takte seit dem Start (zum Abfragen)
 Bis zu 8 Rueckrufe zugleich. Der Rueckruf laeuft im Interrupt: kurz
 halten (Zaehler, Klang weiterschalten), keine API, kein DOS, eigenes DS
-laden (__loadds). Laengere Arbeit per Nachricht. RD2/32: TaktCount geht,
-TaktSet liefert vorerst 0 (RD_ERR_NOTSUP). TimerSet (ms, Nachricht M_TIMER)
-bleibt fuer alles Gemuetliche.
+laden (__loadds). Laengere Arbeit per Nachricht. RD2/32: ebenso, ohne
+__loadds; der Rueckruf laeuft auf einem eigenen Stapel (2 KB), kein
+Gleitkomma. In 32-Bit-Modulen geht TaktSet nicht (0, RD_ERR_NOTSUP): das
+Programm meldet an. TimerSet (ms, Nachricht M_TIMER) bleibt fuer alles
+Gemuetliche.
 
 6. Weitere Quellen
 ------------------

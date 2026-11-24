@@ -151,4 +151,33 @@ void BufShow(RDBUF *b, HDC dc, short x, short y)
     }
 }
 void BufFree(RDBUF *b) { if (b->bmp) BmpFree(b->bmp); if (b->pix) rd32_free(b->pix); b->bmp = 0; b->pix = 0; }
-WORD TaktSet(TAKTPROC f, WORD teiler) { (void)f; (void)teiler; SetLastError(RD_ERR_NOTSUP); return 0; }   /* 32 Bit: Rueckruf im Takt folgt (PLAN_API 2b); TaktCount geht */
+/* Systemtakt fuer RD2/32 (PLAN_API 2b): Eintraege im Programm, RD32 ruft im IRQ 0 rd32_takttramp (RD32C0), die ruft
+   rd32_taktlauf auf eigenem Stapel. TB+68 = Einsprung, 0 = keiner angemeldet. */
+typedef struct { TAKTPROC f; WORD teil, zahl; } TAKT32;
+static TAKT32 t32[8];
+extern void rd32_takttramp(void); extern DWORD rd32_hattakt;
+void rd32_taktlauf(void)
+{
+    int i;
+    for (i = 0; i < 8; i++) if (t32[i].f && ++t32[i].zahl >= t32[i].teil) { t32[i].zahl = 0; t32[i].f(); }
+}
+WORD TaktSet(TAKTPROC f, WORD teiler)
+{
+    int i;
+    if (!f) { SetLastError(RD_ERR_HANDLE); return 0; }
+    if (!rd32_hattakt) { SetLastError(RD_ERR_NOTSUP); return 0; }   /* im Modul: das Programm meldet an */
+    for (i = 0; i < 8; i++) if (!t32[i].f) {
+        t32[i].teil = teiler ? teiler : 1; t32[i].zahl = 0; t32[i].f = f;
+        TD(72) = ~(DWORD)rd32_takttramp; TD(68) = (DWORD)rd32_takttramp;   /* RD32 prueft TB+72 = ~TB+68 */
+        return (WORD)(i + 1);
+    }
+    SetLastError(RD_ERR_NOMEM); return 0;
+}
+void TaktKill(WORD nr)
+{
+    int i;
+    if (!nr || nr > 8) return;
+    t32[nr - 1].f = 0;
+    for (i = 0; i < 8 && !t32[i].f; i++) ;
+    if (i == 8) { TD(68) = 0; TD(72) = 0; }
+}

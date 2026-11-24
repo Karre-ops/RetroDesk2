@@ -52,8 +52,11 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
 2. Zeitgeber (erledigt 24.11.2026, Entscheidung Karsten: fester Takt): PIT fest auf 145,6 Hz (Teiler 8192, 8 x 18,2 Hz),
    TaktSet(proc, teiler)/TaktKill/TaktCount (API 0x032-0x034), bis zu 8 Rueckrufe im Interrupt. Kern-Takt (Klang,
    Zeitscheiben, TickCount) intern weiter jeden 2. Takt mit 72,8 Hz, BIOS-Uhr jeden 8.; Sample-Takt im Treiber und
-   32-Bit-Zeitscheibe (8 Takte = 55 ms) angepasst. Test test/takt.sh (8088 und Pentium). Offen 2b: Rueckruf fuer
-   RD2/32 (im PM-Zeitgeber), bis dahin TaktCount abfragen.
+   32-Bit-Zeitscheibe (8 Takte = 55 ms) angepasst. Test test/takt.sh (8088 und Pentium).
+   2b erledigt (24.11.2026): RD2/32-Rueckrufe aus dem PM-Zeitgeber (RD32A i8pm, TB+68 = rd32_takttramp in RD32C0,
+   eigener Stapel 2 KB, Eintraege in RD32LIB), auch in Schleifen ohne API; Module ohne TaktSet. TAKT32.EXE in takt.sh.
+   Absicherung: TB+72 = ~TB+68 und TB_CS32 muss passen (verwaiste RD32-Eintraege nach TaskKill). Offen: solche
+   verwaisten Eintraege belegen ihren der 8 RD32-Plaetze weiter (schon vor 2b so), beim Aufraeumen beheben.
 3. Eingabe im Vollbild: Maus mit Koordinaten im Vollbildmodus, Bereich und Empfindlichkeit, KeyState-Tabelle fuer
    alle Tasten zugleich, auch im Rohmodus.
 4. Sound Blaster vollstaendig: SB 1.x/2.0/Pro/16/AWE und Kompatible; Mischer in RD2 (mehrere Samples zugleich,

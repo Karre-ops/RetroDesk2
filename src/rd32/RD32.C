@@ -181,6 +181,7 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
     if (k == 8) goto weg;
     g.tab[2 * k] = W(TB_HTASK); g.tab[2 * k + 1] = tseg;
     tk[k].hdl = hdl; tk[k].sels = sels; tk[k].htb = htb;
+    *(DWORD __far *)MK_FP(tseg, 68) = 0; *(DWORD __far *)MK_FP(tseg, 72) = 0;          /* Systemtakt: kein Rueckruf, bevor das Programm TaktSet ruft (TB+68) */
     g_tblin[k] = (DWORD)tseg << 4; g_pmin[k] = h.brende; g_pstub[k] = h.pre; g_cs32[k] = (WORD)sels;
     DbgPrint("RD32: Start");
     rm_start(tseg);

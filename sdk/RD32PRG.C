@@ -37,7 +37,9 @@ int rd32_main(void)
 {
     WORD i; int r;
     rd32_xp = 0; for (i = 0; i < 8; i++) PROCS[i] = 0;
+    TD(68) = 0;                                   /* Systemtakt: noch kein TaktSet (PLAN_API 2b) */
     if (!setjmp(rd32_jb)) r = RdMain(TW(TB_INST), (LPCSTR)(TB + TB_CMD), TW(TB_SHOW)); else r = rd32_ecode;
+    TD(68) = 0;                                   /* ab hier keine Takt-Rueckrufe mehr */
     if (rd32_beiende) rd32_beiende();             /* atexit, Dateien schliessen, stdout leeren */
     if (rd32_modende) rd32_modende();             /* geladene Module: ihr Ende (atexit, Dateien), dann Speicher */
     for (i = 0; i < NBLK; i++) if (blk[i].lin) rd32_free(rd32_lin(blk[i].lin));

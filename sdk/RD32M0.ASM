@@ -7,7 +7,7 @@
 .model flat
 .code
 public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_alloc_, rd32_free_, SCREENMODE, ScreenPtr_, SCREENPALETTE, SCREENRESTORE, ScreenModeVesa_, ScreenVesaList_, ScreenUpdate_
-public rd32_mkopf, setjmp_, longjmp_, __8087, __real87, __chipbug, ___chipbug, _rd32_jb, _rd32_ecode, _rd32_beiende
+public rd32_takttramp_, _rd32_hattakt, rd32_mkopf, setjmp_, longjmp_, __8087, __real87, __chipbug, ___chipbug, _rd32_jb, _rd32_ecode, _rd32_beiende
 extrn RdMod32Init_:near
 rd32_mkopf:
         db 'R32M'
@@ -33,6 +33,7 @@ f_slist dd 0                          ; +76 ScreenVesaList (Lader)
 f_supd  dd 0                          ; +80 ScreenUpdate (Lader, ab Fassung 2)
 
 minit:  jmp  RdMod32Init_
+rd32_takttramp_: retf                 ; Module: kein eigener Takt (TaktSet nur im Programm)
 rd32_call_:    jmp dword ptr f_call
 rd32_alloc_:   jmp dword ptr f_alloc
 rd32_free_:    jmp dword ptr f_free
@@ -70,6 +71,7 @@ longjmp_:
 lj_1:   jmp  ecx
 
 _DATA   segment dword public use32 'DATA'
+_rd32_hattakt dd 0
 __8087    db 0
 __real87  db 0
           dw 0

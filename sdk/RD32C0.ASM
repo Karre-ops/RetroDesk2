@@ -6,8 +6,8 @@
 .386p
 .model flat
 .code
-public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_kopf, setjmp_, longjmp_, __8087, __real87, __chipbug, ___chipbug
-extrn rd32_main_:near, rd32_cb_:near
+public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_takttramp_, _rd32_hattakt, rd32_kopf, setjmp_, longjmp_, __8087, __real87, __chipbug, ___chipbug
+extrn rd32_main_:near, rd32_cb_:near, rd32_taktlauf_:near
 rd32_kopf:
 hdr     db 'R32!'
         dd offset pm_start            ; +4
@@ -151,7 +151,28 @@ pm_preempt:                           ; vom Zeitgeber eingeschoben: TaskYield, d
         ret
 rd32_brende:
 
+; Systemtakt (PLAN_API 2b, 24.11.2026): RD32 ruft hier im IRQ 0 (145,6 Hz) fern herein, DS = Datenselektor des Tasks,
+; Interrupts gesperrt. Eigener Stapel im Bild, dann rd32_taktlauf (RD32LIB: TaktSet-Eintraege mit Teiler).
+rd32_takttramp_:
+        mov  t_esp, esp
+        mov  t_ss, ss
+        mov  ax, ds
+        mov  ss, ax
+        mov  esp, offset t_top
+        push es
+        push fs
+        push gs
+        mov  es, ax
+        cld
+        call rd32_taktlauf_
+        pop  gs
+        pop  fs
+        pop  es
+        lss  esp, fword ptr t_esp
+        retf
+
 _DATA   segment dword public use32 'DATA'   ; Reihenfolge wie wcc386, dazu RD32ENDE als letztes BSS-Segment
+_rd32_hattakt dd 1                    ; Programm: TaktSet moeglich (Module: 0)
 __8087    db 0                        ; fuer Open Watcoms Gleitkomma (clib3r): 0 = Software, 3 = 387
 __real87  db 0
           dw 0
@@ -163,6 +184,11 @@ CONST   ends
 CONST2  segment dword public use32 'DATA'
 CONST2  ends
 _BSS    segment dword public use32 'BSS'
+t_esp   dd ?
+t_ss    dw ?
+        dw ?
+t_stk   db 2048 dup(?)                ; Stapel fuer Takt-Rueckrufe
+t_top   label byte
 _BSS    ends
 RD32ENDE segment dword public use32 'BSS'    ; leer: markiert das Ende des Speichers (Kopf +16)
 public rd32_ende

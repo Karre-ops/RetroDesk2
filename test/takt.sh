@@ -20,4 +20,16 @@ for cpu in "" "-cpu pentium"; do
   pruef "$n: TaktKill haelt den Rueckruf an, 7 Plaetze frei" "[ $KI -le 1 ] && [ $PL = 7 ]"
   pruef "$n: Ende, Speicher vollstaendig zurueck" "tr -d '\r' < $SER | grep -q 'TAKTTEST: Ende' && tr -d '\r' < $SER | grep -q 'RD2: Speicher vollstaendig zurueck'"
 done
+# ---- RD2/32 (Pentium, CWSDPMI) ----
+printf '@echo off\r\nA:\\RD2\\CWSDPMI.EXE -p\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\TAKT32.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ae_takt32.txt
+FMT=1440 NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ') TAKT32.EXE RD32.MOD CWSDPMI.EXE" bash tools/mkdisk.sh $IMG obj/ae_takt32.txt >/dev/null 2>&1
+rm -f $SER; timeout 150 qemu-system-i386 -cpu pentium -m 16 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a -serial file:$SER >/dev/null 2>&1
+v() { tr -d '\r' < $SER | grep -a "TAKT32: $1" | head -1 | sed 's/.*0x//' | python3 -c "import sys; print(int(sys.stdin.read().strip() or '0', 16))"; }
+T1=$(v Teiler1); T8=$(v Teiler8); TK=$(v Takte); BI=$(v BIOS); KI=$(v "nach Kill")
+echo "       RD2/32: Takte $TK, Teiler1 $T1, Teiler8 $T8, BIOS $BI, nach Kill $KI"
+pruef "RD2/32: Rueckruf Teiler 1 mit 145,6 Hz (275..310)" "[ $T1 -ge 275 ] && [ $T1 -le 310 ]"
+pruef "RD2/32: Teiler 8 (T1/8 +-2), TaktCount passt (+-3)" "[ $T8 -ge $(( T1 / 8 - 2 )) ] && [ $T8 -le $(( T1 / 8 + 2 )) ] && [ $TK -ge $(( T1 - 3 )) ] && [ $TK -le $(( T1 + 3 )) ]"
+pruef "RD2/32: BIOS-Uhr 18,2 Hz (34..39)" "[ $BI -ge 34 ] && [ $BI -le 39 ]"
+pruef "RD2/32: Rueckrufe auch in einer Schleife ohne API, TaktKill haelt an" "tr -d '\r' < $SER | grep -q 'TAKT32: Schleife ok' && [ $KI -le 1 ]"
+pruef "RD2/32: Ende, Speicher vollstaendig zurueck" "tr -d '\r' < $SER | grep -q 'TAKT32: Ende' && tr -d '\r' < $SER | grep -q 'RD2: Speicher vollstaendig zurueck'"
 [ $F = 0 ] && echo "TAKT: alles ok"; exit $F

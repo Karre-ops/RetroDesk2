@@ -48,6 +48,8 @@ _g_pstub  dd 8 dup(0) ;   pm_preempt im Bild
 _g_extb   dw 0        ; Ausnahme: Taskblock-Segment, Nummer (Index), Adresse
 _g_exnr   dw 0
 _g_exeip  dd 0
+g_to      dd 0        ; Takt-Rueckruf: Ziel im Bild (rd32_takttramp)
+g_ts      dw 0
 g_jo      dd 0        ; Sprungziel beim Weiterreichen
 g_js      dw 0
 g_stk     db 384 dup(0)
@@ -659,6 +661,44 @@ i8pm:
     push edi
     mov  ds, cs:p_pds
     inc  g_tick
+    xor  ebx, ebx                     ; Systemtakt: TaktSet-Rueckrufe der 32-Bit-Tasks (TB+68 = rd32_takttramp im Bild)
+i8_t:
+    cmp  _g_cs32[ebx*2], 0
+    je   i8_tn
+    push es
+    mov  ax, g_flat
+    mov  es, ax
+    mov  eax, _g_tblin[ebx*4]
+    mov  ecx, es:[eax+68]
+    jecxz i8_tx
+    mov  edx, es:[eax+72]             ; Pruefwort ~Einsprung: verwaister Eintrag (Task per TaskKill weg, TB neu belegt) zaehlt nicht
+    not  edx
+    cmp  edx, ecx
+    jne  i8_tx
+    mov  dx, es:[eax+32]              ; TB_CS32 muss zum Eintrag passen
+    cmp  dx, _g_cs32[ebx*2]
+    jne  i8_tx
+    mov  g_to, ecx
+    mov  cx, _g_cs32[ebx*2]
+    mov  g_ts, cx
+    push ds
+    push ebx
+    push esi
+    push ebp
+    mov  si, ds
+    mov  ds, es:[eax+34]              ; TB_DS32
+    mov  es, si
+    call fword ptr es:g_to
+    pop  ebp
+    pop  esi
+    pop  ebx
+    pop  ds
+i8_tx:
+    pop  es
+i8_tn:
+    inc  ebx
+    cmp  ebx, 8
+    jb   i8_t
     cmp  _g_preon, 0
     je   i8_w
     test byte ptr g_tick, 7
