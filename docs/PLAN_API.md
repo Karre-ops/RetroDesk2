@@ -31,6 +31,20 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
 | Speicher | 16 Bit Bloecke, 32 Bit rd32_alloc | - |
 | Dateien, INI, Netz | vorhanden | - |
 
+## Abgleich aus dem Code (Schritt 1, 24.11.2026)
+- Takt: Der Kern beschleunigt den PIT schon auf 72,8 Hz (13,7 ms, INT 8, Uhr bleibt richtig). Programme bekommen davon
+  nur TimerSet-Nachrichten (Aufloesung 13,7 ms, Zustellung erst bei GetMessage) und TickCount (ms). Kein Rueckruf im
+  Takt, kein hoeherer Takt (140 Hz) fuer Spiele/Musik.
+- Vollbild: ScreenAcquire schaltet Zeiger und GDI ab (gpause), das Programm setzt den Modus selbst. Mausnachrichten
+  kommen weiter mit Koordinaten der Schreibtisch-Aufloesung; Bereich und Zeiger im Vollbildmodus fehlen.
+- Tasten: Nachrichten und KeyState vorhanden; im Rohmodus mehrere Tasten zugleich noch pruefen (Testprogramm).
+- Klang: SND.C deckt PC-Lautsprecher, AdLib/OPL2, SB 1.x bis AWE (FM an 388h, OPL3 zweite Bank 38Ah) und Covox ab.
+  PCM nur 8 Bit mono, ein Sample zur Zeit (Einzelblock-DMA, Befehl 14h); kein Mischen, kein Auto-Init, kein SB16
+  16 Bit/Stereo, keine Lautstaerke je Kanal. Musik IMF/DRO ueber RDMUS.MOD. MIDI (MPU-401) fehlt.
+- Drucker: EPSON9.DRV; ESCP24 und PCL fehlen.
+- Zusammen mit dem Spiel (eigene Treiber heute: VESA 101h, INT 33h, kbhit, 140-Hz-Zeitgeber, Lautsprecher, AdLib)
+  ergibt das die Schritte 2 bis 6, dazu die Drucker (Schritt 7).
+
 ## Schritte
 1. Abgleich: Jede Funktion oben in 16 und 32 Bit mit einem Testprogramm pruefen (Vollbild + Maus + Tasten + Klang
    zugleich, Alt+Tab). Ergebnis: genaue Luecken-Liste. Die Engine (RDISOENGINE/Spritzwerkzeugbauer) als Pruefstein:
@@ -44,3 +58,5 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
 5. MPU-401 (MIDI) als Treiber; Tandy/Game Blaster/Gravis nativ spaeter (wie in Punkt 5 festgelegt).
 6. SDK und Doku: alles in RD2.H/RD2_32.H, SDK.TXT, Beispiele; danach die Engine auf die RD2-API umstellen
    (DOS-Fassung bleibt als Rueckfall).
+7. Drucker: ESCP24.DRV (ESC/P 24 Nadeln, ESC/P2) und PCL.DRV (HP PCL 3/5), Auswahl in Optionen.
+Danach voller Testsatz und Release 2.4 (Karsten, 24.11.2026: Release erst nach PLAN_API).
