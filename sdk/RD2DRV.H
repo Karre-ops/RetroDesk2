@@ -114,7 +114,11 @@ typedef struct {
     void  (RDAPI *pcm_stop)(void);
     void  (RDAPI *volume)(WORD art, WORD wert);
     void  (RDAPI *tick)(void);                                /* vom Zeitgeber, z. B. fuer Speaker-Huellkurven */
+    WORD  (RDAPI *strm_start)(const BYTE FAR *ring, WORD n, WORD rate, WORD fmt, void (RDAPI *halbe)(WORD h)); /* Ring (SC_STREAM), SF_*; NULL ohne */
+    void  (RDAPI *strm_stop)(void);
 } SNDDRV;
+#define SF_16BIT  0x0001                                      /* strm_start: 16 Bit vorzeichenbehaftet (SC_PCM16) */
+#define SF_STEREO 0x0002                                      /* links, rechts abwechselnd (SC_STEREO) */
 
 /* ---- Drucker ------------------------------------------------------------- */
 /* RDPRN gibt dem Treiber eine Ausgaberoutine (LPT-Port oder Datei); 0 = ok, sonst RD_ERR_* (z. B. RD_ERR_ABORT). */

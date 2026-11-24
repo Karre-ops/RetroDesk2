@@ -76,6 +76,7 @@ modul src/drv/VESA.C VESA1024.DRV "VESA 1024x768 256" 0 D "-3 -dV1024"
 modul src/drv/CGA4.C CGA4.DRV "CGA 4 Farben" 0 D
 modul src/snd/RDSND.C RDSND.MOD "Klang" 0 M
 modul src/snd/RDMUS.C RDMUS.MOD "Musik" 0 M
+modul src/snd/RDMIX.C RDMIX.MOD "Mischer" 0 M
 modul src/drv/SND.C SPEAKER.DRV "PC-Lautsprecher" 0 D -dSPK
 modul src/drv/SND.C ADLIB.DRV "AdLib" 0 D -dADL
 modul src/drv/SND.C SB.DRV "Sound Blaster" 0 D -dSB
@@ -175,6 +176,7 @@ app apps/test/AUSLTEST.C AUSLTEST.EXE "AUSLTEST"
 app apps/test/SWAPTEST.C SWAPTEST.EXE "Speicher-Test"
 app apps/test/PRNTEST.C PRNTEST.EXE "PRNTEST"
 app apps/test/SNDTEST.C SNDTEST.EXE "SNDTEST"
+app apps/test/MIXTEST.C MIXTEST.EXE "MIXTEST"
 app apps/test/NETTEST.C NETTEST.EXE "NETTEST"
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/FREIMEM.EXE -fo=obj/freimem.obj apps/test/FREIMEM.C >/dev/null
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/TSRTEST.EXE -fo=obj/tsrtest.obj apps/test/TSRTEST.C >/dev/null

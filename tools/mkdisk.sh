@@ -30,7 +30,8 @@ if [ -z "$NUR" ]; then   # Vorgabe: Systemdateien (S) + alle in AUTOEXEC/SHELL g
   case " $NUR " in *" WINTEST.EXE "*) NUR="$NUR UEBER.EXE";; esac
   case " $NUR " in *" STRESS.EXE "*) NUR="$NUR WURM.EXE";; esac
   case " $NUR " in *" PRNTEST.EXE "*) NUR="$NUR RDPRN.MOD EPSON9.DRV";; esac
-  case " $NUR " in *" SNDTEST.EXE "*) NUR="$NUR ADLIB.DRV SB.DRV COVOX.DRV RDMUS.MOD";; esac
+  case " $NUR " in *" MIXTEST.EXE "*) NUR="$NUR SB.DRV RDMIX.MOD";; esac
+  case " $NUR " in *" SNDTEST.EXE "*) NUR="$NUR ADLIB.DRV SB.DRV COVOX.DRV RDMUS.MOD RDMIX.MOD";; esac
   case " $NUR " in *" PING.EXE "*) NUR="$NUR PONG.EXE RECHNE.EXE MEMTEST.EXE";; esac
 fi
 for f in out/*.EXE out/*.MOD out/*.DRV out/*.FNT out/*.LNG out/*.BIN out/*.RDB out/*.HLP out/*.COM out/*.KBD; do [ -f "$f" ] || continue; if [ -n "$NUR" ]; then case " $NUR " in *" ${f##*/} "*) ;; *) continue;; esac; fi; [ "${f##*/}" = RD2SETUP.EXE ] && [ -z "$SETUP" ] && continue; [ "${f##*/}" = INSTALL.EXE ] && [ -z "$SETUP" ] && continue; mcopy -i $IMG "$f" ::/RD2/ 2>/dev/null || { [ -z "$FMT" ] || echo "mkdisk: FEHLER ${f##*/} passt nicht auf $IMG" | tee -a obj/mkdisk_fehler.txt >&2; VOLL=1; }; done   # RD2SETUP und INSTALL nur, wenn SETUP=1 (sonst fragt der erste Start; Platz auf der 360-KB-Testdiskette)

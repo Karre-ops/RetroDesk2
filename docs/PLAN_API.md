@@ -94,6 +94,13 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
    Testprogramme; neuer Test test/schutz32.sh (Zugriff unter das Bild, nach A0000h ohne Zeiger, mit ScreenPtr, mit Flag).
 4. Sound Blaster vollstaendig: SB 1.x/2.0/Pro/16/AWE und Kompatible; Mischer in RD2 (mehrere Samples zugleich,
    Lautstaerke je Kanal), 16 Bit/Stereo ab SB16, FM ueber OPL2/OPL3 mit Musik und Effekten gleichzeitig.
+   Erledigt 24.11.2026: SB.DRV erkennt die DSP-Fassung (E1h): 1.x Einzelbloecke, ab 2.00 Ring (auto-init), Pro Stereo
+   (Mischer 0Eh, High-Speed), SB16/AWE Bxh/Cxh mit 41h und 16 Bit ueber H (RD2.INI SB=... H5); Mischerregister fuer
+   SndVolume (art 1 PCM, 2 gesamt); OPL3-Modus mit 18 FM-Kanaelen (9..17 fuer Effekte neben der Musik). Neu RDMIX.MOD
+   (beim ersten Aufruf geladen): 8 Kanaele, 8/16-Bit-Samples mit eigener Rate, Lautstaerke, Lage, Schleife; Ausgabe
+   je Karte, MixRate=. API 127h-12Bh SndMixPlay/Set/Stop/Out/State, M_SOUNDDONE p1 = 4. SDK.TXT Abschnitt 5c.
+   Test test/mischer.sh: QEMU-SB16 mit Tonaufnahme (440 und 1000 Hz zugleich, Fourier), DOSBox sb1/sb2/sbpro2.
+   RDSND 5 KB (war 4), SB.DRV 5 KB (war 3).
 5. MPU-401 (MIDI) als Treiber; Tandy/Game Blaster/Gravis nativ spaeter (wie in Punkt 5 festgelegt).
 6. SDK und Doku: alles in RD2.H/RD2_32.H, SDK.TXT, Beispiele; danach die Engine auf die RD2-API umstellen
    (DOS-Fassung bleibt als Rueckfall).

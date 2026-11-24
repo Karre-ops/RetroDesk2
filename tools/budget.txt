@@ -21,8 +21,9 @@ RDGDIX.MOD       4608    4.5 S  Grafik-Zusatz: Ellipse, runde Rechtecke, Polygon
 RDCTL.MOD       16384   15   S  Steuerelemente und Dialoge (verwerfbar, bei Bedarf; 23.10.: 12 -> 14 KB fuer LIST, PROGRESS, InputBox)
 RDCTLX.MOD      12288   10   S  Dateidialog, TEXT, COMBO, SCROLL (verwerfbar)
 RDUSER.MOD      27648   33.5 S  (20.11.2026: 33,5 KB fuer Vollbild, PLAN_32BIT Schritt 2) Fenster, Menues, Schreibtisch-Anbindung der Shell (29.10.: 31,5 KB fuer 64 statt 40 Fenster, Optionen + Netzwerk + Dateiauswahl; 24.10.: 26 -> 27 KB fuer WS_DESKTOP, M_SYSMENU; 25.10.: 28 KB fuer Groesse, Minimieren, Alt+Tab, Variante B; 26.10.: 29 KB fuer Maximieren, Parkreihe, drei Titelfelder, Variante B; -oa -ol)
-RDSND.MOD        4096    4   S  Sound-API, Treiber, Systemklaenge (Musik in RDMUS.MOD)
+RDSND.MOD        5120    5   S  Sound-API, Treiber, Systemklaenge (Musik in RDMUS.MOD, Mischer in RDMIX.MOD); 24.11.2026: 5 KB fuer SndMix*
 RDMUS.MOD        3072    3   P  Musik-Spieler IMF/DRO, nur waehrend des Abspielens geladen (26.10.)
+RDMIX.MOD        5120    8   P  Mischer SndMix*: 8 Kanaele, 8/16 Bit, Stereo, ab dem ersten Aufruf geladen (PLAN_API 4, 24.11.2026)
 CGA.DRV          5120    5   S
 HGC.DRV          6144    6   S
 VGA16.DRV         7680    8.5   P  (30.10.: 7,5 KB, ohne Tabellen, mit roh und Symbolen) VGA 640x480 16 Farben, Modus 12h (Punkt 9, 27.10.)
@@ -43,7 +44,7 @@ VGAM.DRV         6144    6   S
 SPEAKER.DRV      2048    2   S
 ADLIB.DRV        2048    2   P
 COVOX.DRV        2048    2   P  Covox Speech Thing und Kompatible am Druckerport, Samples ueber den Zeitgeber (26.10.)
-SB.DRV           3072    3   P  Sound Blaster 1.x bis AWE und Kompatible: FM (OPL2/OPL3) und 8-Bit-PCM per DMA (26.10.)
+SB.DRV           5120    5   P  Sound Blaster 1.x bis AWE und Kompatible: FM (OPL2/OPL3, 18 Kanaele), 8-Bit-PCM per DMA (26.10.); Ring fuer den Mischer, Stereo (Pro), 16 Bit (SB16), Mischerregister (24.11.2026)
 SYS8.FNT         2560    0   S  wird bei Bedarf geladen, nur die aktive Schrift belegt Speicher
 SYSK.FNT         3072    0   P  schmale Systemschrift (verschieden breit, Hoehe 9) fuer 320x200 (30.10.)
 SYS14.FNT        4096    0   S
@@ -122,6 +123,7 @@ MENUTEST.EXE     8192    0   T  Test: Menues, Rollbalken
 ZEIGTEST.EXE     8192    0   T  Test: Mauszeiger-Formen
 DLGTEST.EXE      8192    0   T  Test: Steuerelemente und Dialoge
 SNDTEST.EXE      8192    0   T  Test: Klang (RDSND, SPEAKER.DRV, ADLIB.DRV, SB.DRV, COVOX.DRV)
+MIXTEST.EXE      8192    0   T  Test: Mischer SndMix* (RDMIX.MOD, SB.DRV-Ring), test/mischer.sh
 NETTEST.EXE      8192    0   T  Test: Netz (RDTCP: DHCP, TCP-Echo, UDP, Lauschen, DNS)
 DISKFRAG.EXE     4096    0   T  Test: Diskettenabfrage im Grafikbetrieb (Audit K2)
 DOPPFMT.EXE      4096    0   T  Test: RDFORMAT doppelt starten (Audit M4)

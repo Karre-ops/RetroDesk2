@@ -192,6 +192,31 @@ Nachfuellen bleibt. Auf dem Sound Blaster entsteht an der Blockmitte eine
 winzige Luecke, weil der Treiber jedes Stueck neu startet.
 
 
+5c. Mischer (mehrere Klaenge zugleich, Sound Blaster)
+------------------------------------------------------
+
+k = SndMixPlay(fenster, block, rate, flags) spielt einen Block auf einem
+freien von 8 Kanaelen und liefert die Kanalnummer 1..8 (0 = Fehler,
+LastError: RD_ERR_BUSY alle belegt, RD_ERR_NOTSUP keine passende Karte).
+Der Block bleibt gesperrt, solange er klingt. flags: SM_LOOP endlos,
+SM_16BIT 16 Bit vorzeichenbehaftet (sonst 8 Bit vorzeichenlos wie WAV),
+beides mono, jede Rate von 1000 bis 48000 Hz. Ende: M_SOUNDDONE mit
+p1 = 4, p2 = Kanal (nicht nach SndMixStop).
+  SndMixSet(k, laut, lage)   laut 0..127, lage 0 links, 64 Mitte, 127 rechts
+  SndMixStop(k)              0 = alle
+  SndMixState(k)             1 = klingt; k = 0: Bits der klingenden Kanaele
+  SndMixOut(rate, MX_16BIT | MX_STEREO)   Ausgabe, nur was die Karte kann
+Ausgabe: SB16/AWE 16 Bit stereo, SB Pro 8 Bit stereo, SB 2.0 und 1.x 8 Bit
+mono. Rate nach RD2.INI [System] MixRate= (Vorgabe 22050 ab SB16, sonst
+11025). Der Mischer (RDMIX.MOD) wird beim ersten Aufruf geladen und gibt
+seinen Puffer frei, wenn nichts mehr klingt. Mischen kostet Rechenzeit:
+auf 286 und 386 ohne Bedenken, auf dem 8088 nur wenige Kanaele bei 11025 Hz.
+SndSamplePlay und der Mischer schliessen einander aus (der spaetere gewinnt).
+SB16: RD2.INI SB=A220 I5 D1 H5 (H = 16-Bit-DMA, wie BLASTER).
+FM und Mischer laufen zugleich: Musik (SndMusicPlay) auf FM, Effekte als
+Samples. Auf OPL3 (ab SB Pro 2) hat SndNote 18 Kanaele: 0..8 nutzt die
+Musik, 9..17 bleiben frei fuer Effekte.
+
 5a. Systemtakt (145,6 Hz)
 ---------------------------------------------------------------
 RD2 laeuft auf jedem Rechner mit einem festen Takt von 145,6 Hz (6,9 ms,

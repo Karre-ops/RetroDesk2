@@ -5,7 +5,8 @@
  * Musik: IMF und DRO ueber OPL-Register (AdLib, spaeter SB) mit RDMUS.MOD, das nur zum Abspielen geladen wird. Das Ende meldet
  * input_poll des Kerns (Export 15 mit 2) als M_SOUNDDONE an das Fenster oder den Task. Samples (8 Bit mono) ueber pcm_start des Treibers (SB per DMA, Lautsprecher und Covox ueber den Zeitgeber), Ende als
  * M_SOUNDDONE mit p1 = 2. SM_HALBE: jede gespielte Blockhaelfte als M_SOUNDDONE p1 = 3, p2 = 0/1 (frei zum Nachfuellen,
- * mit SM_LOOP ein Ringpuffer). WAV-Dateien laedt SndWavLoad aus RD2.LIB (im Programm). */
+ * mit SM_LOOP ein Ringpuffer). WAV-Dateien laedt SndWavLoad aus RD2.LIB (im Programm). Mischer SndMix* in RDMIX.MOD
+ * (Sound Blaster, 8 Kanaele, [System] MixRate=); SndSamplePlay und der Mischer schliessen einander aus. */
 #include <i86.h>
 #include "RD2DRV.H"
 
@@ -25,6 +26,10 @@ static SNDDRV FAR *dv; static HMOD dm; static WORD dpar; static BYTE bereit, sys
 static const NOTE * volatile q; static volatile BYTE rest; static WORD laut = 127;
 /* Musik: RDMUS.MOD, nur waehrend des Abspielens geladen */
 typedef struct { WORD (RDAPI *play)(SNDDRV FAR *dv, LPCSTR d, WORD fl); BYTE (RDAPI *takt)(void); void (RDAPI *stop)(void); } MUSTAB;
+/* Mischer: RDMIX.MOD, beim ersten SndMix* geladen (SC_STREAM), bleibt bis zum Ende oder SndSamplePlay */
+typedef struct { WORD (RDAPI *init)(SNDDRV FAR *dv, WORD rate); WORD (RDAPI *play)(HWND w, HMEM d, WORD r, WORD fl); WORD (RDAPI *set)(WORD k, WORD l, WORD p);
+    void (RDAPI *stop)(WORD k); WORD (RDAPI *out)(WORD r, WORD f); WORD (RDAPI *state)(WORD k); void (RDAPI *poll)(void); } MIXTAB;
+static MIXTAB FAR *xt; static HMOD xm; static WORD xrate;
 static MUSTAB FAR *mt; static HMOD mm; static volatile BYTE mart, mfertig; static HWND mwin; static HTASK mtask;
 
 void RDEXPORT s_SndSampleStop(void);
@@ -54,13 +59,14 @@ static void init(void)                            /* beim ersten Aufruf (laedt a
     ini[i] = 0; { const char *r = "RD2.INI"; while (*r) ini[i++] = *r++; ini[i] = 0; }
     ProfileGetStr(ini, ssys, "Sound", "SPEAKER", w, sizeof w);
     sys = ProfileGetInt(ini, ssys, "Systemklang", 1) != 0;
+    xrate = ProfileGetInt(ini, ssys, "MixRate", 0);
     if (gleich(w, "SB")) {                        /* SB=A220 I5 D1 wie BLASTER (RD2SETUP) */
         static char b[24]; char *p = b, c; WORD v, ba;   /* im Datensegment: Stapel ist SS != DS */
         ProfileGetStr(ini, ssys, "SB", "A220 I5 D1", b, sizeof b);
         while ((c = (char)(*p & 0xDF)) != 0) {
             p++; ba = c == 'A' ? 16 : 10; v = 0;
             while (*p > ' ') { v = v * ba + (WORD)(*p <= '9' ? *p - '0' : (*p & 0xDF) - 'A' + 10); p++; }
-            if (c == 'A') dpar |= (v >> 4) & 0x0F; else if (c == 'I') dpar |= (v & 0x0F) << 4; else if (c == 'D') dpar |= ((v + 1) & 7) << 8;
+            if (c == 'A') dpar |= (v >> 4) & 0x0F; else if (c == 'I') dpar |= (v & 0x0F) << 4; else if (c == 'D') dpar |= ((v + 1) & 7) << 8; else if (c == 'H' && v >= 5) dpar |= ((v - 3) & 7) << 11;
             while (*p == ' ') p++;
         }
         if (laden("SB.DRV")) return;
@@ -86,7 +92,8 @@ static void mstop(void)                           /* im Task: anhalten, RDMUS fr
     ModFree(mm); mm = 0; mt = 0;
     if (dv) { f = aus(); dv->h.init(0x8000); ein(f); }   /* nur FM-Chip neu: Glockenklaenge fuer Pieptoene zurueck */
 }
-void RDEXPORT s_Ende(void) { WORD f; mstop(); s_SndSampleStop(); f = aus(); q = 0; rest = 0; if (dv) { dv->beep(0, 0); dv->h.done(); } dv = 0; ein(f); if (dm) ModFree(dm); dm = 0; }
+static void xfrei(void) { if (xm) { xt->stop(0); ModFree(xm); xm = 0; xt = 0; } }
+void RDEXPORT s_Ende(void) { WORD f; mstop(); xfrei(); s_SndSampleStop(); f = aus(); q = 0; rest = 0; if (dv) { dv->beep(0, 0); dv->h.done(); } dv = 0; ein(f); if (dm) ModFree(dm); dm = 0; }
 WORD RDEXPORT s_SndCaps(void) { return da() ? dv->caps() : 0; }
 void RDEXPORT s_SndBeep(WORD hz, WORD ms)
 {
@@ -160,7 +167,7 @@ WORD RDEXPORT s_SndSamplePlay(HWND w, HMEM d, WORD r, WORD fl)
     BYTE FAR *p; WORD f;
     if (!da()) return RD_ERR_NOTSUP;
     if (!dv->pcm_start) { SetLastError(RD_ERR_NOTSUP); return RD_ERR_NOTSUP; }
-    s_SndSampleStop();
+    s_SndSampleStop(); xfrei();                   /* entweder Mischer oder Einzelsample */
     if (!(p = (BYTE FAR *)MemLock(d)) || !(plen = MemSize(d))) { if (p) MemUnlock(d); SetLastError(RD_ERR_HANDLE); return RD_ERR_HANDLE; }
     ph = d; pwin = w; ptask = TaskSelf(); prate = r; ploop = (BYTE)(fl & SM_LOOP);
     panf = ((DWORD)FP_SEG(p) << 4) + FP_OFF(p); pa = panf; prest = plen; pmitte = (fl & SM_HALBE) ? panf + (plen >> 1) : 0;
@@ -176,6 +183,23 @@ WORD RDEXPORT s_SndVolume(WORD art, WORD wert)    /* art 0: Gesamtlautstaerke 0.
     return alt;
 }
 BOOL RDEXPORT s_SndFocus(HWND w) { (void)w; return TRUE; }
+static BYTE mix(void)
+{
+    FARPROC f; WORD r;
+    if (!da()) return 0;
+    if (xm) return 1;
+    if (!dv->strm_start || dv->h.groesse < sizeof(SNDDRV)) { SetLastError(RD_ERR_NOTSUP); return 0; }
+    if (!(xm = ModLoad("RDMIX.MOD"))) return 0;
+    f = ModProc(xm, 1); xt = f ? (MIXTAB FAR *)((void FAR * (RDAPI *)(void))f)() : 0;
+    r = xt ? xt->init(dv, xrate) : RD_ERR_FORMAT;
+    if (r) { ModFree(xm); xm = 0; xt = 0; SetLastError(r); return 0; }
+    return 1;
+}
+WORD RDEXPORT s_SndMixPlay(HWND w, HMEM d, WORD r, WORD fl) { if (!mix()) return 0; s_SndSampleStop(); return xt->play(w, d, r, fl); }
+WORD RDEXPORT s_SndMixSet(WORD k, WORD l, WORD p) { return mix() ? xt->set(k, l, p) : RD_ERR_NOTSUP; }
+void RDEXPORT s_SndMixStop(WORD k) { if (xm) xt->stop(k); }
+WORD RDEXPORT s_SndMixOut(WORD r, WORD fm) { return mix() ? xt->out(r, fm) : RD_ERR_NOTSUP; }
+WORD RDEXPORT s_SndMixState(WORD k) { return xm ? xt->state(k) : 0; }
 void RDEXPORT s_Takt(void)                        /* INT 8, gesperrt: Ton beenden oder naechste Note */
 {
     if (!dv) return;
@@ -196,15 +220,18 @@ void RDEXPORT s_Pause(WORD an)                    /* RunDos: 0 still und Treiber
         if (mfertig) { melde(mwin, mtask, 1, 0); mstop(); }   /* erst melden: mstop setzt den FM-Chip neu */
         if (phfert) { melde(pwin, ptask, 3, phfert - 1); phfert = 0; }
         if (pfertig) { pfertig = 0; if (ph) { MemUnlock(ph); ph = 0; } melde(pwin, ptask, 2, 0); }
+        if (xm) xt->poll();
         return;
     }
+    if (!an && xm) xt->stop(0);                   /* RunDos: Mischkanaele enden (ohne Meldung) */
     f = aus();
     if (!an) { q = 0; rest = 0; mart = 0; part = 0; dv->beep(0, 0); dv->h.done(); ruhe = 1; }
     else if (ruhe) { ruhe = 0; dv->h.init(dpar); }
     ein(f);
 }
-static struct { WORD n; FARPROC f[15]; } ex = { 15, {
+static struct { WORD n; FARPROC f[20]; } ex = { 20, {
     (FARPROC)s_Ende, (FARPROC)s_SndCaps, (FARPROC)s_SndBeep, (FARPROC)s_SndSystem, (FARPROC)s_SndNote, (FARPROC)s_SndNoteOff,
     (FARPROC)s_SndInstr, (FARPROC)s_SndMusicPlay, (FARPROC)s_SndMusicStop, (FARPROC)s_SndSamplePlay, (FARPROC)s_SndSampleStop,
-    (FARPROC)s_SndVolume, (FARPROC)s_SndFocus, (FARPROC)s_Takt, (FARPROC)s_Pause } };
+    (FARPROC)s_SndVolume, (FARPROC)s_SndFocus, (FARPROC)s_SndMixPlay, (FARPROC)s_SndMixSet, (FARPROC)s_SndMixStop,
+    (FARPROC)s_SndMixOut, (FARPROC)s_SndMixState, (FARPROC)s_Takt, (FARPROC)s_Pause } };   /* 2..18 = API 11Bh..12Bh, 19 Takt, 20 Pause */
 void FAR * RDAPI RdModInit(void) { return &ex; }
