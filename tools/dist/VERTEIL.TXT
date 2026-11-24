@@ -1,5 +1,5 @@
-RetroDesk 2 - Verteilformen
-===========================
+RetroDesk 2.4 - Verteilformen
+=============================
 
 Jeder Ordner ist fuer sich vollstaendig. Man braucht nur den, der zum Rechner passt.
 
@@ -41,6 +41,23 @@ Jeder Ordner ist fuer sich vollstaendig. Man braucht nur den, der zum Rechner pa
                fuer eine Installation auf die eingebaute Platte besser CD oder ZIP.
 
 SHA256.TXT     Pruefsummen
+
+Neu in 2.4 (23.11.2026)
+------------------------------------------------------------------------------
+- Vier Verteilformen: 360-KB-Satz (XT), eigener 1,44-MB-Satz ab 386, Ordner
+  zum Kopieren (ZIP), bootbare CD und USB-Stick. Von der CD wird ohne
+  CD-Treiber installiert; die Hardware wird dann beim ersten Start von der
+  Festplatte eingerichtet. INSTALL nimmt SDK und SDK32 von jeder Quelle mit.
+- DOS-Programme: Startart im Eigenschaften-Fenster (Alt+Eingabe) fuer .COM,
+  .BAT und DOS-.EXE: Automatisch, Schnell oder Allein (RD2 beendet sich, das
+  Programm laeuft allein, danach startet RD2 neu). Will ein Programm resident
+  bleiben, fragt RD2 nach und merkt sich die Antwort. .BAT laufen ueber
+  COMMAND.COM, offene RD2-Dateien werden nicht vererbt, der Tastaturpuffer ist
+  beim Start leer.
+- RD2/32: Module (.M32) lassen sich unter DOS bauen (SDK32: MKM32.BAT und
+  RD32MOD.EXE). RD3D laeuft in jedem VESA-Modus (jede Groesse, 8 bis 32 Bit,
+  R3dOpenVesa). Karten ohne linearen Bildspeicher (VBE 1.2) werden ueber
+  Baenke bedient (ScreenUpdate).
 
 Abbilder (.IMG) auf Disketten schreiben: unter DOS mit RAWRITE oder
 DISKCOPY-Werkzeugen, unter Windows mit WinImage oder RawWrite for Windows,

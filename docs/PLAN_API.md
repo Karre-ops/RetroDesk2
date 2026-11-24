@@ -10,8 +10,10 @@ universell, Sonderfaelle nur ueber Erkennung/RD2.INI; 32-Bit-Teile unter dem 386
 Vollstaendiges, DOS-kompatibles Betriebssystem, einfach zu bedienen, mit GUI. Treiber fuer Sound, Grafik, Tastatur,
 Maus, Drucker und Netzwerk. Laeuft ab 8088 mit 512 KB bis Pentium MMX mit 64 MB und schneller. Grafik HGC, CGA,
 EGA, VGA, SVGA und besser. Programme laufen nativ in RD2. Multitasking auf 8088 und ab 386. Sparsam mit RAM,
-besonders bei 640 KB. Offen zu klaeren: Netzkarten-Paketreiber (bisher bringt sie der Nutzer mit), Druckertreiber
-ueber EPSON9 hinaus, Mindestausbau 512 KB pruefen.
+besonders bei 640 KB. Netz: kompatible Paketreiber bringt der Nutzer mit (bestaetigt 24.11.2026). Drucker: universelle
+Treiber statt einem je Geraet: ESCP24.DRV (Epson ESC/P 24 Nadeln, auch ESC/P2: Epson Stylus, Canon BJ in LQ-Emulation,
+NEC, Star, OKI mit Epson-Emulation) und PCL.DRV (HP PCL 3/5: DeskJet, LaserJet und Kompatible); reine GDI-/Windows-
+Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
 
 ## Bestand (24.11.2026, aus RD2.H/RD2API.H)
 | Bereich | vorhanden | Luecke |
