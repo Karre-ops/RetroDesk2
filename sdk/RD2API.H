@@ -95,15 +95,15 @@ RDF(0x030, WORD,    BedarfCheck,    (LPCSTR datei))               /* BD_* was fe
 /* ---- Speicher ------------------------------------------------------------ */
 RDF(0x037, HMEM,    MemAlloc,       (DWORD size, WORD flags))     /* MEM_* */
 RDF(0x038, HMEM,    MemFree,        (HMEM h))                     /* 0 = ok */
-RDF(0x039, void FAR *, MemLock,     (HMEM h))                     /* 0 = verworfen/Fehler */
+RDF(0x039, LPLOW,   MemLock,     (HMEM h))                     /* 0 = verworfen/Fehler */
 RDF(0x03A, BOOL,    MemUnlock,      (HMEM h))
 RDF(0x03B, HMEM,    MemRealloc,     (HMEM h, DWORD size, WORD flags))
 RDF(0x03C, DWORD,   MemSize,        (HMEM h))
 RDF(0x03D, WORD,    MemFlags,       (HMEM h))
 RDF(0x03E, DWORD,   MemAvail,       (WORD art))                   /* MEMA_* in Bytes */
 RDF(0x03F, DWORD,   MemCompact,     (DWORD wunsch))               /* liefert groessten freien Block */
-RDF(0x040, void FAR *, MemFixed,    (WORD size))                  /* kleiner fester Block, wie malloc */
-RDF(0x041, void,    MemFixedFree,   (void FAR *p))
+RDF(0x040, LPLOW,   MemFixed,    (WORD size))                  /* kleiner fester Block, wie malloc */
+RDF(0x041, void,    MemFixedFree,   (LPLOW p))
 RDF(0x042, WORD,    MemError,       (void))                       /* MEMERR_* der letzten Speicheroperation, API 2.1 */
 
 RDF(0x043, WORD,    MemStats,       (MEMSTATS FAR *info))          /* 0 = ok, aktuelle RAM-/Swapwerte, API 2.1 */

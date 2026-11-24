@@ -1,0 +1,13 @@
+# Bochs fuer test/schutz32.sh: prueft Segmentgrenzen (QEMU nicht). DISK und LOG ersetzt das Skript.
+megs: 16
+cpu: model=pentium, ips=40000000
+romimage: file=/usr/share/bochs/BIOS-bochs-latest
+vgaromimage: file=/usr/share/vgabios/vgabios.bin
+floppya: 1_44=DISK, status=inserted
+boot: floppy
+display_library: rfb, options="timeout=0"
+com1: enabled=1, mode=socket-client, dev=localhost:5911
+log: LOG
+panic: action=report
+error: action=report
+clock: sync=none, time0=local

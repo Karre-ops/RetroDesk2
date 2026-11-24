@@ -128,16 +128,17 @@ DOPPFMT.EXE      4096    0   T  Test: RDFORMAT doppelt starten (Audit M4)
 
 SWAPTEST.EXE     4096    0   T  SDK-Beispiel: kontrollierter Speicherfehler, Statistik, Inhaltspruefung; V zeigt Last im Taskmanager
 RD32.MOD         7168    7   Z  RD2/32-Programme (PLAN_32BIT 4a, ab 386; 21.11.: 5 KB fuer Abmelden beim Host): DPMI-Anmeldung, 32-Bit-Bild laden, Bruecke API/Rueckrufe (20.11.2026)
-VOLL32.EXE       8192    0   Z  Beispiel RD2/32: Fenster, 1 MB Feld, Vollbild 13h (test/rd32.sh)
+VOLL32.EXE       9216    0   Z  Beispiel RD2/32: Fenster, 1 MB Feld, Vollbild 13h (test/rd32.sh)
 RD32C0.OBJ       2048    0   Z  SDK RD2/32: Startcode (Kopf, Umschaltung)
+RD32C0V.OBJ      2048    0   Z  SDK RD2/32: Startcode mit Vollzugriff (4 GB, ohne Speicherschutz)
 RD32LIB.OBJ     12288    0   Z  SDK RD2/32: Bibliothek (Bruecke, Rueckrufe, Puffer-Bitmap), Programm und Modul
-RD32PRG.OBJ      9216    0   Z  SDK RD2/32: nur Programm (DPMI-Speicher, Einsprung, Vollbild 13h/LFB, Module laden)
+RD32PRG.OBJ     10240    0   Z  SDK RD2/32: nur Programm (DPMI-Speicher, Einsprung, Vollbild 13h/LFB, Module laden)
 RD32M0.OBJ       2048    0   Z  SDK RD2/32: Startcode fuer 32-Bit-Module (.M32)
-RD32API.OBJ     40960    0   Z  SDK RD2/32: alle einfachen API-Funktionen (tools/mk32api.py, Stufe 4b)
+RD32API.OBJ     41984    0   Z  SDK RD2/32: alle einfachen API-Funktionen (tools/mk32api.py, Stufe 4b)
 FEN32.EXE       16384    0   Z  Beispiel RD2/32 Stufe 4b: Fenster, Zeichnen, Puffer-Bitmap, Dialog, Datei, zwei Tasks (test/rd32.sh)
 RD32STUB.OBJ     2048    0   Z  SDK RD2/32: 16-Bit-Vorspann (laedt RD32.MOD), unter DOS: RDRC ... /32:BILD.B32
 RD3D.LIB        16384    0   Z  SDK RD2/32: RD3D Software-3D (PLAN_32BIT Schritt 5a): Dreiecke, Z-Puffer, Textur, Gouraud, Nebel, Alpha, Vollbild/Fenster
-WUERFEL.EXE     20480    0   Z  Beispiel RD3D: drehender Wuerfel, Selbsttest Z/Alpha/Nebel (test/rd3d.sh)
+WUERFEL.EXE     21504    0   Z  Beispiel RD3D: drehender Wuerfel, Selbsttest Z/Alpha/Nebel (test/rd3d.sh)
 SCHUTZ32.EXE     8192    0   Z  Beispiel RD2/32: Zeitscheiben und Absturzschutz (test/rd32.sh)
 RD32C.LIB       40960    0   Z  SDK RD2/32: C-Laufzeit (string, stdlib, stdio, printf mit Gleitkomma, sscanf, time), Header in SDK32\RD32C
 TESTC32.EXE     40960    0   Z  Pruefprogramm C-Laufzeit RD2/32 (test/rd32.sh)

@@ -172,7 +172,7 @@ static void sw_flip(R3D *r)
             for (x = 0; x < r->w / 4; x++) z[x] = q[x];
         }
     }
-    if (r->art == R3D_VESA || r->art == R3D_VOLLLFB) ScreenUpdate();   /* ohne LFB: Schatten ueber Baenke zeigen */
+    if (r->art == R3D_VESA || r->art == R3D_VOLLLFB || r->art == R3D_VOLL13) ScreenUpdate();   /* 13h geschuetzt: Schatten */   /* ohne LFB: Schatten ueber Baenke zeigen */
 }
 static const R3DDRV sw = { "Software", sw_open, sw_close, sw_clear, sw_tri, sw_flip };
 
@@ -191,7 +191,7 @@ static R3D *oeffne(WORD art, HWND fenster, WORD w, WORD h, WORD bpp)
     } else {
         r->w = (WORD)((w + 3) & ~3); r->h = h;
         if (!BufCreate(&r->buf, r->w, r->h)) { rd32_free(r); return 0; }
-        { WORD *bh = MemLock(r->buf.bmp); r->dbpp = bh[2] & 0xFF; MemUnlock(r->buf.bmp); }
+        { WORD __far *bh = MemLock(r->buf.bmp); r->dbpp = bh[2] & 0xFF; MemUnlock(r->buf.bmp); }
     }
     if (!r->drv->open(r)) { R3dClose(r); return 0; }
     for (i = 0; i < 16; i++) { r->rampe[i][0] = std16[i][0]; r->rampe[i][1] = std16[i][1]; r->rampe[i][2] = std16[i][2]; }

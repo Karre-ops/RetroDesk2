@@ -63,7 +63,8 @@ waitn "SCHUTZ32: nach P noch am Leben" 1 300; sleep 3; $Q "sendkey ret" >/dev/nu
 waitn "SCHUTZ32: Ende" 1 60; waitn "RD2: Speicher vollstaendig zurueck" 1 60; sleep 1; kill $QP 2>/dev/null; wait $QP 2>/dev/null
 L=$(tr -d '\r' < $SER)
 for z in "SCHUTZ32: S gestartet" "SCHUTZ32: 8 Takte waehrend S rechnet" "SCHUTZ32: D teilt durch 0" "RD32: Ausnahme 0x00000000" \
-         "SCHUTZ32: nach D noch am Leben" "SCHUTZ32: P schreibt ins Leere" "RD32: Ausnahme 0x0000000E" "SCHUTZ32: nach P noch am Leben" "SCHUTZ32: Ende"; do
+         "SCHUTZ32: nach D noch am Leben" "SCHUTZ32: P schreibt ins Leere" "RD32: Ausnahme 0x0000000[DE]" "SCHUTZ32: nach P noch am Leben" \
+         "SCHUTZ32: BIOS ueber BiosPtr lesbar" "SCHUTZ32: 4 MB aus rd32_alloc beschreibbar" "SCHUTZ32: Ende"; do   # P: 0Dh (Grenze, echte CPU/Bochs) oder 0Eh (QEMU prueft keine Grenzen); L: test/schutz32.sh
   pruef "$z" "echo \"\$L\" | grep -q '$z'"; done
 pruef "kein Absturz wurde uebersehen" "! echo \"\$L\" | grep -q 'FEHLER (kein Absturz)'"
 pruef "Speicher nach Endlosschleife und zwei Abstuerzen vollstaendig zurueck" "echo \"\$L\" | grep -q 'RD2: Speicher vollstaendig zurueck'"

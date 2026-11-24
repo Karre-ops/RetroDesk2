@@ -11,11 +11,23 @@
 
 static WORD a[24], na;                            /* rd32_xp und die Rueckruf-Prozeduren liegen im Taskblock (RD32INT.H): Module teilen sie */
 
-static void kopie(void *z, const void *q, DWORD n) { BYTE *d = z; const BYTE *s = q; while (n--) *d++ = *s++; }
 WORD rd32_slen(const char *s) { WORD n = 0; while (s[n]) n++; return n; }
 void *rd32_lin(DWORD lin) { return (void *)(lin - rd32_base); }
 void *rd32_fp2p(DWORD sf) { return sf ? rd32_lin(((sf >> 16) << 4) + (WORD)sf) : 0; }
 static DWORD p2fp(const void *p) { DWORD l = (DWORD)p + rd32_base; return ((l >> 4) << 16) | (l & 15); }
+/* Speicherschutz (PLAN_API 3b): Speicher unter 1 MB nur ueber LOW */
+BYTE __far *rd32_fp2f(DWORD sf) { return sf ? LOWP(((sf >> 16) << 4) + (WORD)sf) : (BYTE __far *)0; }
+static DWORD f2fp(const void __far *p) { DWORD l = FOFF(p); return ((l >> 4) << 16) | (l & 15); }
+void rd32_n2f(BYTE __far *z, const void *q, DWORD n) { const BYTE *s = q; while (n--) *z++ = *s++; }
+void rd32_f2n(void *z, const BYTE __far *q, DWORD n) { BYTE *d = z; while (n--) *d++ = *q++; }
+LPCSTR rd32_strkopie(DWORD sf)                    /* Texte aus dem Kern (StrGet): Kopie in einen von 4 Ringpuffern */
+{
+    static char rp[4][256]; static BYTE nr; BYTE __far *q = rd32_fp2f(sf); char *d; WORD i;
+    if (!q) return 0;
+    d = rp[nr++ & 3];
+    for (i = 0; i < 255 && (d[i] = (char)q[i]) != 0; i++) ;
+    d[i] = 0; return d;
+}
 void rd32_w1(WORD v) { if (na < 24) a[na++] = v; }
 void rd32_w2(DWORD v) { if (na < 23) { a[na++] = (WORD)(v >> 16); a[na++] = (WORD)v; } }   /* a[24]: nie darueber */   /* pascal: hohes Wort zuerst */
 static BYTE pinfehl;                              /* ein Zeiger liess sich nicht unter 1 MB bringen: Aufruf nicht ausfuehren */
@@ -37,11 +49,11 @@ DWORD rd32_pin(PIN *b, const void *p, DWORD n, int aus)
     if (l < 0x100000UL && n <= 0x100000UL - l) return b->sf = p2fp(p);   /* ohne Ueberlauf (Audit 24.11.) */   /* liegt schon unter 1 MB (MemLock, Taskblock) */
     if (n <= (DWORD)(XFREI - rd32_xp)) {
         b->sf = ((rd32_tlin << 12) & 0xFFFF0000UL) | (TB_XBUF + rd32_xp);
-        kopie(TB + TB_XBUF + rd32_xp, p, n); rd32_xp += (WORD)((n + 1) & ~1UL);
+        rd32_n2f(TB + TB_XBUF + rd32_xp, p, n); rd32_xp += (WORD)((n + 1) & ~1UL);
     } else {                                      /* gross: fester Block unter 1 MB, nur fuer diesen Aufruf */
-        BYTE *q; if (n > 65520UL || !(b->tmp = MemAlloc(n, MEM_FIXED))) { b->tmp = 0; pinfehl = 1; return 0; }
+        BYTE __far *q; if (n > 65520UL || !(b->tmp = MemAlloc(n, MEM_FIXED))) { b->tmp = 0; pinfehl = 1; return 0; }
         if (!(q = MemLock(b->tmp))) { MemFree(b->tmp); b->tmp = 0; pinfehl = 1; return 0; }
-        kopie(q, p, n); b->sf = p2fp(q);
+        rd32_n2f(q, p, n); b->sf = f2fp(q);
     }
     b->aus = (BYTE)aus;
     return b->sf;
@@ -50,8 +62,8 @@ void rd32_unpin(PIN *b, WORD nb)
 {
     WORD i;
     for (i = 0; i < nb; i++, b++) {
-        if (b->aus == 1) kopie(b->p, rd32_fp2p(b->sf), b->n);
-        else if (b->aus == 2) { char *q = rd32_fp2p(b->sf), *z = b->p; DWORD k; for (k = 0; k < b->n && (z[k] = q[k]) != 0; k++) ; }
+        if (b->aus == 1) rd32_f2n(b->p, rd32_fp2f(b->sf), b->n);
+        else if (b->aus == 2) { BYTE __far *q = rd32_fp2f(b->sf); char *z = b->p; DWORD k; for (k = 0; k < b->n && (z[k] = q[k]) != 0; k++) ; }
         if (b->tmp) { MemUnlock(b->tmp); MemFree(b->tmp); }
     }
 }
@@ -71,12 +83,12 @@ WORD RDAPI RegisterClass(const WNDCLASS FAR *wc)
     #pragma pack(push, 1)
     struct { DWORD name, proc; WORD stil, daten, inst, symbol; DWORD hinter; } k;
     #pragma pack(pop)
-    WORD s = rd32_xp, n, r; char *kn; int i; PIN b;
+    WORD s = rd32_xp, n, r; char __far *kn; int i; PIN b;
     if (!wc || !wc->name || (i = platz((void *)wc->proc, 0)) < 0) { SetLastError(RD_ERR_FULL); return 0; }
-    kn = (char *)TB + TB_KLASSE + 16 * i;
+    kn = (char __far *)TB + TB_KLASSE + 16 * i;
     for (n = 0; n < 15 && wc->name[n]; n++) kn[n] = wc->name[n];
     kn[n] = 0;
-    k.name = p2fp(kn); k.proc = thunk(i);
+    k.name = f2fp(kn); k.proc = thunk(i);
     k.stil = wc->stil; k.daten = wc->daten; k.inst = wc->inst; k.symbol = wc->symbol; k.hinter = wc->hinter;
     rd32_w2(rd32_pin(&b, &k, sizeof k, 0)); r = (WORD)rd32_ruf(0x0A9); rd32_xp = s;
     return r;
@@ -118,7 +130,7 @@ HDC RDAPI PrnOpen(HWND owner, PRNJOB FAR *job)
     rd32_xp = s;
     return r;
 }
-void RDAPI MemFixedFree(void FAR *p) { rd32_w2(p2fp(p)); rd32_ruf(0x041); }
+void RDAPI MemFixedFree(LPLOW p) { rd32_w2(p ? f2fp(p) : 0); rd32_ruf(0x041); }
 FARPROC RDAPI ModProc(HMOD m, WORD nummer) { (void)m; (void)nummer; SetLastError(RD_ERR_NOTSUP); return 0; }   /* 16-Bit-Code: nicht aus 32 Bit */
 
 /* ---- Puffer-Bitmap ------------------------------------------------------------------------------------------ */
@@ -132,19 +144,20 @@ BOOL BufCreate(RDBUF *b, WORD w, WORD h)
         if (z > 8) z = z / 2 + 1;
     }
     if (!b->bmp) { rd32_free(b->pix); b->pix = 0; return FALSE; }
-    { WORD *bh = MemLock(b->bmp); b->streifen = bh[1]; bpr = bh[3]; MemUnlock(b->bmp); (void)bpr; }
+    { WORD __far *bh = MemLock(b->bmp); if (!bh) { BmpFree(b->bmp); b->bmp = 0; rd32_free(b->pix); b->pix = 0; return FALSE; } b->streifen = bh[1]; bpr = bh[3]; MemUnlock(b->bmp); (void)bpr; }
     return TRUE;
 }
 void BufShow(RDBUF *b, HDC dc, short x, short y)
 {
-    WORD y0, n, yy, xx, bpp, bpr; BYTE *q, *d; WORD *bh; HDC s;
+    WORD y0, n, yy, xx, bpp, bpr; BYTE *q; BYTE __far *d; WORD __far *bh; HDC s;
     if (!b->bmp) return;
     for (y0 = 0; y0 < b->h; y0 += n) {
         n = b->h - y0 < b->streifen ? b->h - y0 : b->streifen;
-        bh = MemLock(b->bmp); bpp = bh[2] & 0xFF; bpr = bh[3]; d = (BYTE *)bh + 8;
+        if (!(bh = MemLock(b->bmp))) return;
+        bpp = bh[2] & 0xFF; bpr = bh[3]; d = (BYTE __far *)bh + 8;
         for (yy = 0; yy < n; yy++, d += bpr) {
             q = b->pix + (DWORD)(y0 + yy) * b->w;
-            if (bpp == 8) kopie(d, q, b->w);
+            if (bpp == 8) rd32_n2f(d, q, b->w);
             else if (bpp == 4) { for (xx = 0; xx < b->w; xx += 2) d[xx >> 1] = (BYTE)((q[xx] << 4) | (xx + 1 < b->w ? q[xx + 1] & 15 : 0)); }
             else { for (xx = 0; xx < bpr; xx++) d[xx] = 0;
                    for (xx = 0; xx < b->w; xx++) if (q[xx] >= 8) d[xx >> 3] |= (BYTE)(0x80 >> (xx & 7)); }

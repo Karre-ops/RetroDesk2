@@ -39,7 +39,9 @@ g_ivtsv   dd 3 dup(0) ; INT 22h..24h
 g_p32seg  dw 0        ; Segment RD32P_TEXT (32-Bit-Code: Zeitgeber, Ausnahmen)
 g_p32cs   dw 0        ; Selektor dafuer
 g_tick    dd 0        ; Zeitgeber-Takte im PM
-public _g_preon, _g_cs32, _g_tblin, _g_pmin, _g_pstub, _g_extb, _g_exnr, _g_exeip
+public _g_low, _g_lim, _g_preon, _g_cs32, _g_tblin, _g_pmin, _g_pstub, _g_extb, _g_exnr, _g_exeip
+_g_low    dw 0        ; Selektor LOW fuer RD2/32-Programme: Basis 0, Grenze 10FFFFh (PLAN_API 3b)
+_g_lim    dd 0FFFFFFFFh ; Grenze des naechsten Datenselektors (s_alloc), danach wieder 4 GB
 _g_preon  dw 0        ; 1 = 32-Bit-Tasks praeemptiv umschalten (nicht bei RD2 /KOOP)
 _g_cs32   dw 8 dup(0) ; je Task (Index wie g_tab): Code-Selektor, 0 = frei
 _g_tblin  dd 8 dup(0) ;   Taskblock linear
@@ -145,6 +147,31 @@ de_pm:
     int  31h
     mov  bx, g_flat
     mov  cx, 0FFFFh
+    mov  dx, 0FFFFh
+    mov  ax, 0008h
+    int  31h
+    jc   de_rm
+    xor  ax, ax                       ; LOW: alles unter 1 MB + HMA fuer RD2/32-Programme (Speicherschutz, PLAN_API 3b)
+    mov  cx, 1
+    int  31h
+    jc   de_rm
+    mov  _g_low, ax
+    mov  bx, ax
+    mov  dx, cs
+    and  dl, 3
+    shl  dl, 5
+    mov  cl, 92h
+    or   cl, dl
+    mov  ch, 40h
+    mov  ax, 0009h
+    int  31h
+    mov  bx, _g_low
+    xor  cx, cx
+    xor  dx, dx
+    mov  ax, 0007h
+    int  31h
+    mov  bx, _g_low
+    mov  cx, 0010h
     mov  dx, 0FFFFh
     mov  ax, 0008h
     int  31h
@@ -402,12 +429,16 @@ s_alloc:                              ; g_a Groesse -> g_b linear, g_c Handle, g
     add  ax, word ptr g_d
     mov  word ptr g_d+2, ax
     mov  bx, word ptr g_d
-    mov  al, 9Ah                      ; Code, lesbar
+    mov  al, 9Ah                      ; Code, lesbar (Grenze immer 4 GB)
+    push dword ptr _g_lim
+    mov  dword ptr _g_lim, 0FFFFFFFFh
     call s_desc
+    pop  dword ptr _g_lim
     jc   s_err
     mov  bx, word ptr g_d+2
-    mov  al, 92h                      ; Daten, schreibbar
+    mov  al, 92h                      ; Daten, schreibbar: Grenze _g_lim (Speicherschutz: Bildende)
     call s_desc
+    mov  dword ptr _g_lim, 0FFFFFFFFh
     jc   s_err
     jmp  s_ok
 s_copy:                               ; g_a Quelle, g_b Ziel (linear), g_c Bytes
@@ -487,8 +518,8 @@ s_desc proc near                      ; BX = Selektor, AL = Zugriff ohne DPL; Ba
     int  31h
     pop  bx
     jc   sd_x
-    mov  cx, 0FFFFh
-    mov  dx, 0FFFFh
+    mov  cx, word ptr _g_lim+2
+    mov  dx, word ptr _g_lim
     mov  ax, 0008h
     int  31h
 sd_x:

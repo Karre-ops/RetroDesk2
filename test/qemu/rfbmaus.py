@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Kleiner RFB-(VNC-)Client fuer Bochs (display_library: rfb): schickt Mausereignisse.
-# rfbmaus.py PORT befehl...   befehle: w<s> (warten), f<datei>:<text> (warten bis Text in Datei, max. 60 s), m<x>,<y> (Zeiger absolut), d<maske> (Tasten: 1 links, 2 Mitte, 4 rechts), c (Mausfang an/aus: Strg+Mitte)
+# rfbmaus.py PORT befehl...   befehle: w<s> (warten), f<datei>:<text> (warten bis Text in Datei, max. 60 s), m<x>,<y> (Zeiger absolut), d<maske> (Tasten: 1 links, 2 Mitte, 4 rechts), c (Mausfang an/aus: Strg+Mitte), r (Eingabetaste)
 import socket, struct, sys, time
 port = int(sys.argv[1]); s = None
 for i in range(60):
@@ -44,6 +44,8 @@ for c in sys.argv[2:]:
         s.sendall(struct.pack('>BBHH', 5, 2, x, y)); time.sleep(0.1)
         s.sendall(struct.pack('>BBHH', 5, 0, x, y)); time.sleep(0.1)
         s.sendall(struct.pack('>BBHI', 4, 0, 0, 0xffe3))
+    elif c[0] == 'r':
+        s.sendall(struct.pack('>BBHI', 4, 1, 0, 0xff0d)); time.sleep(0.1); s.sendall(struct.pack('>BBHI', 4, 0, 0, 0xff0d))
     elif c[0] == 'm': x, y = [int(v) for v in c[1:].split(',')]; ptr()
     elif c[0] == 'd': m = int(c[1:]); ptr()
     while time.time() < t: leer(); time.sleep(0.05)

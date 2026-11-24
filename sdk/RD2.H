@@ -42,6 +42,11 @@ typedef short          BOOL;
 #endif
 typedef char FAR       *LPSTR;
 typedef const char FAR *LPCSTR;
+#ifdef RD2_32
+typedef void __far     *LPLOW;                    /* Speicher unter 1 MB (MemLock, MemFixed): RD2/32 ueber LOW, PLAN_API 3b */
+#else
+typedef void FAR       *LPLOW;
+#endif
 typedef DWORD          COLOR;                     /* 0x00BBGGRR */
 #define RGB(r,g,b)     ((COLOR)(BYTE)(r) | ((COLOR)(BYTE)(g) << 8) | ((COLOR)(BYTE)(b) << 16))
 

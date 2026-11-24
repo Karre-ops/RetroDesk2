@@ -62,7 +62,10 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
    kommen mit Vollbild-Koordinaten. KeyState(KS_SCAN + Scancode) fuer alle Tasten zugleich: Bit-Tabelle k_tasten im
    INT 9 des Kerns (rd_api[RDO_TASTEN]). Test test/vollmaus.sh. RDGDI 20.986/20.992 Byte RAM, RDUSER 27.638/27.648.
 3a. Audit (erledigt 24.11.2026, main 6e281c1): Bericht docs/AUDIT_2026-11-24.md, Tests der betroffenen Teile gruen.
-3b. Speicherschutz RD2/32 (Entscheidung Karsten 24.11.2026: Mittelweg). Heute: CS/DS/SS mit Basis = Bild und Grenze
+3b. Speicherschutz RD2/32 (erledigt 24.11.2026; Entscheidung Karsten: Mittelweg). Nachweis in Bochs: test/schutz32.sh
+   (Schreiben unter das Bild -> Ausnahme 0Dh, nur das Programm endet, Speicher zurueck; QEMU prueft keine Grenzen,
+   rd32.sh erwartet dort 0Dh oder 0Eh). Umgesetzt wie unten, ScreenCopy entfiel (Schattenpuffer + ScreenUpdate genuegt).
+   Planung: Heute: CS/DS/SS mit Basis = Bild und Grenze
    4 GB, rd32_lin(lin) = lin - Basis erreicht jeden Speicher (Bildspeicher, BIOS, DOS, andere Programme).
    Neu, Vorgabe fuer native Programme:
    - DS/SS-Grenze = Ende des hoechsten eigenen Blocks (Bild + rd32_alloc), wird bei jedem rd32_alloc nachgezogen
@@ -78,6 +81,15 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
    - Flag RD32F_VOLL im Programmkopf: alte Grenze 4 GB, rd32_lin wie bisher (Treiber, Diagnose).
      Ohne Flag liefert rd32_lin 0 und setzt den Fehler.
    - Ausnahme 0Dh/0Ch ausserhalb der Grenze: Meldung "Speicherschutz" mit Adresse, nur dieses Programm endet.
+   Feinplan (24.11.2026, nach Code-Durchsicht): Unter dem Bild liegen auch Taskblock (TB), MemLock-Speicher und
+   StrGet-Texte. Daher ein Selektor LOW (Basis 0, Grenze 10FFEFh, global wie g_flat) fuer alles unter 1 MB:
+   TB-Makros und RD32C0 ueber GS (Open Watcom laedt GS fuer __far selbst, gs: in RD32C0, pm_preempt sichert GS),
+   rd32_fp2p liefert __far; StrGet kopiert in einen nahen Ringpuffer; MemLock/MemFixed liefern __far; BiosPtr() __far.
+   Bildschirm bleibt ein naher Zeiger (quelltextvertraeglich): LFB oberhalb des Bildes -> Grenze wird bis LFB-Ende
+   nachgezogen (der Speicher unter dem Bild bleibt trotzdem ausserhalb, da Offsets dorthin ueber 4 GB laufen);
+   13h, Textmodus und LFB unter dem Bild -> Schattenpuffer, ScreenUpdate kopiert ueber LOW/LFB-Selektor.
+   Kopf +12: Byte 1 = Schutz-Format (neue RD32C0), | 2 = Vollzugriff (RD32C0V.OBJ); +14 Wort = LOW (traegt RD32 ein).
+   Alte Programme (+12 = 0) laufen unveraendert mit 4 GB. Module ab Fassung 3 (+84 LOW).
    Umbau: RD32A (Selektoren, Grenze nachziehen), RD32PRG/RD32LIB (Zeiger, rd32_alloc), RD3D, VOLL32/TAKT32 und
    Testprogramme; neuer Test test/schutz32.sh (Zugriff unter das Bild, nach A0000h ohne Zeiger, mit ScreenPtr, mit Flag).
 4. Sound Blaster vollstaendig: SB 1.x/2.0/Pro/16/AWE und Kompatible; Mischer in RD2 (mehrere Samples zugleich,

@@ -17,7 +17,7 @@ static DWORD RDCALLBACK proc(HWND w, WORD msg, WORD p1, DWORD p2)
         if (stufe == 1 && takte == 2) { InstRes(hi, pf, sizeof pf); TaskExec(pf, "D", SW_SHOW); log("SCHUTZ32: D gestartet"); }
         if (stufe == 1 && takte == 8) { log("SCHUTZ32: nach D noch am Leben"); stufe = 2; takte = 0; }
         if (stufe == 2 && takte == 2) { InstRes(hi, pf, sizeof pf); TaskExec(pf, "P", SW_SHOW); log("SCHUTZ32: P gestartet"); }
-        if (stufe == 2 && takte == 8) { log("SCHUTZ32: nach P noch am Leben"); DestroyWindow(w); }
+        if (stufe == 2 && takte == 8) { log("SCHUTZ32: nach P noch am Leben"); DestroyWindow(w); }   /* L (unter das Bild): test/schutz32.sh in Bochs */
         return 0;
     }
     if (msg == M_DESTROY) { PostQuit(0); return 0; }
@@ -29,7 +29,12 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     (void)show; hi = inst;
     if (cmd[0] == 'S') { for (;;) x++; }                     /* nie ein API-Aufruf */
     if (cmd[0] == 'D') { log("SCHUTZ32: D teilt durch 0"); x = 5 / null; log("SCHUTZ32: D FEHLER (kein Absturz)"); return 0; }
+    if (cmd[0] == 'L') { log("SCHUTZ32: L schreibt unter das Bild (DOS-Speicher 500h)"); *(volatile BYTE *)rd32_lin(0x500) = 0x55; log("SCHUTZ32: L FEHLER (kein Absturz)"); return 0; }   /* Speicherschutz */
     if (cmd[0] == 'P') { log("SCHUTZ32: P schreibt ins Leere"); p = (DWORD *)0x7FFFFFF0UL; *p = 1; log("SCHUTZ32: P FEHLER (kein Absturz)"); return 0; }
+    if (cmd[0] == 'B' || !cmd[0]) { BYTE __far *b = BiosPtr(); BYTE *g = rd32_alloc(4UL << 20);   /* LOW lesbar, Grenze waechst mit rd32_alloc */
+      if (*(WORD __far *)(b + 0x410) && *(WORD __far *)(b + 0x463) >= 0x3B4) log("SCHUTZ32: BIOS ueber BiosPtr lesbar"); else log("SCHUTZ32: BIOS FEHLER");
+      if (g) { g[0] = 1; g[(4UL << 20) - 1] = 2; if (g[(4UL << 20) - 1] == 2) log("SCHUTZ32: 4 MB aus rd32_alloc beschreibbar"); rd32_free(g); } else log("SCHUTZ32: rd32_alloc FEHLER"); }
+    if (cmd[0] == 'B') return 0;
     wc.name = "Schutz32"; wc.proc = proc; wc.stil = 0; wc.daten = 0; wc.inst = inst; wc.symbol = 0; wc.hinter = RD_DEFAULT;
     if (!RegisterClass(&wc)) return 1;
     if (!(w = CreateWindow("Schutz32", "Schutz", WS_TITLE | WS_BORDER | WS_VISIBLE, 20, 60, 200, 60, 0, 0, inst))) return 2;

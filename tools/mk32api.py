@@ -57,7 +57,9 @@ for z in open(sys.argv[1], encoding="latin-1"):
     k.append(f"    x_r = rd32_ruf({nr});")
     if ps: k.append("    rd32_unpin(x_b, x_n); rd32_xp = x_s;")
     if ret == "void": k.append("    (void)x_r;")
-    elif "FAR *" in ret or ret == "LPCSTR": k.append(f"    return ({ret})rd32_fp2p(x_r);")
+    elif ret == "LPLOW": k.append("    return (LPLOW)rd32_fp2f(x_r);")   # PLAN_API 3b: unter 1 MB nur ueber LOW
+    elif ret == "LPCSTR": k.append("    return rd32_strkopie(x_r);")   # Text in nahen Ringpuffer
+    elif "FAR *" in ret: k.append(f"    return ({ret})rd32_fp2p(x_r);")
     else: k.append(f"    return ({ret})x_r;")
     k.append("}"); out += k; n += 1
 open(sys.argv[2], "w").write("\n".join(out) + "\n")

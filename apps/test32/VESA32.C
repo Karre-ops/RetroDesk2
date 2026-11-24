@@ -20,6 +20,7 @@ static void zeichnen(void)
         default: ((DWORD *)z)[x] = ((DWORD)r << 16) | ((DWORD)g << 8) | b;
         }
     }
+    ScreenUpdate();
     printf("VESA32: %ux%ux%u gezeichnet\n", si.w, si.h, si.bpp);
 }
 static void naechster(void)

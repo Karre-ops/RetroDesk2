@@ -6,7 +6,7 @@
 import re, os
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 rx = re.compile(r'^RDF\((0x[0-9A-Fa-f]+),\s*([^,]+),\s*(\w+),\s*\((.*)\)\)')
-FOUR = ("DWORD", "long", "COLOR", "FARPROC", "WNDPROC", "DLGPROC", "LPSTR", "LPCSTR")
+FOUR = ("DWORD", "long", "COLOR", "FARPROC", "WNDPROC", "DLGPROC", "LPSTR", "LPCSTR", "LPLOW")
 def argbytes(args):
     args = args.strip()
     if args in ("", "void"): return 0

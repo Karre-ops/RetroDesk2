@@ -7,7 +7,15 @@
 #define RD2_32_H
 #include "RD2.H"
 
-void *rd32_lin(DWORD lin);                        /* lineare Adresse (z. B. 0xA0000) als Zeiger */
+/* Speicherschutz (PLAN_API 3b, ab 24.11.2026): Programme mit RD32C0.OBJ sehen mit nahen Zeigern nur ihren eigenen
+   Speicher (Bild, Stapel, rd32_alloc, im LFB-Modus bis zum Bildspeicher). Zugriff auf DOS, BIOS, A0000h, Taskblock
+   oder 16-Bit-Programme ergibt eine Ausnahme, die nur dieses Programm beendet. Speicher unter 1 MB gibt es nur ueber
+   __far-Zeiger: BiosPtr, LowPtr, MemLock/MemFixed (LPLOW). Vollzugriff wie frueher (4 GB): RD32C0V.OBJ statt RD32C0.OBJ.
+   13h und Textmodus: ScreenPtr ist ein Schattenpuffer, ScreenUpdate bringt ihn auf den Schirm. */
+void *rd32_lin(DWORD lin);                        /* lineare Adresse als naher Zeiger: nur eigener Speicher (Vollzugriff: alles) */
+BYTE __far *BiosPtr(void);                        /* BIOS-Datenbereich: BiosPtr()[0x46C] usw. (Linear 0, bis 10FFFFh) */
+BYTE __far *LowPtr(DWORD lin);                    /* beliebige Adresse unter 1 MB + HMA, 0 = darueber */
+int   rd32_grenze(DWORD lin, DWORD n);            /* intern: [lin, lin+n) nah erreichbar machen (rd32_alloc, LFB) */
 void *rd32_alloc(DWORD n);                        /* DPMI-Speicher (XMS), 0 = keiner; endet das Programm, wird er frei */
 void  rd32_free(void *p);
 
@@ -38,5 +46,6 @@ WORD  ScreenVesaList(VESAMODE *l, WORD max);      /* lineare Modi der Karte, Anz
 #define VESA_BANK 0x8000                          /* bpp | VESA_BANK: Bankumschaltung erzwingen (Test, Karten mit LFB-Fehlern) */
 void  ScreenUpdate(void);                          /* Karten ohne linearen Bildspeicher (VBE 1.2): ScreenPtr ist ein Schattenpuffer
                                                       mit zeilenbytes je Zeile, ScreenUpdate bringt ihn ueber 64-KB-Baenke auf den
-                                                      Schirm. Mit LFB tut es nichts; nach dem Zeichnen also immer aufrufen. */
+                                                      Schirm; ebenso 13h/Text mit Speicherschutz. Mit LFB tut es nichts; nach dem
+                                                      Zeichnen also immer aufrufen. */
 #endif

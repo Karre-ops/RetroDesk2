@@ -9,6 +9,7 @@ static void zeichnen(void)
 {
     WORD x, y; BYTE *v = ScreenPtr();
     for (y = 0; y < si.h; y++) for (x = 0; x < si.w; x++) v[(DWORD)y * si.zeilenbytes + x] = (BYTE)(y * 200 / si.h);
+    ScreenUpdate();                               /* Speicherschutz: 13h ist ein Schatten */
     bilder++; DbgHex("VOLL32: gezeichnet", bilder);
 }
 static DWORD RDCALLBACK proc(HWND w, WORD msg, WORD p1, DWORD p2)

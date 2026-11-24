@@ -8,7 +8,7 @@ static void RDAPI t1(void) { n1++; }
 static void RDAPI t8(void) { n8++; }
 short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
 {
-    WORD a, b, i; DWORD t0, b0, c0; volatile DWORD *bios = rd32_lin(0x46C);
+    WORD a, b, i; DWORD t0, b0, c0; volatile DWORD __far *bios = (volatile DWORD __far *)(BiosPtr() + 0x46C);   /* Speicherschutz: nur ueber LOW */
     (void)inst; (void)cmd; (void)show;
     a = TaktSet(t1, 1); b = TaktSet(t8, 8);
     DbgHex("TAKT32: Nummern", ((DWORD)a << 16) | b);

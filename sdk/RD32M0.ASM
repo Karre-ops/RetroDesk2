@@ -6,7 +6,7 @@
 .386p
 .model flat
 .code
-public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_alloc_, rd32_free_, SCREENMODE, ScreenPtr_, SCREENPALETTE, SCREENRESTORE, ScreenModeVesa_, ScreenVesaList_, ScreenUpdate_
+public _rd32_tlin, _rd32_base, _rd32_lowsel, rd32_call_, rd32_int31_, rd32_alloc_, rd32_free_, SCREENMODE, ScreenPtr_, SCREENPALETTE, SCREENRESTORE, ScreenModeVesa_, ScreenVesaList_, ScreenUpdate_
 public rd32_takttramp_, _rd32_hattakt, rd32_mkopf, setjmp_, longjmp_, __8087, __real87, __chipbug, ___chipbug, _rd32_jb, _rd32_ecode, _rd32_beiende
 extrn RdMod32Init_:near
 rd32_mkopf:
@@ -14,7 +14,7 @@ rd32_mkopf:
         dd offset minit               ; +4  Einsprung: RdMod32Init, EAX = 0 ok
         dd 0                          ; +8  Bildgroesse (tools/rd32mod.py)
         dd offset rd32_mende          ; +12 Speicher bis Ende BSS
-        dd 2                          ; +16 Fassung (2: mit ScreenUpdate +80, 23.11.2026)
+        dd 3                          ; +16 Fassung (2: mit ScreenUpdate +80, 23.11.2026; 3: LOW +84, Speicherschutz 24.11.2026)
 _rd32_tlin dd 0                       ; +20 Taskblock linear   \
 _rd32_base dd 0                       ; +24 Bildbasis linear    |
 f_call  dd 0                          ; +28 rd32_call           |
@@ -31,6 +31,8 @@ f_int31 dd 0                          ; +56 rd32_int31         /
 f_svesa dd 0                          ; +72 ScreenModeVesa (Lader)
 f_slist dd 0                          ; +76 ScreenVesaList (Lader)
 f_supd  dd 0                          ; +80 ScreenUpdate (Lader, ab Fassung 2)
+_rd32_lowsel dw 0                     ; +84 Selektor LOW wie im Programm (Lader, ab Fassung 3)
+        dw 0
 
 minit:  jmp  RdMod32Init_
 rd32_takttramp_: retf                 ; Module: kein eigener Takt (TaktSet nur im Programm)

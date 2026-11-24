@@ -21,7 +21,7 @@ def pname(n):
 
 def ptyp(t):
     t = re.sub(r"\bFAR\b", "", t.replace("const ", "")).strip()
-    if "*" in t or t in ("LPCSTR", "LPSTR", "WNDPROC", "DLGPROC", "FARPROC", "TAKTPROC"): return "Pointer"
+    if "*" in t or t in ("LPCSTR", "LPSTR", "LPLOW", "WNDPROC", "DLGPROC", "FARPROC", "TAKTPROC"): return "Pointer"
     if t in SKALAR: return SKALAR[t]
     raise ValueError("Typ " + t)
 
@@ -49,7 +49,7 @@ for m in re.finditer(r"typedef\s+struct\s*\{(.*?)\}\s*(\w+)\s*;", h, re.S):
         for v in rest.split(","):
             v = v.strip(); arr = re.match(r"(\w+)\s*\[(\d+)\]", v)
             if ct in rnamen: pt = rnamen[ct]
-            elif ct in ("LPCSTR", "LPSTR", "WNDPROC", "DLGPROC", "TAKTPROC"): pt = "Pointer"
+            elif ct in ("LPCSTR", "LPSTR", "LPLOW", "WNDPROC", "DLGPROC", "TAKTPROC"): pt = "Pointer"
             else: pt = SKALAR[ct]
             if arr: felder.append((pname(arr[1]), f"array[0..{int(arr[2]) - 1}] of {pt}"))
             else: felder.append((pname(v), pt))

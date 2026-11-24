@@ -39,6 +39,9 @@ extern GLOB g; extern BYTE g_stktop;
 extern DWORD _rd2api;
 extern void __far dpmi_enter(WORD seg);
 extern void __far dpmi_leave(void);
+extern WORD g_low; extern DWORD g_lim;
+#pragma aux g_low "_*";
+#pragma aux g_lim "_*";
 extern WORD g_preon, g_cs32[8], g_extb, g_exnr; extern DWORD g_tblin[8], g_pmin[8], g_pstub[8], g_exeip;
 #pragma aux g_preon "_*"; 
 #pragma aux g_cs32 "_*"; 
@@ -159,7 +162,8 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
     if (!(htb = MemAlloc(TBSIZE + 16, MEM_FIXED | MEM_ZEROINIT)) || !(tb = (BYTE FAR *)MemLock(htb))) { FileClose(f); return -1; }
     tseg = FP_SEG(tb) + ((FP_OFF(tb) + 15) >> 4); tb = (BYTE FAR *)MK_FP(tseg, 0);
     for (n = 0; n < TBSIZE; n++) tb[n] = 0;
-    g.a = gesamt; svc_call(1);
+    g_lim = (h.isize & 3) == 1 ? gesamt - 1 : 0xFFFFFFFFUL;   /* Speicherschutz (PLAN_API 3b): Kopf +12 = 1, Datengrenze = Bildende */
+    g.a = gesamt; svc_call(1); g_lim = 0xFFFFFFFFUL;
     if (g.err) { DbgHex("RD32: kein Speicher (DPMI)", g.err); FileClose(f); MemFree(htb); return -1; }
     lin = g.b; hdl = g.c; sels = g.d;
     DbgHex("RD32: Bild bei", lin); DbgHex("RD32: Bytes", gesamt);
@@ -174,6 +178,7 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
     if (h.msize > len) { g.b = lin + len; g.c = h.msize - len; svc_call(4); }   /* BSS loeschen */
     D(TB_XBUF) = ((DWORD)tseg << 4); D(TB_XBUF + 4) = lin;   /* Kopf +24: Taskblock linear, Bildbasis */
     g.a = ((DWORD)tseg << 4) + TB_XBUF; g.b = lin + 24; g.c = 8; svc_call(2);
+    if (h.isize & 1) { W(TB_XBUF) = g_low; g.a = ((DWORD)tseg << 4) + TB_XBUF; g.b = lin + 14; g.c = 2; svc_call(2); }   /* Kopf +14: LOW */
     W(TB_RMDS) = tseg; W(TB_RMCS) = FP_SEG(rm_api); W(TB_RMAPI) = FP_OFF(rm_api); W(TB_RMCB) = FP_OFF(rm_cbret);
     D(TB_API) = g.api; D(TB_P2R) = g.p2r; W(TB_P2R + 4) = g.p2rsel; D(TB_R2P) = g.r2p;
     W(TB_CS32) = (WORD)sels; W(TB_DS32) = (WORD)(sels >> 16);

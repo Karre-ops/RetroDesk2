@@ -12,16 +12,51 @@ void (*rd32_modende)(void);                       /* setzt rd32_modload: so zieh
 /* ---- DPMI-Speicher -------------------------------------------------------------------------------------- */
 #define NBLK 32
 static struct { DWORD lin, h; } blk[NBLK];
+/* Speicherschutz (PLAN_API 3b): Kopf +12 Bit 0 = Schutz-Format, Bit 1 = Vollzugriff (RD32C0V). Geschuetzt: DS/SS-Grenze
+   = Ende des hoechsten eigenen Blocks (wird hier nachgezogen); alles unter dem Bild liegt ausserhalb (Offsets laufen
+   ueber 4 GB), Zugriff dorthin = Ausnahme 0Dh, nur dieses Programm endet. */
+extern BYTE rd32_schutz;
+#pragma aux rd32_schutz "_*";
+#define GESCHUETZT ((rd32_schutz & 3) == 1)
+static DWORD lsl_ds(void);
+#pragma aux lsl_ds = "mov dx, ds" "lsl eax, edx" value [eax] modify [edx];
+static WORD get_ds(void);
+#pragma aux get_ds = "mov ax, ds" value [ax];
+static void seg_neu(void);
+#pragma aux seg_neu = "mov ax, ds" "mov ds, ax" "mov es, ax" "mov ss, ax" modify [eax];
+int rd32_grenze(DWORD lin, DWORD n)               /* [lin, lin+n) fuer nahe Zeiger erreichbar machen; 0 = geht nicht */
+{
+    R32 r; DWORD bis;
+    if (!GESCHUETZT) return 1;
+    if (lin < rd32_base || !n || lin - rd32_base + n - 1 < lin - rd32_base) return 0;
+    bis = (lin - rd32_base + n - 1) | 0xFFF;
+    if (bis <= lsl_ds()) return 1;
+    r.eax = 0x0008; r.ebx = get_ds(); r.ecx = bis >> 16; r.edx = bis & 0xFFFF; rd32_int31(&r);
+    if (r.cf) return 0;
+    seg_neu();                                    /* neue Grenze in DS/ES/SS laden */
+    return 1;
+}
+static void dpmi_frei(DWORD h) { R32 r; r.eax = 0x0502; r.esi = h >> 16; r.edi = h & 0xFFFF; rd32_int31(&r); }
 void *rd32_alloc(DWORD n)
 {
-    R32 r; WORD i;
+    R32 r; WORD i, k, nw = 0; DWORD weg[4], lin;
     for (i = 0; i < NBLK && blk[i].lin; i++) ;
     if (i == NBLK || !n) return 0;
-    r.eax = 0x0501; r.ebx = n >> 16; r.ecx = n & 0xFFFF; rd32_int31(&r);
-    if (r.cf) return 0;
-    blk[i].lin = ((r.ebx & 0xFFFF) << 16) | (r.ecx & 0xFFFF); blk[i].h = ((r.esi & 0xFFFF) << 16) | (r.edi & 0xFFFF);
+    for (;;) {
+        r.eax = 0x0501; r.ebx = n >> 16; r.ecx = n & 0xFFFF; rd32_int31(&r);
+        if (r.cf) { lin = 0; break; }
+        lin = ((r.ebx & 0xFFFF) << 16) | (r.ecx & 0xFFFF);
+        if (rd32_grenze(lin, n)) break;
+        if (nw == 4) { dpmi_frei(((r.esi & 0xFFFF) << 16) | (r.edi & 0xFFFF)); lin = 0; break; }
+        weg[nw++] = ((r.esi & 0xFFFF) << 16) | (r.edi & 0xFFFF);   /* Block unter dem Bild: festhalten, neu anfordern */
+    }
+    for (k = 0; k < nw; k++) dpmi_frei(weg[k]);
+    if (!lin) return 0;
+    blk[i].lin = lin; blk[i].h = ((r.esi & 0xFFFF) << 16) | (r.edi & 0xFFFF);
     return rd32_lin(blk[i].lin);
 }
+BYTE __far *BiosPtr(void) { return LOWP(0); }      /* BIOS-Daten, Vektoren (0-4FFh) und ROM (F0000h): nur ueber LOW */
+BYTE __far *LowPtr(DWORD lin) { return lin < 0x110000UL ? LOWP(lin) : (BYTE __far *)0; }
 void rd32_free(void *p)
 {
     R32 r; WORD i; DWORD l = (DWORD)p + rd32_base;
@@ -38,7 +73,8 @@ int rd32_main(void)
     WORD i; int r;
     rd32_xp = 0; for (i = 0; i < 8; i++) PROCS[i] = 0;
     TD(68) = 0;                                   /* Systemtakt: noch kein TaktSet (PLAN_API 2b) */
-    if (!setjmp(rd32_jb)) r = RdMain(TW(TB_INST), (LPCSTR)(TB + TB_CMD), TW(TB_SHOW)); else r = rd32_ecode;
+    { static char cmd[128]; for (i = 0; i < 127 && (cmd[i] = (char)TB[TB_CMD + i]) != 0; i++) ; cmd[i] = 0;   /* Befehlszeile nah kopieren */
+      if (!setjmp(rd32_jb)) r = RdMain(TW(TB_INST), cmd, TW(TB_SHOW)); else r = rd32_ecode; }
     TD(68) = 0;                                   /* ab hier keine Takt-Rueckrufe mehr */
     if (rd32_beiende) rd32_beiende();             /* atexit, Dateien schliessen, stdout leeren */
     if (rd32_modende) rd32_modende();             /* geladene Module: ihr Ende (atexit, Dateien), dann Speicher */
@@ -66,51 +102,51 @@ static int rmint(BYTE nr, RMR *m)
 }
 static WORD vw = 640, vh = 480, vb = 8;          /* zuletzt gesetzter VESA-Modus (ScreenRestore) */
 static DWORD lfbphys, lfbgr;
-static BYTE bank, *schat; static DWORD schgr; static WORD wseg, wgran, wgr;   /* Bankumschaltung: Schattenpuffer, Fenster A */
+static BYTE bank, *schat, *schat13; static DWORD schgr; static WORD wseg, wgran, wgr;   /* Bankumschaltung: Schattenpuffer, Fenster A */
 static void null(void *p, WORD n) { BYTE *z = p; while (n--) *z++ = 0; }
 static WORD modliste(WORD *l, WORD max)            /* VBE 4F00: Modusnummern (die Liste kann im Puffer selbst liegen) */
 {
-    RMR m; BYTE *vi = TB + TB_XBUF + rd32_xp; WORD *q, n = 0;
+    RMR m; BYTE __far *vi = TB + TB_XBUF + rd32_xp; WORD __far *q; WORD n = 0;
     null(&m, sizeof m); vi[0] = 'V'; vi[1] = 'B'; vi[2] = 'E'; vi[3] = '2';
     m.eax = 0x4F00; m.es = (WORD)(rd32_tlin >> 4); m.edi = TB_XBUF + rd32_xp;
     if (!rmint(0x10, &m) || (WORD)m.eax != 0x004F || vi[0] != 'V' || vi[1] != 'E' || vi[5] < 1) return 0;   /* ab VBE 1.x (Baenke), linear ab 2.0 */
-    q = rd32_lin(((DWORD)*(WORD *)(vi + 16) << 4) + *(WORD *)(vi + 14));
+    q = (WORD __far *)LOWP(((DWORD)*(WORD __far *)(vi + 16) << 4) + *(WORD __far *)(vi + 14));
     while (n < max && *q != 0xFFFF) l[n++] = *q++;
     return n;
 }
-static BYTE *modinfo(WORD nr)                    /* VBE 4F01 in den Austauschpuffer, 0 = keiner */
+static BYTE __far *modinfo(WORD nr)                    /* VBE 4F01 in den Austauschpuffer, 0 = keiner */
 {
-    RMR m; BYTE *mi = TB + TB_XBUF + rd32_xp;
+    RMR m; BYTE __far *mi = TB + TB_XBUF + rd32_xp;
     null(&m, sizeof m); m.eax = 0x4F01; m.ecx = nr; m.es = (WORD)(rd32_tlin >> 4); m.edi = TB_XBUF + rd32_xp;
     return rmint(0x10, &m) && (WORD)m.eax == 0x004F ? mi : 0;
 }
-static WORD tiefe2(BYTE *mi, BYTE lin)           /* 8, 15, 16, 24, 32; 0 = passt nicht. lin: linear, sonst Fenster A beschreibbar */
+static WORD tiefe2(BYTE __far *mi, BYTE lin)           /* 8, 15, 16, 24, 32; 0 = passt nicht. lin: linear, sonst Fenster A beschreibbar */
 {
-    if (lin ? (mi[0] & 0x99) != 0x99 : (mi[0] & 0x1B) != 0x1B || (mi[2] & 5) != 5 || !*(WORD *)(mi + 4) || *(WORD *)(mi + 6) < 64 || !*(WORD *)(mi + 8)) return 0;   /* unterstuetzt, Zusatzangaben, Farbe, Grafik */
+    if (lin ? (mi[0] & 0x99) != 0x99 : (mi[0] & 0x1B) != 0x1B || (mi[2] & 5) != 5 || !*(WORD __far *)(mi + 4) || *(WORD __far *)(mi + 6) < 64 || !*(WORD __far *)(mi + 8)) return 0;   /* unterstuetzt, Zusatzangaben, Farbe, Grafik */
     if (mi[0x19] == 8 && mi[0x1B] == 4) return 8;
     if (mi[0x1B] != 6) return 0;
     if (mi[0x19] == 16 && mi[0x21] == 5) return 15;
     return mi[0x19] == 15 || mi[0x19] == 16 || mi[0x19] == 24 || mi[0x19] == 32 ? mi[0x19] : 0;
 }
-static WORD tiefe(BYTE *mi) { return tiefe2(mi, 1); }
+static WORD tiefe(BYTE __far *mi) { return tiefe2(mi, 1); }
 WORD ScreenVesaList(VESAMODE *l, WORD max)
 {
-    WORD nr[128], n = modliste(nr, 128), i, k = 0, b; BYTE *mi;
+    WORD nr[128], n = modliste(nr, 128), i, k = 0, b; BYTE __far *mi;
     for (i = 0; i < n && k < max; i++)
-        if ((mi = modinfo(nr[i])) != 0 && (b = tiefe(mi)) != 0) { l[k].nr = nr[i]; l[k].w = *(WORD *)(mi + 0x12); l[k].h = *(WORD *)(mi + 0x14); l[k].bpp = b; k++; }
+        if ((mi = modinfo(nr[i])) != 0 && (b = tiefe(mi)) != 0) { l[k].nr = nr[i]; l[k].w = *(WORD __far *)(mi + 0x12); l[k].h = *(WORD __far *)(mi + 0x14); l[k].bpp = b; k++; }
     return k;
 }
 static int vesa(WORD w, WORD h, WORD bpp)         /* VESA-Modus nach Groesse und Farbtiefe: linear, sonst mit Baenken */
 {
-    RMR m; R32 r; WORD nr[128], n = modliste(nr, 128), i = n; BYTE *mi = 0; DWORD phys, gr; BYTE zw = (BYTE)(bpp >> 15);
+    RMR m; R32 r; WORD nr[128], n = modliste(nr, 128), i = n; BYTE __far *mi = 0; DWORD phys, gr; BYTE zw = (BYTE)(bpp >> 15);
     bpp &= 0xFF;
     if (!zw) for (i = 0; i < n; i++)
-        if ((mi = modinfo(nr[i])) != 0 && *(WORD *)(mi + 0x12) == w && *(WORD *)(mi + 0x14) == h && tiefe(mi) == bpp) break;
+        if ((mi = modinfo(nr[i])) != 0 && *(WORD __far *)(mi + 0x12) == w && *(WORD __far *)(mi + 0x14) == h && tiefe(mi) == bpp) break;
     if (i == n) {                                 /* kein linearer Modus (VBE 1.2): Fenster A, Schattenpuffer, ScreenUpdate */
         for (i = 0; i < n; i++)
-            if ((mi = modinfo(nr[i])) != 0 && *(WORD *)(mi + 0x12) == w && *(WORD *)(mi + 0x14) == h && tiefe2(mi, 0) == bpp) break;
+            if ((mi = modinfo(nr[i])) != 0 && *(WORD __far *)(mi + 0x12) == w && *(WORD __far *)(mi + 0x14) == h && tiefe2(mi, 0) == bpp) break;
         if (i == n) { SetLastError(RD_ERR_NOTSUP); return 0; }
-        lfbz = *(WORD *)(mi + 0x10); wgran = *(WORD *)(mi + 4); wgr = *(WORD *)(mi + 6); wseg = *(WORD *)(mi + 8);
+        lfbz = *(WORD __far *)(mi + 0x10); wgran = *(WORD __far *)(mi + 4); wgr = *(WORD __far *)(mi + 6); wseg = *(WORD __far *)(mi + 8);
         if (wgr > 64) wgr = 64;
         gr = (DWORD)lfbz * h;
         if (!schat || gr > schgr) {               /* neu: leer; sonst bleibt der Inhalt (ScreenRestore) */
@@ -123,14 +159,16 @@ static int vesa(WORD w, WORD h, WORD bpp)         /* VESA-Modus nach Groesse und
         vw = w; vh = h; vb = bpp; bank = 1;
         return 1;
     }
-    phys = *(DWORD *)(mi + 0x28); lfbz = *(WORD *)(mi + 0x10);
-    if (*(WORD *)mi & 0x0400 && *(WORD *)(mi + 0x32)) lfbz = *(WORD *)(mi + 0x32);   /* VBE 3: Zeilenbytes linear */
+    phys = *(DWORD __far *)(mi + 0x28); lfbz = *(WORD __far *)(mi + 0x10);
+    if (*(WORD __far *)mi & 0x0400 && *(WORD __far *)(mi + 0x32)) lfbz = *(WORD __far *)(mi + 0x32);   /* VBE 3: Zeilenbytes linear */
     gr = ((DWORD)lfbz * h + 4095) & ~4095UL;
     if (!lfb || phys != lfbphys || gr > lfbgr) {  /* abbilden (DPMI 0.9 kennt kein Freigeben): nur wenn noetig, dann reichlich */
         if (gr < 0x300000UL) gr = 0x300000UL;
         r.eax = 0x0800; r.ebx = phys >> 16; r.ecx = phys & 0xFFFF; r.esi = gr >> 16; r.edi = gr & 0xFFFF; rd32_int31(&r);
         if (r.cf) { SetLastError(RD_ERR_NOMEM); return 0; }
-        lfb = rd32_lin(((r.ebx & 0xFFFF) << 16) | (r.ecx & 0xFFFF)); lfbphys = phys; lfbgr = gr;
+        { DWORD l = ((r.ebx & 0xFFFF) << 16) | (r.ecx & 0xFFFF);
+          if (!rd32_grenze(l, gr)) { SetLastError(RD_ERR_NOTSUP); return 0; }   /* LFB unter dem Bild: nahe nicht erreichbar */
+          lfb = rd32_lin(l); lfbphys = phys; lfbgr = gr; }   /* geschuetzt: Grenze reicht dann bis zum LFB-Ende */
     }
     null(&m, sizeof m); m.eax = 0x4F02; m.ebx = 0x4000 | nr[i];
     if (!rmint(0x10, &m) || (WORD)m.eax != 0x004F) { SetLastError(RD_ERR_NOTSUP); return 0; }
@@ -139,9 +177,14 @@ static int vesa(WORD w, WORD h, WORD bpp)         /* VESA-Modus nach Groesse und
 }
 void ScreenUpdate(void)                           /* Schattenpuffer ueber Fenster A (64 KB) auf den Schirm */
 {
-    RMR m; DWORD n, off, k, i, *q, *z; WORD b = 0xFFFF, nb;
+    RMR m; DWORD n, off, k, i, *q; DWORD __far *z; WORD b = 0xFFFF, nb;
+    if ((akt == SM_13H || akt == SM_TEXT) && schat13) {   /* geschuetzt: Schatten nach A0000h/B8000h (LOW) */
+        n = akt == SM_13H ? 16000 : 1000; z = (DWORD __far *)LOWP(akt == SM_13H ? 0xA0000UL : 0xB8000UL); q = (DWORD *)schat13;
+        for (i = 0; i < n; i++) z[i] = q[i];
+        return;
+    }
     if (akt != SM_LFB || !bank || !schat) return;
-    n = (DWORD)lfbz * vh; z = rd32_lin((DWORD)wseg << 4);
+    n = (DWORD)lfbz * vh; z = (DWORD __far *)LOWP((DWORD)wseg << 4);
     for (off = 0; off < n; off += (DWORD)wgr << 10) {
         nb = (WORD)(off / ((DWORD)wgran << 10));
         if (nb != b) { null(&m, sizeof m); m.eax = 0x4F05; m.ebx = 0; m.edx = nb; rmint(0x10, &m); b = nb; }
@@ -163,6 +206,10 @@ WORD RDAPI ScreenMode(WORD modus, SCREENINFO FAR *si)
     if (modus == SM_LFB) return ScreenModeVesa(640, 480, 8, si);
     if (modus == SM_13H || modus == SM_TEXT) {
         BYTE *z = (BYTE *)&m; for (i = 0; i < sizeof m; i++) z[i] = 0;
+        if (GESCHUETZT && !schat13) {             /* 13h/Text: Schatten, ScreenUpdate zeigt ihn */
+            DWORD *q; if (!(schat13 = rd32_alloc(64000UL))) { SetLastError(RD_ERR_NOMEM); return 0; }
+            for (q = (DWORD *)schat13, i = 0; i < 16000; i++) q[i] = modus == SM_TEXT ? 0x07200720UL : 0;
+        }
         m.eax = modus == SM_13H ? 0x13 : 0x03; rmint(0x10, &m);
     } else return 0;
     akt = modus;
@@ -173,7 +220,7 @@ WORD RDAPI ScreenMode(WORD modus, SCREENINFO FAR *si)
     }
     return 1;
 }
-BYTE *ScreenPtr(void) { return akt == SM_LFB ? (bank ? schat : lfb) : akt == SM_13H ? rd32_lin(0xA0000) : akt == SM_TEXT ? rd32_lin(0xB8000) : 0; }
+BYTE *ScreenPtr(void) { return akt == SM_LFB ? (bank ? schat : lfb) : akt == SM_13H || akt == SM_TEXT ? (schat13 ? schat13 : rd32_lin(akt == SM_13H ? 0xA0000UL : 0xB8000UL)) : 0; }   /* geschuetzt: Schatten, ScreenUpdate */
 void RDAPI ScreenPalette(WORD erste, WORD n, const BYTE FAR *rgb)
 {
     WORD i;
@@ -186,12 +233,12 @@ void RDAPI ScreenPalette(WORD erste, WORD n, const BYTE FAR *rgb)
 void RDAPI ScreenRestore(void)
 {
     if (akt == SM_LFB) { if (!ScreenModeVesa(vw, vh, (WORD)(vb | (bank ? VESA_BANK : 0)), 0)) return; ScreenUpdate(); }   /* Baenke: Schatten bleibt, neu zeigen */
-    else if (akt != 0xFFFF) ScreenMode(akt, 0);
+    else if (akt != 0xFFFF) { ScreenMode(akt, 0); ScreenUpdate(); }   /* geschuetzt: Schatten bleibt, neu zeigen */
     if (paln && (akt != SM_LFB || vb == 8)) ScreenPalette(0, paln, pal);
 }
 
 /* ---- 32-Bit-Module (.M32): Bild ab Offset 0, dahinter Exporte und Verschiebungen; Kopf siehe RD32M0.ASM ---------- */
-typedef struct { char sig[4]; DWORD init, isize, msize, ver, tlin, base, f_call, f_alloc, f_free, f_smode, f_sptr, f_spal, f_srest, f_int31, p_ende, p_jb, p_8087, f_svesa, f_slist, f_supd; } M32KOPF;
+typedef struct { char sig[4]; DWORD init, isize, msize, ver, tlin, base, f_call, f_alloc, f_free, f_smode, f_sptr, f_spal, f_srest, f_int31, p_ende, p_jb, p_8087, f_svesa, f_slist, f_supd; WORD lowsel, frei; } M32KOPF;
 extern char _8087, _real87;
 static DWORD lies(short f, BYTE *z, DWORD n)
 {
@@ -212,7 +259,7 @@ void *rd32_modload(const char *datei)
     if (nmod == 8 || (f = FileOpen(n, FO_READ)) < 0) { SetLastError(RD_ERR_NOTFOUND); return 0; }
     gr = FileSeek(f, 0, FS_END); FileSeek(f, 0, FS_SET);
     if (gr < (long)sizeof k || lies(f, (BYTE *)&k, sizeof k) != sizeof k || k.sig[0] != 'R' || k.sig[1] != '3' || k.sig[2] != '2' || k.sig[3] != 'M'
-        || (k.ver != 1 && k.ver != 2) || k.isize > (DWORD)gr || k.msize < k.isize) { FileClose(f); SetLastError(RD_ERR_FORMAT); return 0; }
+        || k.ver < 1 || k.ver > 3 || (GESCHUETZT && k.ver < 3) || k.isize > (DWORD)gr || k.msize < k.isize) { FileClose(f); SetLastError(RD_ERR_FORMAT); return 0; }
     tab = (DWORD)gr - k.isize;
     if (!(b = rd32_alloc(k.msize + tab + 4))) { FileClose(f); SetLastError(RD_ERR_NOMEM); return 0; }
     FileSeek(f, 0, FS_SET);
@@ -229,6 +276,7 @@ void *rd32_modload(const char *datei)
     m->f_smode = (DWORD)ScreenMode; m->f_sptr = (DWORD)ScreenPtr; m->f_spal = (DWORD)ScreenPalette; m->f_srest = (DWORD)ScreenRestore; m->f_int31 = (DWORD)rd32_int31;
     m->f_svesa = (DWORD)ScreenModeVesa; m->f_slist = (DWORD)ScreenVesaList;
     if (k.ver >= 2) m->f_supd = (DWORD)ScreenUpdate;
+    if (k.ver >= 3) m->lowsel = rd32_lowsel;       /* Fassung 3: Taskblock ueber LOW (Speicherschutz); aeltere nur ohne Schutz */
     for (j = 0; j < 24; j++) ((BYTE *)m->p_jb)[j] = ((BYTE *)rd32_jb)[j];   /* exit im Modul beendet das Programm */
     ((char *)m->p_8087)[0] = _8087; ((char *)m->p_8087)[1] = _real87;
     if (((int (*)(void))m->init)() != 0) { rd32_free(b); SetLastError(RD_ERR_NOTSUP); return 0; }

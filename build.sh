@@ -142,7 +142,7 @@ wasm -q -3 -fo=obj/rd32a.obj src/rd32/RD32A.ASM
 wcc -3 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/RD32.MOD.obj src/rd32/RD32.C
 wlink option quiet format dos name $O/RD32.MOD file obj/rd2mod.obj,obj/RD32.MOD.obj,obj/rd32a.obj library $O/RD2.LIB,$WATCOM/lib286/dos/clibm.lib option nodefaultlibs,stack=16,map=obj/RD32.MOD.map disable 1172 >/dev/null
 python3 tools/rdrc.py src/rd32/RD32.RC obj/RD32.res >/dev/null && python3 tools/rd2link.py $O/RD32.MOD "RD2/32" --type M --flags 0 --res obj/RD32.res >/dev/null
-wasm -q -3 -fo=$O/RD32C0.OBJ sdk/RD32C0.ASM
+wasm -q -3 -fo=$O/RD32C0.OBJ sdk/RD32C0.ASM && wasm -q -3 -dVOLL -fo=$O/RD32C0V.OBJ sdk/RD32C0.ASM   # V: Vollzugriff (4 GB) statt Speicherschutz
 wcc386 -bt=dos -mf -zl -zm -s -os -zq -w4 -3r -i=sdk -fo=$O/RD32LIB.OBJ sdk/RD32LIB.C   # -zm + eliminate: nur Benutztes ins Bild
 wcc386 -bt=dos -mf -zl -zm -s -os -zq -w4 -3r -i=sdk -fo=$O/RD32PRG.OBJ sdk/RD32PRG.C   # nur Programme: DPMI-Speicher, Einsprung, Vollbild, Module laden
 wasm -q -3 -fo=$O/RD32M0.OBJ sdk/RD32M0.ASM   # Startcode fuer 32-Bit-Module (.M32)

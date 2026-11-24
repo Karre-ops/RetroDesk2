@@ -340,6 +340,19 @@ Exporte und Verschiebungen dazu, byte-gleich mit rd32mod.py. Beispiel:
   wcc386 -bt=dos -mf -zl -s -os -fpc -3r -i=. TESTM32.C
   MKM32 TESTM32          (TESTM32.LNK und TESTM32.EXP liegen in SDK32)
 
+Speicherschutz (ab RD2 2.4): Ein Programm sieht nur seinen eigenen Speicher
+(Bild, Stapel, rd32_alloc, LFB). Ein Zugriff daneben (DOS, BIOS, andere
+Programme, Nullzeiger-Rechnungen ins Leere) loest eine Ausnahme aus: RD2 meldet
+den Fehler und beendet nur dieses Programm. Fuer den Rest gibt es Far-Zeiger:
+  BYTE __far *b = BiosPtr();   b[0x46C] = Zeitgeber, b[0x449] = Videomodus
+  BYTE __far *v = LowPtr(0xB8000UL);   beliebige Adresse unter 1 MB
+rd32_lin liefert nur noch eigene Adressen. Im Modus 13h und im Textmodus ist
+ScreenPtr ein Schattenpuffer: nach jedem Bild ScreenUpdate() aufrufen (mit LFB
+tut es nichts, schadet also nie). Programme, die alles sehen muessen (Treiber,
+Diagnose), linken RD32C0V statt RD32C0. Aeltere Programme laufen unveraendert
+mit vollem Zugriff. Hinweis: QEMU prueft Segmentgrenzen nicht, echte CPUs und
+Bochs schon (test/schutz32.sh).
+
 RD32C0 muss zuerst stehen. Die .RC sollte BEDARF CPU 386 enthalten (die
 Shell meldet dann auf 8088/286 "braucht 386"). Beispiele: FEN32.C (Fenster,
 Dialog, Puffer-Bitmap, Datei, zwei Tasks) und VOLL32.C (Vollbild 13h/LFB).

@@ -6,13 +6,19 @@
 .386p
 .model flat
 .code
-public _rd32_tlin, _rd32_base, rd32_call_, rd32_int31_, rd32_takttramp_, _rd32_hattakt, rd32_kopf, setjmp_, longjmp_, __8087, __real87, __chipbug, ___chipbug
+public _rd32_tlin, _rd32_base, _rd32_schutz, _rd32_lowsel, rd32_call_, rd32_int31_, rd32_takttramp_, _rd32_hattakt, rd32_kopf, setjmp_, longjmp_, __8087, __real87, __chipbug, ___chipbug
 extrn rd32_main_:near, rd32_cb_:near, rd32_taktlauf_:near
 rd32_kopf:
 hdr     db 'R32!'
         dd offset pm_start            ; +4
         dd offset pm_cb               ; +8
-        dd 0                          ; +12 frei (frueher Bildgroesse)
+ifdef VOLL
+_rd32_schutz db 3                     ; +12 Speicherschutz (PLAN_API 3b): 1 = Schutz-Format, | 2 = Vollzugriff (RD32C0V.OBJ)
+else
+_rd32_schutz db 1                     ; +12 Speicherschutz (PLAN_API 3b): 1 = Schutz-Format, | 2 = Vollzugriff (RD32C0V.OBJ)
+endif
+        db 0
+_rd32_lowsel dw 0                     ; +14 Selektor LOW (Basis 0, Grenze 10FFFFh), traegt RD32.MOD ein
         dd offset rd32_ende           ; +16 Speicher bis Ende BSS (STACK-Segment liegt zuletzt, traegt der Linker ein)
         dd 16384                      ; +20 Stapel
 _rd32_tlin dd 0                       ; +24 Taskblock linear (RD32.MOD)
@@ -20,18 +26,18 @@ _rd32_base dd 0                       ; +28 Bildbasis linear
         dd offset pm_preempt          ; +32 Zeitscheibe: TaskYield-Einschub (RD32 biegt die Rueckkehr hierher)
         dd offset rd32_brende         ; +36 bis hier nie unterbrechen (Bruecke)
 
-tbz macro                             ; EBP = Taskblock (Bild-relativ, ueber 4 GB umlaufend)
+tbz macro                             ; GS:EBP = Taskblock (ueber LOW, auch bei Speicherschutz erreichbar)
+        mov  gs, _rd32_lowsel
         mov  ebp, _rd32_tlin
-        sub  ebp, _rd32_base
 endm
 torm macro ziel                       ; zurueck in den Realmodus: DS = TB, SS:SP = TB_RMSS:TB_RMSP, CS:IP = TB_RMCS:ziel
-        movzx eax, word ptr [ebp+38]
+        movzx eax, word ptr gs:[ebp+38]
         mov  ecx, eax
-        movzx edx, word ptr [ebp+2]
-        movzx ebx, word ptr [ebp+0]
-        movzx esi, word ptr [ebp+36]
-        movzx edi, word ptr [ebp+ziel]
-        jmp  fword ptr [ebp+20]
+        movzx edx, word ptr gs:[ebp+2]
+        movzx ebx, word ptr gs:[ebp+0]
+        movzx esi, word ptr gs:[ebp+36]
+        movzx edi, word ptr gs:[ebp+ziel]
+        jmp  fword ptr gs:[ebp+20]
 endm
 
 pm_start:                             ; erster Einsprung, ESP = Stapelspitze
@@ -40,8 +46,8 @@ pm_start:                             ; erster Einsprung, ESP = Stapelspitze
         mov  ax, ds
         mov  es, ax
         tbz
-        mov  dword ptr [ebp+48], offset pm_back
-        cmp  byte ptr [ebp+124], 0    ; 387 vorhanden (RD32.MOD): Gleitkomma der Laufzeit in Hardware
+        mov  dword ptr gs:[ebp+48], offset pm_back
+        cmp  byte ptr gs:[ebp+124], 0    ; 387 vorhanden (RD32.MOD): Gleitkomma der Laufzeit in Hardware
         je   ps_nofpu
         fninit
         mov  __8087, 3
@@ -57,14 +63,15 @@ pm_cb:                                ; Rueckruf (Fensterprozedur), ESP = TB_PME
         call rd32_cb_
 pm_ret:
         tbz
-        mov  [ebp+52], eax            ; TB_CBRES
+        mov  gs:[ebp+52], eax            ; TB_CBRES
         torm 42                       ; rm_cbret
 
 rd32_call_:                           ; API-Aufruf: Nummer und Woerter stehen schon im TB
+        push gs                       ; GS gehoert dem C-Code (Open Watcom: __far), hier fuer den TB
         pushad
         tbz
-        push dword ptr [ebp+4]
-        mov  [ebp+4], esp
+        push dword ptr gs:[ebp+4]
+        mov  gs:[ebp+4], esp
         torm 40                       ; rm_api
 rd32_int31_:                          ; DPMI-Aufruf: EAX = Zeiger auf { eax, ebx, ecx, edx, esi, edi, cf }
         push ebx
@@ -103,8 +110,9 @@ pm_back:                              ; vom Realmodus: DS = ES = SS = Datenselek
         sti
         cld
         tbz
-        pop  dword ptr [ebp+4]
+        pop  dword ptr gs:[ebp+4]
         popad
+        pop  gs
         ret
 
 setjmp_:                              ; EAX = jmp_buf: EBX, ESI, EDI, EBP, ESP, EIP
@@ -135,17 +143,19 @@ pm_preempt:                           ; vom Zeitgeber eingeschoben: TaskYield, d
         push eax                      ; Platz fuer die Rueckkehradresse
         pushad
         pushfd
+        push gs                       ; unterbrochener Code kann GS gerade benutzen
         cld
         tbz
-        mov  eax, [ebp+120]
-        mov  [esp+36], eax
-        push dword ptr [ebp+8]        ; laufenden Aufruf (Nummer, Woerter, Ergebnis) sichern
-        push dword ptr [ebp+12]
-        mov  dword ptr [ebp+8], 3     ; TaskYield, keine Woerter
+        mov  eax, gs:[ebp+120]
+        mov  [esp+40], eax
+        push dword ptr gs:[ebp+8]        ; laufenden Aufruf (Nummer, Woerter, Ergebnis) sichern
+        push dword ptr gs:[ebp+12]
+        mov  dword ptr gs:[ebp+8], 3     ; TaskYield, keine Woerter
         call rd32_call_
         tbz
-        pop  dword ptr [ebp+12]
-        pop  dword ptr [ebp+8]
+        pop  dword ptr gs:[ebp+12]
+        pop  dword ptr gs:[ebp+8]
+        pop  gs
         popfd
         popad
         ret
