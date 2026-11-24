@@ -62,6 +62,7 @@ static short bx[14]; static BYTE bn;              /* Menueleiste: Anfang je Tite
 void RDEXPORT u_ShowWindow(HWND h, WORD art);
 static HWND vw; static BYTE vweg;                 /* Vollbild-Fenster; 1 = gerade auf dem Schreibtisch (Alt+Tab) */
 static void (FAR __pascal *gpause)(WORD);
+extern FARPROC FAR *_rd2api;
 void RDEXPORT u_ScreenRelease(HWND h);
 HWND RDEXPORT u_SetActive(HWND h);
 void RDEXPORT u_MoveWindow(HWND h, short x, short y, short b, short hh, BOOL neu);
@@ -487,7 +488,7 @@ void RDEXPORT u_ShowWindow(HWND h, WORD art)
     if (!i) { bad(); return; }
     if (h == vw && vweg && art != SW_MIN && art != SW_HIDE) {   /* Vollbild-Programm wieder vorn: Schirm zurueck */
         vweg = 0; vw = 0; u_ShowWindow(h, art); vw = h;
-        TaskHalt(w_[i].task, FALSE); u_SetActive(h); gpause(0); PostMessage(h, M_SCREENBACK, 0, 0);
+        TaskHalt(w_[i].task, FALSE); u_SetActive(h); gpause(2); PostMessage(h, M_SCREENBACK, 0, 0);
         return;
     }
     if (art == SW_HIDE) {
@@ -1168,6 +1169,7 @@ WORD RDEXPORT u_KeyState(WORD taste)              /* 0: KS_* der Umschalttasten 
     WORD ks = (b & 3 ? KS_SHIFT : 0) | (b & (KS_CTRL | KS_ALT));
     if (!taste) return ks;
     if (taste == KS_SHIFT || taste == KS_CTRL || taste == KS_ALT) return ks & taste;
+    if ((taste -= KS_SCAN) < 0x80) return (((BYTE FAR *)_rd2api[0x035])[taste >> 3] >> (taste & 7)) & 1;   /* Scancode: Tabelle im INT 9 des Kerns (RDO_TASTEN) */
     return 0;
 }
 
@@ -1285,8 +1287,15 @@ WORD RDEXPORT u_ScreenAcquire(HWND h)
 {
     if (!idx(h) || !gpause) { SetLastError(gpause ? RD_ERR_HANDLE : RD_ERR_NOTSUP); return 0; }
     if (vw && vw != h) { SetLastError(RD_ERR_BUSY); return 0; }
-    vw = h; vweg = 0; gpause(0);                  /* Zeiger aus, Textmodus; den eigenen Modus setzt das Programm */
+    vw = h; vweg = 0; gpause(2);                  /* Zeiger aus (Maus bleibt), Textmodus; den eigenen Modus setzt das Programm */
     return 1;
+}
+static void m33(WORD ax, WORD cx, WORD dx);
+#pragma aux m33 = "int 33h" parm [ax] [cx] [dx] modify [ax bx cx dx si di es]
+void RDEXPORT u_ScreenMouse(HWND h, WORD b, WORD hh)   /* Maus im Vollbild (PLAN_API 3): Bereich nach dem Moduswechsel setzen */
+{
+    if (h != vw || vweg || !b || !hh) return;    /* Maus laeuft im Vollbild weiter (gpause 2), hier nur Bereich und Mitte */
+    m33(7, 0, b - 1); m33(8, 0, hh - 1); m33(4, b >> 1, hh >> 1);
 }
 void RDEXPORT u_ScreenRelease(HWND h)
 {
@@ -1412,7 +1421,7 @@ static struct { WORD n; FARPROC f[72]; } ext = { 72, {
     0, U(ScrollSet), U(ScrollGet), 0, 0, 0, 0, 0,
     0, U(CaptureMouse), U(ReleaseMouse), U(CursorSet), U(CursorBusy), U(CursorPos), 0, 0,
     0, U(MenuLoad), U(MenuSet), U(MenuCheck), U(MenuEnable), U(MenuFree), U(MenuPopup), U(MenuText),
-    U(ScreenAcquire), U(ScreenRelease), 0, 0, 0, 0, 0, 0,
+    U(ScreenAcquire), U(ScreenRelease), U(ScreenMouse), 0, 0, 0, 0, 0,
     0, U(KeyState), 0, U(hook), (FARPROC)u_init, U(SendMessage), U(DispatchMessage), U(MsgRegister),
 } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

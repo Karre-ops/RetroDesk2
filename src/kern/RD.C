@@ -199,6 +199,7 @@ int main(void)
     rd_preempt = koop ? 0 : 1;
     rd_timer_on(8192);
     rd_api[RDO_NETHAKEN] = (FARPROC)(void __far *)&k_netpause;
+    { extern BYTE k_tasten[16]; rd_api[RDO_TASTEN] = (FARPROC)(void __far *)k_tasten; }
     if (k_sndpause) k_sndpause(2);                /* Klangtreiber jetzt laden, nicht erst im ersten Programm */
     for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {
         for (s = argv[i]; *s && h < 78; ) cmdline[h++] = *s++;

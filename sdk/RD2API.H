@@ -219,6 +219,7 @@ RDF(0x0DD, void,    MenuFree,       (HMENU m))
 RDF(0x0DE, WORD,    MenuPopup,      (HWND w, HMENU m, WORD sub, short x, short y)) /* Rechtsklickmenue */
 RDF(0x0DF, WORD,    MenuText,       (HMENU m, WORD id, LPCSTR s))
 RDF(0x0E0, WORD,    ScreenAcquire,  (HWND w))                     /* Vollbild: Schirm fuer das Programm, 1 = ok (API 2.3) */
+RDF(0x0E2, void,    ScreenMouse,    (HWND w, WORD breite, WORD hoehe))   /* Vollbild: Maus im Bereich 0..breite-1/0..hoehe-1 (nach dem Moduswechsel), 0 = aus */
 RDF(0x0E1, void,    ScreenRelease,  (HWND w))                     /* Vollbild beenden, Schreibtisch neu */
 RDF(0x0E9, WORD,    KeyState,       (WORD taste))                 /* Shift/Strg/Alt, KS_* */
 

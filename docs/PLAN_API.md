@@ -57,8 +57,10 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
    eigener Stapel 2 KB, Eintraege in RD32LIB), auch in Schleifen ohne API; Module ohne TaktSet. TAKT32.EXE in takt.sh.
    Absicherung: TB+72 = ~TB+68 und TB_CS32 muss passen (verwaiste RD32-Eintraege nach TaskKill). Offen: solche
    verwaisten Eintraege belegen ihren der 8 RD32-Plaetze weiter (schon vor 2b so), beim Aufraeumen beheben.
-3. Eingabe im Vollbild: Maus mit Koordinaten im Vollbildmodus, Bereich und Empfindlichkeit, KeyState-Tabelle fuer
-   alle Tasten zugleich, auch im Rohmodus.
+3. Eingabe im Vollbild (erledigt 24.11.2026): ScreenMouse(w, breite, hoehe) (API 0x0E2, RDUSER) setzt den Mausbereich
+   nach dem Moduswechsel; im Vollbild bleibt die Maus an (gpause 2: Zeiger aus statt Treiber zuruecksetzen), Nachrichten
+   kommen mit Vollbild-Koordinaten. KeyState(KS_SCAN + Scancode) fuer alle Tasten zugleich: Bit-Tabelle k_tasten im
+   INT 9 des Kerns (rd_api[RDO_TASTEN]). Test test/vollmaus.sh. RDGDI 20.986/20.992 Byte RAM, RDUSER 27.638/27.648.
 4. Sound Blaster vollstaendig: SB 1.x/2.0/Pro/16/AWE und Kompatible; Mischer in RD2 (mehrere Samples zugleich,
    Lautstaerke je Kanal), 16 Bit/Stereo ab SB16, FM ueber OPL2/OPL3 mit Musik und Effekten gleichzeitig.
 5. MPU-401 (MIDI) als Treiber; Tandy/Game Blaster/Gravis nativ spaeter (wie in Punkt 5 festgelegt).

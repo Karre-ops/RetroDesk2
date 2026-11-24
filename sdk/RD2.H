@@ -523,6 +523,17 @@ typedef struct {
 #define KS_SHIFT 0x01
 #define KS_CTRL  0x04
 #define KS_ALT   0x08
+#define KS_SCAN  0x100                            /* KeyState(KS_SCAN + TS_*): 1 = Taste gerade gedrueckt, alle Tasten zugleich */
+#define TS_ESC    0x01
+#define TS_ENTER  0x1C
+#define TS_STRG   0x1D
+#define TS_UMSCH  0x2A
+#define TS_ALT    0x38
+#define TS_LEER   0x39
+#define TS_HOCH   0x48
+#define TS_LINKS  0x4B
+#define TS_RECHTS 0x4D
+#define TS_RUNTER 0x50
 
 /* Grafik */
 #define CAPS_W      0                             /* Breite in Pixeln */

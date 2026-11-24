@@ -1205,8 +1205,11 @@ void RDEXPORT g_ReleaseDC(HWND w, HDC h) { (void)w; g_DCFree(h); }
 static WORD cgamod(void) { return (WORD)((0x10 | (ProfileGetInt("RD2.INI", "Farben", "CGA", 15) & 15)) << 8); }   /* CGA: Farbe an setmode */
 void RDEXPORT g_Pause(WORD an)
 {
-    if (!an && drv && !pause_) { mausaus(); drv->textmode(); pause_ = 1; }
-    else if (an && pause_) { drv->setmode(gfxtyp == GFX_CGA ? cgamod() : 0); mausan(); pause_ = 0; }
+    if (an != 1 && drv && !pause_) {             /* 0 RunDos: Maus abgeben; 2 Vollbild: Maus bleibt, ohne Zeiger (ScreenMouse) */
+        if (an) { cli(); zweg(); cvis = 0; sti(); } else mausaus();
+        drv->textmode(); pause_ = 1;
+    }
+    else if (an == 1 && pause_) { drv->setmode(gfxtyp == GFX_CGA ? cgamod() : 0); mausan(); pause_ = 0; }
 }
 /* Abschluss: Kern ruft das beim Beenden von RD */
 void RDEXPORT g_Ende(void)

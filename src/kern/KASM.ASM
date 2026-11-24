@@ -7,9 +7,10 @@ _TEXT ends
 _DATA segment word public 'DATA'
 public _k_sndtick
 _k_sndtick  dd 0                     ; RDSND: Klang-Takt (72,8 Hz, im Interrupt), 0 = keiner
-public _rd_takt, _k_ntakt, _rd_ticks, _rd_preempt, _rd_killreq, _k_crit, _k_critdrv, _rd_gateptr, _k_xmsent, _k_xdx
+public _rd_takt, _k_ntakt, _k_tasten, _rd_ticks, _rd_preempt, _rd_killreq, _k_crit, _k_critdrv, _rd_gateptr, _k_xmsent, _k_xdx
 _k_xmsent   dd 0                     ; Einsprung des XMS-Treibers (HIMEM), 0 = keiner
 _k_xdx      dw 0                     ; DX nach dem letzten XMS-Aufruf
+_k_tasten   db 16 dup(0)              ; KeyState(KS_SCAN + Scancode): Bit je Taste, gesetzt = gedrueckt (PLAN_API 3)
 _rd_takt    dd 0                     ; Systemtakt 145,6 Hz seit Start (TaktCount)
 _k_ntakt    dw 0                     ; angemeldete Takt-Rueckrufe (TaktSet)
 _rd_ticks   dd 0
@@ -411,6 +412,31 @@ int24:
 int9:
     push ax
     push ds
+    push bx
+    push cx
+    mov  ax, DGROUP
+    mov  ds, ax
+    in   al, 60h
+    cmp  al, 0E0h                    ; Vorsilben E0/E1: nichts merken (graue Tasten zaehlen wie der Ziffernblock)
+    jae  i9_t
+    mov  bl, al
+    and  bx, 7Fh
+    mov  cl, bl
+    and  cl, 7
+    mov  ah, 1
+    shl  ah, cl
+    mov  cl, 3
+    shr  bx, cl
+    test al, 80h
+    jnz  i9_los
+    or   _k_tasten[bx], ah
+    jmp  short i9_t
+i9_los:
+    not  ah
+    and  _k_tasten[bx], ah
+i9_t:
+    pop  cx
+    pop  bx
     mov  ax, 40h
     mov  ds, ax
     mov  al, ds:[17h]

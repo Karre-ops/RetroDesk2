@@ -66,6 +66,7 @@ HALLO.EXE        4096    0   T  SDK-Beispiel in C (Quelle auf Diskette 4, test/p
 LEER.EXE         2048    0   T  Testprogramm Phase 1 (faellt spaeter weg)
 SYSTEST.EXE      2048    0   T  Testprogramm SysInfo (API 2.3, 19.11.2026), test/sysinfo.sh
 TAKTTEST.EXE     2048    0   T  Testprogramm Systemtakt 145,6 Hz (PLAN_API Schritt 2, 24.11.2026), test/takt.sh
+VOLLMAUS.EXE     4096    0   T  Testprogramm Maus/Tasten im Vollbild (PLAN_API 3, 24.11.2026), test/vollmaus.sh
 VOLLTEST.EXE     4096    0   T  Testprogramm Vollbild (API 2.3, PLAN_32BIT Schritt 2), test/vollbild.sh
 UEBER.EXE        2048    0   T  G12-Test: LEER.EXE mit minalloc FFFFh (beim Bauen erzeugt)
 PING.EXE         2048    0   T  Testprogramme Phase 2 (fallen spaeter weg)

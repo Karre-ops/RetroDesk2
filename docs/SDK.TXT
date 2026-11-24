@@ -209,6 +209,17 @@ Gleitkomma. In 32-Bit-Modulen geht TaktSet nicht (0, RD_ERR_NOTSUP): das
 Programm meldet an. TimerSet (ms, Nachricht M_TIMER) bleibt fuer alles
 Gemuetliche.
 
+5b. Maus und Tasten im Vollbild
+---------------------------------------------------------------
+Nach ScreenAcquire und dem eigenen Moduswechsel (ScreenMode, VESA):
+  ScreenMouse(w, 320, 200);  Maus im Bereich 0..319 / 0..199
+Mausnachrichten (M_MOUSEMOVE, M_BUTTONDOWN ...) kommen dann mit
+Koordinaten des Vollbilds an das Fenster. Den Zeiger zeichnet das
+Programm selbst. Nach M_SCREENBACK (Alt+Tab zurueck) ScreenMouse wieder
+aufrufen. Tasten fuer Spiele: KeyState(KS_SCAN + TS_LINKS) ist 1, solange
+die Taste gedrueckt ist, fuer alle Tasten zugleich (TS_* in RD2.H, sonst
+der Scancode der Taste). Pfeiltasten und Ziffernblock zaehlen gleich.
+
 6. Weitere Quellen
 ------------------
 
