@@ -85,6 +85,8 @@ modul src/drv/SND.C COVOX.DRV "Covox" 0 D -dCOVOX
 # Drucken: RDPRN.MOD (Dialog, Baender, LPT/Datei) laedt RDKX bei PrnOpen; Treiber EPSON9.DRV
 modul src/prn/RDPRN.C RDPRN.MOD "Drucken" 0 M "-ml -r"
 modul src/drv/PRN.C EPSON9.DRV "Epson 9-Nadel" 0 D -dEPSON9
+modul src/drv/ESCP24.C ESCP24.DRV "ESC/P 24-Nadel" 0 D   # 24 Nadeln, ESC/P2 (PLAN_API 7)
+modul src/drv/PCL.C PCL.DRV "HP PCL" 0 D   # LaserJet, DeskJet (PLAN_API 7)
 # Netz: RDTCP.MOD (TCP/IP) mit Empfangsroutine src/net/PKT.ASM
 $W -fo=obj/pkt.obj src/net/PKT.ASM
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/RDTCP.MOD.obj src/net/RDTCP.C

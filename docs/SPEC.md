@@ -280,8 +280,10 @@ SwapReserveKB=64   ; freier Platz nach Dateiwachstum, 0 = keine Reserve
 Netz=PAKET          ; PAKET (Paketreiber), KEIN
 Sprache=DE
 Systemklang=1
-Drucker=EPSON9.DRV
-Port=LPT1
+[Drucker]           ; OPTIONEN, Karte Drucker
+Treiber=ESCP24      ; EPSON9 (9 Nadeln), ESCP24 (24 Nadeln, ESC/P2), PCL (HP PCL 3/5)
+Port=1              ; 1, 2 = LPT1/LPT2, 0 = Datei (Datei=Pfad, sonst DRUCK.PRN)
+Entwurf=0           ; 1 = Entwurf: 60/120/150 dpi statt 120/180/300
 [Shell]
 Ordner1=A:\
 Programme=PROGRAMM.LST

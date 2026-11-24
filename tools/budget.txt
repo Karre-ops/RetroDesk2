@@ -62,7 +62,7 @@ DKOPIE.EXE       5120    8   P  Diskette kopieren (wie DISKCOPY, RDDISK.MOD/INT 
 RDSETUP.EXE      8192   12   N  Pakete mit SETUP.INF installieren/entfernen, 32-Bit-Teile nur ab 386 (PLAN_32BIT Schritt 1, 20.11.2026; Diskette 3, Diskette 2 ist voll)
 TASKMAN.EXE      4096    8   P  Zubehoer Taskmanager: Ladeblock, RAM und Swap aktuell/Puffer/frei (1s), Beenden; weiter 3 Cluster
 PAPIERK.EXE      6144    8   P  Zubehoer Papierkorb (RD-Menue): X:\PAPIERK\PAPIERK.LST, wiederherstellen/loeschen/leeren, 8 KB Tabelle beim Lauf
-OPTIONEN.EXE    22528 16.5   P  (31.10.: 21 KB Datei, RDKEYB-Zeile wird auch ohne Aenderung gerichtet) (31.10.: 16 KB fuer Belegungsliste *.KBD) (30.10.: 15 KB Speicher fuer 16 Grafikarten) Optionen (30.10.: 20 KB fuer CGA-Farbe und Schreibtischfarbe, 16 Farbnamen DE/EN): Karteikarten Grafik, Klang, Maus, Tastatur, Schoner, System (29.10.: +12 KB fuer alle Einstellungen, 12 Kartendialoge DE/EN, Grafik sofort mit Rueckfrage "Behalten?" 15 s, Maus- und Schonerdialog hierher; beim Lauf 24 KB Puffer fuer CONFIG.SYS/AUTOEXEC.BAT, nur solange offen); 12.11.2026: eigenes Symbol
+OPTIONEN.EXE    25600 16.5   P  (24.11.2026: 25 KB fuer Karte Drucker, Dialog 18 DE/EN) (31.10.: 21 KB Datei, RDKEYB-Zeile wird auch ohne Aenderung gerichtet) (31.10.: 16 KB fuer Belegungsliste *.KBD) (30.10.: 15 KB Speicher fuer 16 Grafikarten) Optionen (30.10.: 20 KB fuer CGA-Farbe und Schreibtischfarbe, 16 Farbnamen DE/EN): Karteikarten Grafik, Klang, Maus, Tastatur, Schoner, System (29.10.: +12 KB fuer alle Einstellungen, 12 Kartendialoge DE/EN, Grafik sofort mit Rueckfrage "Behalten?" 15 s, Maus- und Schonerdialog hierher; beim Lauf 24 KB Puffer fuer CONFIG.SYS/AUTOEXEC.BAT, nur solange offen); 12.11.2026: eigenes Symbol
 HALLO.EXE        4096    0   T  SDK-Beispiel in C (Quelle auf Diskette 4, test/pascal.sh)
 LEER.EXE         2048    0   T  Testprogramm Phase 1 (faellt spaeter weg)
 SYSTEST.EXE      2048    0   T  Testprogramm SysInfo (API 2.3, 19.11.2026), test/sysinfo.sh
@@ -99,6 +99,8 @@ RDPRN.MOD        6144    8   P  Drucken (und HelpShow -> HILFE.EXE): Druckdialog
 HILFE.EXE        8192   16   P  Hilfeanzeige (F1, Punkt 10): Themen, Verweise, Zurueck; startet ueber HelpShow
 RD2.HLP         16384    0   P  Hilfetext RD2 (deutsch), Format docs/HILFE.md
 EPSON9.DRV       3072    3   P
+ESCP24.DRV       2048    6   P  Epson ESC/P 24 Nadeln und ESC/P2 (LQ, Stylus, NEC, Star, OKI, Canon BJ), 180 dpi (PLAN_API 7, 24.11.2026)
+PCL.DRV          3072    3   P  HP PCL 3/5 (LaserJet ab IIP, DeskJet ab 500), 300 dpi, PackBits (PLAN_API 7, 24.11.2026)
 RDDISK.MOD       4096    4   P  Laufwerkszugriff fuer RDFORMAT/RD2SETUP: INT 13h, INT 21h IOCTL 44xxh, 60h, INT 25h/26h (24.10.)
 RDFDISK.EXE     40960    0   P  Partitionieren (GPL v2, aus Free FDISK)
 RDFORMAT.EXE    73728    0   P  Formatieren Disketten und Festplatte: FreeDOS FORMAT 0.92a (GPL v2) mit RD2-Oberflaeche; englische FreeDOS-Texte bleiben fuers Protokoll (24.10., Karsten: Option 1, 72 KB)

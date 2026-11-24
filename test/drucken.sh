@@ -8,7 +8,7 @@ sed "s#/tmp/qmon.sock#$SOCK#" test/qemu/qmon.py > obj/qmon_prn.py
 lauf() {  # $1 Name  $2 PRNTEST-Befehl  $3 RD2.INI  $4 QEMU-Zusatz
   local IMG=obj/prn_$1.img
   printf '@echo off\r\nA:\\RD2\\RD2.EXE /NOMAUS /CGA A:\\RD2\\PRNTEST.EXE %s\r\nA:\\FDAPM.COM POWEROFF\r\n' "$2" > obj/ae_prn.txt
-  FMT=720 bash tools/mkdisk.sh $IMG obj/ae_prn.txt
+  FMT=${FMTP:-720} bash tools/mkdisk.sh $IMG obj/ae_prn.txt
   printf "$3" > obj/prn_ini.txt; mcopy -o -i $IMG obj/prn_ini.txt ::/RD2/RD2.INI
   rm -f $SER obj/prn_$1.out
   if [ -z "$5" ]; then
@@ -46,6 +46,24 @@ chk "PRNTEST: Durchgaenge 0x00000022" "entwurf: 34 Durchgaenge je Seite (2 Kopie
 bild entwurf
 lauf abbruch "A" '[Drucker]\r\nPort=0\r\n'
 chk "PRNTEST: abgebrochen nach Durchgang 0x00000001" "abbruch: nach dem ersten Band"; chk "Speicher vollstaendig zurueck" "abbruch: Speicher zurueck"
+# 6-9 Universaltreiber (PLAN_API 7): ESCP24 180 dpi / Entwurf 120, PCL 300 / Entwurf 150; gleiche Testseite, Tintenrahmen in
+# Zoll wie bei EPSON9 (+-0,05), Bild gegen Referenz.
+rahmen() { echo "$1" | sed -n 's/.*Rahmen \([0-9. ]*\) unbekannt.*/\1/p'; }
+R9=$(python3 -c "
+from PIL import Image; a = Image.open('obj/prn_datei.png').convert('L'); b = a.crop((0, 0, a.size[0], 792)).point(lambda v: 255 - v).getbbox()
+print('%.2f %.2f %.2f %.2f' % (b[0] / 120, b[1] / 72, (b[2] - 1) / 120, (b[3] - 1) / 72))")
+gleichr() { python3 -c "import sys; a=[float(x) for x in '$1'.split()]; b=[float(x) for x in '$2'.split()]; sys.exit(0 if len(a)==4 and len(b)==4 and all(abs(x-y)<=0.05 for x,y in zip(a,b)) else 1)"; }
+uni() {  # $1 Name  $2 Treiber  $3 Entwurf  $4 dpi x  $5 Decoder
+  lauf $1 "" "[Drucker]\r\nPort=0\r\nTreiber=$2\r\nEntwurf=$3\r\n"
+  chk "PRNTEST: dpi x 0x$(printf '%08X' $4)" "$1: $4 dpi"; chk "PRNTEST: PrnClose 0x00000000" "$1: PrnClose ok"; chk "Speicher vollstaendig zurueck" "$1: Speicher zurueck"
+  local A; A=$(python3 test/$5.py obj/prn_$1.out obj/prn_$1.png); echo "       $1: $A"
+  echo "$A" | grep -q "unbekannt \[\]" && echo "ok     $1: nur bekannte Befehle" || { echo "FEHLER $1: unbekannte Befehle"; F=1; }
+  gleichr "$(rahmen "$A")" "$R9" && echo "ok     $1: Seite liegt wie bei EPSON9 ($R9 Zoll)" || { echo "FEHLER $1: Rahmen $(rahmen "$A") statt $R9"; F=1; }
+  if [ -f test/ref/prn_$1.png ]; then python3 test/bildvergleich.py obj/prn_$1.png test/ref/prn_$1.png >/dev/null && echo "ok     $1 Bild wie Referenz" || { echo "FEHLER $1 Bild weicht ab"; F=1; }
+  else cp obj/prn_$1.png test/ref/prn_$1.png; echo "NEU    test/ref/prn_$1.png"; fi
+}
+FMTP=1440 uni escp24 ESCP24 0 180 escp24;  # LQ: 360 KB Druckdaten, passt nicht auf 720 KB
+ uni escp24e ESCP24 1 120 escp24; uni pcl PCL 0 300 pcl; uni pcle PCL 1 150 pcl
 # 5 Druckdialog: Datei vorgewaehlt (Port=0), Alt+K: Kopien 3, Eingabe druckt; Port und Kopien landen in RD2.INI
 lauf dialog "D" '[Drucker]\r\nPort=0\r\n' "" "sendkey alt-k|sleep0.5|sendkey backspace|sleep0.3|sendkey 3|sleep0.3|sendkey ret"
 chk "PRNTEST: Kopien 0x00000003" "dialog: 3 Kopien aus dem Dialog"; chk "PRNTEST: PrnClose 0x00000000" "dialog: PrnClose ok"

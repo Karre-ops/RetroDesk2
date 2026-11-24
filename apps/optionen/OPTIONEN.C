@@ -1,5 +1,5 @@
 /* OPTIONEN.C - RD > Optionen: alle Einstellungen auf Karteikarten (29.10.2026, Karsten). Je Karte ein Dialog
- * (11..16) mit Reitern "1 Grafik" .. "6 System" (Alt+1..6) wie RDNET; die Werte bleiben beim Wechsel erhalten,
+ * (11..16, 18) mit Reitern "1 Grafik" .. "6 System", "7 Drucker" (Alt+1..7) wie RDNET; die Werte bleiben beim Wechsel erhalten,
  * geschrieben wird erst bei OK.
  *  1 Grafik:   Grafikart (GfxList: nur, was die Karte kann) oder automatisch, Profil. RD2.INI [System] Grafik=, Profil=.
  *  2 Klang:    Geraet, Sound-Blaster-Einstellung, Systemklaenge. [System] Sound=, SB=, Systemklang=.
@@ -21,7 +21,8 @@
 
 #define MKFP(s, o) ((BYTE FAR *)(((DWORD)(s) << 16) | (WORD)(o)))
 #define ID_S1   91                                /* Reiter 91..96 */
-#define NS      6
+#define NS      7                                 /* Karte 7 (Drucker) ist Dialog 18 */
+#define DLG(k)  ((WORD)((k) < 6 ? 11 + (k) : 18))
 #define CMAX    8192
 static HINST hi; static BYTE test, seite; static char ord[64], cs[80], home[66], ini[80];
 static HMEM hm; static char FAR *ein, FAR *aus, FAR *ae; static WORD nein, nae; static BYTE csneu, zugross;
@@ -33,6 +34,7 @@ static BYTE snd, snd0, sb, sb0, sysk; static char sbeig[16];
 static BYTE tempo, dk, tausch, mw0, mhw, mhw0, rdm; static DWORD letzt;
 static BYTE tast, tast0, kbart; static BYTE FAR *kbm;    /* kbart 0 kein Treiber, 1 RDKEYB, 2 fremd */
 static BYTE sart, szeit, szeit0, start, start0, netz, xms, xms0;
+static BYTE drv, dport, dent; static const char *const drvw[] = { "EPSON9", "ESCP24", "PCL" };
 static BYTE swap, swap0; static WORD swmax, swmax0, swfrei, swfrei0;
 static const WORD swkb[] = { 0, 64, 128, 256, 512, 1024, 4096, 16384 };
 
@@ -231,6 +233,10 @@ static void laden(void)
         for (k = 1; k < NM; k++) { WORD j = 0; const char *s = mschalter[k]; while (s[j] && gr(p[j]) == (BYTE)s[j]) j++; if (!s[j] && (p[j] <= ' ')) { mhw = (BYTE)k; break; } }
     }
     tastatur();
+    { char w2[10]; ProfileGetStr(ini, "Drucker", "Treiber", "EPSON9", w2, sizeof w2);
+      for (drv = 0; drv < 3 && !gleich(w2, drvw[drv]); drv++) ; if (drv == 3) drv = 0; }
+    v = ProfileGetInt(ini, "Drucker", "Port", 1); dport = (BYTE)(v == 1 ? 0 : v == 2 ? 1 : 2);
+    dent = (BYTE)(ProfileGetInt(ini, "Drucker", "Entwurf", 0) != 0);
     sart = (BYTE)ProfileGetInt(ini, "Schoner", "Art", 0); if (sart > 2) sart = 0;
     v = ProfileGetInt(ini, "Schoner", "Zeit", 300);
     for (szeit = 5; szeit > 0 && zt[szeit] > v; szeit--) ;
@@ -301,6 +307,11 @@ static void fuellen(HWND d)
     case 4:
         DlgCheck(d, (WORD)(181 + sart), 1); DlgCheck(d, (WORD)(184 + szeit), 1);
         break;
+    case 6:
+        for (i = 0; i < 3; i++) ladd(d, 221, StrGet(hi, (WORD)(72 + i)));   /* die Liste kopiert den Text */
+        ladd(d, 222, "LPT1"); ladd(d, 222, "LPT2"); ladd(d, 222, StrGet(hi, 75));
+        lsel(d, 221, drv); lsel(d, 222, dport); DlgCheck(d, 223, dent);
+        break;
     case 5:
         DlgCheck(d, 201, start); DlgCheck(d, 202, netz);
         scpy(t, StrGet(hi, 31), sizeof t); ladd(d, 207, t);
@@ -318,6 +329,7 @@ static void holen(HWND d)
     case 2: tempo = radio(d, 141, 5); dk = radio(d, 146, 3); tausch = (BYTE)DlgChecked(d, 149); if (rdm) mhw = lget(d, 153); break;
     case 3: if (kbart != 2) tast = lget(d, 161); break;
     case 4: sart = radio(d, 181, 3); szeit = radio(d, 184, 6); break;
+    case 6: drv = lget(d, 221); dport = lget(d, 222); dent = (BYTE)DlgChecked(d, 223); break;
     case 5: { BYTE m = lget(d, 212), f = lget(d, 213);
         start = (BYTE)DlgChecked(d, 201); netz = (BYTE)DlgChecked(d, 202); xms = lget(d, 207);
         swap = (BYTE)DlgChecked(d, 211); if (m < 8) swmax = swkb[m]; if (f < 8) swfrei = swkb[f]; break; }
@@ -364,6 +376,9 @@ static WORD speichern(void)
     t[0] = (char)('0' + sart); t[1] = 0; ProfileSetStr(ini, "Schoner", "Art", t);
     setze("Schoner", "Zeit", zt[szeit]); if (szeit != szeit0) neurd = 1;
     ProfileSetStr(ini, "Netz", "Zeit", netz ? "1" : "0");
+    ProfileSetStr(ini, "Drucker", "Treiber", drvw[drv < 3 ? drv : 0]);
+    t[0] = (char)(dport == 0 ? '1' : dport == 1 ? '2' : '0'); t[1] = 0; ProfileSetStr(ini, "Drucker", "Port", t);
+    ProfileSetStr(ini, "Drucker", "Entwurf", dent ? "1" : "0");
     if (xms != xms0) { setze("System", "XMS", xw[xms]); neurd = 1; }
     if (swap != swap0 || swmax != swmax0 || swfrei != swfrei0) {
         if (setze("System", "SwapMaxKB", (short)swmax) || setze("System", "SwapReserveKB", (short)swfrei) ||
@@ -470,7 +485,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     laden();
     if (test) DbgPrint(start ? "OPTIONEN: bereit, Start an" : "OPTIONEN: bereit, Start aus");
     for (;;) {
-        r = DialogRun(inst, (WORD)(11 + seite), 0, dproc, 0);
+        r = DialogRun(inst, DLG(seite), 0, dproc, 0);
         if (r >= ID_S1 && r < ID_S1 + NS) { seite = (BYTE)(r - ID_S1); continue; }
         break;
     }

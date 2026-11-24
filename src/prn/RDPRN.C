@@ -16,6 +16,7 @@
 #pragma intrinsic(inp, outp)
 
 #define BANDZ 48                                  /* Vielfaches der Bandhoehe aller Treiber (8, 24) */
+#define KACH  1024                                /* breiteste Bitmap (RDGDI MAXBW): breitere Seiten (180/300 dpi) in Kacheln */
 typedef struct { WORD w, h, bpp, bpr; } BMPH_;   /* Kopf eines Bitmap-Blocks (RDGDI), danach die Zeilen */
 #define ID_DRV  30
 #define ID_LPT1 31
@@ -30,7 +31,8 @@ static HBMP bmp;
 static HDC pdc;
 static HWND wbes;
 static short datei = -1, y0, hoehe;
-static WORD bpr, bz, kopie, kopien, port, lpt, fehler;
+static WORD bpr, bz, kopie, kopien, port, lpt, fehler, fbpr, kn, kk;   /* fbpr: ganze Zeile; kn Kacheln, kk aktuelle */
+static HMEM hb;                                   /* kn > 1: ganzes Band (fbpr x bz), aus den Kacheln zusammengesetzt */
 static BYTE weiss;
 static char ini[80], dname[80];
 
@@ -131,14 +133,21 @@ static void neu(void)                             /* Band weiss, Ursprung auf di
     b = (BMPH_ FAR *)MemLock(bmp); z = (BYTE FAR *)(b + 1);
     while (n--) *z++ = weiss;
     MemUnlock(bmp);
-    SetOrigin(pdc, 0, (short)-y0);
+    SetOrigin(pdc, (short)-(short)(kk * KACH), (short)-y0);
 }
+#define KWEITER 0xFFFF                            /* ausband: naechste Kachel desselben Bandes zeichnen */
 static WORD ausband(void)
 {
-    BMPH_ FAR *b; BYTE FAR *z; WORD n = bpr * bz, e, zl = (WORD)(hoehe - y0 < (short)bz ? hoehe - y0 : bz);
+    BMPH_ FAR *b; BYTE FAR *z; WORD n = bpr * bz, e = 0, zl = (WORD)(hoehe - y0 < (short)bz ? hoehe - y0 : bz);
     b = (BMPH_ FAR *)MemLock(bmp); z = (BYTE FAR *)(b + 1);
     if (weiss) { BYTE FAR *x = z; while (n--) { *x = (BYTE)~*x; x++; } }   /* Treiber: 1 = Punkt */
-    e = dv->band(z, bpr, zl);
+    if (kn < 2) e = dv->band(z, bpr, zl);
+    else {
+        BYTE FAR *g = (BYTE FAR *)MemLock(hb); WORD r, i, o = kk * (KACH / 8), m = fbpr - o < bpr ? fbpr - o : bpr;
+        for (r = 0; r < bz; r++) for (i = 0; i < m; i++) g[r * fbpr + o + i] = z[r * bpr + i];
+        if (++kk < kn) e = KWEITER; else { kk = 0; e = dv->band(g, fbpr, zl); }
+        MemUnlock(hb);
+    }
     MemUnlock(bmp);
     return e;
 }
@@ -148,9 +157,10 @@ static void schluss(BOOL abbruch)
     dv->close(abbruch);                           /* nach einem Ausgabefehler sendet aus() nichts mehr */
     if (pdc) DCFree(pdc);
     if (bmp) BmpFree(bmp);
+    if (hb) MemFree(hb);
     if (datei >= 0) FileClose(datei);
     dv->h.done(); ModFree(dm);
-    dv = 0; pdc = 0; bmp = 0; datei = -1; dm = 0;
+    dv = 0; pdc = 0; bmp = 0; hb = 0; datei = -1; dm = 0;
 }
 
 /* ---- API ------------------------------------------------------------------- */
@@ -189,8 +199,11 @@ static HDC RDEXPORT p_PrnOpen(HWND owner, PRNJOB FAR *job)
     }
     dv = t;
     if ((e = dv->open(job, aus)) != 0) goto weg2;
-    hoehe = job->hoehe; bpr = ((WORD)job->breite + 7) >> 3; bz = BANDZ;
-    if (!(bmp = BmpCreate((WORD)job->breite, bz, 1)) || !(pdc = BmpDC(bmp))) { e = RD_ERR_NOMEM; goto weg2; }
+    hoehe = job->hoehe; fbpr = ((WORD)job->breite + 7) >> 3; bz = BANDZ; kk = 0;
+    kn = (WORD)(((WORD)job->breite + KACH - 1) / KACH);
+    if (kn > 1 && !(hb = MemAlloc((DWORD)fbpr * bz, MEM_MOVABLE))) { e = RD_ERR_NOMEM; goto weg2; }
+    if (!(bmp = BmpCreate(kn > 1 ? KACH : (WORD)job->breite, bz, 1)) || !(pdc = BmpDC(bmp))) { e = RD_ERR_NOMEM; goto weg2; }
+    bpr = ((kn > 1 ? KACH : (WORD)job->breite) + 7) >> 3;
     Pixel(pdc, 0, 0, C_WHITE);                    /* welches Bit ist weiss? */
     { BMPH_ FAR *b = (BMPH_ FAR *)MemLock(bmp); weiss = (*(BYTE FAR *)(b + 1) & 0x80) ? 0xFF : 0; MemUnlock(bmp); }
     neu();
@@ -207,7 +220,7 @@ static WORD RDEXPORT p_PrnPage(HDC dc, void FAR *x)   /* x: RDKX ruft alle Expor
     (void)x;
     if (!dv || dc != pdc) return RD_ERR_HANDLE;
     if (fehler) return fehler;
-    if ((e = ausband()) != 0) return e;
+    if ((e = ausband()) != 0) { if (e == KWEITER) { neu(); return PRN_NOCHMAL; } return e; }
     y0 += (short)bz;
     if (y0 < hoehe) { neu(); return PRN_NOCHMAL; }
     if ((e = dv->page()) != 0) return e;

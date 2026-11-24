@@ -111,4 +111,9 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
 6. SDK und Doku: alles in RD2.H/RD2_32.H, SDK.TXT, Beispiele; danach die Engine auf die RD2-API umstellen
    (DOS-Fassung bleibt als Rueckfall).
 7. Drucker: ESCP24.DRV (ESC/P 24 Nadeln, ESC/P2) und PCL.DRV (HP PCL 3/5), Auswahl in Optionen.
+   Erledigt 24.11.2026: ESCP24.DRV (ESC * 39, 180 x 180 dpi; Entwurf ESC * 33, 120 x 180; ESC J n/180) und PCL.DRV
+   (300 dpi, Entwurf 150; A4, Raster mit PackBits ESC *b2M, leere Zeilen ESC *b0W, ESC *rB, ESC E). RDPRN zeichnet Seiten
+   ueber 1024 Punkte Breite in Kacheln (RDGDI-Grenze) und setzt das Band zusammen. OPTIONEN Karte 7 "Drucker" (Dialog
+   18): Treiber, Anschluss LPT1/LPT2/Datei, Entwurf -> RD2.INI [Drucker]. Tests: drucken.sh (Decoder test/escp24.py,
+   test/pcl.py, Seite liegt in Zoll wie bei EPSON9), drucker_opt.sh.
 Danach voller Testsatz und Release 2.4 (Karsten, 24.11.2026: Release erst nach PLAN_API).
