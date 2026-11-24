@@ -85,7 +85,7 @@ int rd_write(int fd, const void *b, unsigned n) { const char *p = (const char *)
 int rd_isatty(int fd) { (void)fd; return 0; }
 int rd_system(const char *cmd) { (void)cmd; return -1; }   /* FORMAT /S wird nicht benutzt */
 void rd_einlegen(void) { if (frage(4, lwbuch, MB_OKCANCEL | MB_WARN) != ID_OK) { abbruch = 1; Exit(3, 3); } }
-void rd_bestaetigen(int format) { (void)format; if (frage(22, lwbuch, MB_YESNO | MB_WARN) != ID_YES) { abbruch = 1; Exit(3, 3); } }
+void rd_bestaetigen(int format) { (void)format; if (frage(22, lwbuch, MB_YESNO | MB_WARN | MB_DEFNO) != ID_YES) { abbruch = 1; Exit(3, 3); } }
 int rd_label(char *str) { scpy(str, name, 12); return (int)slen(str); }
 void rd_kritisch(int quelle, unsigned int code) { kr_quelle = (WORD)quelle; kr_code = code | 0x8000; }   /* 0x8000: Fehler gemeldet (Code 0 ist gueltig) */
 void rd_prozent(unsigned long p)
@@ -230,6 +230,7 @@ short RDAPI RdMain(HINST i, LPCSTR cl, WORD show)
     fd_argv[fd_argc] = 0;
     for (k = 0; k < (WORD)fd_argc; k++) DbgPrint(fd_argv[k]);
     e = DialogRun(inst, 11, 0, pproc, 0);
+    { union REGS r; struct SREGS s; r.h.ah = 0x0D; s.ds = s.es = 0; dInt(0x21, (union REGS FAR *)&r, (union REGS FAR *)&r, (struct SREGS FAR *)&s); }   /* DOS-Puffer verwerfen: neue FAT (Audit 24.11.) */
     ModFree(hm);
     if (e == ID_CANCEL) { frage(hdd ? 33 : 18, 0, MB_OK | MB_WARN); return 1; }
     if (e != ID_OK) { DbgPrint("RDFORMAT: Fehler"); fehler(23); return 1; }

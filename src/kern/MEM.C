@@ -98,6 +98,7 @@ void mem_init(WORD reserve)
 void mem_tsr(WORD paras)                         /* oben Platz fuer einen spaeter geladenen Treiber (RDNET live) */
 {
     WORD i;
+    if (paras >= 0xE000) return;                  /* unsinnig gross (RD2.INI): nichts verkleinern */
     for (i = 0; i < nblk; i++)
         if ((blk[i].flags & B_FREE) && blk[i].seg + blk[i].paras == arena + arena_paras && blk[i].paras > paras + 4096) {
             kr.ax = 0x4A00; kr.es = arena; kr.bx = arena_paras - paras; rd_int(0x21, &kr);
@@ -348,7 +349,8 @@ HMEM RDK MemRealloc(HMEM h, DWORD size, WORD flags)
         if (!(seg = get(p, x->flags & ~HU, h, x->owner))) return memfail(getcause);
         x->seg = seg; x->size = size; return h;
     }
-    i = find_seg(old); oldp = blk[i].paras;
+    if ((i = find_seg(old)) == 0xFFFF) return FAIL(RD_ERR_HANDLE);   /* Block nicht eingetragen: nie blk[0xFFFF] (Audit 24.11.) */
+    oldp = blk[i].paras;
     if (p <= oldp) {                              /* verkleinern: Rest freigeben */
         if (p < oldp && nblk < MAXB - 1) {
             ins(i + 1);

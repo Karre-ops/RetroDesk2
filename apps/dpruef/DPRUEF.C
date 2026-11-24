@@ -161,12 +161,15 @@ static void reparieren(void)
     WORD i, k; BYTE b[512];
     if (!test && MsgBox(dlg, StrGet(hi, 15), StrGet(hi, 1), MB_YESNO | MB_WARN | MB_DEFNO) != ID_YES) return;
     CursorBusy(TRUE);
+    { union REGS r; struct SREGS sr; r.h.ah = 0x0D; sr.ds = sr.es = 0; dInt(0x21, &r, &r, &sr); }   /* DOS-Puffer vorher schreiben/verwerfen */
     if (verloren) for (i = 2; i < ncl + 2; i++) { WORD v = fat(i); if (v && v != 0xFFFF && !schlecht(v) && !(mk[i >> 3] & (1 << (i & 7)))) setfat(i, 0); }
     schreibe_alle();
-    if (!fatgleich || verloren) for (i = 0; i < spf; i++) {   /* FAT 1 auf alle Kopien */
+    if (!fatgleich && (quer || kette || ungueltig)) { DbgPrint("DPRUEF: FAT 1 fehlerhaft, Kopien bleiben"); melde(3, 0); }   /* Audit: kaputte FAT 1 nicht ueber intakte Kopien schreiben */
+    else if (!fatgleich || verloren) for (i = 0; i < spf; i++) {   /* FAT 1 (in sich stimmig) auf alle Kopien */
         if (abs(0, res + i, 1, (void FAR *)b)) break;
         for (k = 1; k < nfat; k++) abs(1, res + (DWORD)k * spf + i, 1, (void FAR *)b);
     }
+    { union REGS r; struct SREGS sr; r.h.ah = 0x0D; sr.ds = sr.es = 0; dInt(0x21, &r, &r, &sr); }   /* DOS liest die FAT danach neu */
     CursorBusy(FALSE); DbgPrint("DPRUEF: repariert");
     pruefen();
 }
@@ -195,7 +198,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     if (cmd && ((*cmd | 0x20) >= 'a' && (*cmd | 0x20) <= 'z')) lw = (BYTE)((*cmd | 0x20) - 'a');
     if (!(hm = ModLoad("RDDISK.MOD"))) { MsgBox(0, StrGet(inst, 2), StrGet(inst, 1), MB_OK | MB_ERROR); return 1; }
     dInt = (RDD_INT_F)ModProc(hm, RDD_INT);
-    if (!(hsek = MemAlloc(NC * 512, MEM_MOVABLE)) || !(sek = (BYTE FAR *)MemLock(hsek))) return 1;
+    if (!(hsek = MemAlloc(NC * 512, MEM_MOVABLE)) || !(sek = (BYTE FAR *)MemLock(hsek))) { ModFree(hm); return 1; }
     DialogRun(inst, 10, 0, dproc, 0);
     if (hmk) MemFree(hmk); MemUnlock(hsek); MemFree(hsek); ModFree(hm);
     return 0;

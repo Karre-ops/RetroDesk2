@@ -30,11 +30,13 @@ WORD RDK TaskKill(HTASK n, WORD code);
 /* ---- Umschalten ----------------------------------------------------------- */
 /* Beendete Tasks aufraeumen. Laeuft nie im Kontext des beendeten Tasks selbst
    (dessen Stack liegt evtl. in seinem Programmbild), sondern im naechsten. */
+void (__far __pascal *k_taskende)(WORD t);      /* RD32.MOD ueber rd_api[RDO_TASKENDE]: 32-Bit-Teil eines beendeten Tasks freigeben */
 static void reap(void)
 {
     WORD i;
     for (i = 1; i < MAXTASK; i++)
         if (k_task[i].state == T_ZOMBIE && i != k_cur) {
+            if (k_taskende) k_taskende(i);        /* zuerst: RD32 gibt Taskblock und DPMI-Speicher selbst frei */
             if (k_wnd) k_wnd(3, i, 0, 0, 0);       /* RDUSER: Fenster des Tasks weg */
             profile_flush();                      /* INI-Zwischenspeicher gehoert evtl. diesem Task */
             mod_unwind(&k_task[i]);
@@ -177,8 +179,8 @@ static void notbeenden(WORD cs)
     if (indos[0] || indos[-1]) return;            /* DOS aktiv: beim naechsten Takt noch einmal */
     for (i = 1; i < MAXTASK; i++)
         if (k_task[i].state == T_READY && now - k_task[i].lastget > alt) { alt = now - k_task[i].lastget; best = i; }
-    if (best && best == k_cur && (cs < k_task[best].base || cs >= k_task[best].base + k_task[best].paras))
-        return;                                   /* steckt gerade im Kern/BIOS: Kernzustand nicht zerstoeren, spaeter */
+    if (!k_cur || cs < k_task[k_cur].base || cs >= k_task[k_cur].base + k_task[k_cur].paras)
+        return;                                   /* Kern/Modul/BIOS unterbrochen: nie mitten darin aufraeumen, naechster Takt (Audit 24.11.) */
     rd_killreq = 0;
     if (!best) { k_out("Notbeenden: keins", 2); return; }
     k_hex("Notbeenden Task", best, 2);
@@ -280,6 +282,7 @@ static void task_start(void)                      /* laeuft auf dem Startstack d
 
 static void fcpy(char __far *d, const char __far *s, WORD n)   /* hoechstens n - 1 Zeichen und 0 */
 {
+    if (!n) return;
     while (--n && *s) *d++ = *s++;
     *d = 0;
 }
@@ -377,6 +380,7 @@ WORD RDK TimerSet(HWND w, WORD id, WORD ms)
 {
     TASK *t = &k_task[k_cur]; WORD j, fr = NTIMER;
     if (!ms) ms = 1;
+    if (!id) id = 1;                              /* Nummer 0: als 1 eintragen, damit TimerKill(w, 1) ihn findet (Audit 24.11.) */
     for (j = 0; j < NTIMER; j++) {
         if (t->tm[j].ms && t->tm[j].id == id && t->tm[j].w == w) break;
         if (!t->tm[j].ms && fr == NTIMER) fr = j;
@@ -384,7 +388,7 @@ WORD RDK TimerSet(HWND w, WORD id, WORD ms)
     if (j == NTIMER) j = fr;
     if (j == NTIMER) return FAIL(RD_ERR_FULL);
     t->tm[j].id = id; t->tm[j].w = w; t->tm[j].ms = ms; t->tm[j].next = ms_now() + ms;
-    return id ? id : 1;
+    return id;
 }
 void RDK TimerKill(HWND w, WORD id)
 {
@@ -423,8 +427,8 @@ WORD RDK TaktSet(TAKTPROC f, WORD teil)
 }
 void RDK TaktKill(WORD nr)
 {
-    if (!nr || nr > 8 || !tk[nr - 1].f || tk[nr - 1].t != k_cur) return;
-    _disable(); tk[nr - 1].f = 0; k_ntakt--; _enable();
+    if (!nr || nr > 8) return;
+    _disable(); if (tk[nr - 1].f && tk[nr - 1].t == k_cur) { tk[nr - 1].f = 0; k_ntakt--; } _enable();   /* gesperrt pruefen: kein doppeltes Abzaehlen */
 }
 DWORD RDK TaktCount(void) { DWORD v; _disable(); v = rd_takt; _enable(); return v; }
 WORD RDK TaskKill(HTASK n, WORD code)

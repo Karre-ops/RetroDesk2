@@ -145,6 +145,7 @@ typedef struct { char sig[4]; WORD api, flags, stack, kb; char name[16]; WORD ve
 extern KMZ k_mz; extern KRD2 k_rb;
 WORD  k_imgload(const char *path, const char *typen, WORD *seg, WORD *paras);   /* 0 = ok, sonst RD_ERR_* */
 void  task_api(void);
+extern void (__far __pascal *k_taskende)(WORD t);
 extern DWORD (__far __pascal *k_wnd)(WORD art, HWND w, WORD msg, WORD p1, DWORD p2);   /* von RDUSER */
 WORD  task_load(LPCSTR path, LPCSTR cmd, WORD show);   /* HTASK oder 0 */
 void  task_run_all(void);                         /* Kern wartet, bis alle Programme beendet sind */
@@ -154,8 +155,8 @@ void  mod_api(void);
 DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs);
 DWORD __cdecl mod_leave(void);
 void  mod_unwind(TASK *t);                        /* Task endet: offene Modulaufrufe entsperren */
-
-#endif
 WORD profile_flush(void);                         /* FILE.C: INI-Zwischenspeicher schreiben und freigeben */
 WORD k_dosshell(void);                            /* RUNDOS.C: nach dem Ende als Shell COMMAND.COM starten */
 void mem_tsr(WORD paras);                         /* MEM.C: oben Platz fuer einen Treiber lassen */
+
+#endif

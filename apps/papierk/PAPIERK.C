@@ -10,6 +10,7 @@
 #define ID_WEG   22
 #define ID_LEER  23
 static HINST hi; static char kb[16], lst[24], z[ZL + 16]; static HMEM hm; static WORD n;
+static DWORD rest; static BYTE kaputt;            /* rest: hier beginnen nicht geladene Eintraege (ueber NMAX); kaputt: Lesefehler, nie zurueckschreiben */
 
 static WORD slen(LPCSTR s) { WORD k = 0; while (s[k]) k++; return k; }
 static void scpy(char *d, LPCSTR s, WORD k) { while (--k && *s) *d++ = *s++; *d = 0; }
@@ -17,23 +18,38 @@ static char FAR *eintrag(WORD i) { char FAR *b = (char FAR *)MemLock(hm); return
 static void lesen(void)                           /* PAPIERK.LST -> Tabelle */
 {
     short f; WORD k = 0, r; char c; char FAR *e;
-    n = 0; if ((f = FileOpen(lst, FO_READ)) < 0) return;
-    if (!(e = eintrag(0))) { FileClose(f); return; }
+    n = 0; rest = 0; kaputt = 0; if ((f = FileOpen(lst, FO_READ)) < 0) return;
+    if (!(e = eintrag(0))) { FileClose(f); kaputt = 1; return; }
+    SetLastError(0);
     while (n < NMAX && (r = FileRead(f, &c, 1)) == 1) {
+        rest++;
         if (c == '\r') continue;
         if (c == '\n') { e[n * ZL + k] = 0; if (k) n++; k = 0; continue; }
         if (k < ZL - 1) e[n * ZL + k++] = c;
     }
     if (k && n < NMAX) { e[n * ZL + k] = 0; n++; }
+    if (LastError()) kaputt = 1;                  /* Audit 24.11.: unvollstaendig gelesene Liste nie zurueckschreiben */
     MemUnlock(hm); FileClose(f);
 }
 static void schreiben(void)
 {
-    short f; WORD i; char FAR *e;
-    if (!n) { FileDelete(lst); return; }
-    if ((f = FileCreate(lst, 0)) < 0 || !(e = eintrag(0))) return;
-    for (i = 0; i < n; i++) { FileWrite(f, e + i * ZL, slen(e + i * ZL)); FileWrite(f, "\r\n", 2); }
-    MemUnlock(hm); FileClose(f);
+    short f, a; WORD i, l, ok = 1, w = n; char FAR *e; char t[24], b[64];   /* erst PAPIERK.$$$, Rest ueber NMAX anhaengen, dann ersetzen */
+    if (kaputt) return;
+    scpy(t, lst, sizeof t); l = slen(t); t[l - 3] = t[l - 2] = t[l - 1] = '$';
+    if ((f = FileCreate(t, 0)) < 0) return;
+    if (!(e = eintrag(0))) { FileClose(f); FileDelete(t); return; }
+    for (i = 0; i < n && ok; i++) { l = slen(e + i * ZL); ok = FileWrite(f, e + i * ZL, l) == l && FileWrite(f, "\r\n", 2) == 2; }
+    MemUnlock(hm);
+    if (ok && (a = FileOpen(lst, FO_READ)) >= 0) {
+        SetLastError(0); FileSeek(a, (long)rest, 0);
+        while (ok && (l = FileRead(a, b, sizeof b)) != 0) { ok = FileWrite(f, b, l) == l; w |= l; }
+        if (LastError()) ok = 0;
+        FileClose(a);
+    }
+    if (FileClose(f)) ok = 0;
+    if (ok && !w) { FileDelete(t); FileDelete(lst); n = 0; rest = 0; return; }   /* leer: Liste loeschen wie bisher */
+    if (ok) { FileDelete(lst); ok = !FileRename(t, lst); }
+    if (!ok) FileDelete(t); else lesen();   /* neu laden: rest gilt fuer die neue Datei */
 }
 static void teile(WORD i, char *name, char *orig)  /* name = X:\PAPIERK\Name, orig = Originalpfad */
 {

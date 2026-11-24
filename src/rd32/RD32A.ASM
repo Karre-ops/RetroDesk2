@@ -50,6 +50,7 @@ _g_exnr   dw 0
 _g_exeip  dd 0
 g_to      dd 0        ; Takt-Rueckruf: Ziel im Bild (rd32_takttramp)
 g_ts      dw 0
+g_intakt  db 0        ; 1 = Takt-Rueckrufe laufen gerade (keine Verschachtelung)
 g_jo      dd 0        ; Sprungziel beim Weiterreichen
 g_js      dw 0
 g_stk     db 384 dup(0)
@@ -662,6 +663,9 @@ i8pm:
     mov  ds, cs:p_pds
     inc  g_tick
     xor  ebx, ebx                     ; Systemtakt: TaktSet-Rueckrufe der 32-Bit-Tasks (TB+68 = rd32_takttramp im Bild)
+    cmp  g_intakt, 0                  ; verschachtelt (Rueckruf hat Interrupts freigegeben): Rueckrufe nicht nochmal
+    jne  i8_te
+    mov  g_intakt, 1
 i8_t:
     cmp  _g_cs32[ebx*2], 0
     je   i8_tn
@@ -689,6 +693,7 @@ i8_t:
     mov  ds, es:[eax+34]              ; TB_DS32
     mov  es, si
     call fword ptr es:g_to
+    cli                               ; Rueckruf darf IF nicht offen lassen (Audit 24.11.)
     pop  ebp
     pop  esi
     pop  ebx
@@ -699,6 +704,8 @@ i8_tn:
     inc  ebx
     cmp  ebx, 8
     jb   i8_t
+    mov  g_intakt, 0
+i8_te:
     cmp  _g_preon, 0
     je   i8_w
     test byte ptr g_tick, 7

@@ -83,6 +83,7 @@ static int kargs(void)
     for (p = (BYTE __far *)MK_FP(psp, 0x80), n = *p++, i = 0; c < 9; ) {
         while (i < n && p[i] <= ' ') i++;
         if (i >= n) break;
+        if (d >= kab + sizeof kab - 1) break;     /* voll: kein NUL hinter das Feld (Audit 24.11.) */
         for (argv[c++] = d; i < n && p[i] > ' ' && d < kab + sizeof kab - 1; ) *d++ = p[i++];
         *d++ = 0;
     }
@@ -199,6 +200,7 @@ int main(void)
     rd_preempt = koop ? 0 : 1;
     rd_timer_on(8192);
     rd_api[RDO_NETHAKEN] = (FARPROC)(void __far *)&k_netpause;
+    rd_api[RDO_TASKENDE] = (FARPROC)(void __far *)&k_taskende;
     { extern BYTE k_tasten[16]; rd_api[RDO_TASTEN] = (FARPROC)(void __far *)k_tasten; }
     if (k_sndpause) k_sndpause(2);                /* Klangtreiber jetzt laden, nicht erst im ersten Programm */
     for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {

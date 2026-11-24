@@ -69,12 +69,15 @@ static BOOL kopieren(const char *von, const char *nach, DWORD gr)
     short a, b; WORD n; BOOL ok = TRUE;
     if ((a = FileOpen(von, FO_READ)) < 0) return FALSE;
     if ((b = FileCreate(nach, 0)) < 0) { FileClose(a); return FALSE; }
-    while ((n = FileRead(a, pu, puf)) != 0 && n != 0xFFFF) {
+    for (;;) {                                    /* FileRead liefert auch bei Lesefehler 0: Fehler direkt nach jedem Lesen pruefen (Audit 24.11.) */
+        SetLastError(0); n = FileRead(a, pu, puf);
+        if (LastError()) { ok = FALSE; break; }
+        if (!n) break;
         if (FileWrite(b, pu, n) != n) { ok = FALSE; break; }
         fertig += n; if (fertig > gesamt) fertig = gesamt; balken();
     }
-    if (n == 0xFFFF) ok = FALSE;
     FileClose(a); if (FileClose(b)) ok = FALSE;
+    if (!ok) FileDelete(nach);                    /* keine halbe Datei stehen lassen */
     (void)gr;
     return ok;
 }
@@ -151,9 +154,9 @@ static WORD lesen(const char *name)               /* Datei nach buf, 0-terminier
     short f; WORD n;
     buf[0] = 0;
     if ((f = FileOpen(name, FO_READ)) < 0) return 0;
-    n = FileRead(f, (char FAR *)buf, sizeof buf - 1); FileClose(f);
-    if (n == 0xFFFF) n = 0;
-    buf[n] = 0;
+    SetLastError(0); n = FileRead(f, (char FAR *)buf, sizeof buf - 1);
+    if (LastError()) { FileClose(f); buf[0] = 0; return 0xFFFE; }   /* Lesefehler: nicht als leer behandeln */
+    FileClose(f); buf[n] = 0;
     return n == sizeof buf - 1 ? 0xFFFF : n;
 }
 
@@ -175,6 +178,7 @@ static BOOL finden(const char *w, char *aus)      /* Programm: direkt, Wurzel, P
     d[0] = ziel[0]; d[1] = ':'; d[2] = 0;
     for (;;) {
         for (i = 0; i < 3 && !(i && strchr(w, '.')); i++) {
+            if (strlen(d) + strlen(w) + 6 > 79) break;   /* passt nicht in aus[80] */
             if (!pf) { cpy(aus, d); cat(aus, "\\"); cat(aus, w); }
             else if (w[1] == ':') cpy(aus, w); else { aus[0] = ziel[0]; aus[1] = ':'; aus[2] = 0; cat(aus, w); }
             cat(aus, ext[i]);
@@ -188,14 +192,14 @@ static BOOL finden(const char *w, char *aus)      /* Programm: direkt, Wurzel, P
 }
 static short config(void)                         /* 1 eingetragen (alt gesichert), 3 neu, 2 schon da, -2 nein, -1 zu gross, 0 Fehler */
 {
-    char cs[16], ab[16], z[110], w[64], pf[80], mw[24]; WORD n, o = 0, m, i; char *a, *e, *q; BOOL alt, mausda = 0, kbda;
+    char cs[16], ab[16], z[160], w[64], pf[80], mw[24]; WORD n, o = 0, m, i; char *a, *e, *q; BOOL alt, mausda = 0, kbda;
     cpy(cs, "C:\\CONFIG.SYS"); cs[0] = ziel[0]; cpy(ab, "C:\\AUTOEXEC.BAT"); ab[0] = ziel[0];
     alt = gibts(cs) || gibts(ab); verloren = 0;
-    if ((n = lesen(cs)) == 0xFFFF) return -1;
+    if ((n = lesen(cs)) >= 0xFFFE) return n == 0xFFFF ? -1 : 0;   /* zu gross / Lesefehler: CONFIG.SYS nicht anfassen */
     strcpy(neu, buf); strupr(neu); kbda = strstr(neu, "KEYB") != 0;
     cpy(z, ziel); cat(z, "RD2.EXE"); if (strstr(neu, z)) return 2;
     if (alt && !frage(StrGet(hi, 9))) return -2;
-    if (n) { cpy(z, cs); z[strlen(z) - 3] = 0; cat(z, "RDA"); if (!kopieren(cs, z, 0)) return 0; lesen(cs); }
+    if (gibts(cs)) { cpy(z, cs); z[strlen(z) - 3] = 0; cat(z, "RDA"); if (!kopieren(cs, z, 0) || lesen(cs) >= 0xFFFE) return 0; }   /* Sicherung immer, wenn es sie gibt */
     #define NEU(t) do { m = (WORD)strlen(t); if (o + m >= sizeof neu) return -1; memcpy(neu + o, t, m); o += m; } while (0)
     for (a = buf; *a; a = e) {                    /* alte SHELL=-Zeile bleibt als REM stehen */
         char c;
@@ -276,7 +280,8 @@ static BOOL lebt(HTASK t) { TASKINFO ti; HTASK h; for (h = TaskFirst(&ti); h; h 
 static BOOL formatieren(void)                     /* C: mit RDFORMAT (Diskette 2) formatieren; TRUE = C: ist danach leer */
 {
     HTASK t; FINDDATA fd;
-    if (!frage(StrGet(hi, 25))) return FALSE;
+    DbgPrint("INSTALL: Frage"); DbgPrint(StrGet(hi, 25));
+    if (!test && MsgBox(dl, StrGet(hi, 25), StrGet(hi, 1), MB_YESNO | MB_WARN | MB_DEFNO) != ID_YES) return FALSE;   /* Formatieren: Nein vorgewaehlt */
     if (!einlegen("RDFORMAT.EXE", 4)) return FALSE;
     DbgPrint("INSTALL: RDFORMAT");
     if (!(t = TaskExec(pfad, "C:", SW_SHOW))) return FALSE;

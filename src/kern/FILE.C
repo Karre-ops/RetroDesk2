@@ -241,7 +241,9 @@ WORD RDK DiskRequest(WORD drive, DWORD serial, LPCSTR label)   /* drive 1 = A: *
 WORD RDK FileSaveSafe(LPCSTR name, const void FAR *buf, DWORD n)
 {
     char *tmp = (char *)bootsek; WORD i, j; short f; const BYTE FAR *p = (const BYTE FAR *)buf;   /* bootsek ist hier frei (kein media) */
+    PFL0();                                       /* Audit 24.11.: INI vorher schreiben, sonst belegt deren FileSaveSafe tmp mit */
     for (i = 0; i < 76 && name[i]; i++) tmp[i] = name[i];
+    if (name[i]) return k_lasterr = RD_ERR_HANDLE;   /* zu lang: nicht abschneiden (anderer Name) */
     for (j = i; j > 0 && tmp[j - 1] != '.' && tmp[j - 1] != '\\' && tmp[j - 1] != ':'; j--) ;
     if (j > 0 && tmp[j - 1] == '.') i = j - 1;
     tmp[i] = '.'; tmp[i + 1] = '$'; tmp[i + 2] = '$'; tmp[i + 3] = '$'; tmp[i + 4] = 0;
@@ -252,8 +254,8 @@ WORD RDK FileSaveSafe(LPCSTR name, const void FAR *buf, DWORD n)
         p = (const BYTE FAR *)MK_FP(FP_SEG(p) + (k >> 4), FP_OFF(p));
         n -= k;
     }
-    FileClose(f);
-    FileDelete(name);                             /* darf fehlen */
+    if (FileClose(f)) { FileDelete(tmp); return k_lasterr ? k_lasterr : RD_ERR_FULL; }   /* Fehler erst beim Schliessen: Original behalten */
+    if (FileDelete(name) && k_lasterr != RD_ERR_NOTFOUND) { i = k_lasterr; FileDelete(tmp); return k_lasterr = i; }   /* darf fehlen */
     return FileRename(tmp, name);
 }
 
@@ -282,6 +284,7 @@ WORD profile_flush(void)
     WORD r = 0;
     if (!pb || pin) return 0;
     pin = 1; if (pdirty) r = FileSaveSafe(pname, pb, pn); pin = 0;
+    if (r) k_out("RD2.INI nicht geschrieben", 2);   /* Audit: nicht still verlieren (Schreibschutz, voll) */
     pdirty = 0; pfree();
     return r;
 }
@@ -356,7 +359,7 @@ short RDK ProfileGetInt(LPCSTR file, LPCSTR sec, LPCSTR key, short def)
     if (!ProfileGetStr(file, sec, key, "", b, sizeof mlab)) return def;
     if (b[0] == '-') { neg = 1; i = 1; }
     if (b[i] < '0' || b[i] > '9') return def;
-    for (; b[i] >= '0' && b[i] <= '9'; i++) v = v * 10 + (b[i] - '0');
+    for (; b[i] >= '0' && b[i] <= '9'; i++) { if (v > 3275) return def; v = v * 10 + (b[i] - '0'); }   /* kein Ueberlauf (Audit 24.11.) */
     return neg ? -v : v;
 }
 /* Bytes in pb ab Stelle at durch s ersetzen (del Bytes entfernen); passt es nicht: pvoll = 1 */
@@ -367,7 +370,7 @@ static int pput(WORD at, WORD del, LPCSTR s1, LPCSTR s2, LPCSTR s3)
     for (p = s1; p && *p; p++) n++;
     for (p = s2; p && *p; p++) n++;
     for (p = s3; p && *p; p++) n++;
-    if (pn - del + n > PMAX + 500) { pvoll = 1; return 0; }
+    if ((DWORD)pn - del + n > PMAX + 500) { pvoll = 1; return 0; }   /* DWORD: kein Ueberlauf bei langen Werten */
     if (n > del) for (i = pn; i > at + del; i--) pb[i - 1 + n - del] = pb[i - 1];
     else if (n < del) for (i = at + del; i < pn; i++) pb[i - del + n] = pb[i];
     pn = pn - del + n;
@@ -382,6 +385,8 @@ WORD RDK ProfileSetStr(LPCSTR file, LPCSTR sec, LPCSTR key, LPCSTR val)
     if (!pload(file)) return k_lasterr ? k_lasterr : (k_lasterr = RD_ERR_NOMEM);
     if (pbig) { profile_flush(); return k_lasterr = RD_ERR_FULL; }   /* nie abgeschnitten zurueckschreiben */
     pvoll = 0;
+    { LPCSTR q; DWORD m = 16; for (q = sec; *q; q++) m++; for (q = key; *q; q++) m++; for (q = val; q && *q; q++) m++;
+      if (pn + m > PMAX + 500) { if (!pdirty) pfree(); return k_lasterr = RD_ERR_FULL; } }   /* vorher pruefen: kein halber Eintrag */
     line = pfind(sec, key, &se, &v);
     if (line != 0xFFFF) {
         WORD nl = nextl(line);

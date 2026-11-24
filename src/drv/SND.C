@@ -42,12 +42,15 @@ static WORD lpt;
 #define AUSGABE(v) outp(lpt, v)
 #endif
 static void pit(WORD d) { outp(0x43, 0x36); outp(0x40, d & 0xFF); outp(0x40, d >> 8); }
+static void __interrupt __far tirq(void);
 static void tstop(void)                           /* gesperrt: Kern-Takt wieder allein */
 {
     if (!takt) return;
     takt = 0; tn = 0; weiter = 0;
-    pit(0x2000);                                  /* Teiler 8192 = 145,6 Hz wie der Kern (KASM rd_timer_on) */
-    *(void (__interrupt __far * __far *)(void))MK_FP(0, 8 * 4) = alt8;
+    if (*(void (__interrupt __far * __far *)(void))MK_FP(0, 8 * 4) == tirq) {   /* nur wenn noch eingehaengt: nach rd_timer_off (Ende, RunDos) nicht zurueck auf 145,6 Hz (Audit 24.11.) */
+        pit(0x2000);                              /* Teiler 8192 = 145,6 Hz wie der Kern (KASM rd_timer_on) */
+        *(void (__interrupt __far * __far *)(void))MK_FP(0, 8 * 4) = alt8;
+    }
 #ifdef SPK
     outp(0x61, inp(0x61) & 0xFC);
 #else
@@ -69,7 +72,8 @@ static WORD RDEXPORT d_pcm(const BYTE FAR *b, WORD n, WORD rate, void (RDAPI *f)
     WORD d;
     if (!n || rate < 4000 || rate > 22050) return RD_ERR_HANDLE;
     weiter = f;
-    if (takt) { tp = b; tn = n; return 0; }       /* Folgeblock (aus dem Interrupt): Rate bleibt */
+    if (takt && *(void (__interrupt __far * __far *)(void))MK_FP(0, 8 * 4) == tirq) { tp = b; tn = n; return 0; }   /* Folgeblock (aus dem Interrupt): Rate bleibt */
+    takt = 0;                                     /* nach RunDos ausgehaengt: neu einhaengen */
     d = teil(rate); tdiv = d << 3; tacc = 0;      /* 65536 / 8 = 8192 Zaehler je Kern-Interrupt */
 #ifdef SPK
     { WORD i, m = d - 2 < 254 ? d - 2 : 254;

@@ -37,7 +37,7 @@ PY
       leer) Q "sendkey alt-a"; waitn "RDFDISK: Liste bereit" $SER 100 1 && sleep 2 && Q "sendkey ret"; waitn "RDFDISK: Liste bereit" $SER 300 2 ;;
       zwei) Q "sendkey alt-a"; sleep 2.5; Q "sendkey end" "sendkey backspace" "sendkey backspace" "sendkey backspace" "sendkey backspace" sleep0.2 "sendkey 4" "sendkey 0" sleep0.3 "sendkey ret"; waitn "RDFDISK: Liste bereit" $SER 300 2
             sleep 2; Q "sendkey alt-a"; sleep 2.5; Q "sendkey ret"; waitn "RDFDISK: Liste bereit" $SER 300 3 ;;
-      weg|zurueck) Q "sendkey alt-l"; waitn "RDFDISK: Meldung 11" $SER 100 && sleep 2 && Q "sendkey ret"; waitn "RDFDISK: Liste bereit" $SER 300 2 ;;
+      weg|zurueck) Q "sendkey alt-l"; waitn "RDFDISK: Meldung 11" $SER 100 && sleep 2 && Q "sendkey tab" sleep0.3 "sendkey ret"; waitn "RDFDISK: Liste bereit" $SER 300 2 ;;
     esac
     sleep 2.5; Q "screendump obj/fdisk2_$FALL.ppm" sleep0.3
     if [ $FALL = zurueck ]; then

@@ -90,6 +90,7 @@ static void mcbs(WORD nachher)
         m += *(WORD FAR *)(k + 3) + 1;
     }
 }
+static void __far __pascal __loadds taskende(WORD t);
 static WORD dpmi(void)
 {
     WORD paras = 0, eo = 0, es_ = 0, ok = 0, seg; BYTE fl = 0; HMEM h; BYTE FAR *p;
@@ -117,6 +118,7 @@ static WORD dpmi(void)
         if (!(h = MemAlloc((DWORD)paras * 16 + 16, MEM_FIXED)) || !(p = (BYTE FAR *)MemLock(h))) return 0;
         seg = FP_SEG(p) + ((FP_OFF(p) + 15) >> 4);
     }
+    *(void (__far __pascal * __far *)(WORD))(void __far *)((FARPROC __far *)_rd2api)[0x036] = taskende;   /* RDO_TASKENDE: Kern meldet jedes Taskende */
     g.api = _rd2api; g.svcsp = (WORD)&g_stktop;
     mcbs(0);
     dpmi_enter(seg);
@@ -149,7 +151,11 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
         DbgPrint("RD32: kein 32-Bit-Bild"); FileClose(f); return -1;
     }
     if (h.msize < len) h.msize = len;
+    if (h.ssize < 1024) h.ssize = 16384;          /* Kopf ohne Stapel: nicht ins BSS legen */
     gesamt = (h.msize + h.ssize + 4095) & ~4095UL;
+    if (h.msize > (64UL << 20) || h.ssize > (16UL << 20) || h.start >= h.msize || h.cb >= h.msize || h.brende > h.msize || h.pre >= h.msize) {
+        DbgPrint("RD32: Bildkopf ungueltig"); FileClose(f); return -1;   /* Audit 24.11.: Groessen/Adressen aus der Datei pruefen */
+    }
     if (!(htb = MemAlloc(TBSIZE + 16, MEM_FIXED | MEM_ZEROINIT)) || !(tb = (BYTE FAR *)MemLock(htb))) { FileClose(f); return -1; }
     tseg = FP_SEG(tb) + ((FP_OFF(tb) + 15) >> 4); tb = (BYTE FAR *)MK_FP(tseg, 0);
     for (n = 0; n < TBSIZE; n++) tb[n] = 0;
@@ -185,14 +191,24 @@ static short RDEXPORT run32(HINST inst, LPCSTR cmd, WORD show)
     g_tblin[k] = (DWORD)tseg << 4; g_pmin[k] = h.brende; g_pstub[k] = h.pre; g_cs32[k] = (WORD)sels;
     DbgPrint("RD32: Start");
     rm_start(tseg);
-    g_cs32[k] = 0;
     r = (short)D(TB_CBRES);
     DbgHex("RD32: Ende", (WORD)r);
-    g.tab[2 * k] = 0;
+    frei(k);
+    return r;
 weg:
     g.c = hdl; g.d = sels; svc_call(3);
     MemFree(htb);
     return r;
+}
+static void frei(WORD k)                          /* Platz k aufgeben: kein Takt, Taskblock und DPMI-Speicher frei */
+{
+    g_cs32[k] = 0; *(DWORD __far *)MK_FP(g.tab[2 * k + 1], 68) = 0;
+    g.tab[2 * k] = 0; g.c = tk[k].hdl; g.d = tk[k].sels; svc_call(3); MemFree(tk[k].htb);
+}
+static void __far __pascal __loadds taskende(WORD t)   /* Kern (reap): Task ist weg, auch per TaskKill (Audit 24.11.) */
+{
+    WORD k;
+    for (k = 0; k < 8; k++) if (g.tab[2 * k] == t) frei(k);
 }
 /* Ausnahme im 32-Bit-Code (RD32A ex_kill/rm_kill): Realmodus auf dem Stapel des Tasks. Speicher frei, Meldung, Task beenden. */
 void __far rd32_ausnahme(void)
@@ -200,7 +216,7 @@ void __far rd32_ausnahme(void)
     static const BYTE nr[5] = { 0, 6, 12, 13, 14 }; WORD k;
     DbgHex("RD32: Ausnahme", nr[g_exnr < 5 ? g_exnr : 0]); DbgHex("RD32: bei", g_exeip);
     for (k = 0; k < 8 && !(g.tab[2 * k] && g.tab[2 * k + 1] == g_extb); k++) ;
-    if (k < 8) { g_cs32[k] = 0; g.tab[2 * k] = 0; g.c = tk[k].hdl; g.d = tk[k].sels; svc_call(3); MemFree(tk[k].htb); }
+    if (k < 8) frei(k);
     MsgBox(0, "Das 32-Bit-Programm hat einen Fehler verursacht\nund wurde beendet.", "RD2/32", MB_OK | MB_ERROR);
     DbgPrint("RD32: Programm nach Ausnahme beendet");
     TaskKill(TaskSelf(), 0xDEAD);

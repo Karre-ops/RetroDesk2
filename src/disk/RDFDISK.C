@@ -135,8 +135,8 @@ static void loeschen(HWND d, const FG_TEIL *t)
     a[0] = t->lw; a[1] = ':'; a[2] = 0;
     if (t->art == FG_EXT) { for (i = 0; i < nteil; i++) if (teil[i].art == FG_LOG && teil[i].lw == heim) t = &teil[i]; }
     if (heim && t->lw == heim) { a[0] = heim; frage(d, 20, a, MB_OK | MB_ERROR); return; }
-    if (t->art == FG_EXT) { if (frage(d, 12, 0, MB_YESNO | MB_WARN) != ID_YES) return; }
-    else if (frage(d, 11, t->lw ? a : "", MB_YESNO | MB_WARN) != ID_YES) return;
+    if (t->art == FG_EXT) { if (frage(d, 12, 0, MB_YESNO | MB_WARN | MB_DEFNO) != ID_YES) return; }
+    else if (frage(d, 11, t->lw ? a : "", MB_YESNO | MB_WARN | MB_DEFNO) != ID_YES) return;
     if (fg_loeschen(t)) fehler(d, 19);
 }
 static void neustart(void)                        /* DOS-Puffer schreiben, dann Warmstart; kehrt nicht zurueck */
@@ -148,6 +148,17 @@ static void neustart(void)                        /* DOS-Puffer schreiben, dann 
     _disable(); outp(0x64, 0xFE);                 /* AT: Reset ueber den Tastaturcontroller; XT: Port frei */
     { WORD i; for (i = 0; i < 0xFFFF; i++) ; }
     reset();                                      /* XT oder wenn der Controller nicht reagiert */
+}
+static void mbr_sichern(void)                     /* Audit 24.11.: Sektor 0 der Platte vor dem Schreiben nach RD2\\MBRn.BAK */
+{
+    union REGS r; struct SREGS s; static BYTE b[512]; SYSINFO si; char n[80]; WORD i;
+    r.x.ax = 0x0201; r.x.cx = 1; r.x.dx = (WORD)(0x80 + platte); r.x.bx = FP_OFF((void FAR *)b); segread(&s); s.es = FP_SEG((void FAR *)b);
+    dInt(0x13, (union REGS FAR *)&r, (union REGS FAR *)&r, (struct SREGS FAR *)&s);
+    if (r.x.cflag) return;
+    KernInfo(&si); for (i = 0; i < 66 && si.home[i]; i++) n[i] = si.home[i];
+    if (i && n[i - 1] != '\\') n[i++] = '\\';
+    n[i++] = 'M'; n[i++] = 'B'; n[i++] = 'R'; n[i++] = (char)('1' + platte); n[i] = 0; scat(n, ".BAK", sizeof n);
+    if (!FileSaveSafe(n, b, 512)) DbgPrint(n);
 }
 static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
 {
@@ -173,6 +184,7 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
     if (p1 == ID_OK) {
         if (!fg_geaendert() || frage(d, 13, 0, MB_YESNO | MB_ASK) != ID_YES) return TRUE;
         DbgPrint("RDFDISK: schreiben");
+        mbr_sichern();
         if (fg_schreiben()) { fehler(d, 18); DialogEnd(d, ID_NO); return TRUE; }
         DbgPrint("RDFDISK: geschrieben");
         if (frage(d, 14, 0, MB_YESNO | MB_ASK) == ID_YES) neustart();   /* M14: DOS kennt die Partitionen erst danach */

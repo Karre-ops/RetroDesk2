@@ -865,6 +865,12 @@ static WORD pfload(const char *datei)              /* Index + 1, 0 = Fehler */
     if (n != (WORD)len || p[0] != 'R' || p[1] != 'D' || p[2] != 'F' || p[3] != '1' || p[12] < p[11] || !*(WORD FAR *)(p + 4)) {
         MemUnlock(m); MemFree(m); SetLastError(RD_ERR_FORMAT); return 0;
     }
+    {   /* Audit 24.11.: Versatz + Zeichen nie hinter dem Dateiende (len <= 32000: WORD reicht) */
+        WORD z = p[12] - p[11] + 1, h = *(WORD FAR *)(p + 4), c = 0, d = 27 + 3 * z, l = (WORD)len; WORD FAR *o = (WORD FAR *)(p + 27 + z);
+        if (h <= 64 && d <= l) while (c < z && o[c] < l && d + o[c] + ((p[27 + c] + 7) >> 3) * h <= l) c++;
+        if (c < z) n = 0;
+    }
+    if (!n) { MemUnlock(m); MemFree(m); SetLastError(RD_ERR_FORMAT); return 0; }
     pfs[i].used = 1; pfs[i].refs = 1; pfs[i].m = m; pfs[i].p = p;   /* bleibt gesperrt: kein Sperren je Textaufruf */
     for (q = datei, k = 0; *q && k < 12; ) pfs[i].datei[k++] = *q++;
     pfs[i].datei[k] = 0;

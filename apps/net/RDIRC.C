@@ -186,14 +186,14 @@ static void zeile(char *z)
     von_utf8(z);
     if (*p == ':') { wer = ++p; while (*p && *p != ' ') p++; if (*p) *p++ = 0; for (q = wer; *q; q++) if (*q == '!') { *q = 0; break; } }
     cmd = wort(&p); a1 = wort(&p); a2 = wort(&p); a3 = wort(&p);
-    if (cmd[0] >= '0' && cmd[0] <= '9') code = (WORD)((cmd[0] - '0') * 100 + (cmd[1] - '0') * 10 + cmd[2] - '0');
+    if (cmd[0] >= '0' && cmd[0] <= '9' && cmd[1] >= '0' && cmd[1] <= '9' && cmd[2] >= '0' && cmd[2] <= '9') code = (WORD)((cmd[0] - '0') * 100 + (cmd[1] - '0') * 10 + cmd[2] - '0');
     if (gleich(cmd, "PING")) { raus("PONG", 0, a1); return; }
     if (gleich(cmd, "PRIVMSG") || gleich(cmd, "NOTICE")) {
         BYTE nt = (BYTE)(cmd[0] == 'N' || cmd[0] == 'n');
         if (a2[0] == 1) {                         /* CTCP */
             if (!nt && a2[1] == 'A' && a2[2] == 'C' && a2[3] == 'T' && a2[4] == 'I' && a2[5] == 'O' && a2[6] == 'N') {
                 for (q = a2 + 7; *q; q++) if (*q == 1) *q = 0;
-                scpy(t, "* ", sizeof t); scat(t, wer, sizeof t); scat(t, " ", sizeof t); scat(t, a2 + 8, sizeof t);
+                scpy(t, "* ", sizeof t); scat(t, wer, sizeof t); scat(t, " ", sizeof t); scat(t, a2[7] ? a2 + 8 : a2 + 7, sizeof t);   /* ohne Text: nie hinter die 0 */
                 sag(t); return;
             }
             if (!nt && a2[1] == 'V') { char v[40]; v[0] = 1; v[1] = 0; scat(v, "VERSION RetroDesk 2", sizeof v); scat(v, "\1", sizeof v); raus("NOTICE", wer, v); }

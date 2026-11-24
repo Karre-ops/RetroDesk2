@@ -65,12 +65,13 @@ static DWORD ld(DWORD o) { WORD a = lw(o); return a | ((DWORD)lw(o + 2) << 16); 
 static WORD RDEXPORT m_play(SNDDRV FAR *t, LPCSTR d, WORD fl)
 {
     short f; long n; DWORD i; WORD k, r; BYTE __far *p; BYTE art; static const char sig[] = "DBRAWOPL";
+    if (mh) m_stop();                             /* laeuft noch: erst anhalten, sonst Speicher verloren (Audit 24.11.) */
     dv = t;
     if ((f = FileOpen(d, FO_READ)) < 0) return LastError() ? LastError() : RD_ERR_NOTFOUND;
     n = FileSeek(f, 0, 2); FileSeek(f, 0, 0);
     r = n < 8 ? RD_ERR_FORMAT : 0;
     if (!r && !(mh = MemAlloc((DWORD)n + 16, MEM_FIXED | MEM_SHARE | MEM_NOEMS))) r = RD_ERR_NOMEM;
-    if (!r) { p = (BYTE __far *)MemLock(mh); mseg = FP_SEG(p) + (FP_OFF(p) >> 4); }
+    if (!r) { if (!(p = (BYTE __far *)MemLock(mh))) { MemFree(mh); mh = 0; r = RD_ERR_NOMEM; } else mseg = FP_SEG(p) + (FP_OFF(p) >> 4); }
     for (i = 0; !r && i < (DWORD)n; i += k) {    /* in 32-KB-Stuecken, Zeiger normiert */
         k = (DWORD)n - i > 0x8000UL ? 0x8000 : (WORD)((DWORD)n - i);
         if (FileRead(f, MK_FP(mseg + (WORD)(i >> 4), (WORD)i & 15), k) != k) r = RD_ERR_DISK;
@@ -85,6 +86,7 @@ static WORD RDEXPORT m_play(SNDDRV FAR *t, LPCSTR d, WORD fl)
             if (lw(8) == 2 && n >= 26) {
                 art = M_DRO2; mpos = 23; kurz = hol(); lang = hol();   /* 23 kurze, 24 lange Pause, 25 Codetabelle */
                 k = hol(); if (k > 128) k = 128;
+                if ((DWORD)n < 26UL + k) { r = RD_ERR_FORMAT; k = 0; }   /* Codetabelle nie hinter dem Dateiende lesen */
                 for (i = 0; i < k; i++) cmap[(WORD)i] = hol();
                 manf = 26 + k;
                 if (manf + ld(12) * 2 < mend) mend = manf + ld(12) * 2;   /* 12: Anzahl Paare */

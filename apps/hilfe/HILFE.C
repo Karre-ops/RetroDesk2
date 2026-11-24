@@ -51,7 +51,7 @@ static void anhaengen(const char *z)              /* eine Absatzzeile nach tx, {
                 }
             }
         }
-        tx[tn++] = z[i++];
+        tx[tn++] = (char)(z[i] == 1 || z[i] == 2 ? ' ' : z[i]); i++;   /* Steuerzeichen 1/2 sind Verweismarken */
     }
     tx[tn++] = '\n';
 }

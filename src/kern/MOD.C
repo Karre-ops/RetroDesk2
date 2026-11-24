@@ -246,6 +246,7 @@ DWORD __cdecl mod_enter(WORD idx, WORD ip, WORD cs)
 DWORD __cdecl mod_leave(void)
 {
     TASK *t = &k_task[k_cur]; WORD m;
+    if (!t->rsp) { k_out("mod_leave ohne mod_enter", 2); TaskKill(k_cur, 0xFFFD); }   /* Ruecksprungkette kaputt: Task beenden statt blind springen (Audit 24.11.) */
     t->rsp--;
     m = t->rs[t->rsp].mod;
     md[m].lock--;

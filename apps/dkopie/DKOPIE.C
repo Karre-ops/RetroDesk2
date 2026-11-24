@@ -13,6 +13,7 @@
 #define ID_BALKEN 41
 #define ID_TEXT 42
 #define MAXB 40                                   /* Zylinderpuffer */
+static BYTE gleich11(const char *a, const char FAR *b) { WORD i; for (i = 0; i < 11; i++) if (a[i] != b[i]) return 0; return 1; }
 static HINST hi; static RDD_INT_F dInt; static HMEM hb[MAXB]; static WORD nb, spt, kopf, zyl, zgr;
 static BYTE von, nach, test; static char FAR *bounce; static HMEM hbo;
 
@@ -50,12 +51,13 @@ static BYTE wechsel(HWND d, WORD n)               /* Diskette einlegen lassen; 0
 }
 static void kopieren(HWND d)
 {
-    char FAR *p; WORD c, c0, n, h, e = 0, i; BYTE erst = 1;
+    char FAR *p; WORD c, c0, n, h, e = 0, i; BYTE erst = 1; DWORD ser = 0; char lab[11];
     for (i = 0; i < nb; i++) if (hb[i]) { MemFree(hb[i]); hb[i] = 0; } nb = 0;
     if (!wechsel(d, 3)) return;
     text(d, 5);
     if ((e = i13(0x0201, 1, von, bounce)) != 0) { text(d, 6); DbgHex("DKOPIE: Bootsektor Fehler", e); return; }
     spt = *(WORD FAR *)(bounce + 24); kopf = *(WORD FAR *)(bounce + 26); n = *(WORD FAR *)(bounce + 19);
+    if ((BYTE)bounce[38] == 0x29) { ser = *(DWORD FAR *)(bounce + 39); for (i = 0; i < 11; i++) lab[i] = bounce[43 + i]; }   /* Seriennummer der Quelle (Audit: Quelle nicht als Ziel ueberschreiben) */
     if (spt < 8 || spt > 36 || kopf < 1 || kopf > 2 || !n) { text(d, 6); DbgPrint("DKOPIE: kein gueltiges Format"); return; }
     zyl = (WORD)(n / (spt * kopf)); zgr = (WORD)(spt * kopf * 512);
     for (nb = 0; nb < MAXB && nb < zyl && (hb[nb] = MemAlloc(zgr, MEM_MOVABLE)) != 0; nb++) ;
@@ -74,6 +76,9 @@ static void kopieren(HWND d)
         CursorBusy(FALSE);
         if (e) { text(d, 6); break; }
         if (von == nach && !wechsel(d, 4)) return;
+        while (von == nach && !c0 && ser && !i13(0x0201, 1, nach, bounce) && (BYTE)bounce[38] == 0x29 && *(DWORD FAR *)(bounce + 39) == ser && gleich11(lab, bounce + 43)) {   /* Seriennummer und Name gleich */
+            DbgPrint("DKOPIE: Ziel ist die Quelle"); if (!wechsel(d, 4)) return;   /* noch die Quelldiskette im Laufwerk */
+        }
         CursorBusy(TRUE); text(d, 8);
         for (c = 0; c < n && !e; c++) {
             if (!(p = (char FAR *)MemLock(hb[c]))) { e = 0xFE; break; }
@@ -109,7 +114,7 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
     (void)show; hi = inst; test = (BYTE)(cmd && cmd[0] == 'T');
     if (!(hm = ModLoad("RDDISK.MOD"))) { MsgBox(0, StrGet(inst, 12), StrGet(inst, 1), MB_OK | MB_ERROR); return 1; }
     dInt = (RDD_INT_F)ModProc(hm, RDD_INT);
-    if (!(hbo = MemAlloc(1024, 0)) || !(b = (char FAR *)MemLock(hbo))) return 1;
+    if (!(hbo = MemAlloc(1024, 0)) || !(b = (char FAR *)MemLock(hbo))) { ModFree(hm); return 1; }
     bounce = ((FP_OFF(b) + (DWORD)FP_SEG(b) * 16) & 0xFFFF) > 0xFE00 ? b + 512 : b;   /* 512 Bytes ohne 64-KB-Grenze */
     DialogRun(inst, 10, 0, dproc, 0);
     MemUnlock(hbo); MemFree(hbo); ModFree(hm);

@@ -154,6 +154,7 @@ rd32_brende:
 ; Systemtakt (PLAN_API 2b, 24.11.2026): RD32 ruft hier im IRQ 0 (145,6 Hz) fern herein, DS = Datenselektor des Tasks,
 ; Interrupts gesperrt. Eigener Stapel im Bild, dann rd32_taktlauf (RD32LIB: TaktSet-Eintraege mit Teiler).
 rd32_takttramp_:
+        cli                           ; Stapelwechsel nie unterbrechbar (Audit 24.11.)
         mov  t_esp, esp
         mov  t_ss, ss
         mov  ax, ds

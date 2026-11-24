@@ -30,8 +30,8 @@ static void laden(void)                           /* Datei lesen, Grenzen pruefe
     nurlesen = 0; geaendert = 0;
     if (!(m = MemAlloc(8193, MEM_MOVABLE | MEM_ZEROINIT)) || !(b = (char FAR *)MemLock(m))) { if (m) MemFree(m); return; }
     if ((f = FileOpen(pfad, FO_READ)) >= 0) {
-        n = FileRead(f, b, 8192); if (n == 0xFFFF) n = 0;
-        if (n == 8192) nurlesen = 1;              /* groesser als der Puffer: abgeschnitten, also nur lesen */
+        SetLastError(0); n = FileRead(f, b, 8192);
+        if (n == 8192 || LastError()) nurlesen = 1;   /* zu gross (abgeschnitten) oder Lesefehler (Audit 24.11.): nur lesen */
         FileClose(f);
     }
     for (i = j = 0; i < n; i++) {                 /* \r weg, Ctrl+Z (Dateiende) beachten, Zeilen und Spalten zaehlen */

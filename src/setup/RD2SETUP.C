@@ -373,14 +373,23 @@ static const char *d3zeile(void)                  /* PCI-Kennung nur, wenn die e
     if (d3_typ && p[P_3D].v == 0) sprintf(d3pci, "%04X:%04X", d3_v, d3_d); else d3pci[0] = 0;
     sprintf(d3z, "3DPCI=%s\r\n", d3pci); return d3z;
 }
+static int sschreib(const char *d, size_t o)      /* neu[0..o) sicher schreiben: erst .$$$, dann umbenennen (Audit 24.11.) */
+{
+    char t[80]; FILE *f; size_t m; char *x;
+    strcpy(t, d); x = strrchr(t, '.'); strcpy(x ? x : t + strlen(t), ".$$$");
+    if ((f = fopen(t, "wb")) == NULL) return 0;
+    m = fwrite(neu, 1, o, f);
+    if (fclose(f) || m != o) { remove(t); return 0; }
+    remove(d); return rename(t, d) == 0;
+}
 static int ini_schreiben(const char *datei)
 {
     FILE *f; size_t n = 0, o = 0; char *z, *e; int insys = 0, sysda = 0; BYTE done[NP + 3]; WORD i;
     char zeile_[80];
     memset(done, 0, sizeof done);
     maus_auswahl();
-    if ((f = fopen(datei, "rb")) != NULL) { n = fread(buf, 1, sizeof buf - 1, f); fclose(f); }
-    if (n == sizeof buf - 1) return -1;           /* zu gross: nicht kuerzen, nicht schreiben */
+    if ((f = fopen(datei, "rb")) != NULL) { n = fread(buf, 1, sizeof buf - 1, f); if (ferror(f)) n = sizeof buf - 1; fclose(f); }
+    if (n == sizeof buf - 1) return -1;           /* zu gross oder Lesefehler: nicht kuerzen, nicht schreiben */
     buf[n] = 0;
     #define AUS(s) do { size_t l_ = strlen(s); if (o + l_ < sizeof neu) { memcpy(neu + o, s, l_); o += l_; } } while (0)
     #define REST() do { for (i = 0; i < NP; i++) if (!done[i]) { sprintf(zeile_, "%s=%s\r\n", p[i].key, p[i].wert[p[i].v]); AUS(zeile_); done[i] = 1; } \
@@ -410,9 +419,7 @@ static int ini_schreiben(const char *datei)
     }
     if (insys) REST();
     if (!sysda) { if (o && neu[o - 1] != '\n') AUS("\r\n"); AUS("[System]\r\n"); REST(); }
-    if ((f = fopen(datei, "wb")) == NULL) return 0;
-    n = fwrite(neu, 1, o, f); fclose(f);
-    return n == o;
+    return sschreib(datei, o);
 }
 static void ini_lesen(const char *datei)         /* vorhandene Werte uebernehmen */
 {
@@ -434,6 +441,7 @@ static int kopieren(const char *von, const char *nach)
     if ((a = fopen(von, "rb")) == NULL) return 0;
     if ((b = fopen(nach, "wb")) == NULL) { fclose(a); return 0; }
     while ((n = fread(buf, 1, sizeof buf, a)) > 0) if (fwrite(buf, 1, n, b) != n) { ok = 0; break; }
+    if (ferror(a)) ok = 0;                        /* Lesefehler: Sicherung ungueltig */
     fclose(a); if (fclose(b)) ok = 0;
     return ok;
 }
@@ -454,15 +462,15 @@ static int gibts(const char *d) { unsigned a; return !_dos_getfileattr(d, &a) &&
 static size_t lesen(const char *d)                /* ganze Datei nach buf, sizeof buf - 1 = zu gross */
 {
     FILE *f; size_t n = 0;
-    if ((f = fopen(d, "rb")) != NULL) { n = fread(buf, 1, sizeof buf - 1, f); fclose(f); }
-    buf[n] = 0; return n;
+    if ((f = fopen(d, "rb")) != NULL) { n = fread(buf, 1, sizeof buf - 1, f); if (ferror(f)) n = sizeof buf - 1; fclose(f); }
+    buf[n] = 0; return n;   /* Lesefehler wie zu gross: nichts zurueckschreiben */
 }
 static int finden(const char *w, char *aus, char lw)   /* Programm mit vollem Pfad: direkt, im Wurzelverzeichnis, im PATH */
 {
     static const char *ext[] = { "", ".COM", ".EXE" }; const char *pa = getenv("PATH"); char d[64]; int i, l, pf = strchr(w, '\\') || strchr(w, ':');
     sprintf(d, "%c:", lw);
     for (;;) {
-        for (i = 0; i < 3 && !(i && strchr(w, '.')); i++) {
+        for (i = 0; i < 3 && !(i && strchr(w, '.')) && strlen(d) + strlen(w) < 72; i++) {   /* aus[80] */
             if (!pf) sprintf(aus, "%s\\%s%s", d, w, ext[i]);
             else if (w[1] == ':') sprintf(aus, "%s%s", w, ext[i]); else sprintf(aus, "%c:%s%s", lw, w, ext[i]);
             if (gibts(aus)) { strupr(aus); return 1; }
@@ -481,14 +489,14 @@ static const char *nicht[] = { "REM", "ECHO", "SET", "PATH", "PROMPT", "CLS", "G
    Rueckgabe: 1 geaendert (Sicherung CONFIG.RDA), 3 neu angelegt, 2 schon eingetragen, 0 Fehler, -1 Datei zu gross, -2 abgelehnt */
 static int shell_eintragen(const char *ziel, int y, int *verloren)
 {
-    char cs[16], z[96], w[64], pf[80]; size_t n, o = 0, m; char *a, *e, *q; int alt, i, mausda = 0, kbda; FILE *f;
+    char cs[16], z[160], w[64], pf[80]; size_t n, o = 0, m; char *a, *e, *q; int alt, i, mausda = 0, kbda;
     sprintf(cs, "%c:\\CONFIG.SYS", ziel[0]); sprintf(z, "%c:\\AUTOEXEC.BAT", ziel[0]);
     alt = gibts(cs) || gibts(z); *verloren = 0;
     n = lesen(cs); if (n == sizeof buf - 1) return -1;
     strcpy(neu, buf); strupr(neu); kbda = strstr(neu, "KEYB") != 0; sprintf(z, "%sRD2.EXE", ziel);   /* Tastaturtreiber schon in CONFIG.SYS */
     if (strstr(neu, z)) return 2;
     if (alt && !janein(y, "RD2 als Shell in CONFIG.SYS eintragen (J/N)?")) return -2;
-    if (n) { sprintf(z, "%c:\\CONFIG.RDA", ziel[0]); if (!kopieren(cs, z)) return 0; lesen(cs); }
+    if (gibts(cs)) { sprintf(z, "%c:\\CONFIG.RDA", ziel[0]); if (!kopieren(cs, z) || lesen(cs) == sizeof buf - 1) return 0; }   /* Sicherung immer */
     #define NEU(t) do { m = strlen(t); if (o + m >= sizeof neu) return -1; memcpy(neu + o, t, m); o += m; } while (0)
     for (a = buf; *a; a = e) {                    /* alte SHELL=-Zeile bleibt als REM stehen */
         char c;
@@ -543,9 +551,7 @@ static int shell_eintragen(const char *ziel, int y, int *verloren)
     }
     sprintf(pf, "%sCWSDPMI.EXE", ziel);           /* ab 386: DPMI-Host resident (RD2/32, DJGPP ohne PATH); kommt erst danach mit Diskette 3 */
     if (cpu >= 5) { sprintf(z, "INSTALL=%s -p -s-\r\n", pf); NEU(z); }
-    if ((f = fopen(cs, "wb")) == NULL) return 0;
-    m = fwrite(neu, 1, o, f);
-    return fclose(f) == 0 && m == o ? (alt ? 1 : 3) : 0;
+    return sschreib(cs, o) ? (alt ? 1 : 3) : 0;
 }
 static int ordner(const char *ziel)               /* G22: Ebene fuer Ebene anlegen; ziel endet mit '\' */
 {

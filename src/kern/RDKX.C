@@ -227,10 +227,10 @@ static void RDEXPORT k_DbgBreak(void)
    Bit 1 = hell (wie der Bildspeicher). Mehr Bit pro Punkt: hell ab Helligkeit 128.
    */
 typedef struct { char sig[4]; WORD w, h, bpp, flags; } RDBH;
-static WORD rdblen(const RDBH FAR *k)             /* Laenge eines Bildes in Bytes */
+static DWORD rdblen(const RDBH FAR *k)            /* Laenge eines Bildes in Bytes (32 Bit: kein Ueberlauf bei grossen w/h, Audit 24.11.) */
 {
-    WORD z = (WORD)(((DWORD)k->w * k->bpp + 7) >> 3), m = (k->w + 7) >> 3;
-    return sizeof(RDBH) + (k->bpp > 1 ? 3 << k->bpp : 0) + z * k->h + (k->flags & 1 ? m * k->h : 0);
+    DWORD z = ((DWORD)k->w * k->bpp + 7) >> 3, m = ((DWORD)k->w + 7) >> 3;
+    return sizeof(RDBH) + (k->bpp > 1 ? 3UL << k->bpp : 0) + z * k->h + (k->flags & 1 ? m * k->h : 0);
 }
 /* Bild Nr. "cga" (0/1) suchen, sonst das erste. weiss/schwarz: Punkte, die hell bzw. dunkel
    gezeichnet werden (ohne Maske ist alles deckend). schwarz = 0: nur das Bild (BmpLoad). */
@@ -246,11 +246,12 @@ static BYTE gfarbe(const BYTE FAR *c, WORD wuerfel)
 }
 static WORD rdbmake(const BYTE FAR *p, WORD len, WORD cga, HBMP FAR *weiss, HBMP FAR *schwarz, WORD bunt)
 {
-    const RDBH FAR *k = 0, FAR *x; const BYTE FAR *q = p, FAR *pal, FAR *z, FAR *mk; WORD n, y, c, sb, db, v, b, im; BYTE FAR *w, FAR *s;
+    const RDBH FAR *k = 0, FAR *x; const BYTE FAR *q = p, FAR *pal, FAR *z, FAR *mk; WORD n, y, c, sb, db, v, b, im; BYTE FAR *w, FAR *s; DWORD nl;
     while (len >= sizeof(RDBH)) {
         x = (const RDBH FAR *)q;
-        if (x->sig[0] != 'R' || x->sig[3] != '1' || !x->w || !x->h || (x->bpp != 1 && x->bpp != 4 && x->bpp != 8)) break;
-        if ((n = rdblen(x)) > len) break;
+        if (x->sig[0] != 'R' || x->sig[3] != '1' || !x->w || !x->h || x->w > 2048 || x->h > 2048 || (x->bpp != 1 && x->bpp != 4 && x->bpp != 8)) break;
+        if ((nl = rdblen(x)) > len) break;
+        n = (WORD)nl;
         if (!k || ((x->flags >> 2) & 1) == cga) k = x;
         if (((x->flags >> 2) & 1) == cga) break;
         q += n; len -= n;

@@ -311,10 +311,25 @@ _rd_timer_on proc near
     push bp
     mov  bp, sp
     push es
+    cmp  byte ptr cs:vgem, 0         ; Vektoren nur beim ersten Mal merken: nach RunDos stuenden sonst die des DOS-Programms hier (Audit 24.11.)
+    jne  ton_v
+    mov  byte ptr cs:vgem, 1
     mov  ax, 3508h
     int  21h
     mov  word ptr old8, bx
     mov  word ptr old8+2, es
+    mov  ax, 3515h
+    int  21h
+    mov  word ptr cs:old15, bx
+    mov  word ptr cs:old15+2, es
+    mov  ah, 0C0h                    ; ruft das BIOS beim Tastendruck INT 15h/4Fh? (AT-Merkmal Byte 5 Bit 4)
+    stc
+    int  15h
+    jc   ton_x
+    test byte ptr es:[bx+5], 10h
+    jz   ton_x
+    mov  byte ptr cs:mit4f, 1
+ton_x:
     mov  ax, 3523h
     int  21h
     mov  word ptr old23, bx
@@ -327,9 +342,16 @@ _rd_timer_on proc near
     int  21h
     mov  word ptr cs:old9, bx
     mov  word ptr cs:old9+2, es
+ton_v:
     push ds
     push cs
     pop  ds
+    cmp  byte ptr cs:mit4f, 0
+    je   ton_n15
+    mov  dx, offset int15
+    mov  ax, 2515h
+    int  21h
+ton_n15:
     mov  dx, offset int23
     mov  ax, 2523h                   ; Strg+C waehrend RD2 laeuft: ignorieren
     int  21h
@@ -384,11 +406,64 @@ _rd_timer_off proc near
     mov  ax, 2509h
     int  21h
     pop  ds
+    cmp  byte ptr cs:mit4f, 0
+    je   toff_x
+    push ds
+    lds  dx, cs:old15
+    mov  ax, 2515h
+    int  21h
+    pop  ds
+toff_x:
     sti
     ret
 _rd_timer_off endp
 
-old9 dd 0
+old9  dd 0
+old15 dd 0
+vgem  db 0                           ; Vektoren gemerkt
+mit4f db 0                           ; BIOS meldet Scancodes ueber INT 15h/4Fh: Port 60h im INT 9 nicht lesen
+
+; INT 15h: AH=4Fh (Tastendruck, AL = Scancode) in k_tasten merken, dann weiter (Flags/CF unveraendert)
+int15:
+    cmp  ah, 4Fh
+    jne  i15_w
+    pushf
+    push ax
+    call tast
+    pop  ax
+    popf
+i15_w:
+    jmp  dword ptr cs:old15
+; AL = Scancode -> Bit in k_tasten (E0/E1 nicht: graue Tasten zaehlen wie der Ziffernblock)
+tast proc near
+    push ds
+    push bx
+    push cx
+    mov  bx, DGROUP
+    mov  ds, bx
+    cmp  al, 0E0h
+    jae  ta_x
+    mov  bl, al
+    and  bx, 7Fh
+    mov  cl, bl
+    and  cl, 7
+    mov  ah, 1
+    shl  ah, cl
+    mov  cl, 3
+    shr  bx, cl
+    test al, 80h
+    jnz  ta_l
+    or   _k_tasten[bx], ah
+    jmp  short ta_x
+ta_l:
+    not  ah
+    and  _k_tasten[bx], ah
+ta_x:
+    pop  cx
+    pop  bx
+    pop  ds
+    ret
+tast endp
 
 ; INT 24h: Fehlercode (DI) + 1 nach k_crit, AX nach k_critdrv, Antwort "Fail"
 int24:
@@ -408,35 +483,16 @@ int24:
 
 ; INT 9: Strg+Alt+Rueckschritt merken, dann alter Tastaturhandler. Port 60h nur lesen, wenn Strg+Alt gedrueckt
 ; sind: emulierte 8042 (QEMU) geben beim Lesen schon das naechste Byte (E0 xx) heraus, das BIOS saehe sonst
-; graue Tasten doppelt und ohne E0 (Entf loeschte zweimal).
+; graue Tasten doppelt und ohne E0 (Entf loeschte zweimal). Tastentabelle: auf AT ueber INT 15h/4Fh (int15),
+; nur ohne diesen Weg (XT, 8255: Lesen veraendert nichts) hier aus Port 60h.
 int9:
     push ax
     push ds
-    push bx
-    push cx
-    mov  ax, DGROUP
-    mov  ds, ax
+    cmp  byte ptr cs:mit4f, 0
+    jne  i9_t
     in   al, 60h
-    cmp  al, 0E0h                    ; Vorsilben E0/E1: nichts merken (graue Tasten zaehlen wie der Ziffernblock)
-    jae  i9_t
-    mov  bl, al
-    and  bx, 7Fh
-    mov  cl, bl
-    and  cl, 7
-    mov  ah, 1
-    shl  ah, cl
-    mov  cl, 3
-    shr  bx, cl
-    test al, 80h
-    jnz  i9_los
-    or   _k_tasten[bx], ah
-    jmp  short i9_t
-i9_los:
-    not  ah
-    and  _k_tasten[bx], ah
+    call tast
 i9_t:
-    pop  cx
-    pop  bx
     mov  ax, 40h
     mov  ds, ax
     mov  al, ds:[17h]

@@ -127,6 +127,7 @@ static void listzeile(char *s)                    /* Unix "drwxr-xr-x 2 u g 4096
         if (!*p) return;
     } else return;
     if ((p[0] == '.' && !p[1]) || (p[0] == '.' && p[1] == '.' && !p[2])) return;
+    for (q = p; *q; q++) if (*q == '\\' || *q == '/' || *q == ':') return;   /* Servername mit Pfadteilen: nie lokal ausserhalb des Ordners ablegen (Audit 24.11.) */
     if (jlist) { char t[100]; scpy(t, jlp, sizeof t); scat(t, "/", sizeof t); scat(t, p, sizeof t); jadd((char)(dir ? 'L' : 'F'), t); return; }   /* Ordner laden: Inhalt in die Auftragsliste */
     for (i = 0; p[i] && i < RN - 1; i++) e[1][ne[1]].n[i] = p[i];
     if (p[i]) return;                             /* zu lang: weglassen */

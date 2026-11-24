@@ -62,7 +62,7 @@ static HINST inst; static HWND desk; static HMENU msys, mbar;
 static short W, H, mh, th, ih, zh;                /* Schirm, Menueleiste, Textzeile, Symbol, Zellenhoehe */
 static char lw[26], lt[26]; static short nlw, lsel;   /* Laufwerke: Buchstabe, Typ */
 static ORDNER od[MAXO];
-static char buf[200], qv[80], qn[80];            /* Text; Quelle und Ziel beim Kopieren */
+static char buf[200], qv[80], qn[80], qt[80];    /* Text; Quelle und Ziel beim Kopieren; qt Zwischendatei beim Ueberschreiben */
 static HWND letzt; static HMENU mlw, mps;
 static char prg[MAXP][68], prgn[MAXP][9]; static BYTE nprg, psy[MAXP], nps, pm[MAXP], npm, dm[MAXP], ndm;   /* psy: Programme auf dem Schreibtisch */   /* PROGRAMM.LST: Datei, Abschnitt */
 static char heim[66];                             /* RD2-Verzeichnis ohne \ am Ende, "" = Wurzel */
@@ -388,7 +388,7 @@ static int esc(void)
 static BYTE kalle;                                /* Ersetzen: Ja fuer alle */
 static WORD kop(BYTE attr, int weg)
 {
-    WORD e = 0, lv = slen(qv), ln = slen(qn), n; FINDDATA f; short a, b; HMEM hb; BYTE FAR *p;
+    WORD e = 0, lv = slen(qv), ln = slen(qn), n; FINDDATA f; short a, b; HMEM hb; BYTE FAR *p; char *z = qn;
     if (attr & FA_DIR) {
         if (praefix(qv, qn)) return RD_ERR_FORMAT;      /* Ordner in sich selbst */
         if (FileAttr(qn, 0, 0) == 0xFFFF && (e = DirMake(qn)) != 0) return e;
@@ -412,13 +412,15 @@ static WORD kop(BYTE attr, int weg)
         if (a == ID_ALLE) { kalle = 1; a = ID_YES; }   /* Ja fuer alle: Rest dieses Vorgangs ohne Frage (Systemdateien fragen trotzdem) */
         if (a != ID_YES || !sicher(qn, n, 17)) return 0;
         FileAttr(qn, 0, 1);
+        { WORD i, j; scpy(qt, qn, sizeof qt - 4); for (i = j = slen(qt); j && qt[j - 1] != '.' && qt[j - 1] != '\\'; j--) ;
+          if (j && qt[j - 1] == '.') i = j - 1; scpy(qt + i, ".$$$", 5); z = qt; }   /* Audit: erst Zwischendatei, Ziel erst nach Erfolg ersetzen */
     }
     if (!(hb = MemAlloc(4096, MEM_MOVABLE))) return RD_ERR_NOMEM;
     if ((a = FileOpen(qv, FO_READ)) < 0) { MemFree(hb); return LastError(); }
-    if ((b = FileCreate(qn, 0)) < 0) { e = LastError(); FileClose(a); MemFree(hb); return e; }
+    if ((b = FileCreate(z, 0)) < 0) { e = LastError(); FileClose(a); MemFree(hb); return e; }
     p = (BYTE FAR *)MemLock(hb);
     SetLastError(0);                              /* FileRead liefert auch bei Lesefehler 0: danach pruefen */
-    while ((n = FileRead(a, p, 4096)) > 0) {
+    while ((SetLastError(0), n = FileRead(a, p, 4096)) > 0 && !LastError()) {   /* Fehler je Lesen: esc() darf ihn nicht verdecken */
         if (FileWrite(b, p, n) != n) { e = RD_ERR_FULL; break; }
         if (esc()) { e = 1; break; }              /* halbe Kopie wird unten geloescht, Quelle bleibt */
     }
@@ -426,7 +428,8 @@ static WORD kop(BYTE attr, int weg)
     MemUnlock(hb); MemFree(hb);
     FileClose(a);
     if (FileClose(b) && !e) e = LastError() ? LastError() : RD_ERR_DISK;
-    if (e) { FileDelete(qn); return e; }
+    if (e) { FileDelete(z); return e; }           /* beim Ueberschreiben bleibt das alte Ziel stehen */
+    if (z != qn && ((e = FileDelete(qn)) != 0 || (e = FileRename(z, qn)) != 0)) { FileDelete(z); return e; }
     if (attr & (FA_RDONLY | FA_HIDDEN | FA_SYSTEM)) FileAttr(qn, attr & 7, 1);
     if (weg) { if (attr & FA_RDONLY) FileAttr(qv, 0, 1); e = FileDelete(qv); }
     return e;
@@ -441,7 +444,7 @@ static short anzahl(ORDNER *o, EINTRAG FAR *e)    /* markierte, sonst die Auswah
 static int betrifft(ORDNER *o, EINTRAG FAR *e, short i, short n) { return e[i].name[0] != '.' && (n ? e[i].mark : i == o->sel); }
 static void kopieren(ORDNER *o, int weg, LPCSTR wohin)   /* wohin 0: fragen */
 {
-    EINTRAG FAR *e; short i, m, mk = 0; WORD r = 0; char ziel[68]; ORDNER *z = ord(letzt);
+    EINTRAG FAR *e; short i, m, mk = 0; WORD r = 0; char ziel[80]; ORDNER *z = ord(letzt);
     if (!o->h || !(e = (EINTRAG FAR *)MemLock(o->h))) return;
     for (i = 0; i < o->n; i++) mk += e[i].mark;
     if (!anzahl(o, e)) { MemUnlock(o->h); return; }
@@ -451,6 +454,7 @@ static void kopieren(ORDNER *o, int weg, LPCSTR wohin)   /* wohin 0: fragen */
         if (!InputBox(GetActive(), StrGet(inst, weg ? 11 : 10), "RD", ziel, sizeof ziel)) { MemUnlock(o->h); return; }
     }
     m = (short)slen(ziel); if (m && ziel[m - 1] != '\\') scat(ziel, "\\", sizeof ziel);
+    if (slen(ziel) > 66) { MemUnlock(o->h); MsgBox(GetActive(), ziel, "RD", MB_OK | MB_ERROR); return; }   /* Ziel + Name passt nicht (DOS 67 Zeichen) */
     if (praefix(o->pfad, ziel) && slen(o->pfad) == slen(ziel)) { MemUnlock(o->h); return; }   /* derselbe Ordner */
     if (weg) for (i = 0; i < o->n; i++) if (betrifft(o, e, i, mk)) {
         scpy(qv, o->pfad, sizeof qv); scat(qv, e[i].name, sizeof qv);
@@ -496,12 +500,15 @@ static WORD papier(LPCSTR name)                   /* qv = Datei */
     qn[0] = qv[0]; qn[1] = ':'; qn[2] = 0; scat(qn, "\\PAPIERK", sizeof qn); DirMake(qn); scat(qn, "\\", sizeof qn);
     scpy(n, name, sizeof n); k = (short)slen(qn); scat(qn, n, sizeof qn);
     for (f = 0; f < 36 && FileFindFirst(qn, FA_HIDDEN | FA_SYSTEM | FA_RDONLY | FA_ARCH, (FINDDATA *)buf) == 0; f++) qn[k] = (char)(f < 10 ? '0' + f : 'A' + f - 10);
-    if ((r = FileRename(qv, qn)) != 0) return r;
-    scpy(n, qn + k, sizeof n);
+    scpy(buf, qn, sizeof buf); scpy(n, qn + k, sizeof n);   /* Audit: erst Eintrag in PAPIERK.LST (geprueft), dann verschieben */
     qn[k] = 0; scat(qn, "PAPIERK.LST", sizeof qn);
     if ((f = FileOpen(qn, FO_RW)) < 0 && (f = FileCreate(qn, 0)) < 0) return RD_ERR_DISK;
-    FileSeek(f, 0, 2); FileWrite(f, n, slen(n)); FileWrite(f, "|", 1); FileWrite(f, qv, slen(qv)); FileWrite(f, "\r\n", 2); FileClose(f);
-    return 0;
+    { long p = FileSeek(f, 0, 2); WORD l = slen(n), m = slen(qv);
+      r = FileWrite(f, n, l) != l || FileWrite(f, "|", 1) != 1 || FileWrite(f, qv, m) != m || FileWrite(f, "\r\n", 2) != 2 ? RD_ERR_FULL : 0;
+      if (!r) r = FileRename(qv, buf);
+      if (r && p >= 0) { FileSeek(f, p, 0); FileWrite(f, n, 0); }   /* misslungen: Eintrag wieder abschneiden */
+      if (FileClose(f) && !r) r = RD_ERR_DISK; }
+    return r;
 }
 static void loeschen(ORDNER *o)
 {
@@ -596,7 +603,7 @@ static short treffer(ORDNER *o, short px, short py)   /* Eintrag unter Client-Pu
 static short lwbei(short x, short y);
 static void fallen(ORDNER *o, short x, short y, WORD ks)   /* Ziehen beendet bei Client-Punkt der Quelle */
 {
-    POINT p; HWND t; ORDNER *z; char ziel[68]; short i, k = -1; EINTRAG FAR *e; int weg;
+    POINT p; HWND t; ORDNER *z; char ziel[80]; short i, k = -1; EINTRAG FAR *e; int weg;
     p.x = x; p.y = y; ClientToScreen(o->w, &p);
     if ((t = WindowFromPoint(p.x, p.y)) == 0) return;
     ziel[0] = 0; z = ord(t); ScreenToClient(t, &p);
@@ -606,7 +613,8 @@ static void fallen(ORDNER *o, short x, short y, WORD ks)   /* Ziehen beendet bei
         if ((i = treffer(z, p.x, p.y)) >= 0 && z->h && (e = (EINTRAG FAR *)MemLock(z->h)) != 0) {
             if ((e[i].attr & FA_DIR) && !(z == o && (i == o->sel || e[i].mark))) {
                 if (e[i].name[0] == '.') { char *q = ziel + slen(ziel) - 1; while (q > ziel + 2 && q[-1] != '\\') q--; *q = 0; }
-                else { scat(ziel, e[i].name, sizeof ziel); scat(ziel, "\\", sizeof ziel); }
+                else if (slen(ziel) + slen(e[i].name) + 1 < 67) { scat(ziel, e[i].name, sizeof ziel); scat(ziel, "\\", sizeof ziel); }
+                else ziel[0] = 0;                 /* zu tief: nicht in einen abgeschnittenen Pfad (Audit 24.11.) */
             }
             MemUnlock(z->h);
         }

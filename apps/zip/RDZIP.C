@@ -208,6 +208,7 @@ static WORD eine(WORD i, BYTE nurpruefen)          /* 0 = ok, 1 = Fehler (gemeld
     zf = -1;
     if (!nurpruefen) {
         if (!zielpfad(p, sizeof p, zn)) return 0;
+        if (slen(p) > 66) { meldung(34, p); return 1; }   /* DOS-Pfadgrenze: nie in einen abgeschnittenen Pfad schreiben (Audit 24.11.) */
         if (!test && FileFindFirst(p, FA_RDONLY | FA_HIDDEN | FA_SYSTEM | FA_ARCH, &fd) == 0) {
             short a;
             scpy(tx, p, sizeof tx); scat(tx, StrGet(hi, 33), sizeof tx);

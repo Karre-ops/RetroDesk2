@@ -144,7 +144,7 @@ static void durch(WORD l, WORD tief)              /* sp[0..l) = Ordner mit \ am 
         if (f.name[0] == '.' || sn >= SMAX) continue;
         sp[l] = 0;
         if (passt(f.name) && (t = (char FAR *)MemLock(sh)) != 0) {
-            t += sn * SLEN; for (k = 0; k < l && k < SLEN - 13; k++) t[k] = sp[k];
+            t += sn * SLEN; for (k = 0; k < l && k < SLEN - 14; k++) t[k] = sp[k];   /* + Name 12 + '\\' + 0 passt in SLEN */
             for (t += k, k = 0; f.name[k]; k++) t[k] = f.name[k];
             t[k] = (char)((f.attr & FA_DIR) ? '\\' : 0); t[k + (t[k] != 0)] = 0;
             MemUnlock(sh); sn++;

@@ -16,11 +16,13 @@ WORD rd32_slen(const char *s) { WORD n = 0; while (s[n]) n++; return n; }
 void *rd32_lin(DWORD lin) { return (void *)(lin - rd32_base); }
 void *rd32_fp2p(DWORD sf) { return sf ? rd32_lin(((sf >> 16) << 4) + (WORD)sf) : 0; }
 static DWORD p2fp(const void *p) { DWORD l = (DWORD)p + rd32_base; return ((l >> 4) << 16) | (l & 15); }
-void rd32_w1(WORD v) { a[na++] = v; }
-void rd32_w2(DWORD v) { a[na++] = (WORD)(v >> 16); a[na++] = (WORD)v; }   /* pascal: hohes Wort zuerst */
+void rd32_w1(WORD v) { if (na < 24) a[na++] = v; }
+void rd32_w2(DWORD v) { if (na < 23) { a[na++] = (WORD)(v >> 16); a[na++] = (WORD)v; } }   /* a[24]: nie darueber */   /* pascal: hohes Wort zuerst */
+static BYTE pinfehl;                              /* ein Zeiger liess sich nicht unter 1 MB bringen: Aufruf nicht ausfuehren */
 DWORD rd32_ruf(WORD nr)
 {
     WORD i;
+    if (pinfehl) { pinfehl = 0; na = 0; SetLastError(RD_ERR_NOMEM); return 0; }   /* Audit 24.11.: nie 0:0 an den Kern */
     for (i = 0; i < na; i++) TW(TB_ARGS + 2 * i) = a[i];
     TW(TB_NW) = na; TW(TB_NR) = nr; na = 0;
     rd32_call();
@@ -32,12 +34,13 @@ DWORD rd32_pin(PIN *b, const void *p, DWORD n, int aus)
     b->p = (void *)p; b->n = n; b->aus = 0; b->tmp = 0; b->sf = 0;
     if (!p) return 0;
     l = (DWORD)p + rd32_base;
-    if (l + n <= 0x100000UL) return b->sf = p2fp(p);   /* liegt schon unter 1 MB (MemLock, Taskblock) */
+    if (l < 0x100000UL && n <= 0x100000UL - l) return b->sf = p2fp(p);   /* ohne Ueberlauf (Audit 24.11.) */   /* liegt schon unter 1 MB (MemLock, Taskblock) */
     if (n <= (DWORD)(XFREI - rd32_xp)) {
         b->sf = ((rd32_tlin << 12) & 0xFFFF0000UL) | (TB_XBUF + rd32_xp);
         kopie(TB + TB_XBUF + rd32_xp, p, n); rd32_xp += (WORD)((n + 1) & ~1UL);
     } else {                                      /* gross: fester Block unter 1 MB, nur fuer diesen Aufruf */
-        BYTE *q; if (n > 65520UL || !(b->tmp = MemAlloc(n, MEM_FIXED)) || !(q = MemLock(b->tmp))) { b->tmp = 0; return 0; }
+        BYTE *q; if (n > 65520UL || !(b->tmp = MemAlloc(n, MEM_FIXED))) { b->tmp = 0; pinfehl = 1; return 0; }
+        if (!(q = MemLock(b->tmp))) { MemFree(b->tmp); b->tmp = 0; pinfehl = 1; return 0; }
         kopie(q, p, n); b->sf = p2fp(q);
     }
     b->aus = (BYTE)aus;

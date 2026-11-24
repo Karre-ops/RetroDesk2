@@ -254,8 +254,8 @@ static void laden(void)
     if (!bneu(0)) { nurlesen = 1; return; }
     ll = 0;
     if (pfad[0] && (f = FileOpen(pfad, FO_READ)) >= 0) {
-        CursorBusy(TRUE);
-        while (ok && (n = FileRead(f, io, sizeof io)) != 0 && n != 0xFFFF) {
+        CursorBusy(TRUE); SetLastError(0);
+        while (ok && (SetLastError(0), n = FileRead(f, io, sizeof io)) != 0 && !LastError()) {   /* Fehler je Lesen pruefen */
             for (i = 0; i < n; i++) {
                 c = io[i];
                 if (c == 26) { ok = 2; break; }    /* Strg+Z: Dateiende */
@@ -266,6 +266,7 @@ static void laden(void)
             }
             if (ok == 2) break;
         }
+        if (LastError()) ok = 0;                  /* Lesefehler (Audit 24.11.): nicht gekuerzt speichern lassen */
         FileClose(f);
         CursorBusy(FALSE);
     }

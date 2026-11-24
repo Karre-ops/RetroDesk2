@@ -9,6 +9,7 @@ HAND = {"TaktSet", "TaktKill", "ModProc", "RegisterClass", "DialogRun", "DialogI
 EIN = {"WORD", "short", "BOOL", "BYTE", "char", "HWND", "HDC", "HMEM", "HINST", "HTASK", "HMENU", "HSOCK", "HFONT", "HBMP", "HMOD", "unsigned"}
 ZWEI = {"DWORD", "long", "COLOR", "LONG"}
 GROESSE = ("len", "n", "max", "groesse", "laenge", "size")
+PIN = {}                                          # "Funktion.parameter": Groesse in Bytes, wo die Regel nicht passt
 def teile(a):
     a = a.strip()
     if a in ("void", ""): return []
@@ -39,11 +40,14 @@ for z in open(sys.argv[1], encoding="latin-1"):
     for i, (art, const, typ, nm) in enumerate(ps):
         if art == "text": k.append(f"    DWORD p{i} = rd32_pin(&x_b[x_n++], {nm}, {nm} ? rd32_slen({nm}) + 1 : 0, 0);"); pz[i] = True
         elif art == "zeiger":
-            gr = None
-            for j in range(i + 1, len(ps)):
+            gr = None                             # Groesse: erst die Tabelle, dann ein Groessenparameter davor oder dahinter (Audit 24.11.)
+            for j in list(range(i + 1, len(ps))) + list(range(i - 1, -1, -1)):
                 if ps[j][3] in GROESSE: gr = ps[j][3]; break
-            if typ in ("void", "char"): g = gr or ("260" if typ == "char" else "0")
-            elif typ in ("POINT", "COLOR") and gr: g = f"(DWORD){gr} * sizeof({typ})"
+            if f"{name}.{nm}" in PIN: g = PIN[f"{name}.{nm}"]
+            elif typ in ("void", "char", "BYTE") and gr: g = gr
+            elif typ == "char": g = "260"           # Text ohne Laenge (Pfade): RD2-Grenze, zurueck nur bis zur 0
+            elif typ == "void": sys.exit(f"mk32api: {name}({nm}): Groesse unbekannt, in PIN eintragen")
+            elif gr: g = f"(DWORD){gr} * sizeof({typ})"   # Feld von Strukturen (GfxList, PaletteSet)
             else: g = f"sizeof({typ})"
             k.append(f"    DWORD p{i} = rd32_pin(&x_b[x_n++], {nm}, {g}, {0 if const else (2 if typ == 'char' else 1)});"); pz[i] = True
     for i, (art, const, typ, nm) in enumerate(ps):

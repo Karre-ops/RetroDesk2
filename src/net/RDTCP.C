@@ -207,7 +207,7 @@ static void arp_put(const BYTE *ip, const BYTE *mac, BYTE neu)
 }
 static void arp_in(const BYTE *a)
 {
-    if (get16(a) != 1 || get16(a + 2) != 0x0800) return;
+    if (get16(a) != 1 || get16(a + 2) != 0x0800 || a[4] != 6 || a[5] != 4) return;   /* nur Ethernet/IPv4 */
     if (!memcmp(a + 24, my_ip, 4)) { arp_put(a + 14, a + 8, 1); if (get16(a + 6) == 1) arp_send(2, a + 8, a + 14); }
     else arp_put(a + 14, a + 8, 0);
 }
@@ -508,19 +508,22 @@ static void udp_in(const BYTE *ih, const BYTE *u, WORD n)
     WORD i, dp = get16(u + 2), m;
     if (n < 8) return;
     m = get16(u + 4); if (m < 8 || m > n) return;
+    if ((u[6] | u[7]) && cfin(cadd(cadd(0, ih + 12, 8) + 17 + m, u, m))) return;   /* UDP-Pruefsumme, wenn gesetzt (Audit 24.11.) */
     m -= 8;
     if (dp == 68 && dh_st) { dhcp_in(u + 8, m); return; }
     for (i = 0; i < NDNS; i++)                    /* DNS-Antwort */
-        if (dq[i].st && dp == 0xF000 + i && m >= 12 && get16(u + 8) == dq[i].id) {
+        if (dq[i].st && dp == 0xF000 + i && m >= 12 && get16(u + 8) == dq[i].id && get16(u) == 53 && !memcmp(ih + 12, dns, 4)) {   /* nur vom eingestellten DNS-Server */
             const BYTE *b = u + 8, *p = b + 12, *e = b + m; WORD an = get16(b + 6), k;
             if ((b[3] & 15) || !an) { post(dq[i].w, M_NETRESOLVED, RD_ERR_NOTFOUND, 0); dq[i].st = 0; return; }
             while (p < e && *p && *p < 0xC0) p += *p + 1;
             p += (p < e && *p >= 0xC0) ? 6 : 5;   /* Ende des Namens (0 oder Zeiger), Typ, Klasse */
+            if (p > e) p = e;
             for (k = 0; k < an && p + 12 <= e; k++) {
                 while (p < e && *p && *p < 0xC0) p += *p + 1;   /* Name: Labels, dann 0 oder Zeiger (auch gemischt) */
                 p += (p < e && *p >= 0xC0) ? 2 : 1;
                 if (p + 10 > e) break;
                 if (get16(p) == 1 && get16(p + 8) == 4 && p + 14 <= e) { post(dq[i].w, M_NETRESOLVED, 0, ipd(p + 10)); dq[i].st = 0; return; }
+                if (get16(p + 8) > (WORD)(e - p) - 10) break;   /* Laenge nie ueber das Paket (kein Zeigerueberlauf) */
                 p += 10 + get16(p + 8);
             }
             post(dq[i].w, M_NETRESOLVED, RD_ERR_NOTFOUND, 0); dq[i].st = 0; return;
@@ -532,7 +535,6 @@ static void udp_in(const BYTE *ih, const BYTE *u, WORD n)
             rx_rein(c, l, 2); rx_rein(c, u + 8, m); melde_daten(c); return;
         }
     }
-    (void)ih;
 }
 static void ip_in(const BYTE *f, WORD len)
 {

@@ -16,14 +16,15 @@ HMEM RDAPI SndWavLoad(LPCSTR name, WORD FAR *rate)
     for (;;) {
         if (FileSeek(f, pos, 0) != (long)pos || FileRead(f, kp, 8) != 8) goto aus;
         n = dw(kp + 4); pos += 8;
+        if (n > 0x01000000UL) goto aus;           /* ueber 16 MB: kaputt, pos liefe sonst ueber (Audit 24.11.) */
         if (id(kp, "fmt ")) {
             if (n < 16 || FileRead(f, kp, 16) != 16) goto aus;
             if (kp[0] != 1 || kp[1] || kp[2] != 1 || kp[3] || kp[14] != 8) goto aus;   /* PCM, mono, 8 Bit */
-            r = (WORD)dw(kp + 4);
+            r = (WORD)dw(kp + 4); if (dw(kp + 4) < 2000 || dw(kp + 4) > 48000UL) goto aus;
         } else if (id(kp, "data")) {
             if (!r || !n) goto aus;
             if (!(h = MemAlloc(n, MEM_MOVABLE))) { e = RD_ERR_NOMEM; goto aus; }
-            p = (BYTE FAR *)MemLock(h);
+            if (!(p = (BYTE FAR *)MemLock(h))) { MemFree(h); h = 0; e = RD_ERR_NOMEM; goto aus; }
             while (n) {                           /* in Stuecken bis 32 KB, Zeiger normalisiert */
                 WORD s = n > 0x8000UL ? 0x8000 : (WORD)n, g = FileRead(f, p, s);
                 if (g != s) { MemUnlock(h); MemFree(h); h = 0; goto aus; }
