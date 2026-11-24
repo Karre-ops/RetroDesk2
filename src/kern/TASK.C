@@ -9,6 +9,7 @@
  * Umschalten kooperativ in GetMessage/WaitMessage/TaskYield/PeekMessage und
  * praeemptiv aus dem Zeitgeber (task_tick), wenn der unterbrochene Code im
  * eigenen Programmbild liegt und DOS nicht aktiv ist. */
+#include <i86.h>
 #include "KERN.H"
 
 #define STK_PARAS 64                              /* 1 KB Startstack (BIOS-Aufrufe in Abfragen) */
@@ -396,6 +397,36 @@ DWORD RDK InputIdle(void) { return ms_now() - k_ein; }
 /* ---- Tasks ------------------------------------------------------------------- */
 HTASK RDK TaskSelf(void) { return k_cur; }
 HTASK RDK TaskExec(LPCSTR app, LPCSTR cmd, WORD show) { return task_load(app, cmd, show); }
+/* Systemtakt 145,6 Hz (PLAN_API Schritt 2, 24.11.2026): bis zu 8 Rueckrufe, je mit Teiler. takt_isr ruft INT 8 (KASM)
+   bei gesperrten Interrupts; Eintraege beendeter Tasks fallen dort weg. */
+typedef struct { TAKTPROC f; WORD teil, zahl; HTASK t; } TAKT;
+static TAKT tk[8];
+extern volatile WORD k_ntakt; extern volatile DWORD rd_takt;
+void __cdecl takt_isr(void)
+{
+    WORD i; TAKT *s;
+    for (i = 0, s = tk; i < 8; i++, s++) {
+        if (!s->f) continue;
+        if (k_task[s->t].state != T_READY && k_task[s->t].state != T_WAIT) { s->f = 0; k_ntakt--; continue; }
+        if (++s->zahl >= s->teil) { s->zahl = 0; s->f(); }
+    }
+}
+WORD RDK TaktSet(TAKTPROC f, WORD teil)
+{
+    WORD i;
+    if (!f) return FAIL(RD_ERR_HANDLE);
+    for (i = 0; i < 8; i++) if (!tk[i].f) {
+        _disable(); tk[i].teil = teil ? teil : 1; tk[i].zahl = 0; tk[i].t = k_cur; tk[i].f = f; k_ntakt++; _enable();
+        return i + 1;
+    }
+    return FAIL(RD_ERR_NOMEM);
+}
+void RDK TaktKill(WORD nr)
+{
+    if (!nr || nr > 8 || !tk[nr - 1].f || tk[nr - 1].t != k_cur) return;
+    _disable(); tk[nr - 1].f = 0; k_ntakt--; _enable();
+}
+DWORD RDK TaktCount(void) { DWORD v; _disable(); v = rd_takt; _enable(); return v; }
 WORD RDK TaskKill(HTASK n, WORD code)
 {
     TASK *t;
@@ -463,6 +494,7 @@ void task_api(void)
     KAPI(GetMessage, GetMessage); KAPI(PeekMessage, PeekMessage); KAPI(WaitMessage, WaitMessage);
     KAPI(TaskYield, TaskYield); KAPI(PostTask, PostTask); KAPI(PostQuit, PostQuit);
     KAPI(DispatchMessage, DispatchMessage); KAPI(TimerSet, TimerSet); KAPI(TimerKill, TimerKill);
+    KAPI(TaktSet, TaktSet); KAPI(TaktKill, TaktKill); KAPI(TaktCount, TaktCount);
     KAPI(TickCount, TickCount); KAPI(InputIdle, InputIdle); KAPI(TaskSelf, TaskSelf); KAPI(TaskExec, TaskExec); KAPI(TaskKill, TaskKill);
     KAPI(TaskFirst, TaskFirst); KAPI(TaskNext, TaskNext); KAPI(TaskHalt, TaskHalt);
 }

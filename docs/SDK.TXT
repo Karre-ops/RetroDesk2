@@ -192,6 +192,21 @@ Nachfuellen bleibt. Auf dem Sound Blaster entsteht an der Blockmitte eine
 winzige Luecke, weil der Treiber jedes Stueck neu startet.
 
 
+5a. Systemtakt (145,6 Hz)
+---------------------------------------------------------------
+RD2 laeuft auf jedem Rechner mit einem festen Takt von 145,6 Hz (6,9 ms,
+das Achtfache der PC-Uhr, die Uhrzeit bleibt exakt). Spiele und Musik
+melden sich mit einem Teiler an, statt einen eigenen Takt zu setzen:
+  static void RDAPI __loadds takt(void) { zeit++; }
+  nr = TaktSet(takt, 1);     1 = 145,6 Hz, 2 = 72,8 Hz, 8 = 18,2 Hz ...
+  TaktKill(nr);              sonst beim Programmende
+  TaktCount()                Takte seit dem Start (zum Abfragen)
+Bis zu 8 Rueckrufe zugleich. Der Rueckruf laeuft im Interrupt: kurz
+halten (Zaehler, Klang weiterschalten), keine API, kein DOS, eigenes DS
+laden (__loadds). Laengere Arbeit per Nachricht. RD2/32: TaktCount geht,
+TaktSet liefert vorerst 0 (RD_ERR_NOTSUP). TimerSet (ms, Nachricht M_TIMER)
+bleibt fuer alles Gemuetliche.
+
 6. Weitere Quellen
 ------------------
 

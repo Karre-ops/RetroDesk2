@@ -151,4 +151,4 @@ void BufShow(RDBUF *b, HDC dc, short x, short y)
     }
 }
 void BufFree(RDBUF *b) { if (b->bmp) BmpFree(b->bmp); if (b->pix) rd32_free(b->pix); b->bmp = 0; b->pix = 0; }
-
+WORD TaktSet(TAKTPROC f, WORD teiler) { (void)f; (void)teiler; SetLastError(RD_ERR_NOTSUP); return 0; }   /* 32 Bit: Rueckruf im Takt folgt (PLAN_API 2b); TaktCount geht */

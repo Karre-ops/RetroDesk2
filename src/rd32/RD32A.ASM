@@ -648,7 +648,7 @@ p_old8  dd 0
         dw 0
 p_oldex db 30 dup(0)
 
-; IRQ 0 im PM: laeuft gerade ein 32-Bit-Task in seinem eigenen Code (hinter RD32C0), alle 4 Takte (ca. 55 ms) die
+; IRQ 0 im PM: laeuft gerade ein 32-Bit-Task in seinem eigenen Code (hinter RD32C0), alle 8 Takte (145,6 Hz: ca. 55 ms) die
 ; Rueckkehradresse auf pm_preempt im Bild umbiegen: der Task ruft dort TaskYield und macht danach weiter.
 i8pm:
     push ds
@@ -661,7 +661,7 @@ i8pm:
     inc  g_tick
     cmp  _g_preon, 0
     je   i8_w
-    test byte ptr g_tick, 3
+    test byte ptr g_tick, 7
     jnz  i8_w
     mov  edi, 24                      ; Rahmen des unterbrochenen Codes (EIP, CS, EFLAGS) hinter 6 Registern; CWSDPMI legt
 i8_r:                                 ; davor einen eigenen Rahmen (EIP, CS, EFLAGS) zu seinem Rueckweg: dann 12 weiter

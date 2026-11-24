@@ -49,8 +49,11 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
 1. Abgleich: Jede Funktion oben in 16 und 32 Bit mit einem Testprogramm pruefen (Vollbild + Maus + Tasten + Klang
    zugleich, Alt+Tab). Ergebnis: genaue Luecken-Liste. Die Engine (RDISOENGINE/Spritzwerkzeugbauer) als Pruefstein:
    was nutzt sie heute selbst (VESA 101h, INT 33h, kbhit, eigener 140-Hz-Zeitgeber, PC-Lautsprecher, AdLib)?
-2. Zeitgeber: RD2 programmiert den PIT selbst schneller (Vielfaches von 18,2 Hz, Uhr bleibt richtig) und ruft
-   angemeldete Rueckrufe (16 und 32 Bit) im gewuenschten Takt; SndMusicPlay nutzt ihn mit.
+2. Zeitgeber (erledigt 24.11.2026, Entscheidung Karsten: fester Takt): PIT fest auf 145,6 Hz (Teiler 8192, 8 x 18,2 Hz),
+   TaktSet(proc, teiler)/TaktKill/TaktCount (API 0x032-0x034), bis zu 8 Rueckrufe im Interrupt. Kern-Takt (Klang,
+   Zeitscheiben, TickCount) intern weiter jeden 2. Takt mit 72,8 Hz, BIOS-Uhr jeden 8.; Sample-Takt im Treiber und
+   32-Bit-Zeitscheibe (8 Takte = 55 ms) angepasst. Test test/takt.sh (8088 und Pentium). Offen 2b: Rueckruf fuer
+   RD2/32 (im PM-Zeitgeber), bis dahin TaktCount abfragen.
 3. Eingabe im Vollbild: Maus mit Koordinaten im Vollbildmodus, Bereich und Empfindlichkeit, KeyState-Tabelle fuer
    alle Tasten zugleich, auch im Rohmodus.
 4. Sound Blaster vollstaendig: SB 1.x/2.0/Pro/16/AWE und Kompatible; Mischer in RD2 (mehrere Samples zugleich,

@@ -5,7 +5,7 @@ Je RDF-Zeile eine Funktion mit der Signatur aus RD2.H (32 Bit, flach): Werte als
 danach zurueckkopiert. Rueckgabe von Zeigern (StrGet, MemLock) als 32-Bit-Zeiger auf den Speicher unter 1 MB.
 Funktionen mit Rueckrufen oder Zeigern in Strukturen stehen von Hand in sdk/RD32LIB.C (HAND)."""
 import re, sys
-HAND = {"ModProc", "RegisterClass", "DialogRun", "DialogIndirect", "FileDialog", "PrnOpen", "MemFixedFree"}
+HAND = {"TaktSet", "ModProc", "RegisterClass", "DialogRun", "DialogIndirect", "FileDialog", "PrnOpen", "MemFixedFree"}
 EIN = {"WORD", "short", "BOOL", "BYTE", "char", "HWND", "HDC", "HMEM", "HINST", "HTASK", "HMENU", "HSOCK", "HFONT", "HBMP", "HMOD", "unsigned"}
 ZWEI = {"DWORD", "long", "COLOR", "LONG"}
 GROESSE = ("len", "n", "max", "groesse", "laenge", "size")

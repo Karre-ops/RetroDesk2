@@ -5,7 +5,7 @@
  * an 38Ah), PCM 8 Bit mono per DMA (Einzelblock, Befehl 14h; RDSND teilt an 64-KB-Grenzen). Ohne FM-Chip
  * gehen Pieptoene und Noten ueber den Lautsprecher. Lautsprecher und Covox spielen Samples ueber den Zeitgeber: PIT-Kanal 0 laeuft
  * mit der Abtastrate, der Interrupt gibt ein Byte aus (Lautsprecher: Pulsbreite ueber Kanal 2 im Modus 0, Covox: Byte an den
- * Druckerport) und ruft den Kern-Takt (72,8 Hz) im alten Rhythmus weiter. Covox: init(param) Bits 0-1 LPT-Nummer - 1;
+ * Druckerport) und ruft den Kern-Takt (145,6 Hz) im alten Rhythmus weiter. Covox: init(param) Bits 0-1 LPT-Nummer - 1;
  * Pieptoene und Noten ueber den Lautsprecher. SB init(param): Bits 0-3 Port (2..8 = 220h..280h),
  * 4-7 IRQ, 8-10 DMA+1; 0 = Vorgabe A220 I5 D1. Bit 15 (alle Treiber): nur FM-Chip neu setzen (nach Musik). */
 #include <conio.h>
@@ -46,7 +46,7 @@ static void tstop(void)                           /* gesperrt: Kern-Takt wieder 
 {
     if (!takt) return;
     takt = 0; tn = 0; weiter = 0;
-    pit(0x4000);                                  /* Teiler 16384 = 72,8 Hz wie der Kern (KASM rd_timer_on) */
+    pit(0x2000);                                  /* Teiler 8192 = 145,6 Hz wie der Kern (KASM rd_timer_on) */
     *(void (__interrupt __far * __far *)(void))MK_FP(0, 8 * 4) = alt8;
 #ifdef SPK
     outp(0x61, inp(0x61) & 0xFC);
@@ -70,7 +70,7 @@ static WORD RDEXPORT d_pcm(const BYTE FAR *b, WORD n, WORD rate, void (RDAPI *f)
     if (!n || rate < 4000 || rate > 22050) return RD_ERR_HANDLE;
     weiter = f;
     if (takt) { tp = b; tn = n; return 0; }       /* Folgeblock (aus dem Interrupt): Rate bleibt */
-    d = teil(rate); tdiv = d << 2; tacc = 0;
+    d = teil(rate); tdiv = d << 3; tacc = 0;      /* 65536 / 8 = 8192 Zaehler je Kern-Interrupt */
 #ifdef SPK
     { WORD i, m = d - 2 < 254 ? d - 2 : 254;
       for (i = 0; i < 256; i++) skal[i] = (BYTE)(1 + ((i * m) >> 8)); }   /* 255 * 254 passt in WORD */

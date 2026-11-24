@@ -61,6 +61,9 @@ RDF(0x018, WORD,    MsgRegister,    (LPCSTR name))                /* eigene Nach
 RDF(0x019, WORD,    TimerSet,       (HWND w, WORD id, WORD ms))
 RDF(0x01A, void,    TimerKill,      (HWND w, WORD id))
 RDF(0x01B, DWORD,   TickCount,      (void))                       /* ms seit Start */
+RDF(0x032, WORD,    TaktSet,        (TAKTPROC f, WORD teiler))    /* Rueckruf jeden teiler-ten Systemtakt (145,6 Hz), Nummer 1..8, 0 = keine frei */
+RDF(0x033, void,    TaktKill,       (WORD nr))
+RDF(0x034, DWORD,   TaktCount,      (void))                       /* Systemtakte (145,6 Hz) seit Start */
 RDF(0x01C, void,    TimeGet,        (RDTIME FAR *t))
 RDF(0x01D, WORD,    TimeSet,        (const RDTIME FAR *t, WORD bios))
 RDF(0x01E, DWORD,   InputIdle,      (void))                       /* ms seit der letzten Taste/Mausaktion (Bildschirmschoner) */

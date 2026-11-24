@@ -126,7 +126,7 @@ rein:
     tpleer();
     rd_timer_off();
     rd_swaprun(seg);
-    rd_timer_on(16384);
+    rd_timer_on(8192);
     for (i = 5; i < nj; i++) jft[i] = jsich[i - 5];
     tpleer();
     if (k_gdipause) k_gdipause(1);

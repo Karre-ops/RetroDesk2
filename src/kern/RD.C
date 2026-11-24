@@ -197,7 +197,7 @@ int main(void)
     k_hex("8087", k_fpu, 3);
     k_out(koop ? "nur kooperativ" : "Zeitscheiben an", 3);
     rd_preempt = koop ? 0 : 1;
-    rd_timer_on(16384);
+    rd_timer_on(8192);
     rd_api[RDO_NETHAKEN] = (FARPROC)(void __far *)&k_netpause;
     if (k_sndpause) k_sndpause(2);                /* Klangtreiber jetzt laden, nicht erst im ersten Programm */
     for (i = a + 1, cmdline[0] = 0, h = 0; i < argc; i++) {

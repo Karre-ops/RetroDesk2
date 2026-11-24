@@ -48,6 +48,7 @@ typedef DWORD          COLOR;                     /* 0x00BBGGRR */
 typedef WORD HMEM, HWND, HDC, HFONT, HBMP, HMOD, HTASK, HINST, HMENU, HSOCK;
 
 typedef void  (RDAPI *FARPROC)(void);
+typedef void  (RDAPI *TAKTPROC)(void);           /* TaktSet: laeuft im Interrupt, kurz, kein DOS/keine API; eigenes DS laden (__loadds) */
 typedef DWORD (RDCALLBACK *WNDPROC)(HWND w, WORD msg, WORD p1, DWORD p2);
 typedef BOOL  (RDCALLBACK *DLGPROC)(HWND dlg, WORD msg, WORD p1, DWORD p2);
 

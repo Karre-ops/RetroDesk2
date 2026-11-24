@@ -7,9 +7,11 @@ _TEXT ends
 _DATA segment word public 'DATA'
 public _k_sndtick
 _k_sndtick  dd 0                     ; RDSND: Klang-Takt (72,8 Hz, im Interrupt), 0 = keiner
-public _rd_ticks, _rd_preempt, _rd_killreq, _k_crit, _k_critdrv, _rd_gateptr, _k_xmsent, _k_xdx
+public _rd_takt, _k_ntakt, _rd_ticks, _rd_preempt, _rd_killreq, _k_crit, _k_critdrv, _rd_gateptr, _k_xmsent, _k_xdx
 _k_xmsent   dd 0                     ; Einsprung des XMS-Treibers (HIMEM), 0 = keiner
 _k_xdx      dw 0                     ; DX nach dem letzten XMS-Aufruf
+_rd_takt    dd 0                     ; Systemtakt 145,6 Hz seit Start (TaktCount)
+_k_ntakt    dw 0                     ; angemeldete Takt-Rueckrufe (TaktSet)
 _rd_ticks   dd 0
 _rd_preempt dw 0
 _rd_killreq dw 0
@@ -29,6 +31,7 @@ _BSS ends
 _TEXT segment word public 'CODE'
 assume cs:_TEXT, ds:DGROUP
 extrn _task_tick:near, _mod_enter:near, _mod_leave:near
+extrn _takt_isr:near
 
 ; ---------------------------------------------------------------------------
 ; short rd_enter(WORD cs, WORD ip, void far *api, WORD hinst, WORD show, char far *cmd)
@@ -300,7 +303,8 @@ pf9:
 _rd_pfill endp
 
 ; ---------------------------------------------------------------------------
-; Zeitgeber: PIT auf 72,8 Hz (Teiler 16384), alter INT 8 weiter mit 18,2 Hz.
+; Zeitgeber: PIT auf 145,6 Hz (Teiler 8192, 24.11.2026), Rueckrufe (TaktSet) jeden Takt, Kern-Takt (rd_ticks, Klang,
+; Zeitscheiben) jeden 2. wie bisher mit 72,8 Hz, alter INT 8 weiter mit 18,2 Hz.
 public _rd_timer_on
 _rd_timer_on proc near
     push bp
@@ -473,10 +477,31 @@ int8:
     push ds
     mov  ax, DGROUP
     mov  ds, ax
+    add  word ptr _rd_takt, 1
+    adc  word ptr _rd_takt+2, 0
+    cmp  _k_ntakt, 0
+    je   i8_kt
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+    push es
+    cld
+    call _takt_isr                   ; Rueckrufe der Programme (kurz, kein DOS)
+    pop  es
+    pop  di
+    pop  si
+    pop  dx
+    pop  cx
+    pop  bx
+i8_kt:
+    inc  tdiv
+    test tdiv, 1
+    jnz  i8_halb                     ; ungerader Takt: nur EOI
     add  word ptr _rd_ticks, 1
     adc  word ptr _rd_ticks+2, 0
-    inc  tdiv
-    test tdiv, 3
+    test tdiv, 7
     jnz  i8_eoi
     pushf
     call dword ptr old8              ; BIOS-Uhr, Diskettenmotor, EOI
@@ -525,6 +550,12 @@ i8_pre:
     pop  cx
     pop  bx
 i8_done:
+    pop  ds
+    pop  ax
+    iret
+i8_halb:
+    mov  al, 20h
+    out  20h, al
     pop  ds
     pop  ax
     iret
