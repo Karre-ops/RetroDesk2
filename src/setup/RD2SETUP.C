@@ -20,9 +20,9 @@
 
 typedef unsigned char BYTE; typedef unsigned short WORD; typedef unsigned long DWORD;
 extern WORD rd_cpudet(void);
-extern WORD rd_fpudet(void);
+extern WORD rd_fpudet(WORD cpu);
 #pragma aux rd_cpudet "_*" modify [ax bx cx dx];
-#pragma aux rd_fpudet "_*" modify [ax bx cx dx];
+#pragma aux rd_fpudet "_*" parm [ax] modify [ax bx cx dx];
 
 /* ---- Bildschirm (BIOS, 80x25) ------------------------------------------------ */
 static union REGS r;
@@ -350,7 +350,7 @@ static void vorschlag(int i)                     /* Wert aus der Erkennung */
 }
 static void erkennen(int i)                      /* -1 = alles */
 {
-    if (i < 0 || i == P_GRAFIK || i == P_PROFIL) { cpu = rd_cpudet(); fpu = rd_fpudet(); grafik_erkennen(); }
+    if (i < 0 || i == P_GRAFIK || i == P_PROFIL) { cpu = rd_cpudet(); fpu = rd_fpudet(cpu); grafik_erkennen(); }
     if (i < 0 || i == P_MAUS) maus_erkennen();
     if (i < 0 || i == P_KLANG || i == P_SB) klang_erkennen();
     if (i < 0 || i == P_XMS) speicher_erkennen();

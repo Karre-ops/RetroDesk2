@@ -445,7 +445,11 @@ void mem_mod(WORD seg, WORD mod)
     WORD i = find_seg(seg);
     if (i != 0xFFFF) { blk[i].flags = (blk[i].flags & ~B_INTERN) | B_MOD; blk[i].owner = mod; }
 }
-void RDK MemFixedFree(void FAR *p) { if (p && !FP_OFF(p)) mem_put(FP_SEG(p)); }
+void RDK MemFixedFree(void FAR *p)                /* nur eigene feste Bloecke (Audit 24.11.: Besitzer pruefen) */
+{
+    WORD i;
+    if (p && !FP_OFF(p) && (i = find_seg(FP_SEG(p))) != 0xFFFF && !blk[i].h && !(blk[i].flags & (B_FREE | B_INTERN | B_MOD)) && blk[i].owner == k_cur) put_index(i);
+}
 
 void mem_api(void)
 {

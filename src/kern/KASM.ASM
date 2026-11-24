@@ -772,10 +772,18 @@ cd_ende:
 _rd_cpudet endp
 
 public _rd_fpudet
-_rd_fpudet proc near
+_rd_fpudet proc near                ; WORD rd_fpudet(WORD cpu): ab 286 zuerst MSW.EM (Audit 24.11.: 386SX ohne 387, EM=1 -> fninit wuerde INT 7 ausloesen)
     push bp
     mov  bp, sp
     sub  sp, 2
+    xor  ax, ax
+    cmp  word ptr [bp+4], 4         ; CPU_286
+    jb   fd_go
+    db   0Fh, 01h, 0E0h             ; smsw ax
+    test al, 4                      ; EM: Koprozessor wird emuliert bzw. fehlt
+    mov  ax, 0
+    jnz  fd_no
+fd_go:
     mov  word ptr [bp-2], 0FFFFh
     fninit
     fnstcw [bp-2]

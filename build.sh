@@ -14,6 +14,7 @@ for a in sdk/lib/F*.ASM; do b=$(basename $a .ASM); case $b in F12F|F130) continu
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_WAV.obj sdk/WAV.C   # Hilfen in C (laufen im Programm)
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_JOY.obj sdk/JOY.C   # Joystick (Gameport 201h, PIT)
 wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_VOLL.obj sdk/VOLL.C   # Vollbild: Modus, Palette (API 2.3)
+wcc -0 -mm -zu -os -s -zq -w4 -bt=dos -zl -i=sdk -fo=obj/lib_VESA16.obj sdk/VESA16.C   # VESA fuer 16 Bit: ScreenModeVesa, ScreenPut (24.11.2026)
 wlib -q -n -p=16 $O/RD2.LIB obj/lib_*.obj   # Seitengroesse 16 statt 512: Bibliothek ca. 4x kleiner (SDK-Diskette, 20.11.2026)
 $W -fo=obj/notsup.obj   src/kern/NOTSUP.ASM
 $W -fpi87 -fo=obj/kasm.obj src/kern/KASM.ASM
@@ -163,6 +164,7 @@ app32 apps/test32/VESA32.C VESA32.EXE "Vesa32"
 app32 apps/test32/FEN32.C FEN32.EXE "Fen32"
 app32 apps/test32/WUERFEL.C WUERFEL.EXE "Wuerfel"
 app32 apps/test32/SCHUTZ32.C SCHUTZ32.EXE "Schutz32"
+app32 apps/test32/GESAMT32.C GESAMT32.EXE "Gesamt32"
 app32 apps/test32/TESTC32.C TESTC32.EXE "TestC32"
 app32 apps/test32/TAKT32.C TAKT32.EXE "Takt32"
 mod32() {   # $1 Quelle  $2 .M32  $3 Exporte (Komma): 32-Bit-Modul, RD32M0 zuerst, ohne RD32PRG (das stellt das ladende Programm)
@@ -177,6 +179,8 @@ app apps/test/SWAPTEST.C SWAPTEST.EXE "Speicher-Test"
 app apps/test/PRNTEST.C PRNTEST.EXE "PRNTEST"
 app apps/test/SNDTEST.C SNDTEST.EXE "SNDTEST"
 app apps/test/MIXTEST.C MIXTEST.EXE "MIXTEST"
+app apps/test/VESATEST.C VESATEST.EXE "VESATEST"
+app apps/test/GESAMT.C GESAMT.EXE "Gesamt"
 app apps/test/NETTEST.C NETTEST.EXE "NETTEST"
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/FREIMEM.EXE -fo=obj/freimem.obj apps/test/FREIMEM.C >/dev/null
 wcl -0 -ms -os -s -zq -bt=dos -fe=$O/TSRTEST.EXE -fo=obj/tsrtest.obj apps/test/TSRTEST.C >/dev/null

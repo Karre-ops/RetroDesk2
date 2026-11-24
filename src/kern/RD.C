@@ -139,8 +139,8 @@ int main(void)
         else { kr.ax = 0x4D00; rd_int(0x21, &kr); if ((BYTE)kr.ax == 3) inst = 1; }   /* 3: "I" auf schreibgeschuetztem Medium (CD) */
     }
     if (dlog) { kr.ax = 0x4800; kr.bx = DBUF / 16; rd_int(0x21, &kr); if (!(kr.flags & 1)) dbuf = (char __far *)MK_FP(kr.ax, 0); }
-    k_fpu = (BYTE)rd_fpudet();
     k_cpu = (BYTE)rd_cpudet();
+    k_fpu = (BYTE)rd_fpudet(k_cpu);
     rd_nsinit();
     KAPI(KernVersion, KernVersion); KAPI(KernInfo, KernInfo); KAPI(LastError, LastError); KAPI(RunDos, RunDos);
     KAPI(SetLastError, SetLastError); KAPI(DbgPrint, DbgPrint); KAPI(DbgHex, DbgHex);
@@ -148,7 +148,7 @@ int main(void)
     task_api();
     file_api();
     mod_api();
-    k_out("RetroDesk 2 Kern, API 2.3", 3);
+    k_out("RetroDesk 2 Kern, API 2.4", 3);
     if (a >= argc) {                              /* ohne Programm: SHELL.EXE aus dem RD2-Verzeichnis */
         static char ksh[80]; char *q = k_hpath("SHELL.EXE");
         for (i = 0; (ksh[i] = q[i]) != 0; i++) ;

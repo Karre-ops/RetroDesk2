@@ -43,7 +43,7 @@ extern volatile WORD k_crit, k_critdrv;          /* INT 24h: Fehlercode+1, AX */
 extern void __far *rd_gateptr;                   /* Einsprung der Modul-Sprungstuecke */
 extern DWORD __cdecl ms_now(void);               /* Millisekunden seit Start, gesperrt gelesen (M9) */
 extern void  __cdecl rd_idle(void);               /* STI, HLT */
-extern WORD  __cdecl rd_fpudet(void);
+extern WORD  __cdecl rd_fpudet(WORD cpu);          /* 1 = 8087/287/387; ab 286 erst MSW.EM */
 extern WORD  __cdecl rd_cpudet(void);              /* CPU_* */
 extern void  __cdecl rd_fsave(WORD seg, WORD off);   /* 94 Bytes je Task, nur mit 8087 */
 extern void  __cdecl rd_frstor(WORD seg, WORD off);

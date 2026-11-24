@@ -101,7 +101,13 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
    je Karte, MixRate=. API 127h-12Bh SndMixPlay/Set/Stop/Out/State, M_SOUNDDONE p1 = 4. SDK.TXT Abschnitt 5c.
    Test test/mischer.sh: QEMU-SB16 mit Tonaufnahme (440 und 1000 Hz zugleich, Fourier), DOSBox sb1/sb2/sbpro2.
    RDSND 5 KB (war 4), SB.DRV 5 KB (war 3).
-5. MPU-401 (MIDI) als Treiber; Tandy/Game Blaster/Gravis nativ spaeter (wie in Punkt 5 festgelegt).
+4b. Luecken (erledigt 24.11.2026): VESA fuer 16-Bit-Programme in RD2.LIB (VESA16.C: ScreenModeVesa, ScreenVesaList,
+   ScreenPut; ScreenBank in 64 KB bei jeder Granularitaet, ScreenRestore fuer VESA-Modi), test/vesa16.sh. Gesamttest
+   test/gesamt.sh (GESAMT.EXE/GESAMT32.EXE aus einer Quelle: Vollbild, Maus, zwei Tasten, Takt, Mischer, Alt+Tab; 32 Bit
+   neunmal Kind mit TaktSet per TaskKill: RD32-Plaetze werden frei, behoben schon im Audit ueber RDO_TASKENDE).
+   Mindestausbau test/min512.sh (KB512.COM: DOS mit 512 KB; PING, STRESS, Mischer, Schreibtisch). Audit-Rest siehe
+   AUDIT Abschnitt 6 (FPU mit EM, MemFixedFree, DirGet). API 2.4.
+5. MPU-401 (MIDI) als Treiber (auf Halt, Karsten 24.11.2026); Tandy/Game Blaster/Gravis nativ spaeter (wie in Punkt 5 festgelegt).
 6. SDK und Doku: alles in RD2.H/RD2_32.H, SDK.TXT, Beispiele; danach die Engine auf die RD2-API umstellen
    (DOS-Fassung bleibt als Rueckfall).
 7. Drucker: ESCP24.DRV (ESC/P 24 Nadeln, ESC/P2) und PCL.DRV (HP PCL 3/5), Auswahl in Optionen.

@@ -53,7 +53,7 @@ REST=${S#*Zeitscheiben an}; P2=${REST%%RD2: nur kooperativ*}; P3=${S#*RD2: nur k
 echo "--- Phase 1"
 chk "LEER.EXE unter DOS meldet 'benoetigt RetroDesk 2'" '[[ "$D" == *"tigt RetroDesk 2."* ]]'
 chk "LEER.EXE unter DOS endet mit Fehlercode 1"       '[[ "$D" == *FEHLERCODE1* ]]'
-chk "LEER sieht API 2.3"                 '[[ "$S" == *"LEER: Kern-API 0x00000203"* ]]'
+chk "LEER sieht API 2.4"                 '[[ "$S" == *"LEER: Kern-API 0x00000204"* ]]'
 chk "Befehlszeile kommt an"              '[[ "$S" == *"hallo welt"* ]]'
 chk "fehlende Funktion: 0 und RD_ERR_NOTSUP" '[[ "$S" == *"NetCaps fehlt noch (erwartet)"* ]]'
 chk "LEER endet mit 42"                  '[[ "$S" == *"Task beendet: 0x0001002A"* ]]'

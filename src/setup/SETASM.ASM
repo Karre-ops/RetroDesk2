@@ -83,10 +83,17 @@ cd_ende:
 _rd_cpudet endp
 
 public _rd_fpudet
-_rd_fpudet proc near
+_rd_fpudet proc near                ; AX = CPU (wie rd_cpudet): ab 286 erst MSW.EM pruefen (386SX ohne 387, Audit 24.11.)
     push bp
     mov  bp, sp
     sub  sp, 2
+    cmp  ax, 4
+    jb   fd_go
+    db   0Fh, 01h, 0E0h             ; smsw ax
+    test al, 4
+    mov  ax, 0
+    jnz  fd_no
+fd_go:
     mov  word ptr [bp-2], 0FFFFh
     fninit
     fnstcw [bp-2]

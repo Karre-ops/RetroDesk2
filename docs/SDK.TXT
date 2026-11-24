@@ -261,6 +261,10 @@ Programme pruefen Neuerungen mit KernVersion() >= ..., bevor sie sie nutzen.
        (M_SOUNDDONE, p1 = 3, p2 = Haelfte), siehe Abschnitt 5.
   2.3  SysInfo (0x02F): Rechner fuer Programme; BedarfCheck (0x030) und
        BEDARF in der .RC, siehe unten.
+  2.4  Systemtakt TaktSet/TaktKill/TaktCount (0x032-0x034, Abschnitt 5a),
+       ScreenMouse (0x0E2, 5b), Mischer SndMixPlay/Set/Stop/Out/State
+       (0x127-0x12B, 5c). RD2.LIB: ScreenModeVesa, ScreenVesaList, ScreenPut
+       (VESA fuer 16 Bit, Abschnitt Vollbild). DirGet: Puffer RD_DIRMAX Bytes.
 Ein Programm, das mit einer neueren API gebaut ist, startet auf einem
 aelteren Kern nicht (RD_ERR_VERSION).
 
@@ -318,6 +322,15 @@ dann ScreenRestore() (Modus und Palette wie zuletzt) und das Bild aus eigenen
 Daten neu zeichnen. RD2 haelt kein Abbild im Speicher. ScreenRelease(fenster)
 gibt den Schirm zurueck (auch DestroyWindow und das Programmende tun das).
 Beispiel: apps/test/VOLLTEST.C.
+VESA in 16-Bit-Programmen (RD2.LIB, ab API 2.4): ScreenModeVesa(800, 600, 16,
+&si) waehlt einen Modus nach Groesse und Farbtiefe (8, 15, 16, 24, 32), Liste
+der Karte: ScreenVesaList(liste, max). Im Realmodus immer ueber Fenster A
+(si.seg, si.zeilenbytes): ScreenPut(x, y, b, h, quelle, qzeile) kopiert ein
+Rechteck und schaltet die 64-KB-Baenke selbst, ScreenBank(n) waehlt Bank n in
+64 KB (auch bei Karten mit 4 KB Granularitaet). ScreenRestore stellt nach
+Alt+Tab denselben VESA-Modus her. Beispiel: apps/test/VESATEST.C.
+Gesamtbeispiel Vollbild + Maus + Tasten + Takt + Klang + Alt+Tab, dieselbe
+Quelle fuer 16 und 32 Bit: apps/test/GESAMT.C.
 
 RD2/32-Programme (ab 386, Diskette 5 "RD2 32", Ordner \SDK32)
 ---------------------------------------------------------------

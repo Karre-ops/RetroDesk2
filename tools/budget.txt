@@ -124,6 +124,8 @@ ZEIGTEST.EXE     8192    0   T  Test: Mauszeiger-Formen
 DLGTEST.EXE      8192    0   T  Test: Steuerelemente und Dialoge
 SNDTEST.EXE      8192    0   T  Test: Klang (RDSND, SPEAKER.DRV, ADLIB.DRV, SB.DRV, COVOX.DRV)
 MIXTEST.EXE      8192    0   T  Test: Mischer SndMix* (RDMIX.MOD, SB.DRV-Ring), test/mischer.sh
+VESATEST.EXE     8192    0   T  Test: VESA fuer 16 Bit (ScreenModeVesa, ScreenPut), test/vesa16.sh
+GESAMT.EXE       8192    0   T  Test: Vollbild, Maus, Tasten, Takt, Klang zugleich, Alt+Tab (test/gesamt.sh)
 NETTEST.EXE      8192    0   T  Test: Netz (RDTCP: DHCP, TCP-Echo, UDP, Lauschen, DNS)
 DISKFRAG.EXE     4096    0   T  Test: Diskettenabfrage im Grafikbetrieb (Audit K2)
 DOPPFMT.EXE      4096    0   T  Test: RDFORMAT doppelt starten (Audit M4)
@@ -142,6 +144,7 @@ RD32STUB.OBJ     2048    0   Z  SDK RD2/32: 16-Bit-Vorspann (laedt RD32.MOD), un
 RD3D.LIB        16384    0   Z  SDK RD2/32: RD3D Software-3D (PLAN_32BIT Schritt 5a): Dreiecke, Z-Puffer, Textur, Gouraud, Nebel, Alpha, Vollbild/Fenster
 WUERFEL.EXE     21504    0   Z  Beispiel RD3D: drehender Wuerfel, Selbsttest Z/Alpha/Nebel (test/rd3d.sh)
 SCHUTZ32.EXE     8192    0   Z  Beispiel RD2/32: Zeitscheiben und Absturzschutz (test/rd32.sh)
+GESAMT32.EXE    16384    0   Z  Test RD2/32: wie GESAMT.EXE, dazu neunmal Kind mit TaktSet per TaskKill (test/gesamt.sh)
 RD32C.LIB       40960    0   Z  SDK RD2/32: C-Laufzeit (string, stdlib, stdio, printf mit Gleitkomma, sscanf, time), Header in SDK32\RD32C
 TESTC32.EXE     40960    0   Z  Pruefprogramm C-Laufzeit RD2/32 (test/rd32.sh)
 TESTM32.M32     20480    0   Z  Beispielmodul RD2/32 (test/rd32.sh)

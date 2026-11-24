@@ -123,7 +123,7 @@ RDF(0x054, WORD,    FileAttr,       (LPCSTR name, WORD neu, WORD setzen))
 RDF(0x055, WORD,    DirMake,        (LPCSTR name))
 RDF(0x056, WORD,    DirRemove,      (LPCSTR name))
 RDF(0x057, WORD,    DirChange,      (LPCSTR name))
-RDF(0x058, WORD,    DirGet,         (WORD drive, LPSTR buf))      /* drive 0 = aktuell, 1 = A: */
+RDF(0x058, WORD,    DirGet,         (WORD drive, LPSTR buf))      /* drive 0 = aktuell, 1 = A:; buf mindestens RD_DIRMAX (67) Bytes */
 RDF(0x059, WORD,    DriveInfo,      (WORD drive, DRIVEINFO FAR *di))
 RDF(0x05A, WORD,    DiskRequest,    (WORD drive, DWORD serial, LPCSTR label)) /* "Bitte Diskette ... einlegen" */
 RDF(0x05B, WORD,    FileSaveSafe,   (LPCSTR name, const void FAR *buf, DWORD n)) /* erst .$$$, dann umbenennen */

@@ -18,8 +18,9 @@
 #define RD2_H
 
 #define RD2_API_MAJOR 2
-#define RD2_API_MINOR 3
+#define RD2_API_MINOR 4
 #define RD2_API_VERSION ((RD2_API_MAJOR << 8) | RD2_API_MINOR)
+#define RD_DIRMAX 67                              /* DirGet: "X:\" + 64 Zeichen DOS-Pfad + 0 (Audit 24.11.) */
 
 #if defined(__386__) || defined(__FLAT__)
 #  define RD2_32 1
@@ -652,7 +653,13 @@ typedef struct { WORD modus, w, h, bpp, zeilenbytes, seg, ebenen; } SCREENINFO;
 WORD RDAPI ScreenMode(WORD modus, SCREENINFO FAR *si);   /* 1 = ok; merkt den Modus fuer ScreenRestore */
 void RDAPI ScreenPalette(WORD erste, WORD n, const BYTE FAR *rgb);   /* je 3 Bytes 0..63 (VGA-DAC), gemerkt */
 void RDAPI ScreenRestore(void);                   /* nach M_SCREENBACK: Modus und Palette wie zuletzt */
-void RDAPI ScreenBank(WORD bank);                 /* SM_VESA: 64-KB-Fenster waehlen */
+void RDAPI ScreenBank(WORD bank);                 /* SM_VESA: 64-KB-Fenster waehlen (in 64 KB, jede Granularitaet) */
+#ifndef __386__                                   /* RD2/32: eigene Fassungen in RD2_32.H (linear) */
+typedef struct { WORD nr, w, h, bpp; } VESAMODE;
+WORD RDAPI ScreenModeVesa(WORD w, WORD h, WORD bpp, SCREENINFO FAR *si);   /* 16 Bit (VESA16.C): Modus nach Groesse/Tiefe, Fenster A, 1 = ok */
+WORD RDAPI ScreenVesaList(VESAMODE FAR *l, WORD max);   /* Modi der Karte (8/15/16/24/32 Bit), Anzahl */
+void RDAPI ScreenPut(WORD x, WORD y, WORD b, WORD h, const BYTE FAR *q, WORD qzeile);   /* Rechteck auf den Schirm, Baenke selbst */
+#endif
 #define RT_BEDARF 10                              /* BEDARF-Zeile in der .RC (API 2.3), Nr. 1, RDBEDARF */
 #pragma pack(push, 1)
 typedef struct {

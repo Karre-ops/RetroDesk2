@@ -307,7 +307,7 @@ static int pload(LPCSTR file)
     if (k_lasterr) { pfree(); return 0; }         /* sonst nie mit halbem Inhalt neu schreiben */
     return 1;
 }
-static void pfree(void) { if (pb) MemFixedFree(pb); pb = 0; }
+static void pfree(void) { if (pb) mem_put(FP_SEG(pb)); pb = 0; }   /* Kernpuffer: ohne Besitzerpruefung */
 /* Zeile ab Position i: Ende (ohne CR/LF) und Anfang der naechsten */
 static WORD eol(WORD i) { while (i < pn && pb[i] != '\r' && pb[i] != '\n') i++; return i; }
 static WORD nextl(WORD i) { i = eol(i); if (i < pn && pb[i] == '\r') i++; if (i < pn && pb[i] == '\n') i++; return i; }
