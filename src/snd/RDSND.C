@@ -6,7 +6,9 @@
  * input_poll des Kerns (Export 15 mit 2) als M_SOUNDDONE an das Fenster oder den Task. Samples (8 Bit mono) ueber pcm_start des Treibers (SB per DMA, Lautsprecher und Covox ueber den Zeitgeber), Ende als
  * M_SOUNDDONE mit p1 = 2. SM_HALBE: jede gespielte Blockhaelfte als M_SOUNDDONE p1 = 3, p2 = 0/1 (frei zum Nachfuellen,
  * mit SM_LOOP ein Ringpuffer). WAV-Dateien laedt SndWavLoad aus RD2.LIB (im Programm). Mischer SndMix* in RDMIX.MOD
- * (Sound Blaster, 8 Kanaele, [System] MixRate=); SndSamplePlay und der Mischer schliessen einander aus. */
+ * (Sound Blaster, 8 Kanaele, [System] MixRate=); SndSamplePlay und der Mischer schliessen einander aus.
+ * SndMusicMem: IMF/DRO aus einem Speicherblock (RDMUS kopiert ihn), SndTonePlay: Tonfolge hz/ms auf dem Treiber (Lautsprecher,
+ * bei AdLib/SB ein FM-Ton), beide fuer Spiele, die ihre Geraeusche vorab berechnen (kein API-Aufruf im Takt-Rueckruf noetig). */
 #include <i86.h>
 #include "RD2DRV.H"
 
@@ -25,7 +27,7 @@ static const struct { const char *n; const NOTE *s; } namen[] = {
 static SNDDRV FAR *dv; static HMOD dm; static WORD dpar; static BYTE bereit, sys = 1, ruhe;
 static const NOTE * volatile q; static volatile BYTE rest; static WORD laut = 127;
 /* Musik: RDMUS.MOD, nur waehrend des Abspielens geladen */
-typedef struct { WORD (RDAPI *play)(SNDDRV FAR *dv, LPCSTR d, WORD fl); BYTE (RDAPI *takt)(void); void (RDAPI *stop)(void); } MUSTAB;
+typedef struct { WORD (RDAPI *play)(SNDDRV FAR *dv, LPCSTR d, WORD fl, HMEM h); BYTE (RDAPI *takt)(void); void (RDAPI *stop)(void); } MUSTAB;
 /* Mischer: RDMIX.MOD, beim ersten SndMix* geladen (SC_STREAM), bleibt bis zum Ende oder SndSamplePlay */
 typedef struct { WORD (RDAPI *init)(SNDDRV FAR *dv, WORD rate); WORD (RDAPI *play)(HWND w, HMEM d, WORD r, WORD fl); WORD (RDAPI *set)(WORD k, WORD l, WORD p);
     void (RDAPI *stop)(WORD k); WORD (RDAPI *out)(WORD r, WORD f); WORD (RDAPI *state)(WORD k); void (RDAPI *poll)(void); } MIXTAB;
@@ -121,7 +123,7 @@ WORD RDEXPORT s_SndNote(WORD k, WORD n, WORD v)
 }
 void RDEXPORT s_SndNoteOff(WORD k) { WORD f; if (!da()) return; f = aus(); dv->noteoff(k); ein(f); }
 WORD RDEXPORT s_SndInstr(WORD k, const INSTR FAR *ins) { WORD f, r; if (!da()) return RD_ERR_NOTSUP; f = aus(); r = dv->instr(k, ins); ein(f); return r; }
-WORD RDEXPORT s_SndMusicPlay(HWND w, LPCSTR d, WORD fl)
+static WORD musik(HWND w, LPCSTR d, WORD fl, HMEM h)
 {
     FARPROC f; WORD r;
     if (!da()) return RD_ERR_NOTSUP;
@@ -129,11 +131,25 @@ WORD RDEXPORT s_SndMusicPlay(HWND w, LPCSTR d, WORD fl)
     mstop();
     if (!(mm = ModLoad("RDMUS.MOD"))) return LastError() ? LastError() : RD_ERR_NOTFOUND;
     f = ModProc(mm, 1); mt = f ? (MUSTAB FAR *)((void FAR * (RDAPI *)(void))f)() : 0;
-    if (!mt || (r = mt->play(dv, d, fl)) != 0) { if (!mt) r = RD_ERR_FORMAT; ModFree(mm); mm = 0; mt = 0; SetLastError(r); return r; }
+    if (!mt || (r = mt->play(dv, d, fl, h)) != 0) { if (!mt) r = RD_ERR_FORMAT; ModFree(mm); mm = 0; mt = 0; SetLastError(r); return r; }
     mwin = w; mtask = TaskSelf(); mfertig = 0; mart = 1;
     return 0;
 }
+WORD RDEXPORT s_SndMusicPlay(HWND w, LPCSTR d, WORD fl) { return musik(w, d, fl & ~SM_MEM, 0); }
+WORD RDEXPORT s_SndMusicMem(HWND w, HMEM h, WORD fl) { return musik(w, 0, fl | SM_MEM, h); }   /* RDMUS kopiert: das Programm darf h freigeben */
 void RDEXPORT s_SndMusicStop(void) { if (bereit) mstop(); }
+WORD RDEXPORT s_SndTonePlay(HMEM h, WORD fl)      /* Tonfolge im Kern-Takt (13,7 ms), wie SndBeep, aber ohne Systemklang-Schalter */
+{
+    static NOTE b[65]; const WORD __far *p; WORD i, t, f;
+    (void)fl;
+    if (!da() || mart) return RD_ERR_NOTSUP;
+    if (!(p = (const WORD __far *)MemLock(h))) return RD_ERR_HANDLE;
+    f = aus(); q = 0; rest = 0; ein(f);          /* laufende Folge erst anhalten, dann neu fuellen */
+    for (i = 0; i < 64 && p[1]; i++, p += 2) { t = p[1] / 14 + 1; if (t > 255) t = 255; b[i].hz = p[0] ? p[0] : 1; b[i].t = (BYTE)t; }
+    MemUnlock(h); b[i].t = 0;
+    if (i) folge(b); else dv->beep(0, 0);
+    return 0;
+}
 /* Samples: 8 Bit mono vorzeichenlos im Block des Programms (bleibt gesperrt, solange er klingt), in Stuecken bis zur
    naechsten 64-KB-Seite (DMA); den naechsten startet der Interrupt der Karte ueber s_Weiter. */
 static HMEM ph; static HWND pwin; static HTASK ptask; static WORD prate; static volatile BYTE part, pfertig; static BYTE ploop;
@@ -229,9 +245,9 @@ void RDEXPORT s_Pause(WORD an)                    /* RunDos: 0 still und Treiber
     else if (ruhe) { ruhe = 0; dv->h.init(dpar); }
     ein(f);
 }
-static struct { WORD n; FARPROC f[20]; } ex = { 20, {
+static struct { WORD n; FARPROC f[22]; } ex = { 22, {
     (FARPROC)s_Ende, (FARPROC)s_SndCaps, (FARPROC)s_SndBeep, (FARPROC)s_SndSystem, (FARPROC)s_SndNote, (FARPROC)s_SndNoteOff,
     (FARPROC)s_SndInstr, (FARPROC)s_SndMusicPlay, (FARPROC)s_SndMusicStop, (FARPROC)s_SndSamplePlay, (FARPROC)s_SndSampleStop,
     (FARPROC)s_SndVolume, (FARPROC)s_SndFocus, (FARPROC)s_SndMixPlay, (FARPROC)s_SndMixSet, (FARPROC)s_SndMixStop,
-    (FARPROC)s_SndMixOut, (FARPROC)s_SndMixState, (FARPROC)s_Takt, (FARPROC)s_Pause } };   /* 2..18 = API 11Bh..12Bh, 19 Takt, 20 Pause */
+    (FARPROC)s_SndMixOut, (FARPROC)s_SndMixState, (FARPROC)s_SndMusicMem, (FARPROC)s_SndTonePlay, (FARPROC)s_Takt, (FARPROC)s_Pause } };   /* 2..20 = API 11Bh..12Dh, 21 Takt, 22 Pause */
 void FAR * RDAPI RdModInit(void) { return &ex; }

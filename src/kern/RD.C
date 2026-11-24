@@ -189,9 +189,9 @@ int main(void)
         k_wnd = (DWORD (__far __pascal *)(WORD, HWND, WORD, WORD, DWORD))k_modraw(user, 0x44);
         ctl = k_sysmod("RDCTL.MOD", RDO_DialogRun, 0x20, 0);      /* Steuerelemente, Dialoge (verwerfbar) */
     }
-    if ((snd = k_sysmod("RDSND.MOD", RDO_SndCaps, 0x11, 0)) != 0) {   /* Klang (fehlt es: Snd* liefern RD_ERR_NOTSUP) */
-        k_sndpause = (void (__far __pascal *)(WORD))k_modraw(snd, 0x14);
-        k_sndtick = (void (__far __pascal *)(void))k_modraw(snd, 0x13);
+    if ((snd = k_sysmod("RDSND.MOD", RDO_SndCaps, 0x13, 0)) != 0) {   /* Klang (fehlt es: Snd* liefern RD_ERR_NOTSUP) */
+        k_sndpause = (void (__far __pascal *)(WORD))k_modraw(snd, 0x16);
+        k_sndtick = (void (__far __pascal *)(void))k_modraw(snd, 0x15);
     }
     k_hex("Speicher frei", vor, 3);
     k_hex("CPU", k_cpu, 3);

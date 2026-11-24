@@ -13,8 +13,10 @@ SDK.TXT.
   \SDK\RD2MOD.ASM    startup code for modules (.MOD) and drivers (.DRV)
   \SDK\RD2.LIB       library (Open Watcom, medium model)
   \SDK\RDRC.EXE      resource compiler and linker (DOS, runs on the XT)
-  \SDK\BEISPIEL\     HALLO.C and HALLO.RC: window, menu, mouse clicks
-  \SDK\PASCAL\       unit RD2.PAS, examples, Pascal guide (German)
+  \SDK\BEISPIEL\     HALLO.C and HALLO.RC: window, menu, mouse clicks; GESAMT.C,
+                     VOLLTEST.C, VESATEST.C, VOLLMAUS.C, TAKTTEST.C, MIXTEST.C,
+                     PRNTEST.C (referred to as apps/test/... below)
+  \SDK\PASCAL.ZIP    unit RD2.PAS, examples, Pascal guide (German, packed)
 
 
 1. Building a program (C, Open Watcom)
@@ -183,6 +185,120 @@ On the Sound Blaster there is a tiny gap at the middle of the block because
 the driver restarts each chunk.
 
 
+5a. System timer (145.6 Hz)
+---------------------------------------------------------------
+RD2 runs every machine at a fixed 145.6 Hz (6.9 ms, eight times the PC
+clock; the time of day stays exact). Games and music register with a
+divider instead of reprogramming the timer:
+  static void RDAPI __loadds tick(void) { t++; }
+  nr = TaktSet(tick, 1);     1 = 145.6 Hz, 2 = 72.8 Hz, 8 = 18.2 Hz ...
+  TaktKill(nr);              otherwise at program exit
+  TaktCount()                ticks since start (for polling)
+Up to 8 callbacks at once. The callback runs in the interrupt: keep it short
+(counters, advance sound), no API, no DOS, load your own DS (__loadds).
+Longer work via a message. RD2/32: the same without __loadds; the callback
+runs on its own 2 KB stack, no floating point. TaktSet does not work in
+32-bit modules (0, RD_ERR_NOTSUP): the program registers. TimerSet (ms,
+message M_TIMER) remains for everything leisurely.
+
+5b. Mouse and keys in full screen
+---------------------------------------------------------------
+After ScreenAcquire and your own mode switch (ScreenMode, VESA):
+  ScreenMouse(w, 320, 200);  mouse range 0..319 / 0..199
+Mouse messages (M_MOUSEMOVE, M_BUTTONDOWN ...) then arrive at the window in
+full-screen coordinates. The program draws the pointer itself. Call
+ScreenMouse again after M_SCREENBACK (back from Alt+Tab). Keys for games:
+KeyState(KS_SCAN + TS_LINKS) is 1 while the key is held, for all keys at
+once (TS_* in RD2.H, otherwise the scan code). Arrow keys and keypad count
+the same.
+
+5c. Mixer (several sounds at once, Sound Blaster)
+---------------------------------------------------------------
+k = SndMixPlay(window, block, rate, flags) plays a block on a free one of 8
+channels and returns the channel 1..8 (0 = error, LastError RD_ERR_BUSY all
+busy, RD_ERR_NOTSUP no suitable card). The block stays locked while it
+plays. flags: SM_LOOP endless, SM_16BIT signed 16 bit (otherwise unsigned
+8 bit as in WAV), both mono, any rate from 1000 to 48000 Hz. End:
+M_SOUNDDONE with p1 = 4, p2 = channel (not after SndMixStop).
+  SndMixSet(k, vol, pan)     vol 0..127, pan 0 left, 64 centre, 127 right
+  SndMixStop(k)              0 = all
+  SndMixState(k)             1 = playing; k = 0: bits of playing channels
+  SndMixOut(rate, MX_16BIT | MX_STEREO)   output, only what the card can do
+Output: SB16/AWE 16 bit stereo, SB Pro 8 bit stereo, SB 2.0 and 1.x 8 bit
+mono. Rate from RD2.INI [System] MixRate= (default 22050 from SB16, else
+11025). The mixer (RDMIX.MOD) loads on first use and frees its buffer when
+nothing plays. Mixing costs CPU time: no concern on 286 and 386, on the 8088
+only a few channels at 11025 Hz. SndSamplePlay and the mixer exclude each
+other (the later one wins). SB16: RD2.INI SB=A220 I5 D1 H5 (H = 16-bit DMA,
+as in BLASTER). FM and mixer run together: music (SndMusicPlay) on FM,
+effects as samples. On OPL3 (SB Pro 2 and up) SndNote has 18 channels:
+music uses 0..8, 9..17 stay free for effects.
+
+5d. Printing (all printers through one interface)
+---------------------------------------------------------------
+The program draws each page with the normal GDI functions into a printer
+DC; RD2 rasterises it in bands and sends it to the driver from RD2.INI
+[Drucker] (EPSON9 9 pins, ESCP24 24 pins/ESC/P2, PCL HP LaserJet and
+DeskJet; chosen in Options, Printer tab).
+  static PRNJOB j;  j.groesse = sizeof j; j.name = "Letter"; j.kopien = 1;
+  j.flags = PJ_DIALOG;                 show the print dialog
+  dc = PrnOpen(window, &j);            0 = error/cancel, LastError
+  j.dpi_x, j.dpi_y, j.breite, j.hoehe  resolution and page in dots
+  for (each page) {
+      do { draw the page (always the whole page) }
+      while ((r = PrnPage(dc)) == PRN_NOCHMAL);
+      if (r) break;                    error, paper, cancel
+  }
+  PrnClose(dc);                        or PrnAbort(dc)
+PrnPage returns PRN_NOCHMAL while the page must be drawn again for the next
+band (or copy); just draw the same page again, RD2 sets the clipping.
+PJ_ENTWURF: low resolution (faster), PJ_QUER landscape. Coordinates are
+printer dots: compute sizes from dpi (1 cm = dpi_x * 10 / 254). Fonts scale
+with the resolution. Example: apps/test/PRNTEST.C.
+
+5e. Joystick
+---------------------------------------------------------------
+  JOYSTATE js;  if (JoyRead(0, &js)) ...   0 = joystick A, 1 = B
+js.x, js.y -100..100 (centre 0, left/up negative), js.tasten bit 0 = fire 1,
+bit 1 = fire 2. JoyCalibrate(0): current position is the centre. Without a
+joystick 0, LastError RD_ERR_NOTSUP. Runs in RD2.LIB (game port 201h,
+timed with the PIT, same values on XT and Pentium).
+
+5f. FM sound (AdLib, OPL2/OPL3)
+---------------------------------------------------------------
+  static INSTR ins = { {mod 20h,40h,60h,80h,E0h}, {car ...}, feedback C0h };
+  SndInstr(channel, &ins);             timbre for one channel
+  SndNote(channel, note, vol);         note MIDI 0..127 (60 = middle C), vol 0..127
+  SndNoteOff(channel);
+OPL2 has 9 channels (0..8), OPL3 18. While music plays (SndMusicPlay) it owns
+channels 0..8. Without an FM card SndNote plays on the PC speaker (one note
+at a time). Simple tones: SndBeep(hz, ms); effects as samples (5c).
+
+5g. Help (F1)
+---------------------------------------------------------------
+HelpShow(window, "PROG.HLP", topic) starts the help viewer with the file
+from the program folder at the topic (number from the .HLP, 0 = contents).
+.HLP format: docs/HILFE.md (German).
+
+
+
+5h. Sounds for games (computed in advance, RD2 plays them)
+---------------------------------------------------------------
+No API calls are allowed in the tick callback (5a). A game therefore computes
+its sounds once at start and hands them to RD2 as a memory block; RD2 plays,
+mixes and pauses them on Alt+Tab. Choosing the device:
+  c = SndCaps();
+  if (c & SC_STREAM)              Sound Blaster: samples, SndMixPlay (5c)
+  else if (c & (SC_OPL2|SC_OPL3)) AdLib/FM: SndMusicMem
+  else                            PC speaker: SndTonePlay
+  SndMusicMem(window, block, SM_IMF700)   IMF (type 0/1, 560/700/280 Hz) or DRO
+                       from a block; RD2 copies it (may be freed afterwards).
+                       End: M_SOUNDDONE p1 = 1 like SndMusicPlay. Replaces music.
+  SndTonePlay(block, 0)  tone sequence: WORD pairs hz, ms (hz 0 = rest, ms 0 =
+                       end, at most 64 pairs, 13.7 ms grid); replaces the running
+                       sequence, an empty one = silence. On AdLib/SB an FM tone.
+Example: RDISOENGINE src/rd2/rdrd2.c (Spritzwerkzeugbauer, all three paths).
+
 6. Pascal
 ---------
 
@@ -219,6 +335,11 @@ Programs check KernVersion() >= ... before using new features.
        block (M_SOUNDDONE, p1 = 3, p2 = half), see section 5.
   2.3  SysInfo (0x02F): machine information; BedarfCheck (0x030) and
        BEDARF in the .RC, see below.
+  2.4  System timer TaktSet/TaktKill/TaktCount (0x032-0x034, section 5a),
+       ScreenMouse (0x0E2, 5b), mixer SndMixPlay/Set/Stop/Out/State
+       (0x127-0x12B, 5c), SndMusicMem and SndTonePlay (0x12C-0x12D, 5h).
+       RD2.LIB: ScreenModeVesa, ScreenVesaList, ScreenPut
+       (VESA for 16 bit, section Full screen). DirGet: buffer RD_DIRMAX bytes.
 A program built for a newer API does not start on an older kernel
 (RD_ERR_VERSION).
 
@@ -274,6 +395,53 @@ Alt+Tab: M_SCREENBACK, then ScreenRestore() (mode and palette as before) and
 redraw from your own data. RD2 keeps no copy of the screen. ScreenRelease(window)
 returns the screen (DestroyWindow and program exit do this too).
 Example: apps/test/VOLLTEST.C.
+VESA in 16-bit programs (RD2.LIB, API 2.4): ScreenModeVesa(800, 600, 16, &si)
+picks a mode by size and colour depth (8, 15, 16, 24, 32); the card's list:
+ScreenVesaList(list, max). In real mode always through window A (si.seg,
+si.zeilenbytes): ScreenPut(x, y, w, h, src, srcline) copies a rectangle and
+switches the 64 KB banks itself, ScreenBank(n) selects bank n in 64 KB units
+(also on cards with 4 KB granularity). ScreenRestore restores the same VESA
+mode after Alt+Tab. Example: apps/test/VESATEST.C. Complete example full
+screen + mouse + keys + timer + sound + Alt+Tab, one source for 16 and 32
+bit: apps/test/GESAMT.C.
+
+RD2/32 programs (386 and up, disk "RD2 32", folder \SDK32)
+---------------------------------------------------------------
+32 bit, flat model, Open Watcom wcc386. The whole API from RD2.H applies
+(pointers are 32-bit pointers), plus RD2_32.H: rd32_alloc/rd32_free (memory
+above 1 MB), buffer bitmap BufCreate/BufShow, ScreenPtr and SM_LFB (VESA 2.0
+linear). ScreenModeVesa(800, 600, 16, &si) picks a linear mode by size and
+depth (8, 15, 16, 24, 32), ScreenVesaList lists the card's modes (example
+VESA32.C). Without a linear frame buffer (VBE 1.2) ScreenModeVesa takes a
+banked mode: ScreenPtr is then a shadow buffer and ScreenUpdate() copies it
+to the screen; with LFB ScreenUpdate does nothing, so call it after every
+frame. Needs a DPMI host: INSTALL adds CWSDPMI -p to CONFIG.SYS.
+
+  wcc386 -bt=dos -mf -zl -zm -s -os FEN32.C
+  wlink format raw bin name FEN32.B32 option offset=0,start=rd32_kopf,
+        eliminate,nodefaultlibs file RD32C0,FEN32,RD32LIB,RD32PRG,RD32API
+  wlink format dos name FEN32.EXE file RD2START,RD32STUB library RD2
+  RDRC FEN32.RC FEN32.EXE "Fen32" /32:FEN32.B32
+
+3D (RD3D.H, software): add "library RD3D,clib3r" when linking the image.
+Example WUERFEL.C. C runtime (RD32C.LIB, headers in \SDK32\RD32C): stdio,
+stdlib, string, ctype, setjmp, time, printf/sscanf with floating point;
+compile with -fpc -i=RD32C, link "library RD32C,math3r,clib3r". printf
+writes to the RD2 log, files go through the RD2 API. Example TESTC32.C.
+32-bit modules (.M32): m = rd32_modload("X.M32"); f = rd32_modproc(m, "Name");
+rd32_modfree(m). The module provides int RdMod32Init(void) (0 = ok), linked
+with RD32M0 first; tools/rd32mod.py or under DOS MKM32 NAME (NAME.LNK,
+NAME.EXP). Examples TESTM32.C and TESTMOD.C.
+
+Memory protection (RD2 2.4): a program sees only its own memory (image,
+stack, rd32_alloc, LFB). Any other access raises an exception: RD2 reports
+it and ends only this program. Far pointers reach the rest:
+  BYTE __far *b = BiosPtr();   b[0x46C] = timer ticks
+  BYTE __far *v = LowPtr(0xB8000UL);   any address below 1 MB
+In mode 13h and text mode ScreenPtr is a shadow buffer: call ScreenUpdate().
+Drivers and diagnostics that must see everything link RD32C0V instead of
+RD32C0. RD32C0 must come first. The .RC should contain BEDARF CPU 386.
+Examples: FEN32.C (window, dialog, buffer bitmap, file, two tasks), VOLL32.C.
 
 The full description (program format, modules, drivers, memory, limits) is in
 docs/SPEC.md (German) in the RetroDesk 2 sources:

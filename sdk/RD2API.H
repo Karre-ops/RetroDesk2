@@ -258,6 +258,8 @@ RDF(0x128, WORD,    SndMixSet,      (WORD kanal, WORD laut, WORD lage))  /* laut
 RDF(0x129, void,    SndMixStop,     (WORD kanal))                 /* 0 = alle */
 RDF(0x12A, WORD,    SndMixOut,      (WORD rate, WORD fmt))        /* Ausgabe: Rate, MX_16BIT/MX_STEREO (nur was die Karte kann) */
 RDF(0x12B, WORD,    SndMixState,    (WORD kanal))                 /* 1 = laeuft; kanal 0: Bits der laufenden Kanaele */
+RDF(0x12C, WORD,    SndMusicMem,    (HWND melden, HMEM daten, WORD flags)) /* IMF/DRO aus dem Speicher (RD2 kopiert), SM_*; wie SndMusicPlay */
+RDF(0x12D, WORD,    SndTonePlay,    (HMEM daten, WORD flags))     /* Tonfolge: WORD-Paare hz, ms (hz 0 = Pause, ms 0 = Ende, bis 64), flags 0 */
 
 /* ---- Eingabe ------------------------------------------------------------- */
 RDF(0x12F, WORD,    JoyRead,        (WORD nr, JOYSTATE FAR *js))   /* RD2.LIB (JOY.C): x/y -100..100, Tasten Bit 0/1 */

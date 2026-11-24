@@ -1,7 +1,8 @@
 /* RDMUS.C - Musik-Spieler fuer RDSND (IMF Typ 0/1 mit 560/700/280 Hz, DRO 1.0 und 2.0). Wird nur zum Abspielen
  * geladen (fest, nicht verwerfbar) und danach wieder freigegeben: ohne Musik kostet er keinen Speicher.
  * Export 1 liefert eine Tabelle direkter Einspruenge (Takt laeuft im INT 8, dort keine Sprungstuecke).
- * Datei ganz im Speicher (MEM_SHARE, auch ueber 64 KB), Ereignisse im Kern-Takt (72,8 Hz, je Takt alle faelligen). */
+ * Datei ganz im Speicher (MEM_SHARE, auch ueber 64 KB), Ereignisse im Kern-Takt (72,8 Hz, je Takt alle faelligen).
+ * SndMusicMem (SM_MEM): dieselben Formate aus einem Speicherblock des Programms, kopiert (das Programm darf ihn danach freigeben). */
 #include <i86.h>
 #include "RD2DRV.H"
 
@@ -62,21 +63,22 @@ static void mfrei(void) { if (mh) { MemUnlock(mh); MemFree(mh); mh = 0; } }
 static void RDEXPORT m_stop(void) { mart = 0; if (dv) ruhig(); mfrei(); }   /* RDSND ruft den Takt da nicht mehr */
 static WORD lw(DWORD o) { BYTE a, b; mpos = o; a = hol(); b = hol(); return a | ((WORD)b << 8); }
 static DWORD ld(DWORD o) { WORD a = lw(o); return a | ((DWORD)lw(o + 2) << 16); }
-static WORD RDEXPORT m_play(SNDDRV FAR *t, LPCSTR d, WORD fl)
+static WORD RDEXPORT m_play(SNDDRV FAR *t, LPCSTR d, WORD fl, HMEM src)   /* SM_MEM: aus src (Block des Programms) kopieren */
 {
-    short f; long n; DWORD i; WORD k, r; BYTE __far *p; BYTE art; static const char sig[] = "DBRAWOPL";
+    short f = -1; long n; DWORD i; WORD k, r; BYTE __far *p; BYTE __far *s = 0; BYTE art; static const char sig[] = "DBRAWOPL";
     if (mh) m_stop();                             /* laeuft noch: erst anhalten, sonst Speicher verloren (Audit 24.11.) */
     dv = t;
-    if ((f = FileOpen(d, FO_READ)) < 0) return LastError() ? LastError() : RD_ERR_NOTFOUND;
-    n = FileSeek(f, 0, 2); FileSeek(f, 0, 0);
+    if (fl & SM_MEM) { if (!(s = (BYTE __far *)MemLock(src))) return RD_ERR_HANDLE; n = (long)MemSize(src); }
+    else { if ((f = FileOpen(d, FO_READ)) < 0) return LastError() ? LastError() : RD_ERR_NOTFOUND; n = FileSeek(f, 0, 2); FileSeek(f, 0, 0); }
     r = n < 8 ? RD_ERR_FORMAT : 0;
     if (!r && !(mh = MemAlloc((DWORD)n + 16, MEM_FIXED | MEM_SHARE | MEM_NOEMS))) r = RD_ERR_NOMEM;
     if (!r) { if (!(p = (BYTE __far *)MemLock(mh))) { MemFree(mh); mh = 0; r = RD_ERR_NOMEM; } else mseg = FP_SEG(p) + (FP_OFF(p) >> 4); }
     for (i = 0; !r && i < (DWORD)n; i += k) {    /* in 32-KB-Stuecken, Zeiger normiert */
         k = (DWORD)n - i > 0x8000UL ? 0x8000 : (WORD)((DWORD)n - i);
-        if (FileRead(f, MK_FP(mseg + (WORD)(i >> 4), (WORD)i & 15), k) != k) r = RD_ERR_DISK;
+        if (s) { BYTE __far *a = (BYTE __far *)MK_FP(FP_SEG(s) + (WORD)((FP_OFF(s) + i) >> 4), (WORD)(FP_OFF(s) + i) & 15), __far *z = (BYTE __far *)MK_FP(mseg + (WORD)(i >> 4), (WORD)i & 15); WORD j; for (j = 0; j < k; j++) z[j] = a[j]; }
+        else if (FileRead(f, MK_FP(mseg + (WORD)(i >> 4), (WORD)i & 15), k) != k) r = RD_ERR_DISK;
     }
-    FileClose(f);
+    if (s) MemUnlock(src); else FileClose(f);
     if (!r) {
         mend = (DWORD)n; art = M_IMF; minc = 560UL * 900;   /* Takt 72,8 Hz: 65536 / 72,8 = 900 je Hz */
         if (fl & SM_IMF700) minc = 700UL * 900; else if (fl & SM_IMF280) minc = 280UL * 900;

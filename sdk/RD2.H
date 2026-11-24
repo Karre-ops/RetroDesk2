@@ -604,6 +604,7 @@ typedef struct {
 #define SM_IMF280  0x0004                         /* IMF mit 280 Hz (Duke Nukem II) */
 #define SM_HALBE   0x0008                         /* SndSamplePlay: jede Blockhaelfte melden (M_SOUNDDONE p1 = 3), mit SM_LOOP Ringpuffer */
 #define SM_16BIT   0x0010                         /* SndMixPlay: 16 Bit vorzeichenbehaftet (sonst 8 Bit vorzeichenlos), mono */
+#define SM_MEM     0x8000                         /* intern (RDSND -> RDMUS): Daten aus einem Speicherblock statt einer Datei */
 #define MX_16BIT   0x0001                         /* SndMixOut: 16 Bit (SB16) */
 #define MX_STEREO  0x0002                         /* SndMixOut: Stereo (ab SB Pro) */
 

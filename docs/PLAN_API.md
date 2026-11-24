@@ -110,6 +110,14 @@ Drucker gehen unter DOS grundsaetzlich nicht. Mindestausbau 512 KB pruefen.
 5. MPU-401 (MIDI) als Treiber (auf Halt, Karsten 24.11.2026); Tandy/Game Blaster/Gravis nativ spaeter (wie in Punkt 5 festgelegt).
 6. SDK und Doku: alles in RD2.H/RD2_32.H, SDK.TXT, Beispiele; danach die Engine auf die RD2-API umstellen
    (DOS-Fassung bleibt als Rueckfall).
+   Erledigt 24.11.2026: SDK.TXT (Takt, Vollbild-Maus, Mischer, Drucken, Joystick, FM, Hilfe) und SDK_EN.TXT vollstaendig;
+   Diskette 4 mit Beispielen zu Gesamttest, Vollbild, VESA, Maus, Takt, Mischer, Drucken (Pascal-Teil als PASCAL.ZIP),
+   Diskette 5 mit RD32C0V.OBJ und GESAMT.C. Neue API fuer Spiele (Abschnitt 5h): SndMusicMem 12Ch (IMF/DRO aus einem
+   Block) und SndTonePlay 12Dh (Tonfolge hz/ms) - Geraeusche vorab berechnet, RD2 spielt sie; im Takt-Rueckruf bleibt
+   die API verboten (32-Bit-Rueckruf laeuft im geschuetzten Modus). Alt+Tab holt ein allein geparktes Vollbild-Programm
+   zurueck (RDUSER). RDISOENGINE src/rd2/rdrd2.c: Grafik, Maus, Tasten, Takt und Klang nur ueber die RD2-API (SndCaps:
+   Sound Blaster -> Mischer, FM -> SndMusicMem, sonst SndTonePlay); Spritzwerkzeugbauer als RD2/32-Programm,
+   Test RDWerkzeugbau test/rd2_spiel.sh (QEMU 486, SB16 + AdLib, alle drei Klangwege, Alt+Tab).
 7. Drucker: ESCP24.DRV (ESC/P 24 Nadeln, ESC/P2) und PCL.DRV (HP PCL 3/5), Auswahl in Optionen.
    Erledigt 24.11.2026: ESCP24.DRV (ESC * 39, 180 x 180 dpi; Entwurf ESC * 33, 120 x 180; ESC J n/180) und PCL.DRV
    (300 dpi, Entwurf 150; A4, Raster mit PackBits ESC *b2M, leere Zeilen ESC *b0W, ESC *rB, ESC E). RDPRN zeichnet Seiten

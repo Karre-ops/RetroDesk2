@@ -1340,6 +1340,7 @@ DWORD RDEXPORT u_hook(WORD art, HWND h, WORD msg, WORD p1, DWORD p2)
     }
     if (msg == M_KEY || msg == M_KEYUP || msg == M_CHAR) {
         i = foc ? foc : act;
+        if (!i && vw && msg == M_KEY && (m->p1 == 0x1A5 || m->p1 == 0x16D) && (HIWORD(m->p2) & KS_ALT)) u_ShowWindow(vw, SW_RESTORE);   /* nur das Vollbild geparkt: Alt+Tab holt es */
         if (!i) return 0;
         m->w = hw(i); return w_[i].task;
     }

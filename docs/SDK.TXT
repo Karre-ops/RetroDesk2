@@ -2,7 +2,7 @@ RetroDesk 2 - SDK (Diskette 4)
 ==============================
 
 Mit dem SDK schreiben Sie eigene Programme fuer RetroDesk 2 (RD2) in C
-(Open Watcom), Turbo Pascal / Free Pascal (siehe \SDK\PASCAL\PASCAL.TXT)
+(Open Watcom), Turbo Pascal / Free Pascal (\SDK\PASCAL.ZIP, mit RDZIP entpacken)
 oder Assembler. Englische Fassung: SDK_EN.TXT.
 
   \SDK\RD2.H         Typen, Konstanten, Nachrichten, Strukturen
@@ -13,8 +13,10 @@ oder Assembler. Englische Fassung: SDK_EN.TXT.
   \SDK\RD2MOD.ASM    Startcode fuer Module (.MOD) und Treiber (.DRV)
   \SDK\RD2.LIB       Bibliothek (Open Watcom, Modell Medium)
   \SDK\RDRC.EXE      Ressourcen-Compiler und Linker (DOS, laeuft auf dem XT)
-  \SDK\BEISPIEL\     HALLO.C und HALLO.RC: Fenster, Menue, Mausklicks
-  \SDK\PASCAL\       Unit RD2.PAS, Beispiele, Anleitung fuer Pascal
+  \SDK\BEISPIEL\     HALLO.C und HALLO.RC: Fenster, Menue, Mausklicks; GESAMT.C,
+                     VOLLTEST.C, VESATEST.C, VOLLMAUS.C, TAKTTEST.C, MIXTEST.C,
+                     PRNTEST.C (im Text als apps/test/...)
+  \SDK\PASCAL.ZIP    Unit RD2.PAS, Beispiele, Anleitung fuer Pascal (gepackt)
 
 
 1. Ein Programm bauen (C, Open Watcom)
@@ -192,31 +194,6 @@ Nachfuellen bleibt. Auf dem Sound Blaster entsteht an der Blockmitte eine
 winzige Luecke, weil der Treiber jedes Stueck neu startet.
 
 
-5c. Mischer (mehrere Klaenge zugleich, Sound Blaster)
-------------------------------------------------------
-
-k = SndMixPlay(fenster, block, rate, flags) spielt einen Block auf einem
-freien von 8 Kanaelen und liefert die Kanalnummer 1..8 (0 = Fehler,
-LastError: RD_ERR_BUSY alle belegt, RD_ERR_NOTSUP keine passende Karte).
-Der Block bleibt gesperrt, solange er klingt. flags: SM_LOOP endlos,
-SM_16BIT 16 Bit vorzeichenbehaftet (sonst 8 Bit vorzeichenlos wie WAV),
-beides mono, jede Rate von 1000 bis 48000 Hz. Ende: M_SOUNDDONE mit
-p1 = 4, p2 = Kanal (nicht nach SndMixStop).
-  SndMixSet(k, laut, lage)   laut 0..127, lage 0 links, 64 Mitte, 127 rechts
-  SndMixStop(k)              0 = alle
-  SndMixState(k)             1 = klingt; k = 0: Bits der klingenden Kanaele
-  SndMixOut(rate, MX_16BIT | MX_STEREO)   Ausgabe, nur was die Karte kann
-Ausgabe: SB16/AWE 16 Bit stereo, SB Pro 8 Bit stereo, SB 2.0 und 1.x 8 Bit
-mono. Rate nach RD2.INI [System] MixRate= (Vorgabe 22050 ab SB16, sonst
-11025). Der Mischer (RDMIX.MOD) wird beim ersten Aufruf geladen und gibt
-seinen Puffer frei, wenn nichts mehr klingt. Mischen kostet Rechenzeit:
-auf 286 und 386 ohne Bedenken, auf dem 8088 nur wenige Kanaele bei 11025 Hz.
-SndSamplePlay und der Mischer schliessen einander aus (der spaetere gewinnt).
-SB16: RD2.INI SB=A220 I5 D1 H5 (H = 16-Bit-DMA, wie BLASTER).
-FM und Mischer laufen zugleich: Musik (SndMusicPlay) auf FM, Effekte als
-Samples. Auf OPL3 (ab SB Pro 2) hat SndNote 18 Kanaele: 0..8 nutzt die
-Musik, 9..17 bleiben frei fuer Effekte.
-
 5a. Systemtakt (145,6 Hz)
 ---------------------------------------------------------------
 RD2 laeuft auf jedem Rechner mit einem festen Takt von 145,6 Hz (6,9 ms,
@@ -245,6 +222,95 @@ aufrufen. Tasten fuer Spiele: KeyState(KS_SCAN + TS_LINKS) ist 1, solange
 die Taste gedrueckt ist, fuer alle Tasten zugleich (TS_* in RD2.H, sonst
 der Scancode der Taste). Pfeiltasten und Ziffernblock zaehlen gleich.
 
+5c. Mischer (mehrere Klaenge zugleich, Sound Blaster)
+------------------------------------------------------
+
+k = SndMixPlay(fenster, block, rate, flags) spielt einen Block auf einem
+freien von 8 Kanaelen und liefert die Kanalnummer 1..8 (0 = Fehler,
+LastError: RD_ERR_BUSY alle belegt, RD_ERR_NOTSUP keine passende Karte).
+Der Block bleibt gesperrt, solange er klingt. flags: SM_LOOP endlos,
+SM_16BIT 16 Bit vorzeichenbehaftet (sonst 8 Bit vorzeichenlos wie WAV),
+beides mono, jede Rate von 1000 bis 48000 Hz. Ende: M_SOUNDDONE mit
+p1 = 4, p2 = Kanal (nicht nach SndMixStop).
+  SndMixSet(k, laut, lage)   laut 0..127, lage 0 links, 64 Mitte, 127 rechts
+  SndMixStop(k)              0 = alle
+  SndMixState(k)             1 = klingt; k = 0: Bits der klingenden Kanaele
+  SndMixOut(rate, MX_16BIT | MX_STEREO)   Ausgabe, nur was die Karte kann
+Ausgabe: SB16/AWE 16 Bit stereo, SB Pro 8 Bit stereo, SB 2.0 und 1.x 8 Bit
+mono. Rate nach RD2.INI [System] MixRate= (Vorgabe 22050 ab SB16, sonst
+11025). Der Mischer (RDMIX.MOD) wird beim ersten Aufruf geladen und gibt
+seinen Puffer frei, wenn nichts mehr klingt. Mischen kostet Rechenzeit:
+auf 286 und 386 ohne Bedenken, auf dem 8088 nur wenige Kanaele bei 11025 Hz.
+SndSamplePlay und der Mischer schliessen einander aus (der spaetere gewinnt).
+SB16: RD2.INI SB=A220 I5 D1 H5 (H = 16-Bit-DMA, wie BLASTER).
+FM und Mischer laufen zugleich: Musik (SndMusicPlay) auf FM, Effekte als
+Samples. Auf OPL3 (ab SB Pro 2) hat SndNote 18 Kanaele: 0..8 nutzt die
+Musik, 9..17 bleiben frei fuer Effekte.
+
+5d. Drucken (alle Drucker ueber eine Schnittstelle)
+---------------------------------------------------------------
+Das Programm zeichnet jede Seite mit den normalen GDI-Funktionen in einen
+Drucker-DC; RD2 rastert sie in Baendern und schickt sie an den Treiber aus
+RD2.INI [Drucker] (EPSON9 9 Nadeln, ESCP24 24 Nadeln/ESC/P2, PCL HP LaserJet
+und DeskJet; Auswahl in Optionen, Karte Drucker).
+  static PRNJOB j;  j.groesse = sizeof j; j.name = "Brief"; j.kopien = 1;
+  j.flags = PJ_DIALOG;                 Druckdialog zeigen (Drucker, Kopien)
+  dc = PrnOpen(fenster, &j);           0 = Fehler/Abbruch, LastError
+  j.dpi_x, j.dpi_y, j.breite, j.hoehe  Aufloesung und Seite in Punkten
+  for (jede Seite) {
+      do { Seite zeichnen (immer die ganze Seite) }
+      while ((r = PrnPage(dc)) == PRN_NOCHMAL);
+      if (r) break;                    Fehler, Papier, Abbruch
+  }
+  PrnClose(dc);                        oder PrnAbort(dc)
+PrnPage liefert PRN_NOCHMAL, solange die Seite fuer das naechste Band (oder
+die naechste Kopie) noch einmal gezeichnet werden muss; das Programm
+zeichnet dann einfach dieselbe Seite erneut, RD2 setzt den Ausschnitt.
+PJ_ENTWURF: niedrige Aufloesung (schneller), PJ_QUER quer. Koordinaten in
+Druckerpunkten: Groessen aus dpi rechnen (1 cm = dpi_x * 10 / 254), nicht
+fest. Schriften werden mit der Aufloesung skaliert. Beispiel: apps/test/PRNTEST.C.
+
+5e. Joystick
+---------------------------------------------------------------
+  JOYSTATE js;  if (JoyRead(0, &js)) ...   0 = Joystick A, 1 = B
+js.x, js.y -100..100 (Mitte 0, links/oben negativ), js.tasten Bit 0 = Feuer 1,
+Bit 1 = Feuer 2. JoyCalibrate(0): jetzige Lage ist die Mitte (Knueppel
+loslassen). Ohne Joystick 0, LastError RD_ERR_NOTSUP. Laeuft in RD2.LIB
+(Gameport 201h, gemessen mit dem Zeitgeber, auf XT und Pentium gleich).
+
+5f. FM-Klang (AdLib, OPL2/OPL3)
+---------------------------------------------------------------
+  static INSTR ins = { {mod 20h,40h,60h,80h,E0h}, {car ...}, feedback C0h };
+  SndInstr(kanal, &ins);               Klangfarbe fuer einen Kanal
+  SndNote(kanal, note, lautst);        note MIDI 0..127 (60 = c'), lautst 0..127
+  SndNoteOff(kanal);
+OPL2 hat 9 Kanaele (0..8), OPL3 18. Laeuft die Musik (SndMusicPlay), gehoeren
+ihr die Kanaele 0..8. Ohne FM-Karte spielt SndNote auf dem PC-Lautsprecher
+(ein Ton zur Zeit). Einfache Toene: SndBeep(hz, ms); Effekte als Samples (5c).
+
+5h. Geraeusche fuer Spiele (vorab berechnet, RD2 spielt sie)
+---------------------------------------------------------------
+Im Takt-Rueckruf (5a) ist keine API erlaubt. Ein Spiel berechnet seine
+Geraeusche darum beim Start einmal und uebergibt sie RD2 als Speicherblock;
+abspielen, mischen und bei Alt+Tab anhalten macht RD2. Geraet waehlen:
+  c = SndCaps();
+  if (c & SC_STREAM)              Sound Blaster: Samples, SndMixPlay (5c)
+  else if (c & (SC_OPL2|SC_OPL3)) AdLib/FM: SndMusicMem
+  else                            PC-Lautsprecher: SndTonePlay
+  SndMusicMem(fenster, block, SM_IMF700)   IMF (Typ 0/1, 560/700/280 Hz) oder
+                       DRO aus einem Block; RD2 kopiert ihn (darf danach frei).
+                       Ende: M_SOUNDDONE p1 = 1 wie SndMusicPlay. Ersetzt Musik.
+  SndTonePlay(block, 0)  Tonfolge: WORD-Paare hz, ms (hz 0 = Pause, ms 0 =
+                       Ende, hoechstens 64 Paare, Raster 13,7 ms); ersetzt die
+                       laufende Folge, leere Folge = still. Auf AdLib/SB ein FM-Ton.
+Beispiel: RDISOENGINE src/rd2/rdrd2.c (Spritzwerkzeugbauer, alle drei Wege).
+
+5g. Hilfe (F1)
+---------------------------------------------------------------
+HelpShow(fenster, "PROG.HLP", thema) startet den Hilfebetrachter mit der
+Datei aus dem Programmordner und springt zum Thema (Nummer aus der .HLP,
+0 = Inhalt). Format der .HLP: docs/HILFE.md.
+
 6. Weitere Quellen
 ------------------
 
@@ -263,7 +329,8 @@ Programme pruefen Neuerungen mit KernVersion() >= ..., bevor sie sie nutzen.
        BEDARF in der .RC, siehe unten.
   2.4  Systemtakt TaktSet/TaktKill/TaktCount (0x032-0x034, Abschnitt 5a),
        ScreenMouse (0x0E2, 5b), Mischer SndMixPlay/Set/Stop/Out/State
-       (0x127-0x12B, 5c). RD2.LIB: ScreenModeVesa, ScreenVesaList, ScreenPut
+       (0x127-0x12B, 5c), SndMusicMem und SndTonePlay (0x12C-0x12D, 5h).
+       RD2.LIB: ScreenModeVesa, ScreenVesaList, ScreenPut
        (VESA fuer 16 Bit, Abschnitt Vollbild). DirGet: Puffer RD_DIRMAX Bytes.
 Ein Programm, das mit einer neueren API gebaut ist, startet auf einem
 aelteren Kern nicht (RD_ERR_VERSION).
