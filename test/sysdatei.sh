@@ -9,7 +9,7 @@
 cd "$(dirname "$0")/.."
 IMG=obj/sysd.img; SER=obj/sysd_com1.txt; SOCK=/tmp/qmon_sysd.sock
 printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_sysd.txt
-bash tools/mkdisk.sh $IMG obj/ae_sysd.txt >/dev/null 2>&1
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_sysd.txt >/dev/null 2>&1   # 360 KB voll (25.11.2026)
 mcopy -o -i $IMG obj/ae_sysd.txt ::/FDAPM.TXT     # Opfer fuer Fall 4 (FDAPM.COM braucht der Test zum Ausschalten)
 rm -f $SER $SOCK obj/sysd_*.ppm; touch $SER
 timeout 240 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

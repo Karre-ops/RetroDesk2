@@ -42,7 +42,7 @@ for FALL in ${FAELLE:-schnell voll nein heim gross}; do
     Q "sendkey ret"
     if waitn "RDFORMAT: Meldung 22" $SER 300; then
       sleep 2; Q "screendump obj/hdd2_$FALL.ppm" sleep0.3
-      if [ $FALL = nein ]; then Q "sendkey tab" sleep0.2 "sendkey ret"; else Q "sendkey ret"; fi
+      if [ $FALL = nein ]; then Q "sendkey ret"; else Q "sendkey tab" sleep0.3 "sendkey ret"; fi   # Nein vorgewaehlt (Audit 24.11.): Tab = Ja
     fi
     [ $FALL = voll ] && waitn "Prozent formatiert" $SER 300 && Q "screendump obj/hdd3_$FALL.ppm"
     if waitn "RDFORMAT: \(fertig\|Fehler\|Meldung 33\|Meldung 18\)" $SER 2000; then sleep 3; Q "screendump obj/hdd4_$FALL.ppm" sleep0.3 "sendkey ret"; fi

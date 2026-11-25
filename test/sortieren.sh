@@ -5,7 +5,7 @@
 cd "$(dirname "$0")/.."
 IMG=obj/sort.img; SER=obj/sort_com1.txt; S=/tmp/qmon_sort.sock; export QMON=$S; F=0
 printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_sort.txt
-bash tools/mkdisk.sh $IMG obj/ae_sort.txt >/dev/null 2>&1
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_sort.txt >/dev/null 2>&1   # 360 KB voll (25.11.2026): Zusatzdateien brauchen Platz
 for f in AAA.ZZZ BBB.ABC MMM.TXT; do echo x > obj/$f; mcopy -o -i $IMG obj/$f ::/; done
 ERST=RD2; LETZT=AAA.ZZZ                         # einziger Ordner vorn; Endung ZZZ ist die letzte
 rm -f $SER $S; touch $SER

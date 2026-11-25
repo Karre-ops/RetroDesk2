@@ -13,7 +13,7 @@ a=Image.open('$1').convert('L'); b=Image.open('$2').convert('L'); print(sum(1 fo
 lauf() {   # $1 Name, $2 RDMAUS-Schalter, $3 QEMU-Zusatz
   IMG=obj/rdm_$1.img; SER=obj/rdm_$1_com1.txt; SOCK=/tmp/qmon_rdm.sock
   printf '@echo off\nA:\\RDMAUS.COM %s\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' "$2" > obj/ae_rdm.txt
-  NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ')" bash tools/mkdisk.sh $IMG obj/ae_rdm.txt >/dev/null 2>&1
+  NUR="$(awk '$4=="S"{print $1}' tools/budget.txt | tr '\n' ' ')" FMT=720 bash tools/mkdisk.sh $IMG obj/ae_rdm.txt >/dev/null 2>&1   # 360 KB voll (25.11.2026)
   mcopy -o -i $IMG out/RDMAUS.COM ::/ 2>/dev/null || mcopy -o -i $IMG obj/rdm_t.com ::/RDMAUS.COM
   rm -f $SER $SOCK; touch $SER
   timeout 70 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \

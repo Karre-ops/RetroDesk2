@@ -42,7 +42,7 @@ Jeder Ordner ist fuer sich vollstaendig. Man braucht nur den, der zum Rechner pa
 
 SHA256.TXT     Pruefsummen
 
-Neu in 2.4 (23.11.2026)
+Neu in 2.4 (25.11.2026)
 ------------------------------------------------------------------------------
 - Vier Verteilformen: 360-KB-Satz (XT), eigener 1,44-MB-Satz ab 386, Ordner
   zum Kopieren (ZIP), bootbare CD und USB-Stick. Von der CD wird ohne
@@ -58,6 +58,25 @@ Neu in 2.4 (23.11.2026)
   RD32MOD.EXE). RD3D laeuft in jedem VESA-Modus (jede Groesse, 8 bis 32 Bit,
   R3dOpenVesa). Karten ohne linearen Bildspeicher (VBE 1.2) werden ueber
   Baenke bedient (ScreenUpdate).
+- Hardware-API fuer native Programme (API 2.4): Systemtakt TaktSet/TaktKill/
+  TaktCount (145,6 Hz), Maus im Vollbild (ScreenMouse), VESA auch fuer 16-Bit-
+  Programme (RD2.LIB), Joystick, Hilfe (F1). Alt+Tab holt auch ein allein
+  laufendes Vollbild-Programm zurueck.
+- Sound Blaster vollstaendig: SB 1.x bis SB16/AWE, Stereo, 16 Bit, OPL3 mit 18
+  FM-Kanaelen. Neuer Mischer RDMIX (8 Kanaele, Lautstaerke, Lage, Schleife:
+  SndMixPlay/Set/Stop/Out/State). Fuer Spiele: SndMusicMem (FM-Musik und
+  -Geraeusche aus dem Speicher) und SndTonePlay (Tonfolgen fuer den
+  PC-Lautsprecher).
+- RD2/32: Speicherschutz zwischen 32-Bit-Programmen, ein Absturz beendet nur
+  das Programm.
+- Drucker: universelle Treiber ESCP24 (24 Nadeln, ESC/P und ESC/P2, 180 dpi)
+  und PCL (HP LaserJet/DeskJet, 300 dpi); Auswahl in Optionen, Karte Drucker.
+- Sicherheit (Audit 24.11.2026): Rueckfragen vor Datenverlust (Formatieren,
+  Partitionen, Loeschen) haben "Nein" vorgewaehlt; Lesefehler werden sofort
+  gemeldet.
+- SDK: Beispiele zu Vollbild, VESA, Maus, Takt, Mischer und Drucken auf
+  Diskette 4 (Pascal-Teil als PASCAL.ZIP, mit RDZIP entpacken), SDK.TXT und
+  SDK_EN.TXT vollstaendig.
 
 Abbilder (.IMG) auf Disketten schreiben: unter DOS mit RAWRITE oder
 DISKCOPY-Werkzeugen, unter Windows mit WinImage oder RawWrite for Windows,

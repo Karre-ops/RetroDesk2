@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/.."
 IMG=obj/eig.img; SER=obj/eig_com1.txt; S=/tmp/qmon_eig.sock; export QMON=$S; F=0
 printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\nA:\\FDAPM.COM POWEROFF\n' > obj/ae_eig.txt
-bash tools/mkdisk.sh $IMG obj/ae_eig.txt >/dev/null 2>&1
+FMT=720 bash tools/mkdisk.sh $IMG obj/ae_eig.txt >/dev/null 2>&1   # 360 KB voll (24.11.2026): RD2.INI braucht Platz
 printf '[System]\r\n' > obj/eig_rd2.ini; mcopy -o -i $IMG obj/eig_rd2.ini ::/RD2/RD2.INI   # wie nach dem Setup: Startart landet in RD2.INI
 G=$(mdir -i $IMG ::/AUTOEXEC.BAT | awk '/AUTOEXEC/{print $3}')
 rm -f $SER $S

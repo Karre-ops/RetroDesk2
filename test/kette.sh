@@ -47,7 +47,7 @@ S=obj/kette2_com1.txt; starten obj/kette_a2.img $S
 if waitn "RDFORMAT: bereit" $S; then
   sleep 3; Q "screendump obj/kette2.ppm" sleep0.3
   for v in 1 2 3; do Q "sendkey ret"; waitn "RDFORMAT: Meldung 22" $S 100 && break; done   # Dialog unter Last spaeter da (25.10.)
-  sleep 2 && Q "sendkey ret"
+  sleep 2 && Q "sendkey tab" sleep0.3 "sendkey ret"   # Nein vorgewaehlt (Audit 24.11.): Tab = Ja
   waitn "RDFORMAT: \(fertig\|Fehler\|Meldung 33\)" $S 2000 && sleep 3 && Q "sendkey ret"
 fi
 wait $QP

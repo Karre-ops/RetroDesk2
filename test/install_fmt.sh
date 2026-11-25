@@ -26,10 +26,10 @@ QP=$!
 waitscr "Erster Start" 90 && echo "ok     Einrichtung erscheint" || { echo "FEHLER keine Einrichtung"; F=1; }
 sleep 1; Q "sendkey i"
 schritt "INSTALL: Start" "Installation offen" && { sleep 6; Q "sendkey alt-f"; sleep 1; Q "screendump obj/ifmt_dialog.ppm"; Q "sendkey ret"; }
-schritt "INSTALL: Frage" "Warnung vor dem Formatieren" && { sleep 1; Q "sendkey ret"; }
+schritt "INSTALL: Frage" "Warnung vor dem Formatieren" && { sleep 1; Q "sendkey tab" sleep0.3 "sendkey ret"; }   # Nein vorgewaehlt (Audit 24.11.)
 schritt "Diskette 2 (RD2" "Diskette 2 fuer RDFORMAT" && { Q "change floppy0 obj/ifmt2.img"; sleep 2; Q "sendkey ret"; }
 schritt "RDFORMAT: bereit" "RDFORMAT startet fuer C:" && { sleep 2; Q "sendkey ret"; }
-schritt "RDFORMAT: Meldung 22" "RDFORMAT fragt nach" && { sleep 2; Q "sendkey ret"; }
+schritt "RDFORMAT: Meldung 22" "RDFORMAT fragt nach" && { sleep 2; Q "sendkey tab" sleep0.3 "sendkey ret"; }
 schritt "RDFORMAT: fertig" "C: formatiert" 1 120 && { sleep 2; Q "sendkey ret"; }
 schritt "Diskette 1 (RD2SYSTEM)" "Diskette 1 zurueck" && { Q "change floppy0 obj/ifmt1.img"; sleep 2; Q "sendkey ret"; }
 schritt "INSTALL: formatiert" "Installer sieht leere Platte"
