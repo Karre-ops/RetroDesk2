@@ -12,7 +12,7 @@ T() { timeout 10 python3 test/qemu/qmon.py text 2>/dev/null; }
 waitscr() { for i in $(seq ${2:-30}); do T | grep -q "$1" && return 0; sleep 1; done; return 1; }
 waitser() { for i in $(seq ${3:-60}); do [ "$(tr -d '\r' < $SER | grep -c "$1")" -ge "${2:-1}" ] && return 0; sleep 1; done; return 1; }
 png() { python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" 2>/dev/null; }
-for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
+for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) grep -qa "${S:-$SOCK}" $p/cmdline 2>/dev/null && kill ${p#/proc/} 2>/dev/null;; esac; done
 bash tools/mkset.sh >/dev/null 2>&1 || { echo "FEHLER mkset"; exit 1; }
 for i in 1 2 3; do cp out/set/RD2_$i.IMG obj/inst$i.img; done
 . test/xbedarf.sh; xbedarf obj/inst2.img

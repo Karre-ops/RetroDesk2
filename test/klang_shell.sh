@@ -3,7 +3,7 @@
 # Erwartet: START beim Start der Shell, FRAGE bei der Rueckfrage Beenden, ENDE beim Beenden (drei Tonfolgen).
 cd "$(dirname "$0")/.."
 IMG=obj/klsh.img; SER=obj/klsh_com1.txt; S=/tmp/qmon_klsh.sock; export QMON=$S; WAV=obj/klsh.wav; F=0
-for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
+for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) grep -qa "${S:-$SOCK}" $p/cmdline 2>/dev/null && kill ${p#/proc/} 2>/dev/null;; esac; done
 printf '@echo off\r\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\SHELL.EXE\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ae_klsh.txt
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_klsh.txt >/dev/null 2>&1
 printf '[System]\r\nSound=ADLIB\r\n' > obj/klsh_ini.txt; mcopy -o -i $IMG obj/klsh_ini.txt ::/RD2/RD2.INI; mcopy -o -i $IMG out/ADLIB.DRV ::/RD2/

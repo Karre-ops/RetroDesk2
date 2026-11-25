@@ -32,7 +32,7 @@ IMG=obj/pas.img; SER=obj/com1_pas.txt; SOCK=/tmp/qmon_pas.sock
 printf '@echo off\r\nA:\\RDMAUS.COM\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\PTESTT.EXE eins zwei\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\PTESTF.EXE eins zwei\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\PHALLOT.EXE T\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\PHALLOF.EXE T\r\nA:\\RD2\\RD2.EXE /VGA A:\\RD2\\HALLO.EXE T\r\nA:\\FDAPM.COM POWEROFF\r\n' > obj/ae_pas.txt
 FMT=720 bash tools/mkdisk.sh $IMG obj/ae_pas.txt >/dev/null 2>&1
 mcopy -o -i $IMG out/RDMAUS.COM ::/; for p in PTESTT PTESTF PHALLOT PHALLOF; do mcopy -o -i $IMG $T/$p.EXE ::/RD2/; done; mcopy -o -i $IMG out/HALLO.EXE ::/RD2/
-for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
+for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) grep -qa "${S:-$SOCK}" $p/cmdline 2>/dev/null && kill ${p#/proc/} 2>/dev/null;; esac; done
 rm -f $SER $SOCK; touch $SER
 timeout 120 qemu-system-i386 -m 1 -display none -no-reboot -drive file=$IMG,format=raw,if=floppy,index=0 -boot a \
   -serial file:$SER -monitor unix:$SOCK,server,nowait >/dev/null 2>&1 &

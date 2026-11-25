@@ -17,14 +17,16 @@ DIALOG 11 "Formatieren" 0 0 180 56
   PROGRESS                41   8  20 164  8
   BUTTON   "Abbruch"       2  65  36  50 14
 ENDE
-DIALOG 12 "Festplatte formatieren" 0 0 200 82
+DIALOG 12 "Festplatte formatieren" 0 0 200 96
   STATIC   "Laufwerk"     19   8   6 184 10
   STATIC   "Gr”áe"        23   8  18 184 10
   STATIC   "&Bezeichnung:" -1   8  34  60 10
   EDIT                    20  70  32 92 12
-  CHECK    "&Schnell (nur Verwaltung)"     21   8  50 184 10
-  BUTTON   "Start"         1  44  64  50 14 STANDARD
-  BUTTON   "Abbruch"       2 106  64  50 14
+  RADIO    "FAT&16"       26   8  50  60 10
+  RADIO    "FAT&32 (ab 386)" 27  70  50 120 10
+  CHECK    "&Schnell (nur Verwaltung)"     21   8  64 184 10
+  BUTTON   "Start"         1  44  78  50 14 STANDARD
+  BUTTON   "Abbruch"       2 106  78  50 14
 ENDE
 TEXTE
   1 "Formatieren"
@@ -45,6 +47,12 @@ TEXTE
   33 "Abgebrochen. Die Festplatte ist nur teilweise formatiert."
   34 "Es l„uft schon eine Formatierung.\nBitte warten, bis sie fertig ist."
   35 "RDFDISK l„uft gerade.\nErst Partitionen schreiben und neu starten,\ndann formatieren."
+  36 "Laufwerk %s: auf %s umstellen?\nDazu wird der Partitionstyp ge„ndert und\nneu gestartet. Danach geht das Formatieren\nvon selbst weiter. Alle Daten gehen verloren."
+  37 "Das Laufwerk zum Weiterformatieren\nwurde nach dem Neustart nicht gefunden."
+  38 "Sektor 2 der Festplatte ist belegt.\nFAT16/FAT32 bitte mit RDFDISK neu anlegen."
+  39 "FAT32 geht erst ab 129 MB, FAT16 h”chstens bis 2 GB.\nBitte das Laufwerk mit RDFDISK neu anlegen."
+  40 "Der Partitionstyp l„sst sich nicht schreiben (BIOS-Status %s)."
+  41 "Formatieren wird nach dem Neustart fortgesetzt: Laufwerk %s:"
 ENDE
 SPRACHE EN
 DIALOG 10 "Format" 0 0 200 106
@@ -64,14 +72,16 @@ DIALOG 11 "Format" 0 0 180 56
   PROGRESS                41   8  20 164  8
   BUTTON   "Cancel"        2  65  36  50 14
 ENDE
-DIALOG 12 "Format hard disk" 0 0 200 82
+DIALOG 12 "Format hard disk" 0 0 200 96
   STATIC   "Drive"        19   8   6 184 10
   STATIC   "Size"         23   8  18 184 10
   STATIC   "&Label:"      -1   8  34  60 10
   EDIT                    20  70  32 92 12
-  CHECK    "&Quick (system area only)"     21   8  50 184 10
-  BUTTON   "Start"         1  44  64  50 14 STANDARD
-  BUTTON   "Cancel"        2 106  64  50 14
+  RADIO    "FAT&16"       26   8  50  60 10
+  RADIO    "FAT&32 (386 and up)" 27  70  50 120 10
+  CHECK    "&Quick (system area only)"     21   8  64 184 10
+  BUTTON   "Start"         1  44  78  50 14 STANDARD
+  BUTTON   "Cancel"        2 106  78  50 14
 ENDE
 TEXTE
   1 "Format"
@@ -92,4 +102,10 @@ TEXTE
   33 "Cancelled. The hard disk is only partly formatted."
   34 "A format is already running.\nPlease wait until it has finished."
   35 "RDFDISK is running.\nWrite the partitions and restart first,\nthen format."
+  36 "Switch drive %s: to %s?\nThe partition type is changed and the PC\nrestarts. Formatting then continues by itself.\nAll data will be lost."
+  37 "The drive to continue formatting\nwas not found after the restart."
+  38 "Sector 2 of the hard disk is in use.\nPlease recreate FAT16/FAT32 with RDFDISK."
+  39 "FAT32 needs at least 129 MB, FAT16 at most 2 GB.\nPlease recreate the drive with RDFDISK."
+  40 "Cannot write the partition type (BIOS status %s)."
+  41 "Formatting continues after the restart: drive %s:"
 ENDE

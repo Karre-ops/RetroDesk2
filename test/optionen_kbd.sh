@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/.."
 IMG=obj/optkbd.img; SER=obj/optkbd_com1.txt; S=/tmp/qmon_optkbd.sock; export QMON=$S; F=0
 export WATCOM=${WATCOM:-/opt/ow} PATH=/opt/ow/binl64:/opt/ow/binl:$PATH INCLUDE=/opt/ow/h
-for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
+for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) grep -qa "${S:-$SOCK}" $p/cmdline 2>/dev/null && kill ${p#/proc/} 2>/dev/null;; esac; done
 (cd obj && wasm -q -0 -fo=keytest.obj ../test/KEYTEST.ASM && wlink option quiet format dos com name keytest.com file keytest.obj) || exit 1
 cat > obj/ae_optkbd.txt <<'AE'
 @echo off

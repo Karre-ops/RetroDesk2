@@ -25,7 +25,8 @@ printf '@echo off\nA:\\RD2\\RD2.EXE /NOMAUS /VGA A:\\RD2\\RDFDISK.EXE\nA:\\FDAPM
 NUR="$NUR0 RDFDISK.EXE" bash tools/mkdisk.sh obj/kette_a1.img obj/ae_k1.txt >/dev/null 2>&1
 S=obj/kette1_com1.txt; starten obj/kette_a1.img $S
 if waitn "RDFDISK: Liste bereit" $S; then
-  sleep 3; Q "sendkey alt-a"; waitn "RDFDISK: Liste bereit" $S 100 && sleep 2 && Q "sendkey ret"
+  sleep 3; Q "sendkey alt-a"; waitn "RDFDISK: Meldung 25" $S 100 && sleep 1.5 && Q "sendkey ret"   # ab 386: FAT32? Nein (PLAN_FS)
+  sleep 2 && Q "sendkey ret"
   waitn "RDFDISK: Liste bereit" $S 300 2 && sleep 2.5 && Q "screendump obj/kette1.ppm" sleep0.3 "sendkey alt-s"
   waitn "RDFDISK: Meldung 13" $S 100 && sleep 2 && Q "sendkey ret"
   waitn "RDFDISK: Meldung 14" $S 300 && sleep 2 && Q "sendkey ret"

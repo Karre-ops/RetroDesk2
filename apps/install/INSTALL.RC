@@ -30,16 +30,18 @@ TEXTE
   27 "Bitte Diskette 5 (RD2 32) einlegen: 32-Bit-Programme, ab 386."
   28 "Bitte Diskette 2 (RD2 386 2) in das Startlaufwerk einlegen: Netz und SDK."
 ENDE
-DIALOG 10 "RetroDesk 2 installieren" 0 0 260 144
+DIALOG 10 "RetroDesk 2 installieren" 0 0 260 156
   STATIC   "&Ziel auf der Festplatte:" -1 8 6 200 10
   EDIT                                21 8 18 244 12
   CHECK    "C: vorher &formatieren (lîscht alles auf C:)" 24 8 36 244 10
-  CHECK    "Festplatte &startfÑhig machen (FreeDOS-Kern)" 22 8 48 244 10
-  CHECK    "&CONFIG.SYS anpassen (RD2 als Shell)"          23 8 60 244 10
-  PROGRESS                            41 8 76 244 8
-  STATIC   ""                         42 8 88 244 22
-  BUTTON   "&Installieren"             1 60 120 64 14 STANDARD
-  BUTTON   "Abbrechen"                 2 136 120 64 14
+  RADIO    "FAT&16"                    25 20 48 60 10
+  RADIO    "FAT&32 (ab 386, Åber 2 GB)" 26 84 48 168 10
+  CHECK    "Festplatte &startfÑhig machen (FreeDOS-Kern)" 22 8 60 244 10
+  CHECK    "&CONFIG.SYS anpassen (RD2 als Shell)"          23 8 72 244 10
+  PROGRESS                            41 8 88 244 8
+  STATIC   ""                         42 8 100 244 22
+  BUTTON   "&Installieren"             1 60 132 64 14 STANDARD
+  BUTTON   "Abbrechen"                 2 136 132 64 14
 ENDE
 SPRACHE EN
 TEXTE
@@ -72,14 +74,16 @@ TEXTE
   27 "Please insert disk 5 (RD2 32): 32-bit programs, 386 and up."
   28 "Please insert disk 2 (RD2 386 2) into the boot drive: network and SDK."
 ENDE
-DIALOG 10 "Install RetroDesk 2" 0 0 260 144
+DIALOG 10 "Install RetroDesk 2" 0 0 260 156
   STATIC   "&Target on the hard disk:" -1 8 6 200 10
   EDIT                                21 8 18 244 12
   CHECK    "&Format C: first (erases everything on C:)"   24 8 36 244 10
-  CHECK    "Make the hard disk &bootable (FreeDOS kernel)" 22 8 48 244 10
-  CHECK    "&Adjust CONFIG.SYS (RD2 as shell)"             23 8 60 244 10
-  PROGRESS                            41 8 76 244 8
-  STATIC   ""                         42 8 88 244 22
-  BUTTON   "&Install"                  1 60 120 64 14 STANDARD
-  BUTTON   "Cancel"                    2 136 120 64 14
+  RADIO    "FAT&16"                    25 20 48 60 10
+  RADIO    "FAT&32 (386 and up, over 2 GB)" 26 84 48 168 10
+  CHECK    "Make the hard disk &bootable (FreeDOS kernel)" 22 8 60 244 10
+  CHECK    "&Adjust CONFIG.SYS (RD2 as shell)"             23 8 72 244 10
+  PROGRESS                            41 8 88 244 8
+  STATIC   ""                         42 8 100 244 22
+  BUTTON   "&Install"                  1 60 132 64 14 STANDARD
+  BUTTON   "Cancel"                    2 136 132 64 14
 ENDE

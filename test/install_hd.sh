@@ -9,7 +9,7 @@ Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
 T() { timeout 10 python3 test/qemu/qmon.py text 2>/dev/null; }
 waitscr() { for i in $(seq ${2:-30}); do T | grep -q "$1" && return 0; sleep 1; done; return 1; }
 waitser() { for i in $(seq ${3:-60}); do [ "$(tr -d '\r' < $SER | grep -c "$1")" -ge "${2:-1}" ] && return 0; sleep 1; done; return 1; }
-for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
+for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) grep -qa "${S:-$SOCK}" $p/cmdline 2>/dev/null && kill ${p#/proc/} 2>/dev/null;; esac; done
 [ -f ${Z:-release/2.0}/RD2_HDD.ZIP ] || { echo "FEHLER ${Z:-release/2.0}/RD2_HDD.ZIP fehlt"; exit 1; }
 python3 - <<'PY'
 import zipfile, shutil, os

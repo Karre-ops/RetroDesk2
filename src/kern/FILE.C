@@ -215,6 +215,17 @@ WORD RDK DriveInfo(WORD drive, DRIVEINFO FAR *di)       /* drive 1 = A: */
     if (!dos21() || kr.ax == 0xFFFF) return k_lasterr ? k_lasterr : RD_ERR_NOTFOUND;
     di->frei = (DWORD)kr.ax * kr.cx * kr.bx;
     di->gesamt = (DWORD)kr.ax * kr.cx * kr.dx;
+    if (di->typ == DT_HARD) {                     /* FAT32 ueber 2 GB: 36h kappt, 7303h (FAT32-Kern) zaehlt richtig (PLAN_FS) */
+        static char w[4] = "?:\\"; static DWORD x[11]; WORD sh, i;
+        w[0] = (char)('@' + d); kr.ax = 0x7303; SETNAME(w); kr.di = FP_OFF(x); kr.es = FP_SEG(x); kr.cx = sizeof x; rd_int(0x21, &kr);
+        if (!CARRY && kr.ax != 0x7300) {          /* Clustergroesse ist eine Zweierpotenz: schieben statt rechnen */
+            WORD a = (WORD)x[1], b = (WORD)x[2];
+            for (sh = 0; a > 1; a >>= 1) sh++;
+            for (; b > 1; b >>= 1) sh++;
+            for (i = 3; i <= 4; i++) { DWORD v = x[i]; WORD k; for (k = 0; k < sh && !(v & 0x80000000UL); k++) v <<= 1; if (k < sh) v = 0xFFFFFFFFUL; x[i] = v; }
+            di->frei = x[3]; di->gesamt = x[4];   /* ueber 4 GB: Hoechstwert */
+        }
+    }
     if (di->typ == DT_FLOPPY) {
         DWORD kb = di->gesamt >> 10;
         di->format_kb = kb > 2000 ? 2880 : kb > 1300 ? 1440 : kb > 1000 ? 1200 : kb > 600 ? 720 : kb > 300 ? 360 : 180;

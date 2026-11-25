@@ -4,7 +4,8 @@
  * diese Aufrufe aus (Positivliste) und lehnt alles andere ab (Carry, AX = 1, Eintrag im Debug-Log).
  * Module laufen nicht im Programmcode: der Kern schaltet waehrend eines Aufrufs nicht um.
  * Export 1: Ende. Export 2: WORD RddInt(WORD nr, union REGS FAR *ein, union REGS FAR *aus, struct SREGS FAR *s)
- *   wie int86x; liefert aus->x.ax, aus->x.cflag = Carry. */
+ *   wie int86x; liefert aus->x.ax, aus->x.cflag = Carry.
+ * Export 3: WORD RddMerker(void): 1 = RDFORMAT soll nach einem Typwechsel weiterformatieren (PLAN_FS 4). */
 #include <i86.h>
 #include "RD2.H"
 
@@ -75,5 +76,18 @@ static WORD RDEXPORT d_Int(WORD nr, union REGS FAR *ein, union REGS FAR *aus, st
     return r.x.ax;
 }
 
-static struct { WORD n; FARPROC f[2]; } ext = { 2, { (FARPROC)d_schluss, (FARPROC)d_Int } };
+static BYTE msek[512];
+static WORD RDEXPORT d_Merker(void)               /* Export 3 (PLAN_FS 4): 1 = auf einer Platte wartet RDFORMAT (Sektor 2 "RD2FMT1") */
+{
+    BYTE d; WORD i; static const char k[] = "RD2FMT1";
+    for (d = 0x80; d < 0x84; d++) {
+        rr.ax = 0x0201; rr.cx = 2; rr.dx = d; rr.bx = FP_OFF((void FAR *)msek); rr.es = FP_SEG((void FAR *)msek); rr.ds = rr.es; rr.si = rr.di = 0;
+        i13(&rr);
+        if (rr.fl & 1) continue;
+        for (i = 0; i < 7 && msek[i] == (BYTE)k[i]; i++) ;
+        if (i == 7) return 1;
+    }
+    return 0;
+}
+static struct { WORD n; FARPROC f[3]; } ext = { 3, { (FARPROC)d_schluss, (FARPROC)d_Int, (FARPROC)d_Merker } };
 void FAR * RDAPI RdModInit(void) { return &ext; }

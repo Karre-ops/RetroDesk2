@@ -15,6 +15,7 @@ for i in 1 2 3 4 5; do mkdir $T/d$i; mcopy -s -n -i out/set/RD2_$i.IMG "::/*" $T
 nasm -f bin -o $T/mbr.bin tools/mbr.asm
 cfg() { printf 'INSTALL=%s:\\RD2\\RDKEYB.COM DE\r\nINSTALL=%s:\\RD2\\RDMAUS.COM\r\nINSTALL=%s:\\RD2\\CWSDPMI.EXE -p -s-\r\nSHELL=%s:\\RD2\\RD2.EXE /P %s:\\RD2\\SHELL.EXE\r\n' $1 $1 $1 $1 $1 > $T/CONFIG.$1; }
 cfg A; cfg C
+K32=src/disk/fdkern/F32/KERNEL.SYS   # FreeDOS 2046 8086/FAT32: Startkern der 386-Medien (laeuft auch auf 8088/286), XT-Satz bleibt FAT16
 diskette() {   # $1 Abbild  $2 KB  $3 Name  $4 Boot (1/0)  danach Quellordner: RD2-Teile (dX/RD2) und Unterordner (dX/SDK ...)
   local img=$1 kb=$2 lbl="$3" boot=$4; shift 4
   rm -f $img; mformat -C -f $kb -v "$lbl" -i $img ::
@@ -25,10 +26,11 @@ s = open(sys.argv[1], 'rb').read(512); f = open(sys.argv[2], 'r+b'); d = bytearr
 d[0:3] = s[0:3]; d[0x3E:0x200] = s[0x3E:0x200]   # FreeDOS-Bootsektor (FAT12, laedt KERNEL.SYS), BPB bleibt
 f.seek(0); f.write(d)
 PY
-    mcopy -i $img $T/d1/KERNEL.SYS ::/KERNEL.SYS; mcopy -i $img $T/CONFIG.A ::/CONFIG.SYS; mcopy -i $img $T/d1/LIZENZ.TXT ::/
+    mcopy -i $img $K32 ::/KERNEL.SYS; mcopy -i $img $T/CONFIG.A ::/CONFIG.SYS; mcopy -i $img $T/d1/LIZENZ.TXT ::/   # Startkern FAT32 (PLAN_FS 1)
   fi
   mcopy -i $img $T/d1/COPYING $T/d1/QUELLEN.TXT ::/
   mmd -i $img ::/RD2
+  [ $boot = 1 ] && { mmd -i $img ::/RD2/K16; mcopy -i $img $T/d1/KERNEL.SYS ::/RD2/K16/KERNEL.SYS; }   # FAT16-Kern fuer die Festplatte (Vorgabe)
   for q in "$@"; do
     case $q in */RD2) mcopy -o -i $img $q/* ::/RD2/ ;; *) mcopy -s -o -i $img $q ::/ ;; esac
   done
@@ -69,8 +71,8 @@ p[0:3] = v[0:3]; p[0x3E:0x200] = v[0x3E:0x200]; p[0x24] = 0x80   # FreeDOS-Start
 open(img, 'wb').write(bytes(mbr) + bytes(62*512) + bytes(p))
 PY
 rm -f $T/usb.part
-mcopy -i $P $T/d1/KERNEL.SYS ::/KERNEL.SYS; mcopy -i $P $T/CONFIG.C ::/CONFIG.SYS; mcopy -i $P $T/d1/COPYING $T/d1/LIZENZ.TXT $T/d1/QUELLEN.TXT ::/
-mmd -i $P ::/RD2; for d in 1 2 3 5; do mcopy -o -i $P $T/d$d/RD2/* ::/RD2/; done; mcopy -s -i $P $T/d4/SDK $T/d5/SDK32 ::/
+mcopy -i $P $K32 ::/KERNEL.SYS; mcopy -i $P $T/CONFIG.C ::/CONFIG.SYS; mcopy -i $P $T/d1/COPYING $T/d1/LIZENZ.TXT $T/d1/QUELLEN.TXT ::/
+mmd -i $P ::/RD2; mmd -i $P ::/RD2/K16; mcopy -i $P $T/d1/KERNEL.SYS ::/RD2/K16/KERNEL.SYS; for d in 1 2 3 5; do mcopy -o -i $P $T/d$d/RD2/* ::/RD2/; done; mcopy -s -i $P $T/d4/SDK $T/d5/SDK32 ::/
 sed 's/$/\r/' tools/dist/VERTEIL.TXT > $V/LIESMICH.TXT
 (cd $V && find . -type f ! -name SHA256.TXT ! -name LIESMICH.TXT | sort | sed 's|^\./||' | xargs sha256sum > SHA256.TXT)
 for f in $(cd $V && find . -type f | sort); do printf '%-34s %9d\n' "${f#./}" $(stat -c %s $V/$f); done

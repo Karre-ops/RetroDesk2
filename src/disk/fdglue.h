@@ -14,6 +14,8 @@ typedef struct {
     unsigned char dos;                            /* 1 = FAT (DOS kann es lesen) */
     unsigned long start, anzahl, mb;              /* Sektoren ab Plattenanfang, Groesse */
 } FG_TEIL;
+extern int fg_386;                                /* vor fg_start setzen: 1 = ab 386 (LBA, FAT32 waehlbar) */
+void fg_fat32(int an);                            /* naechstes neues Laufwerk mit FAT32 (nur ab 386, ab 129 MB) */
 int  fg_start(void);                              /* liest alle Platten; liefert Anzahl (0 = keine) */
 void fg_platte(int n);                            /* 0 oder 1 */
 unsigned long fg_plattemb(void);

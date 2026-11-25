@@ -10,7 +10,7 @@ T() { timeout 10 python3 test/qemu/qmon.py text 2>/dev/null; }
 waitscr() { for i in $(seq ${2:-30}); do T | grep -q "$1" && return 0; sleep 1; done; return 1; }
 waitser() { for i in $(seq ${3:-60}); do [ "$(tr -d '\r' < $SER | grep -c "$1")" -ge "${2:-1}" ] && return 0; sleep 1; done; return 1; }
 schritt() { if waitser "$1" ${3:-1} ${4:-90}; then echo "ok     $2"; return 0; else echo "FEHLER $2"; tr -d '\r' < $SER | tail -4; F=1; return 1; fi; }
-for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
+for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) grep -qa "${S:-$SOCK}" $p/cmdline 2>/dev/null && kill ${p#/proc/} 2>/dev/null;; esac; done
 bash tools/mkset.sh >/dev/null 2>&1 || { echo "FEHLER mkset"; exit 1; }
 for i in 1 2 3; do cp out/set/RD2_$i.IMG obj/ifmt$i.img; done
 HD=obj/ifmt_hd.img; bash tools/mkhd.sh $HD >/dev/null

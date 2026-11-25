@@ -121,7 +121,9 @@ static void fuellen(HWND d, WORD sel)
 }
 static void anlegen(HWND d, const FG_TEIL *t)
 {
-    char b[12], m[12]; int alslog; unsigned long max = fg_maxmb(t, &alslog), v; WORD i;
+    char b[12], m[12]; int alslog; unsigned long max, v; WORD i;
+    fg_fat32(fg_386 && frage(d, 25, 0, MB_YESNO | MB_ASK | MB_DEFNO) == ID_YES);   /* ab 386: FAT32? (Nein vorgewaehlt) */
+    max = fg_maxmb(t, &alslog);
     zahl(m, max); scpy(b, m, sizeof b);
     fmt(txt, 10, m, 0);
     if (!InputBox(d, txt, StrGet(inst, 1), b, sizeof b)) return;
@@ -216,6 +218,7 @@ short RDAPI RdMain(HINST i, LPCSTR cl, WORD show)
     heim = (char)(si.home[0] & 0xDF); if (heim < 'C' || heim > 'Z') heim = 0;
     if (!(hm = ModLoad("RDDISK.MOD"))) { frage(0, 21, 0, MB_OK | MB_ERROR); return 1; }
     dInt = (RDD_INT_F)ModProc(hm, RDD_INT);
+    fg_386 = si.cpu >= CPU_386;
     nplatten = fg_start();
     if (fg_fehler) { zahl(a, (WORD)fg_fehler); frage(0, 17, a, MB_OK | MB_ERROR); ModFree(hm); return 1; }
     if (nplatten <= 0) { frage(0, 16, 0, MB_OK | MB_WARN); ModFree(hm); return 1; }

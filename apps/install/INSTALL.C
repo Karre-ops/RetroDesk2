@@ -6,18 +6,21 @@
  * Gleiche Regeln wie die Text-Installation in RD2SETUP (Notweg, Taste T).
  * Befehlszeile "T": Testmodus (Ziel C:\RD2, alle Fragen mit Ja, meldet ueber DbgPrint, test/install.sh). */
 #include <string.h>
+#include <i86.h>
 #include "RD2.H"
 
 #define ID_ZIEL   21
 #define ID_SYS    22
 #define ID_CFG    23
 #define ID_FMT    24                              /* C: vorher formatieren (31.10.2026, Karsten) */
+#define ID_F16    25                              /* Dateisystem beim Formatieren (ab 386, PLAN_FS 5) */
+#define ID_F32    26
 #define ID_BALKEN 41
 #define ID_TEXT   42
 #define PUF 32768U                                /* 30.10.: 32 KB statt 8 KB, weniger Umdrehungen je KB auf der Diskette; sonst 16/8 KB */
 #define TEIL 1000                                 /* Balken: je Diskette 1000 Schritte */
 
-static HINST hi; static BYTE test, cmd_f; static HWND dl;
+static HINST hi; static BYTE test, cmd_f, weiter, k32m; static HWND dl;
 static char quelle[80], ziel[64], pfad[96], z2[96];
 static char FAR *pu; static HMEM hpu; static WORD puf;
 static DWORD gesamt, fertig; static WORD dnr, ndat, nfehl, verloren;
@@ -284,7 +287,9 @@ static BOOL formatieren(void)                     /* C: mit RDFORMAT (Diskette 2
     if (!test && MsgBox(dl, StrGet(hi, 25), StrGet(hi, 1), MB_YESNO | MB_WARN | MB_DEFNO) != ID_YES) return FALSE;   /* Formatieren: Nein vorgewaehlt */
     if (!einlegen("RDFORMAT.EXE", 4)) return FALSE;
     DbgPrint("INSTALL: RDFORMAT");
-    if (!(t = TaskExec(pfad, "C:", SW_SHOW))) return FALSE;
+    cpy(z2, "C:");                                /* ab 386 mit FAT32-Startkern: Wunsch FAT16/FAT32; bei Wechsel startet RDFORMAT neu */
+    if (k32m) { cat(z2, DlgChecked(dl, ID_F32) ? " /FS:32 /I:" : " /FS:16 /I:"); cat(z2, quelle); cat(z2, "INSTALL.EXE W"); cat(z2, ziel); }
+    if (!(t = TaskExec(pfad, z2, SW_SHOW))) return FALSE;
     ShowWindow(dl, SW_HIDE);                       /* Tasten gehen an RDFORMAT, nicht an diesen Dialog */
     while (lebt(t)) {                              /* RDFORMAT fragt selbst noch einmal und zeigt den Fortschritt */
         MSG m;
@@ -294,6 +299,23 @@ static BOOL formatieren(void)                     /* C: mit RDFORMAT (Diskette 2
     ShowWindow(dl, SW_SHOW); SetActive(dl); malen();
     einlegen("RD2.EXE", 6);
     return FileFindFirst("C:\\*.*", FA_DIR | FA_HIDDEN | FA_SYSTEM | FA_RDONLY, &fd) != 0;   /* nichts mehr auf C: */
+}
+typedef WORD (RDAPI *DINT)(WORD nr, union REGS FAR *ein, union REGS FAR *aus, struct SREGS FAR *s);
+static BOOL ziel_fat32(void)                      /* Ziellaufwerk FAT32? Startsektor ueber RDDISK (INT 25h, sonst 7305h): FAT-Groesse 16 Bit = 0 */
+{
+    static struct { DWORD s; WORD n; void FAR *p; } pk; static union REGS r; static struct SREGS sr; static BYTE b[512];
+    HMOD h; DINT f; BOOL e = FALSE;
+    if (alt || !(h = ModLoad("RDDISK.MOD"))) return FALSE;
+    if ((f = (DINT)ModProc(h, 2)) != 0) {
+        pk.s = 0; pk.n = 1; pk.p = (void FAR *)b; segread(&sr);
+        r.x.ax = (ziel[0] & 0xDF) - 'A'; r.x.cx = 0xFFFF; r.x.bx = FP_OFF((void FAR *)&pk);
+        f(0x25, (union REGS FAR *)&r, (union REGS FAR *)&r, (struct SREGS FAR *)&sr);
+        if (r.x.cflag) { r.x.ax = 0x7305; r.x.cx = 0xFFFF; r.h.dl = (BYTE)((ziel[0] & 0xDF) - 'A' + 1); r.x.si = 0; r.x.bx = FP_OFF((void FAR *)&pk); segread(&sr);
+                         f(0x21, (union REGS FAR *)&r, (union REGS FAR *)&r, (struct SREGS FAR *)&sr); }
+        e = !r.x.cflag && b[510] == 0x55 && b[511] == 0xAA && !b[0x16] && !b[0x17];
+    }
+    ModFree(h);
+    return e;
 }
 static void install2(void)
 {
@@ -351,8 +373,10 @@ static void install2(void)
     if (sys) {                                    /* zuletzt: RD2 verlaesst kurz die Grafik (ohne XMS: Neustart von RD2) */
         char a[8];
         meldung(13, MB_INFO); malen();
-        a[0] = quelle[0]; a[1] = ':'; a[2] = '\\'; a[3] = ' '; a[4] = ziel[0]; a[5] = ':'; a[6] = 0;
-        cpy(t, a); cat(t, " /UPDATE");
+        a[0] = quelle[0]; a[1] = ':'; a[2] = '\\'; a[3] = 0;
+        cpy(z2, quelle); cat(z2, "K16\\KERNEL.SYS");   /* 386-Medien: Startkern FAT32, FAT16-Kern in RD2\K16 (Vorgabe auf der Platte) */
+        if (gibts(z2) && !ziel_fat32()) { cpy(t, quelle); cat(t, "K16\\"); DbgPrint("INSTALL: Kern FAT16"); } else { cpy(t, a); if (gibts(z2)) DbgPrint("INSTALL: Kern FAT32"); }
+        a[0] = ' '; a[1] = ziel[0]; a[2] = ':'; a[3] = 0; cat(t, a); cat(t, " /UPDATE");
         DbgPrint("INSTALL: RDSYS");
         if (RunDos(pfad, t, RD_DOS_KEEP) == 0xFFFF && LastError() == RD_ERR_NOTSUP) {
             meldung(14, MB_INFO);                 /* ohne XMS: RD2 endet, RDSYS laeuft, RD2 startet neu */
@@ -375,13 +399,23 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
     (void)p2;
     if (msg == M_INITDIALOG) {
         dl = d;
-        cpy(ziel, "C:\\RD2"); DlgSetText(d, ID_ZIEL, ziel);
+        if (!weiter) cpy(ziel, "C:\\RD2");
+        DlgSetText(d, ID_ZIEL, ziel);
         DlgCheck(d, ID_SYS, 1); DlgCheck(d, ID_CFG, 1);
         SendMessage(DlgItem(d, ID_BALKEN), C_SETRANGE, 0, 4 * TEIL);
-        cpy(ziel, "C:\\RD2\\");
+        if (!weiter) cpy(ziel, "C:\\RD2\\");
         if (!sys_moeglich(FALSE)) { DlgCheck(d, ID_SYS, 0); EnableWindow(DlgItem(d, ID_SYS), FALSE); }
         if ((quelle[0] & 0xDF) > 'B') EnableWindow(DlgItem(d, ID_FMT), FALSE);   /* nur beim Start von Diskette: C: ist dann frei */
         if (test && cmd_f) DlgCheck(d, ID_FMT, 1);
+        cpy(z2, quelle); cat(z2, "K16\\KERNEL.SYS"); k32m = (BYTE)(!alt && gibts(z2));   /* FAT32 nur ab 386 und vom 386-Medium (FAT32-Startkern) */
+        if (!k32m) { ShowWindow(DlgItem(d, ID_F16), SW_HIDE); ShowWindow(DlgItem(d, ID_F32), SW_HIDE); }
+        else { DlgCheck(d, ID_F16, 1); EnableWindow(DlgItem(d, ID_F16), DlgChecked(d, ID_FMT)); EnableWindow(DlgItem(d, ID_F32), DlgChecked(d, ID_FMT)); }
+        if (weiter) {                             /* nach Typwechsel und Neustart: C: ist formatiert, gleich weiter installieren */
+            DbgPrint("INSTALL: fortgesetzt"); DlgSetText(d, ID_ZIEL, ziel);
+            DlgCheck(d, ID_FMT, 0); EnableWindow(DlgItem(d, ID_FMT), FALSE);
+            if (sys_moeglich(FALSE)) { EnableWindow(DlgItem(d, ID_SYS), TRUE); DlgCheck(d, ID_SYS, 1); }
+            PostMessage(d, M_COMMAND, ID_OK, 0);
+        }
         textn(2);
         if (test) PostMessage(d, M_COMMAND, ID_OK, 0);
         return FALSE;
@@ -389,6 +423,7 @@ static BOOL RDCALLBACK dproc(HWND d, WORD msg, WORD p1, DWORD p2)
     if (msg == M_COMMAND && p1 == ID_FMT) {        /* Formatieren an: altes System auf C: ist danach weg, Kern wieder waehlbar */
         BOOL m = sys_moeglich((BOOL)DlgChecked(d, ID_FMT));
         EnableWindow(DlgItem(d, ID_SYS), m); DlgCheck(d, ID_SYS, m);
+        if (k32m) { EnableWindow(DlgItem(d, ID_F16), DlgChecked(d, ID_FMT)); EnableWindow(DlgItem(d, ID_F32), DlgChecked(d, ID_FMT)); }
         return TRUE;
     }
     if (msg == M_COMMAND && p1 == ID_OK) { installieren(); if (test) DialogEnd(d, ID_CANCEL); return TRUE; }
@@ -408,6 +443,10 @@ short RDAPI RdMain(HINST inst, LPCSTR cmd, WORD show)
         DbgPrint("INSTALL: Schluss"); DbgPrint(StrGet(inst, 24));
         if (MsgBox(0, StrGet(inst, 24), StrGet(inst, 1), MB_YESNO | MB_ASK) == ID_YES) neustart();
         MemUnlock(hpu); MemFree(hpu); return 0;
+    }
+    if (cmd && cmd[0] == 'W') {                   /* RDFORMAT nach Typwechsel FAT16/FAT32: Ziel steht dahinter */
+        weiter = 1; for (i = 0; cmd[1 + i] && cmd[1 + i] != ' ' && i < sizeof ziel - 2; i++) ziel[i] = cmd[1 + i];
+        ziel[i] = 0; if (i && ziel[i - 1] != '\\') cat(ziel, "\\");
     }
     DbgPrint("INSTALL: Start"); DbgPrint(quelle);
     DialogRun(inst, 10, 0, dproc, 0);

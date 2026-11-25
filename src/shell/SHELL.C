@@ -1101,7 +1101,7 @@ static DWORD RDCALLBACK deskproc(HWND w, WORD msg, WORD p1, DWORD p2)
 static BYTE instneu;
 short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
 {
-    WNDCLASS wc; MSG m; HDC d; DRIVEINFO di; WORD k;
+    WNDCLASS wc; MSG m; HDC d; DRIVEINFO di; WORD k; BYTE fweiter = 0;
     (void)show;
     inst = i; if (cmd[0] == '/' && (cmd[1] | 0x20) == 'i') instneu = 1;   /* /I: Kern, RD2SETUP "I" von CD (keine RD2.INI) */
     { SYSINFO si; KernInfo(&si); scpy(heim, si.home, sizeof heim); k = slen(heim); if (k && heim[k - 1] == '\\') heim[--k] = 0; if (k <= 2) heim[0] = 0; }
@@ -1127,10 +1127,17 @@ short RDAPI RdMain(HINST i, LPCSTR cmd, WORD show)
     TimerSet(desk, 1, 1000); uhr(); prgladen(); sta_lesen(); mvoll = muellvoll();
     { char p[80], u[80]; if (werkzeug(p, "RD2.INI")) szeit = (WORD)ProfileGetInt(p, "Schoner", "Zeit", 300);
       if (werkzeug(p, "RD2.INI") && ProfileGetInt(p, "Netz", "Zeit", 0) && werkzeug(u, "UHR.EXE")) TaskExec(u, "N", SW_HIDE); }   /* Netzzeit beim Start */
+    { SYSINFO si; char u[80]; HMOD h; WORD (RDAPI *mf)(void); KernInfo(&si);   /* ab 386: Formatieren nach Typwechsel FAT16/FAT32 fortsetzen (PLAN_FS 4) */
+      if (si.cpu >= CPU_386 && werkzeug(u, "RDDISK.MOD") && (h = ModLoad("RDDISK.MOD")) != 0) {
+          mf = (WORD (RDAPI *)(void))ModProc(h, 3);   /* RDDISK Export 3: Merker in Sektor 2 einer Platte */
+          if (mf && mf() && werkzeug(u, "RDFORMAT.EXE") && TaskExec(u, "/W", SW_SHOW)) fweiter = 1;   /* RDFORMAT startet danach INSTALL */
+          ModFree(h);
+      } }
     { SYSINFO si; char p[80], u[80]; int n; KernInfo(&si);   /* Menuepunkt nur von Diskette; RD2SETUP "I" startet die Installation auch aus einem Festplattenordner */
       MenuEnable(msys, CM_ZUB + 12, (si.home[0] | 0x20) < 'c' && werkzeug(u, "INSTALL.EXE"));
       MenuEnable(msys, CM_ZUB + 13, werkzeug(u, "RDEDIT.EXE"));     /* Editor liegt auf der Programmdiskette */
-      if (instneu && werkzeug(u, "INSTALL.EXE")) TaskExec(u, "", SW_SHOW);
+      if (fweiter) ;                              /* Formatieren laeuft weiter, INSTALL kommt danach von RDFORMAT */
+      else if (instneu && werkzeug(u, "INSTALL.EXE")) TaskExec(u, "", SW_SHOW);
       else if (werkzeug(p, "RD2.INI") && (n = ProfileGetInt(p, "System", "Installieren", 0)) >= 1 && n <= 2 && werkzeug(u, "INSTALL.EXE"))
           { ProfileSetStr(p, "System", "Installieren", "0"); TaskExec(u, n == 2 ? "F" : "", SW_SHOW); }   /* 2: nach RDSYS ohne XMS nur Schlussmeldung (31.10.) */
       if (werkzeug(p, "RD2.INI") && ProfileGetStr(p, "System", "GrafikAlt", "", u, 4) && werkzeug(u, "OPTIONEN.EXE")) TaskExec(u, "B", SW_SHOW); }   /* neue Grafik: "Behalten?" */

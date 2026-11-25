@@ -15,6 +15,8 @@ static int platte;
 
 void Pause(void) { }                              /* FDISK-Rueckfragen im Textmodus: entfallen */
 
+int fg_386;                                        /* RDFDISK: ab 386 FAT32 waehlbar und LBA (PLAN_FS 2) */
+void fg_fat32(int an) { flags.fat32 = an && fg_386; flags.fprmt = TRUE; flags.version = flags.fat32 ? COMP_W95B : COMP_SIX; }
 int fg_start(void)
 {
     int i;
@@ -25,15 +27,17 @@ int fg_start(void)
     flags.lba_marker = TRUE;
     flags.set_any_pri_part_active = TRUE;
     flags.total_number_hard_disks = 255;
-    flags.use_extended_int_13 = TRUE;
+    flags.use_extended_int_13 = fg_386;           /* LBA (INT-13h-Erweiterungen) erst ab 386, sonst CHS wie DOS 6 */
     for (i = 0; i < MAX_DISKS; i++) user_defined_chs_settings[i].defined = FALSE;
     Determine_DOS_Version();
-    /* Immer wie DOS 6: nur FAT12/FAT16 (bis 2 GB je Laufwerk), keine LBA-Typen 0Eh/0Fh, keine INT-13h-
-       Erweiterungen. So bleibt die Platte auch fuer MS-DOS 5 lesbar (SYS A: nach dem Tausch des Kerns);
-       der FreeDOS-Kern meldet sich als DOS 7.10, das allein reicht nicht. Platten ueber 8 GB: nur der
-       per CHS erreichbare Teil. */
+    /* Vorgabe wie DOS 6: nur FAT12/FAT16 (bis 2 GB je Laufwerk). So bleibt die Platte auch fuer MS-DOS 5
+       lesbar (SYS A: nach dem Tausch des Kerns); der FreeDOS-Kern meldet sich als DOS 7.10, das allein
+       reicht nicht. Unter dem 386: keine INT-13h-Erweiterungen, Platten ueber 8 GB nur der per CHS
+       erreichbare Teil. Ab 386 (PLAN_FS 2, 25.11.2026): LBA, wenn das BIOS es kann (Typen 0Ch/0Eh/0Fh
+       hinter 8 GB), und FAT32 auf Wunsch je neuem Laufwerk (fg_fat32). */
     flags.version = COMP_SIX;
     flags.fat32 = FALSE;
+    if (flags.use_extended_int_13) Check_For_INT13_Extensions();   /* ab 386: LBA je Platte (41h), sonst bleibt alles CHS */
     Initialize_LBA_Structures();
     if ((fg_fehler = Read_Partition_Tables()) != 0) return 0;
     Determine_Drive_Letters();

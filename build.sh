@@ -198,7 +198,9 @@ $W -fpi87 -fo=obj/setasm.obj src/setup/SETASM.ASM
 # RDSYS.EXE: FreeDOS SYS (GPL v2) unveraendert als eigenes DOS-Programm, RD2SETUP ruft es mit /UPDATE (Festplatte startfaehig)
 mkdir -p obj/sys; for t in 12 16; do nasm -dISFAT$t -i src/disk/fdsys/ src/disk/fdsys/boot.asm -o obj/sys/fat${t}com.bin || exit 1
   python3 -c "import sys; d=open(sys.argv[1],'rb').read(); print('unsigned char %s[] = {' % sys.argv[2]); print(','.join('0x%02X' % c for c in d)); print('};')" obj/sys/fat${t}com.bin fat${t}com > obj/sys/fat${t}com.h; done
-for f in sys fdkrncfg talloc kernel/prf; do wcc -0 -ms -zp1 -os -s -zq -bt=dos -DFORSYS -i=src/disk/fdsys/hdr -i=obj/sys -fo=obj/sys/${f##*/}.obj src/disk/fdsys/$f.c >/dev/null || exit 1; done
+for t in 32chs:boot32 32lba:boot32lb; do n=${t%%:*}; nasm -i src/disk/fdsys/ src/disk/fdsys/${t#*:}.asm -o obj/sys/fat$n.bin || exit 1   # FAT32 (PLAN_FS 1, 25.11.2026)
+  python3 -c "import sys; d=open(sys.argv[1],'rb').read(); print('unsigned char %s[] = {' % sys.argv[2]); print(','.join('0x%02X' % c for c in d)); print('};')" obj/sys/fat$n.bin fat$n > obj/sys/fat$n.h; done
+for f in sys fdkrncfg talloc kernel/prf; do wcc -0 -ms -zp1 -os -s -zq -bt=dos -DFORSYS -DWITHFAT32 -i=src/disk/fdsys/hdr -i=obj/sys -fo=obj/sys/${f##*/}.obj src/disk/fdsys/$f.c >/dev/null || exit 1; done
 wlink option quiet system dos name $O/RDSYS.EXE file obj/sys/sys.obj,obj/sys/fdkrncfg.obj,obj/sys/talloc.obj,obj/sys/prf.obj >/dev/null || exit 1
 # COMMAND.COM: FreeCOM 0.85a deutsch (GPL v2) unveraendert, Diskette 3; INSTALL kopiert es nach C:\RD2 (31.10.2026)
 cp src/disk/freecom/COMMAND.COM $O/COMMAND.COM

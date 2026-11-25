@@ -559,6 +559,13 @@ static int ordner(const char *ziel)               /* G22: Ebene fuer Ebene anleg
     for (i = 3; ziel[i]; i++) if (ziel[i] == '\\') { memcpy(d, ziel, i); d[i] = 0; mkdir(d); }
     return !_dos_getfileattr(d, &a) && (a & _A_SUBDIR);
 }
+static int fat32c(void)                          /* C: ist FAT32 (7303h, ab 65525 Cluster); FAT16-Kern kennt 7303h nicht */
+{
+    static char b[48]; union REGS r; struct SREGS sr;
+    segread(&sr); sr.es = sr.ds; r.x.ax = 0x7303; r.x.dx = (unsigned)"C:\\"; r.x.di = (unsigned)b; r.x.cx = sizeof b;
+    int86x(0x21, &r, &r, &sr);
+    return !r.x.cflag && r.x.ax != 0x7300 && *(unsigned long *)(b + 0x10) >= 65525UL;
+}
 static int hatsys(char lw)                        /* Platte hat schon ein System */
 {
     char p[16];
@@ -648,7 +655,9 @@ static void installieren(void)
                : i == 1 ? "CONFIG.SYS: RD2 ist die Shell, alte Fassung: CONFIG.RDA." : "CONFIG.SYS angelegt, RD2 ist die Shell.");
     if (i == 1 && k) zeile(y + 3, "Hinweis: SET- und PATH-Zeilen der AUTOEXEC.BAT gelten mit RD2 als Shell nicht.");
     sprintf(z, "%sKERNEL.SYS", ziel);            /* FreeDOS-Kern von Diskette 1 mitnehmen, RDSYS kommt mit Diskette 3 */
-    if ((ziel[0] & 0xDF) == 'C' && i != -2 && !hatsys('C')) { sprintf(nach, "%c:\\KERNEL.SYS", quelle[0]); if (!gibts(nach) || !kopieren(nach, z)) z[0] = 0; } else z[0] = 0;
+    if ((ziel[0] & 0xDF) == 'C' && i != -2 && !hatsys('C')) {   /* 386-Medien: FAT16-Kern in RD2\K16, Startkern FAT32 nur fuer FAT32 (PLAN_FS 5) */
+        sprintf(nach, "%c:\\RD2\\K16\\KERNEL.SYS", quelle[0]); if (!gibts(nach) || fat32c()) sprintf(nach, "%c:\\KERNEL.SYS", quelle[0]);
+        if (!gibts(nach) || !kopieren(nach, z)) z[0] = 0; } else z[0] = 0;
     weitere(ziel, y + 5);
     if (z[0]) { startfaehig('C', y + 4, ziel); remove(z); }   /* G24: nur C: startet (aktive Partition der 1. Platte) */
     sprintf(nach, "%sRD2.INI", ziel);

@@ -36,6 +36,7 @@ TEXTE
   22 "Bitte eine Zahl von 1 bis %s eingeben."
   23 "Es lÑuft schon ein RDFDISK."
   24 "Es lÑuft gerade eine Formatierung.\nBitte warten, bis sie fertig ist."
+  25 "Neues Laufwerk mit FAT32 anlegen?\nFAT32 erlaubt Laufwerke Åber 2 GB (ab 129 MB).\nMS-DOS bis 6.22 kann es nicht lesen,\nRD2 braucht dann den FAT32-Kern."
 ENDE
 SPRACHE EN
 DIALOG 10 "Set up hard disk" 0 0 236 136
@@ -74,4 +75,5 @@ TEXTE
   22 "Please enter a number from 1 to %s."
   23 "RDFDISK is already running."
   24 "A format is running.\nPlease wait until it has finished."
+  25 "Create the new drive with FAT32?\nFAT32 allows drives over 2 GB (from 129 MB).\nMS-DOS up to 6.22 cannot read it,\nRD2 then needs the FAT32 kernel."
 ENDE

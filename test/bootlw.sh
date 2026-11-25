@@ -5,7 +5,7 @@
 cd "$(dirname "$0")/.."
 S=/tmp/qmon_blw.sock; SER=obj/com1_blw.txt; export QMON=$S; F=0
 Q() { timeout 10 python3 test/qemu/qmon.py "$@" >/dev/null 2>&1; }
-for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) kill ${p#/proc/} 2>/dev/null;; esac; done
+for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*) grep -qa "${S:-$SOCK}" $p/cmdline 2>/dev/null && kill ${p#/proc/} 2>/dev/null;; esac; done
 [ -f obj/inst_hd.img ] || { echo "FEHLER obj/inst_hd.img fehlt (erst test/install.sh)"; exit 1; }
 HD=obj/blw_hd.img; cp obj/inst_hd.img $HD; P="-i $HD@@32256"
 mcopy -o $P out/RD2.EXE ::/RD2/RD2.EXE
