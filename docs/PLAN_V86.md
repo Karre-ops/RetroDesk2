@@ -21,6 +21,18 @@ Stand 26.11.2026, Entscheidungen Karsten:
 - Dateisystem-Integrität vor Tempo: feste Schreibreihenfolge (Daten, FAT, Verzeichnis), Cache mit Durchschreiben
   als Vorgabe, Abgleich mit DOS beim Übernehmen und beim Beenden (Puffer schreiben, Laufwerke zurücksetzen).
 
+## Folgen für bestehende Programme (Durchsicht 26.11.2026)
+Durchgesehen: RDBILD, RDBURG, RDCALC, RDQRCODE, RDTRON (RD2-Fassung), RDISOENGINE, RDWerkzeugbau, RDDOOM.
+- Kein RD2-Programm ruft INT 21h, INT 13h oder INT 31h selbst auf oder setzt Interruptvektoren; alle gehen über
+  die RD2-API. RD2/32-Programme (RDISOENGINE, RDWerkzeugbau) nutzen nur die RD32-Laufzeit. Fester Bildspeicher
+  oder BIOS-Daten über feste Adressen: keine Fundstellen.
+- Direkte Ports: nur RDDOOM (geplant, Link-Adapter nach B004-Norm ab 150h, Port aus RD2.INI) und dessen
+  DOS-Werkzeug LINKTEST.COM. Die DOS-Fassungen von H-TRON im RDTRON-Repo (Tastatur über INT 9 und Port 60h) sind
+  DOS-Programme und laufen wie andere DOS-Programme.
+- Regeln daraus für RD2V: In der System-VM sind alle Ports frei außer denen, die RD2V selbst nachbildet (PIC,
+  Zeitgeber, Tastatur, ab Teil 3 Platten-Controller); das erste MB der System-VM ist eins zu eins abgebildet
+  (Bildspeicher, BIOS, DMA-Puffer). Damit laufen alle Programme unverändert, ohne neu gebaut zu werden.
+
 ## Plan-Teile (je Teil Tests gesammelt am Ende)
 1. **RD2V als DPMI-Host für RD2/32.** Lader aus RD2, GDT/IDT/TSS, Paging, Speicherverwalter über XMS,
    Ausnahmen. Die DPMI-Teilmenge, die RD32 nutzt: Einsprung 1687h, Selektoren (0000h, 0001h, 0003h,
