@@ -1,83 +1,58 @@
 RetroDesk 2.4 - Verteilformen
 =============================
 
-Jeder Ordner ist fuer sich vollstaendig. Man braucht nur den, der zum Rechner passt.
+Jeder Ordner ist fuer sich vollstaendig. Man braucht nur den, der zum Rechner
+passt. Installation immer: starten, im Setup "I" waehlen.
 
-1_XT_360KB     Fuer PC XT, 8088/V20, 286 (16 Bit), 360-KB-Laufwerk
-  RD2_1.IMG    Diskette 1 RD2SYSTEM (bootfaehig, FreeDOS-Kern, RD2, Setup)
-  RD2_2.IMG    Diskette 2 RD2 PROG (Programme, FDISK, FORMAT, Treiber)
-  RD2_3.IMG    Diskette 3 RD2 NETZ (Netzwerk, FTP, IRC, FreeCOM)
-  RD2_4.IMG    Diskette 4 RD2 EXTRA (SDK fuer C und Pascal)
-  Von Diskette 1 starten, im Setup "I" waehlen, die Installation fragt nach
-  den Disketten 2 und 3.
+1_XT_360KB     PC XT, 8088/V20, 286 (16 Bit), 360-KB-Laufwerk
+  RD2_1.IMG    Diskette 1 RD2SYSTEM: bootfaehig, FreeDOS-Kern, RD2, Setup
+  RD2_2.IMG    Diskette 2 RD2 PROG: Programme, FDISK, FORMAT, Treiber
+  RD2_3.IMG    Diskette 3 RD2 NETZ: Netzwerk, FTP, IRC, FreeCOM
+  RD2_4.IMG    Diskette 4 RD2 EXTRA: SDK fuer C und Pascal
 
-2_386_144MB    Fuer 386, 486, Pentium (16 und 32 Bit), 1,44-MB-Laufwerk
-  RD2_386A.IMG Diskette 1 RD2SYSTEM (bootfaehig): System, Programme, Treiber,
-               RD2/32 und CWSDPMI
-  RD2_386B.IMG Diskette 2 RD2 386 2: Netzwerk, SDK und SDK32
-  Von Diskette 1 starten, im Setup "I" waehlen, die Installation fragt nach
-  Diskette 2. Laeuft auch auf 8088 und 286; dann werden die 32-Bit-Teile
-  nicht installiert.
+2_386_144MB    386, 486, Pentium (16 und 32 Bit), 1,44-MB-Laufwerk
+  RD2_386A.IMG Diskette 1 RD2SYSTEM: bootfaehig (FAT32-Kern), System,
+               Programme, Treiber, RD2/32, CWSDPMI
+  RD2_386B.IMG Diskette 2 RD2 386 2: Netzwerk, SDK, SDK32
+  Laeuft auch auf 8088 und 286, dann ohne 32-Bit-Teile.
 
-3_FESTPLATTE   Fuer jeden Rechner mit DOS 5 oder neuer
-  RD2_HDD.ZIP  Ordner RD2 mit allem (auch SDK und SDK32) und RD2INST.BAT.
-  Am PC entpacken, den Ordner RD2 auf den Ziel-PC bringen (FTP, Netzlaufwerk,
-  CF-Karte, ZIP-Diskette) und dort z. B. als C:\RD2NEU ablegen. Dann am
-  DOS-Prompt C:\RD2NEU\RD2INST. Nicht C:\RD2 nehmen, das ist das Ziel.
-  Auf Rechnern unter dem 386 werden die 32-Bit-Teile nicht installiert.
+3_FESTPLATTE   Jeder Rechner mit DOS 5 oder neuer
+  RD2_HDD.ZIP  Ordner RD2 mit allem und RD2INST.BAT. Ordner auf den Ziel-PC
+               bringen (FTP, Netz, CF-Karte), z. B. als C:\RD2NEU, dann
+               C:\RD2NEU\RD2INST aufrufen (nicht C:\RD2, das ist das Ziel).
 
-4_CD_USB       Zum Starten von CD oder USB-Stick (BIOS muss das koennen)
-  RD2_CD.ISO   CD-Abbild. Das BIOS startet davon wie von einer Diskette (A:),
-               darauf ist alles. Braucht keinen CD-Treiber. Installation mit "I"
-               im Setup. Mit CD-Treiber liegt auf der CD ausserdem der Ordner RD2
-               wie im ZIP (Installation mit RD2INST von der CD).
-               Brennen als Abbild (ISO), nicht als Datei. CD-Start koennen die
-               meisten BIOS ab etwa 1997.
-  RD2_USB.IMG  Abbild fuer einen USB-Stick (64 MB, FAT16, bootfaehig). RD2 laeuft
-               direkt vom Stick als Laufwerk C:. Mit einem Abbild-Programm
-               (z. B. Rufus, Win32 Disk Imager, dd) auf den Stick schreiben; alles
-               auf dem Stick geht dabei verloren. USB-Start koennen BIOS ab etwa
-               2002. Hinweis: Vom Stick gestartet ist die eingebaute Platte D:;
-               fuer eine Installation auf die eingebaute Platte besser CD oder ZIP.
+4_CD_USB       Start von CD oder USB-Stick (BIOS muss das koennen)
+  RD2_CD.ISO   Als Abbild brennen. Startet wie eine Diskette (A:), braucht
+               keinen CD-Treiber. Mit CD-Treiber liegt dort auch der Ordner
+               RD2 wie im ZIP. CD-Start koennen BIOS ab etwa 1997.
+  RD2_USB.IMG  64 MB, FAT16, bootfaehig; mit Rufus, Win32 Disk Imager oder dd
+               auf den Stick schreiben (loescht ihn). RD2 laeuft vom Stick als
+               C:, die eingebaute Platte ist dann D:. USB-Start ab etwa 2002.
 
 SHA256.TXT     Pruefsummen
 
-Neu in 2.4 (25.11.2026)
+Neu in 2.4 (26.11.2026)
 ------------------------------------------------------------------------------
-- Vier Verteilformen: 360-KB-Satz (XT), eigener 1,44-MB-Satz ab 386, Ordner
-  zum Kopieren (ZIP), bootbare CD und USB-Stick. Von der CD wird ohne
-  CD-Treiber installiert; die Hardware wird dann beim ersten Start von der
-  Festplatte eingerichtet. INSTALL nimmt SDK und SDK32 von jeder Quelle mit.
-- DOS-Programme: Startart im Eigenschaften-Fenster (Alt+Eingabe) fuer .COM,
-  .BAT und DOS-.EXE: Automatisch, Schnell oder Allein (RD2 beendet sich, das
-  Programm laeuft allein, danach startet RD2 neu). Will ein Programm resident
-  bleiben, fragt RD2 nach und merkt sich die Antwort. .BAT laufen ueber
-  COMMAND.COM, offene RD2-Dateien werden nicht vererbt, der Tastaturpuffer ist
-  beim Start leer.
-- RD2/32: Module (.M32) lassen sich unter DOS bauen (SDK32: MKM32.BAT und
-  RD32MOD.EXE). RD3D laeuft in jedem VESA-Modus (jede Groesse, 8 bis 32 Bit,
-  R3dOpenVesa). Karten ohne linearen Bildspeicher (VBE 1.2) werden ueber
-  Baenke bedient (ScreenUpdate).
-- Hardware-API fuer native Programme (API 2.4): Systemtakt TaktSet/TaktKill/
-  TaktCount (145,6 Hz), Maus im Vollbild (ScreenMouse), VESA auch fuer 16-Bit-
-  Programme (RD2.LIB), Joystick, Hilfe (F1). Alt+Tab holt auch ein allein
-  laufendes Vollbild-Programm zurueck.
-- Sound Blaster vollstaendig: SB 1.x bis SB16/AWE, Stereo, 16 Bit, OPL3 mit 18
-  FM-Kanaelen. Neuer Mischer RDMIX (8 Kanaele, Lautstaerke, Lage, Schleife:
-  SndMixPlay/Set/Stop/Out/State). Fuer Spiele: SndMusicMem (FM-Musik und
-  -Geraeusche aus dem Speicher) und SndTonePlay (Tonfolgen fuer den
-  PC-Lautsprecher).
-- RD2/32: Speicherschutz zwischen 32-Bit-Programmen, ein Absturz beendet nur
-  das Programm.
-- Drucker: universelle Treiber ESCP24 (24 Nadeln, ESC/P und ESC/P2, 180 dpi)
-  und PCL (HP LaserJet/DeskJet, 300 dpi); Auswahl in Optionen, Karte Drucker.
-- Sicherheit (Audit 24.11.2026): Rueckfragen vor Datenverlust (Formatieren,
-  Partitionen, Loeschen) haben "Nein" vorgewaehlt; Lesefehler werden sofort
-  gemeldet.
-- SDK: Beispiele zu Vollbild, VESA, Maus, Takt, Mischer und Drucken auf
-  Diskette 4 (Pascal-Teil als PASCAL.ZIP, mit RDZIP entpacken), SDK.TXT und
-  SDK_EN.TXT vollstaendig.
+- Vier Verteilformen: 360-KB-Satz, 1,44-MB-Satz ab 386, ZIP, CD und USB.
+- FAT32 ab 386: Beim Formatieren (Setup, Laufwerksmenue, RDFORMAT) und beim
+  Anlegen in RDFDISK waehlbar. Ein Wechsel FAT16/FAT32 aendert den
+  Partitionstyp, startet neu und formatiert dann von selbst weiter, auch
+  mitten in der Installation. RDFDISK nutzt ab 386 LBA fuer Platten ueber
+  8 GB. Freier Platz wird auch ueber 2 GB richtig angezeigt. Unter 386 bleibt
+  alles wie DOS 6 (FAT16 bis 2 GB, lesbar fuer MS-DOS 5).
+- DOS-Programme: Startart Automatisch, Schnell oder Allein (Alt+Eingabe);
+  .BAT ueber COMMAND.COM, residente Programme werden erkannt.
+- Hardware-API fuer native Programme (API 2.4): Systemtakt (145,6 Hz), Maus
+  im Vollbild, VESA auch fuer 16 Bit; Alt+Tab holt auch Vollbild-Programme
+  zurueck.
+- Sound Blaster 1.x bis SB16/AWE (Stereo, 16 Bit, OPL3), Mischer RDMIX mit
+  8 Kanaelen, FM-Musik aus dem Speicher, Tonfolgen fuer den PC-Lautsprecher.
+- RD2/32: Speicherschutz zwischen 32-Bit-Programmen, Module unter DOS bauen,
+  RD3D in jedem VESA-Modus, VBE 1.2 ueber Baenke.
+- Drucker: universelle Treiber ESCP24 (24 Nadeln) und PCL (LaserJet/DeskJet).
+- Sicherheit: Rueckfragen vor Datenverlust haben "Nein" vorgewaehlt,
+  Partitionstabellen werden vorher gesichert, Lesefehler sofort gemeldet.
+- SDK: Beispiele zu Vollbild, VESA, Maus, Takt, Mischer und Drucken.
 
-Abbilder (.IMG) auf Disketten schreiben: unter DOS mit RAWRITE oder
-DISKCOPY-Werkzeugen, unter Windows mit WinImage oder RawWrite for Windows,
-unter Linux mit dd. Lizenz: GPL v2 oder neuer (COPYING), FreeDOS-Kern GPL.
+Abbilder (.IMG) schreiben: DOS RAWRITE, Windows WinImage oder RawWrite for
+Windows, Linux dd. Lizenz: GPL v2 oder neuer (COPYING), FreeDOS-Teile GPL.

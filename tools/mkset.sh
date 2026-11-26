@@ -6,7 +6,7 @@ set -e
 cd "$(dirname "$0")/.."
 O=out/set; T=obj/set.tmp
 python3 -c "import shutil,os; shutil.rmtree('$T', True); os.makedirs('$T'); os.makedirs('$O', exist_ok=True)"
-K=src/disk/fdkern/KERNEL.SYS; [ -f $K ] || { echo "mkset: $K fehlt (ke2046_86f16.zip)"; exit 1; }
+K=src/disk/fdkern/KERNEL.SYS; [ -f $K ] || { echo "mkset: $K fehlt (FreeDOS 2046 8086/FAT16, siehe HERKUNFT.TXT)"; exit 1; }
 liste() { awk -v d=$1 '!/^[#@]/ && NF>=4 && $4==d {print $1}' tools/budget.txt; }
 neu() { rm -f $O/$1; mformat -C -f 360 -v "$2" -i $O/$1 ::; }
 kopie() { img=$1; shift; for f in "$@"; do [ -f out/$f ] || { echo "mkset: out/$f fehlt, nicht auf $img" >&2; continue; }; mcopy -i $O/$img out/$f ::/RD2/; done; }

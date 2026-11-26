@@ -41,7 +41,7 @@ for name, maximum, reserve, enabled, fault, expected in CASES:
     disk = case / 'disk.raw'
     subprocess.run(['bash', str(SRC / 'tools/mkhd.sh'), str(disk)], check=True, stdout=subprocess.DEVNULL)
     fat = str(disk) + '@@32256'
-    with zipfile.ZipFile(SRC / 'release/2.0/RD2_HDD.ZIP') as archive:
+    with zipfile.ZipFile(SRC / 'out/hdd/RD2_HDD.ZIP') as archive:
         archive.extractall(case / 'payload')
     rd = case / 'payload/RD2'
     for file in ['RD2.EXE', 'RDAUSL.MOD', 'RDCTLX.MOD', 'SWAPTEST.EXE', 'SWFAULT.COM']:
@@ -59,7 +59,7 @@ for name, maximum, reserve, enabled, fault, expected in CASES:
             f.truncate(free)
         subprocess.run(['mcopy', '-i', fat, str(case / 'fill.dat'), '::/FILL.DAT'], check=True)
     boot = case / 'boot.img'
-    shutil.copy2(SRC / 'release/2.0/RD2_1.IMG', boot)
+    shutil.copy2(SRC / 'out/set/RD2_1.IMG', boot)
     config = ''
     if fault in ('shortwrite', 'readerror'):
         config += 'INSTALL=C:\\RD2\\SWFAULT.COM' + (' R' if fault == 'readerror' else '') + '\r\n'

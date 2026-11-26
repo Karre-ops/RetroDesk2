@@ -10,7 +10,7 @@ for t in $LISTE; do
     [ -n "$1" ] && [[ "$n" < "$1" ]] && [ "$n" != bootlw ] && continue
     [ -n "$1" ] && [ "$n" = bootlw ] && [[ "install" < "$1" ]] && continue
     case $n in voll|schnell|bench|bench_modi|kurz) continue;; esac
-    for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*|dosbox) kill ${p#/proc/} 2>/dev/null;; esac; done
+    for p in /proc/[0-9]*; do case "$(cat $p/comm 2>/dev/null)" in qemu*|dosbox) [ "$(readlink $p/cwd)" = "$PWD" ] && kill ${p#/proc/} 2>/dev/null;; esac; done   # nur eigene (andere Chats teilen die Sandbox)
     a=$(date +%s)
     timeout 360 bash $t > obj/voll/$n.txt 2>&1 < /dev/null; rc=$?
     f=$(grep -c "^FEHLER" obj/voll/$n.txt); o=$(grep -c "^ok" obj/voll/$n.txt)

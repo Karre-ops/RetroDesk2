@@ -1,4 +1,4 @@
-RetroDesk 2 - Lizenz (Stand 01.11.2026)
+RetroDesk 2 - Lizenz (Stand 26.11.2026)
 
 RetroDesk 2 ist freie Software.
 (c) 2026 Karsten (kcopy@web.de)
@@ -19,8 +19,9 @@ RetroDesk 2 ist freie Software.
      Weitergabe ebenfalls unter einer GPL-vertraeglichen Lizenz stehen.
 
 2. Fremde Teile unter der GPL Version 2:
-     KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16), unveraendert (GPL v2+)
-     CTMOUSE.EXE   CuteMouse 2.1, unveraendert (GPL v2+)
+     KERNEL.SYS    FreeDOS-Kern 2046 (8086, FAT16 und FAT32), unveraendert
+                   (GPL v2+)
+     CWSDPMI.EXE   CWSDPMI r7 (C. W. Sandmann), unveraendert (GPL), ab 386
      COMMAND.COM   FreeCOM 0.85a deutsch, unveraendert (GPL v2)
      RDSYS.EXE     FreeDOS SYS (GPL v2+)
      RDFORMAT.EXE  FreeDOS FORMAT, geaendert fuer RetroDesk 2 (GPL v2+)

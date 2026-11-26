@@ -1,4 +1,4 @@
-# RetroDesk 2: Spezifikation (Phase 0, fortgeschrieben bis API 2.3 / RD2 2.3, Stand 21.11.2026)
+# RetroDesk 2: Spezifikation (Stand RD2 2.4 / API 2.4, 26.11.2026)
 
 Stand: 19.10.2026, **freigegeben** am 19.10.2026. Grundlage: [ENTWURF_RD2.md](archiv/ENTWURF_RD2.md), [PLAN_RD2.md](archiv/PLAN_RD2.md)
 
@@ -6,7 +6,7 @@ Verbindlich sind die Header im SDK, dieses Dokument erklärt sie und legt die Da
 
 | Datei | Inhalt |
 |---|---|
-| `sdk/RD2API.H` | alle 199 Funktionen mit fester Nummer (einzige Quelle) |
+| `sdk/RD2API.H` | alle 225 Funktionen mit fester Nummer (einzige Quelle) |
 | `sdk/RD2.H` | Typen, Strukturen, Konstanten, Nachrichten, Prototypen |
 | `sdk/RD2DRV.H` | Treiber-Schnittstellen Grafik, Sound, Drucker, Eingabe, Netz |
 | `tools/apicheck.py` | prüft Nummern und Namen, `--list` gibt die Tabelle aus |
@@ -171,27 +171,38 @@ Reihenfolge beim Start eines Fensters: `M_CREATE`, `M_SIZE`, `M_SHOW`, `M_ACTIVA
 - Teil 2: Kopieren (F5), Verschieben (F6, auf demselben Laufwerk per Umbenennen), Umbenennen (F2), Neuer Ordner (F7), Löschen (Entf/F8), jeweils auch ganze Ordner. Markieren mit Einfg oder Strg+Klick, rechte Maustaste öffnet das Menü "Datei". Kopierziel vorgeschlagen: zuletzt aktives anderes Ordnerfenster. Rückfrage beim Ersetzen; Kopie in denselben Ordner oder Ordner in sich selbst wird abgelehnt. Test `test/desk2.sh`.
 - Systemdateien (Karsten, 24.10.2026): Löschen, Ersetzen beim Kopieren, Verschieben (auch per Ziehen) und Umbenennen fragen bei Systemdateien ein zweites Mal, „Nein“ ist vorgewählt (`MB_DEFNO`). Als Systemdatei gilt: CONFIG.SYS, AUTOEXEC.BAT, KERNEL.SYS, IO.SYS, MSDOS.SYS, IBMBIO.COM, IBMDOS.COM, COMMAND.COM, RD2.EXE und RD2.INI in der Wurzel eines Laufwerks, jede Datei mit Attribut System, das RD2-Verzeichnis samt Inhalt und die Ordner darüber. Text: „Achtung: … gehört zum System. Ohne sie startet der Rechner oder RD2 vielleicht nicht mehr. Trotzdem …?“ (DE/EN). Bei Nein bricht der ganze Vorgang ab, beim Ersetzen nur diese Datei. Test `test/sysdatei.sh`.
 - Teil 3: **Ziehen mit der Maus** auf ein Ordnerfenster, einen Ordner darin, `..` oder ein Laufwerk. Gleiches Laufwerk = Verschieben, anderes = Kopieren; Strg erzwingt Kopieren, Umschalt Verschieben. Der Zeiger wird beim Ziehen zur Hand (ab 5 Pixel Weg). Ein Klick ohne Strg auf einen nicht markierten Eintrag hebt die Markierungen auf.
-- **Laufwerksmenü** (Rechtsklick auf ein Laufwerk): Öffnen, Eigenschaften (auch Alt+Eingabe: Name, Gesamt, Frei), Formatieren (grau, bis `RDDISK.MOD` da ist). `MenuPopup` ignoriert das Loslassen der Taste, die das Menü geöffnet hat, solange die Maus nicht bewegt wurde (sonst würde sofort der erste Eintrag gewählt). Test `test/desk3.sh` (PS/2-Maus mit CTMOUSE).
-- Laufwerksmenü: „Formatieren...“ startet `RDFORMAT.EXE A:` (aktiv, wenn RDFORMAT.EXE im RD2-Verzeichnis liegt und das Laufwerk eine Diskette oder Festplatte ist). „Bootfähig machen“ entfällt (Karsten, 24.10.2026: keine DOS-Bootdisketten; wenn, dann neue RD2-Disketten als vollständige Kopie).
+- **Laufwerksmenü** (Rechtsklick auf ein Laufwerk): Öffnen, Eigenschaften (auch Alt+Eingabe: Name, Gesamt, Frei), Formatieren. `MenuPopup` ignoriert das Loslassen der Taste, die das Menü geöffnet hat, solange die Maus nicht bewegt wurde (sonst würde sofort der erste Eintrag gewählt). Test `test/desk3.sh` (PS/2-Maus mit CTMOUSE).
+- Laufwerksmenü: „Formatieren...“ startet `RDFORMAT.EXE` für das Laufwerk (Diskette oder Festplatte).
 - Folgt: Listenansicht, `.APP`-Programmliste, Zustand in `RD2.STA`.
 
-### Formatieren (Beschluss 24.10.2026)
+### Formatieren und Partitionieren
 
-`RDFORMAT.EXE` (Diskette 2, GPL v2) = FreeDOS FORMAT 0.92a als Kern, mit RD2-Oberfläche. Quellen unverändert in `src/disk/fdformat` (Herkunft in `HERKUNFT.txt`), Anpassungen in eigenen Commits.
-- Übernommen: Formatieren (createfs, floppy, hdisk, uformat, savefs, recordbc, bcread, driveio, init), Disketten und Festplatte (FAT12/FAT16), Prüfen, defekte Cluster, Schnellformat mit Wiederherstellungsdaten, SYS mit FreeDOS-Bootsektor (aus `boot.asm`, mit NASM gebaut).
-- Ersetzt: Textausgabe und Rückfragen (`userint.c`, `main.c`, `prf.c`, kitten) durch RD2-Dialoge: Einstellungen, Rückfrage, Fortschrittsbalken (`Display_Percentage_Formatted`), Fehlermeldung (`Critical_Error_Handler`, `Exit` springt zurück in die Oberfläche).
-- DOS- und BIOS-Zugriffe (INT 13h, INT 21h IOCTL 44xxh, INT 25h/26h) laufen über `RDDISK.MOD` (RD2-Programme rufen DOS nie direkt auf).
-- **Festplatte (24.10.2026):** `RDFORMAT C:` zeigt Laufwerk und Größe, Bezeichnung und „Schnell“ (Vorgabe an: sicheres Schnellformat mit UNFORMAT-Daten, aus = `/U` mit Prüfung aller Sektoren). FreeDOS fragt vor dem Löschen nach (Text 22). Das Laufwerk, auf dem RD2 liegt (`SYSINFO.home`), lässt sich nicht formatieren. FAT12/FAT16 bis 2 GB, FAT32 nur unter DOS 7. Dazu erlaubt `RDDISK.MOD` INT 21h 60h (vollständiger Pfad, FORMAT prüft SUBST/Netz). Test `test/hdd.sh` (20-MB-Platte, FAT16): schnell, voll mit Bezeichnung, Nein bei der Rückfrage, RD2-Laufwerk.
+`RDFORMAT.EXE` (FreeDOS FORMAT 0.92a, `src/disk/fdformat`) und `RDFDISK.EXE` (Free FDISK 1.3, `src/disk/fdfdisk`,
+Oberfläche in `RDFDISK.C`, Anbindung in `fdglue.c`) sind die FreeDOS-Kerne mit RD2-Oberfläche (Dialoge,
+Fortschrittsbalken, Rückfragen mit Nein vorgewählt). Alle DOS- und BIOS-Zugriffe laufen über `RDDISK.MOD`
+(Positivliste: INT 13h, INT 25h/26h, ausgewählte INT-21h-Funktionen). Aufruf über das Laufwerksmenü
+(„Formatieren...“, „Festplatte einrichten...“) oder aus der Installation. Das Laufwerk, auf dem RD2 liegt, lässt sich
+weder formatieren noch löschen.
 
-`RDFDISK.EXE` (Diskette 2, GPL v2) = Free FDISK 1.3 (`pcompute.c`, `pdiskio.c`, MBR-Startcode `bootnorm.asm`) als Kern, Quellen in `src/disk/fdfdisk` (Herkunft in `HERKUNFT.txt`). `src/disk/fdglue.c` ersetzt Oberfläche, Befehlszeile und FDISK.INI, `src/disk/RDFDISK.C` ist die RD2-Oberfläche. Aufruf über das Laufwerksmenü „Festplatte einrichten...“ (aktiv, wenn RDFDISK.EXE im RD2-Verzeichnis liegt; eine leere Platte hat keinen Buchstaben, deshalb unabhängig vom gewählten Laufwerk).
-- Dialog: Platte 1/2 (nur bei zwei Platten), Liste nach Lage (Laufwerk, Art, Dateisystem, aktiv, Größe; logische Laufwerke eingerückt unter der erweiterten Partition, freier Platz als „Frei“), Knöpfe Anlegen, Löschen, Aktiv, Schreiben, Schließen.
-- Anlegen nach DOS-Regel: das erste DOS-Laufwerk wird primär und aktiv, weitere werden logische Laufwerke in einer erweiterten Partition über den restlichen Platz. Größe per Eingabe (Vorgabe: höchstens möglich); danach ist der restliche freie Platz gewählt.
-- Löschen fragt nach; eine erweiterte Partition samt ihren logischen Laufwerken. Das Laufwerk, auf dem RD2 liegt, lässt sich nicht löschen.
-- Erst „Schreiben“ ändert die Platte (Rückfrage). Danach fragt RDFDISK „Jetzt neu starten?“ (Audit M14, Variante A, 25.10.2026): bei Ja DOS-Puffer schreiben (INT 21h 0Dh), Warmstart über den Tastaturcontroller, auf dem XT Sprung nach FFFF:0. Bei Nein Hinweis, vor dem Formatieren neu zu starten. Test: kette.sh (Ja), fdisk.sh (Nein). Schließen mit Änderungen fragt nach dem Verwerfen.
-- Immer wie DOS 6: nur FAT12/FAT16 (bis 2 GB je Laufwerk), keine LBA-Typen, keine INT-13h-Erweiterungen, damit auch MS-DOS 5 die Platte liest. Platten über 8 GB: nur der per CHS erreichbare Teil. Lage der logischen Laufwerke aus der EMBR-Kette (Audit M8).
-- Test `test/fdisk.sh`: leere 20-MB-Platte (C: primär, aktiv), 100 MB (C: 40 MB + D: logisch), Löschen, Verwerfen (Platte unverändert); Python prüft MBR und EMBR.
-- RD2SETUP benutzt denselben Kern für die Festplatte.
-- Der eigene Formatier-Code aus RD1 (RDFMT) entfällt, sobald der FreeDOS-Kern läuft.
+- **Disketten:** Kapazität nach BIOS-Laufwerkstyp, Bezeichnung, „Schnell“ (sicheres Schnellformat mit UNFORMAT-Daten,
+  sonst `/U` mit Prüfung aller Sektoren).
+- **Festplatte:** Bezeichnung, „Schnell“, ab 386 Dateisystem FAT16 oder FAT32 (FAT32 nur mit FAT32-Kern und ab
+  129 MB, FAT16 bis 2 GB). FAT16 oder FAT32 hängt am Partitionstyp. Bei einem Wechsel sichert RDFORMAT den
+  Tabellensektor (`RD2\PTABn.BAK`), setzt den Typ (0Bh/0Ch bzw. 04h/06h/0Eh), löscht den alten Startsektor, schreibt
+  den Merker `RD2FMT1` in Sektor 2 der Platte und startet neu. Nach dem Start prüft die Shell (ab 386) über
+  `RDDISK.MOD` Export 3 den Merker; `RDFORMAT /W` löscht ihn, findet das Laufwerk über Größe und Lage
+  (GENIOCTL) wieder, formatiert ohne neue Rückfrage und setzt danach eine begonnene Installation fort.
+- **RDFDISK:** Liste nach Lage (Laufwerk, Art, Dateisystem, aktiv, Größe), Anlegen nach DOS-Regel (erstes Laufwerk
+  primär und aktiv, weitere logisch in einer erweiterten Partition), Löschen, Aktiv, Schreiben mit Rückfrage, danach
+  „Jetzt neu starten?“. Unter 386 wie DOS 6: CHS, FAT12/FAT16 bis 2 GB, Platten über 8 GB nur bis 8 GB, damit
+  MS-DOS 5 die Platte liest. Ab 386 fragt Anlegen „mit FAT32?“ und nutzt LBA (INT-13h-Erweiterungen, Typen
+  0Ch/0Eh/0Fh hinter 8 GB), wenn das BIOS es kann. Die Partitionstabelle wird vor dem Schreiben gesichert
+  (`RD2\MBRn.BAK`).
+- **Kerne:** XT-Satz FreeDOS 2046 8086/FAT16. Die 386-Medien starten mit 8086/FAT32 und bringen den FAT16-Kern als
+  `\RD2\K16\KERNEL.SYS` mit; auf die Festplatte kommt der FAT16-Kern, bei FAT32 der FAT32-Kern. `RDSYS.EXE`
+  (FreeDOS SYS) schreibt FAT12-, FAT16- und FAT32-Startsektoren (CHS und LBA).
+- `DriveInfo` zählt Festplatten über 7303h (FAT32-Kern) und meldet über 4 GB den Höchstwert `0xFFFFFFFF`.
+- Tests: `hdd.sh`, `fdisk.sh`, `kette.sh` (FAT16), `fat32.sh`, `fdisk32.sh`, `install32.sh`, `frei.sh` (FAT32).
 
 ### 5.1 Steuerelemente und Dialoge (RDCTL, 23.10.2026)
 
@@ -342,7 +353,7 @@ Für DOS-Programme kommen dazu: `Parameter=`, `Ordner=`, `Grafik=1` (Programm sc
 - **32-Bit-Module `.M32`:** `rd32_modload`/`rd32_modproc`/`rd32_modfree`, laufen im Adressraum des ladenden Programms, Exporte nach Namen, eigene Daten je Ladung, Einsprung `RdMod32Init`. Gebaut mit `tools/rd32mod.py` und `RD32M0` vorn.
 - **3D:** `RD3D.LIB` (Software): Dreiecke mit Z-Puffer, Textur, Gouraud, Nebel und Alpha, im Vollbild (13h, 640x480 linear) und im Fenster. Glide folgt mit dem Treiber-Stack.
 - **32-Bit-DOS-Programme** (DOS/4GW, CWSDPMI, DJGPP) laufen wie andere DOS-Programme über `RunDos`.
-- Einzelheiten und offene Punkte: `docs/PLAN_32BIT.md`, Plan für DOS-Fenster per V86: `docs/PLAN_V86.md`.
+- Einzelheiten und offene Punkte: `docs/archiv/PLAN_32BIT.md`, Plan für DOS-Fenster per V86: `docs/PLAN_V86.md`.
 
 ## 12. Größengrenzen
 
