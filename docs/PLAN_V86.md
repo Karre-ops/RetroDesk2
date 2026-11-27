@@ -39,6 +39,16 @@ Durchgesehen: RDBILD, RDBURG, RDCALC, RDQRCODE, RDTRON (RD2-Fassung), RDISOENGIN
    0007h bis 000Ah), Interrupts und Ausnahmen (0202h bis 0205h), Speicher (0501h, 0502h), rohe Umschaltung
    (0305h, 0306h), Speicherschutz zwischen 32-Bit-Programmen. CWSDPMI bleibt als Notweg.
    Prüfen: rd32, rd32mod, schutz32, rd3d und dos32 laufen unverändert mit RD2V.
+   Schritte: **1a** (fertig 27.11.2026) residenter Host `src/rd2v/RD2V.ASM` → `RD2V.COM` (8,6 KB): 386-Prüfung,
+   lehnt V86-Monitor und zweiten Host ab, 2F/1687h, Einsprung schaltet den 16-Bit-Client in Ring 3 (CS, DS, SS,
+   PSP in der LDT, IOPL 3). Alle Gates DPL 0: Software-INTs kommen als #GP, INT 31h erledigt RD2V, alle anderen
+   und die IRQs werden in den Realmodus gespiegelt (Master-PIC im Schutzmodus auf 50h). 0400h. Ausnahmen beenden
+   nur den Client. Test `test/rd2v.sh` mit `test/dos/DPMITEST.ASM`.
+   **1b** Selektoren (0000h, 0001h, 0003h, 0007h bis 000Ah), Speicher aus XMS (0501h, 0502h).
+   **1c** Interrupt- und Ausnahmevektoren (0202h bis 0205h; RD32 fängt 0, 6, 0Ch, 0Dh, 0Eh), rohe Umschaltung
+   (0305h, 0306h), Rückrufe aus dem Realmodus (Zeitgeber, RD2/32-Rückrufe).
+   **1d** 32-Bit-Clients (RD32.MOD), Aufruf aus RD2 statt CWSDPMI, INSTALL/CONFIG.SYS, dann die Tests oben.
+   Paging kommt erst mit Teil 2 (V86 braucht es); der Speicherschutz von RD32 läuft über Segmentgrenzen.
 2. **System-VM.** DOS, RD2 und 16-Bit-Programme laufen in VM 0 im V86-Modus. INT-Reflektion in die VM, IRQs an
    die VM, I/O-Bitmap gibt die Grafik- und Soundports frei (Treiber bleiben schnell). `RunDos` mit „Allein“
    beendet RD2V vorher.
