@@ -44,7 +44,10 @@ Durchgesehen: RDBILD, RDBURG, RDCALC, RDQRCODE, RDTRON (RD2-Fassung), RDISOENGIN
    PSP in der LDT, IOPL 3). Alle Gates DPL 0: Software-INTs kommen als #GP, INT 31h erledigt RD2V, alle anderen
    und die IRQs werden in den Realmodus gespiegelt (Master-PIC im Schutzmodus auf 50h). 0400h. Ausnahmen beenden
    nur den Client. Test `test/rd2v.sh` mit `test/dos/DPMITEST.ASM`.
-   **1b** Selektoren (0000h, 0001h, 0003h, 0007h bis 000Ah), Speicher aus XMS (0501h, 0502h).
+   **1b** (fertig 28.11.2026) Selektoren (0000h, 0001h, 0003h, 0007h bis 000Ah; LDT mit 128 Einträgen, nur
+   DPL 3 erlaubt), Speicher aus XMS (0501h, 0502h; gesperrte Blöcke, lineare = physische Adresse, A20 dauerhaft an).
+   Beim Ende und nach einem Absturz gibt RD2V alle Blöcke und Selektoren des Clients frei. RD2V.COM 10,7 KB.
+   Test mit HimemX 3.40 (Public Domain, `test/qemu/HIMEMX.EXE`, nur für Tests).
    **1c** Interrupt- und Ausnahmevektoren (0202h bis 0205h; RD32 fängt 0, 6, 0Ch, 0Dh, 0Eh), rohe Umschaltung
    (0305h, 0306h), Rückrufe aus dem Realmodus (Zeitgeber, RD2/32-Rückrufe).
    **1d** 32-Bit-Clients (RD32.MOD), Aufruf aus RD2 statt CWSDPMI, INSTALL/CONFIG.SYS, dann die Tests oben.

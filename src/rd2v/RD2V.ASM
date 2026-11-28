@@ -4,10 +4,13 @@
 ; Software-Interrupts des Clients laufen ueber #GP (alle Gates DPL 0): INT 31h erledigt RD2V selbst, alle anderen
 ; werden in den Realmodus gespiegelt (Register hin und zurueck, Rechenflags zurueck). IRQs ebenso; der Master-PIC
 ; liegt im Schutzmodus auf 50h, im Realmodus wieder auf 08h. Ausnahmen beenden den Client (INT 21h 4CFFh).
-; Noch nicht: Paging, Speicher (0501h), weitere DPMI-Funktionen, 32-Bit-Clients (Plan-Teil 1b bis 1d).
+; Teil 1b: Selektoren (0000h, 0001h, 0003h, 0007h bis 000Ah) und Speicher aus XMS (0501h, 0502h; ohne Paging ist
+; die lineare Adresse die physische, A20 bleibt an). Beim Ende des Clients gibt RD2V seine Selektoren und Bloecke frei.
+; Noch nicht: Paging, Vektoren und Rueckrufe (1c), 32-Bit-Clients (1d).
 cpu 386
 org 100h
-LDTN equ 16
+LDTN equ 128
+NBLK equ 32
 PICPM equ 50h
 
 section .text
@@ -44,6 +47,12 @@ align 4
 tss:      times 104 db 0
 
 old2f:    dd 0
+xmsent:   dd 0
+rtarget:  dd 0
+hebp:     dd 0
+rmode:    db 0
+align 2
+xh:       times NBLK dw 0
 active:   db 0
 align 4
 hesp:     dd 0
@@ -249,6 +258,8 @@ exc_common:
         cmp  byte [ebp+45], 4Ch       ; Ende des Clients
         jne  .spiegeln
         mov  byte [active], 0
+        call aufraeumen
+        mov  eax, 21h
 .spiegeln:
         mov  [rvec], eax
         call reflect
@@ -270,6 +281,7 @@ exc_common:
 .gemeldet:
         mov  dword [ebp+44], 4CFFh
         mov  byte [active], 0
+        call aufraeumen
         mov  dword [rvec], 21h
         call reflect                  ; kehrt nicht zurueck
 iret_out:
@@ -316,21 +328,285 @@ selbase:                              ; EAX = Selektor -> EAX = Basis
         ret
 
 dpmi31: mov  ax, [ebp+44]
-        cmp  ax, 0400h                ; Version
-        jne  .unbekannt
-        mov  word [ebp+44], 005Ah
+        cmp  ax, 0400h
+        je   f0400
+        cmp  ax, 0000h
+        je   f0000
+        cmp  ax, 0001h
+        je   f0001
+        cmp  ax, 0003h
+        je   f0003
+        cmp  ax, 0007h
+        je   f0007
+        cmp  ax, 0008h
+        je   f0008
+        cmp  ax, 0009h
+        je   f0009
+        cmp  ax, 000Ah
+        je   f000a
+        cmp  ax, 0501h
+        je   f0501
+        cmp  ax, 0502h
+        je   f0502
+        mov  ax, 8001h                ; nicht unterstuetzt
+fehler31:
+        mov  [ebp+44], ax
+        or   byte [ebp+64], 1
+        jmp  iret_out
+gut31:  and  byte [ebp+64], 0FEh
+        jmp  iret_out
+falsch31:
+        mov  ax, 8021h                ; ungueltiger Wert
+        jmp  fehler31
+selfalsch:
+        mov  ax, 8022h                ; ungueltiger Selektor
+        jmp  fehler31
+
+f0400:  mov  word [ebp+44], 005Ah     ; Version 0.90
         mov  word [ebp+32], 0001h
         mov  byte [ebp+40], 3
         mov  word [ebp+36], 0870h
-        and  byte [ebp+64], 0FEh
-        jmp  iret_out
-.unbekannt:
-        mov  word [ebp+44], 8001h
-        or   byte [ebp+64], 1
-        jmp  iret_out
+        jmp  gut31
+
+ldtent:                               ; AX = Selektor -> EBX = LDT-Eintrag, CF bei ungueltig oder frei
+        movzx ebx, ax
+        test bl, 4
+        jz   .nein
+        shr  ebx, 3
+        jz   .nein
+        cmp  ebx, LDTN
+        jae  .nein
+        lea  ebx, [ldt+ebx*8]
+        cmp  byte [ebx+5], 0
+        je   .nein
+        clc
+        ret
+.nein:  stc
+        ret
+
+holen:                                ; ECX = Anzahl -> EDX = erster Index (ab 5) freier Eintraege, CF wenn keine
+        mov  edx, 5
+.start: mov  esi, edx
+        mov  edi, ecx
+.pruef: cmp  esi, LDTN
+        jae  .keine
+        cmp  byte [ldt+esi*8+5], 0
+        jne  .weiter
+        inc  esi
+        dec  edi
+        jnz  .pruef
+        mov  esi, edx                 ; gefunden: als Daten (DPL 3, Basis 0, Grenze 0) belegen
+        mov  edi, ecx
+.bel:   mov  dword [ldt+esi*8], 0
+        mov  dword [ldt+esi*8+4], 0000F200h
+        inc  esi
+        dec  edi
+        jnz  .bel
+        clc
+        ret
+.weiter: lea edx, [esi+1]
+        jmp  .start
+.keine: stc
+        ret
+
+f0000:  movzx ecx, word [ebp+40]
+        test ecx, ecx
+        jz   falsch31
+        call holen
+        mov  ax, 8011h                ; keine Deskriptoren frei
+        jc   fehler31
+        lea  eax, [edx*8+7]
+        mov  [ebp+44], ax
+        jmp  gut31
+
+f0001:  mov  ax, [ebp+32]
+        call ldtent
+        jc   selfalsch
+        mov  dword [ebx], 0
+        mov  dword [ebx+4], 0
+        mov  ax, [ebp+32]             ; geladene Segmentregister leeren
+        mov  ecx, 0
+.seg:   cmp  [ebp+ecx*4], ax
+        jne  .naechst
+        mov  dword [ebp+ecx*4], 0
+.naechst: inc ecx
+        cmp  ecx, 4
+        jb   .seg
+        jmp  gut31
+
+f0003:  mov  word [ebp+44], 8
+        jmp  gut31
+
+f0007:  mov  ax, [ebp+32]
+        call ldtent
+        jc   selfalsch
+        mov  ax, [ebp+36]             ; CX:DX = Basis
+        mov  [ebx+2], ax
+        mov  ax, [ebp+40]
+        mov  [ebx+4], al
+        mov  [ebx+7], ah
+        jmp  gut31
+
+f0008:  mov  ax, [ebp+32]
+        call ldtent
+        jc   selfalsch
+        movzx eax, word [ebp+40]      ; CX:DX = Grenze
+        shl  eax, 16
+        mov  ax, [ebp+36]
+        and  byte [ebx+6], 70h        ; G und Grenze 16-19 neu
+        cmp  eax, 0FFFFFh
+        jbe  .bytes
+        mov  edx, eax
+        and  edx, 0FFFh
+        cmp  edx, 0FFFh
+        jne  falsch31
+        shr  eax, 12
+        or   byte [ebx+6], 80h
+.bytes: mov  [ebx], ax
+        shr  eax, 16
+        and  al, 0Fh
+        or   [ebx+6], al
+        jmp  gut31
+
+f0009:  mov  ax, [ebp+32]
+        call ldtent
+        jc   selfalsch
+        mov  cx, [ebp+40]             ; CL = Zugriff, CH = G, D/B, AVL
+        mov  al, cl
+        and  al, 0F0h
+        cmp  al, 0F0h                 ; vorhanden, DPL 3, Code oder Daten
+        jne  falsch31
+        mov  [ebx+5], cl
+        and  ch, 0D0h
+        mov  al, [ebx+6]
+        and  al, 0Fh
+        or   al, ch
+        mov  [ebx+6], al
+        jmp  gut31
+
+f000a:  mov  ax, [ebp+32]
+        call ldtent
+        jc   selfalsch
+        push ebx
+        mov  ecx, 1
+        call holen
+        pop  ebx
+        mov  ax, 8011h
+        jc   fehler31
+        mov  eax, [ebx]
+        mov  [ldt+edx*8], eax
+        mov  eax, [ebx+4]
+        mov  [ldt+edx*8+4], eax
+        mov  byte [ldt+edx*8+5], 0F2h ; Daten, schreibbar
+        lea  eax, [edx*8+7]
+        mov  [ebp+44], ax
+        jmp  gut31
+
+f0501:  cmp  dword [xmsent], 0
+        mov  ax, 8013h                ; kein Speicher
+        je   fehler31
+        mov  ecx, 0                   ; freier Platz in der Tabelle
+.platz: cmp  word [xh+ecx*2], 0
+        je   .frei
+        inc  ecx
+        cmp  ecx, NBLK
+        jb   .platz
+        mov  ax, 8016h
+        jmp  fehler31
+.frei:  push ecx
+        movzx edx, word [ebp+32]      ; BX:CX = Bytes -> KB
+        shl  edx, 16
+        mov  dx, [ebp+40]
+        add  edx, 1023
+        shr  edx, 10
+        pop  ecx
+        test edx, edx
+        jz   falsch31
+        cmp  edx, 0FFFFh
+        ja   .zuviel
+        push ecx
+        mov  eax, 0900h               ; XMS: Block anlegen
+        xor  ebx, ebx
+        call xms
+        pop  ecx
+        cmp  word [r_eax], 1
+        jne  .zuviel
+        mov  ax, [r_edx]
+        mov  [xh+ecx*2], ax
+        push ecx
+        movzx edx, ax
+        mov  eax, 0C00h               ; XMS: sperren -> DX:BX physisch
+        xor  ebx, ebx
+        call xms
+        pop  ecx
+        cmp  word [r_eax], 1
+        jne  .zurueck
+        mov  ax, [r_edx]
+        mov  [ebp+32], ax             ; BX:CX = lineare Adresse
+        mov  ax, [r_ebx]
+        mov  [ebp+40], ax
+        mov  word [ebp+20], 0         ; SI:DI = Griff
+        mov  ax, [xh+ecx*2]
+        mov  [ebp+16], ax
+        jmp  gut31
+.zurueck: movzx edx, word [xh+ecx*2]
+        mov  word [xh+ecx*2], 0
+        mov  eax, 0A00h
+        xor  ebx, ebx
+        call xms
+.zuviel: mov ax, 8013h
+        jmp  fehler31
+
+f0502:  mov  ax, [ebp+16]
+        test ax, ax
+        jz   .falsch
+        cmp  word [ebp+20], 0
+        jne  .falsch
+        mov  ecx, 0
+.such:  cmp  [xh+ecx*2], ax
+        je   .gefunden
+        inc  ecx
+        cmp  ecx, NBLK
+        jb   .such
+.falsch: mov ax, 8023h                ; ungueltiger Griff
+        jmp  fehler31
+.gefunden:
+        call blkfrei
+        jmp  gut31
+
+blkfrei:                              ; ECX = Platz in xh: entsperren, freigeben, austragen
+        push ecx
+        movzx edx, word [xh+ecx*2]
+        mov  eax, 0D00h
+        xor  ebx, ebx
+        call xms
+        pop  ecx
+        push ecx
+        movzx edx, word [xh+ecx*2]
+        mov  eax, 0A00h
+        xor  ebx, ebx
+        call xms
+        pop  ecx
+        mov  word [xh+ecx*2], 0
+        ret
+
+aufraeumen:                           ; Client endet: alle Bloecke und Selektoren ab Index 5 frei
+        mov  ecx, 0
+.blk:   cmp  word [xh+ecx*2], 0
+        je   .nb
+        call blkfrei
+.nb:    inc  ecx
+        cmp  ecx, NBLK
+        jb   .blk
+        mov  ecx, 5
+.sel:   mov  dword [ldt+ecx*8], 0
+        mov  dword [ldt+ecx*8+4], 0
+        inc  ecx
+        cmp  ecx, LDTN
+        jb   .sel
+        ret
 
 reflect:                              ; INT [rvec] im Realmodus mit den Registern aus dem Rahmen (EBP)
-        mov  [hesp], esp
         mov  eax, [ebp+44]
         mov  [r_eax], eax
         mov  eax, [ebp+32]
@@ -347,6 +623,44 @@ reflect:                              ; INT [rvec] im Realmodus mit den Register
         mov  [r_ebp], eax
         mov  ax, [ebp+64]
         mov  [r_fl], ax
+        mov  byte [rmode], 0
+        call rm_do
+        mov  eax, [r_eax]
+        mov  [ebp+44], eax
+        mov  eax, [r_ebx]
+        mov  [ebp+32], eax
+        mov  eax, [r_ecx]
+        mov  [ebp+40], eax
+        mov  eax, [r_edx]
+        mov  [ebp+36], eax
+        mov  eax, [r_esi]
+        mov  [ebp+20], eax
+        mov  eax, [r_edi]
+        mov  [ebp+16], eax
+        mov  eax, [r_ebp]
+        mov  [ebp+24], eax
+        mov  ax, [r_fl]
+        and  ax, 08D5h                ; CF PF AF ZF SF OF vom Realmodus-Handler
+        mov  dx, [ebp+64]
+        and  dx, 0F72Ah
+        or   dx, ax
+        mov  [ebp+64], dx
+        ret
+
+xms:                                  ; XMS-Aufruf: EAX = AX, EDX = DX, EBX = BX -> r_eax, r_ebx, r_edx
+        mov  [r_eax], eax
+        mov  [r_edx], edx
+        mov  [r_ebx], ebx
+        mov  eax, [xmsent]
+        mov  [rtarget], eax
+        mov  byte [rmode], 1
+        call rm_do
+        mov  byte [rmode], 0
+        ret
+
+rm_do:                                ; rmode 0: INT [rvec] mit Flags r_fl, 1: far call [rtarget]; Register r_*
+        mov  [hesp], esp
+        mov  [hebp], ebp
         mov  ax, 28h
         mov  ds, ax
         mov  es, ax
@@ -367,6 +681,8 @@ rmpart: mov  ax, cs
         mov  sp, rmstk_top
         o32 lidt [rm_idtr]
         PICBASE 08h
+        cmp  byte [rmode], 0
+        jne  .fern
         xor  ax, ax
         mov  es, ax
         mov  bx, [rvec]
@@ -376,7 +692,12 @@ rmpart: mov  ax, cs
         push word rm_ret
         push word [es:bx+2]
         push word [es:bx]
-        push cs
+        jmp  .los
+.fern:  push cs
+        push word rm_ret
+        push word [rtarget+2]
+        push word [rtarget]
+.los:   push cs
         pop  es
         mov  eax, [r_eax]
         mov  ebx, [r_ebx]
@@ -411,27 +732,7 @@ pm_back:
         mov  es, ax
         mov  ss, ax
         mov  esp, [hesp]
-        lea  ebp, [esp+4]
-        mov  eax, [r_eax]
-        mov  [ebp+44], eax
-        mov  eax, [r_ebx]
-        mov  [ebp+32], eax
-        mov  eax, [r_ecx]
-        mov  [ebp+40], eax
-        mov  eax, [r_edx]
-        mov  [ebp+36], eax
-        mov  eax, [r_esi]
-        mov  [ebp+20], eax
-        mov  eax, [r_edi]
-        mov  [ebp+16], eax
-        mov  eax, [r_ebp]
-        mov  [ebp+24], eax
-        mov  ax, [r_fl]
-        and  ax, 08D5h                ; CF PF AF ZF SF OF vom Realmodus-Handler
-        mov  dx, [ebp+64]
-        and  dx, 0F72Ah
-        or   dx, ax
-        mov  [ebp+64], dx
+        mov  ebp, [hebp]
         ret
 
 bits 16
@@ -542,6 +843,17 @@ install:
         inc  dx
         cmp  dx, 16
         jb   .irq
+        mov  ax, 4300h                ; XMS da? Einsprung merken, A20 dauerhaft an (kein Paging, Teil 1b)
+        int  2Fh
+        cmp  al, 80h
+        jne  .ohnexms
+        mov  ax, 4310h
+        int  2Fh
+        mov  [xmsent], bx
+        mov  [xmsent+2], es
+        mov  ah, 03h
+        call far [xmsent]
+.ohnexms:
         mov  ax, 352Fh
         int  21h
         mov  [old2f], bx
@@ -605,7 +917,7 @@ puts:                                 ; DS:SI, Ende 0; auf den Bildschirm (DOS) 
         jmp  puts
 .aus:   ret
 
-m_titel: db "RD2V 0.1 (PLAN_V86 Teil 1a)", 13, 10, 0
+m_titel: db "RD2V 0.2 (PLAN_V86 Teil 1b)", 13, 10, 0
 m_ok:    db "RD2V: DPMI-Host geladen", 13, 10, 0
 m_386:   db "RD2V: braucht einen 386", 13, 10, 0
 m_v86:   db "RD2V: Prozessor schon im V86-Modus (EMM386, QEMM?), nicht geladen", 13, 10, 0
